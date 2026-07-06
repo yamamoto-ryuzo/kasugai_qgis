@@ -1,7 +1,7 @@
 # QGIS Launcher (qgis_launcher)
-　[システム一式ダウンロードはこちらから](https://github.com/yamamoto-ryuzo/Geo_Portal/raw/refs/heads/main/public/qgis_launcher.zip)  
-![alt text](https://github.com/yamamoto-ryuzo/Geo_Portal/blob/main/public/image/qgis_launcher.png)  
-![alt text](https://github.com/yamamoto-ryuzo/Geo_Portal/blob/main/public/image/qgis_launcher_info.png)  
+　[システム一式ダウンロードはこちらから](https://yamamoto-ryuzo.github.io/kasugai_qgis/public/qgis_launcher.zip)  
+![alt text](https://yamamoto-ryuzo.github.io/kasugai_qgis/images/qgis_launcher.png)  
+![alt text](https://yamamoto-ryuzo.github.io/kasugai_qgis/images/qgis_launcher_info.png)  
 
 ## 画面構成
 
@@ -170,7 +170,7 @@ C:\qgis_launcher\
 }
 ```
 
-サンプルファイル: [qgis_launcher/download/qgis_settings_override.json.example](qgis_launcher/download/qgis_settings_override.json.example)
+サンプルファイル: [qgis_launcher/download/qgis_settings_override.json.example](https://yamamoto-ryuzo.github.io/kasugai_qgis/download/qgis_settings_override.json.example)
 ### ユーザーごとの設定オーバーライド（qgis_settings_{USERNAME}.json）
 
 BOX のフォルダ階層はユーザーによって異なる場合があります。`qgis_settings.json` と同じディレクトリに `qgis_settings_{Windowsログイン名}.json` を置くと、全員共通のベース設定を上書きできます。
