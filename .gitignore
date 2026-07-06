@@ -1,0 +1,53 @@
+
+
+# --- Rust / Cargo ---
+# Ignore compiled artifacts and build output
+/target/
+
+# Cargo creates a Cargo.lock for reproducible builds; keep it committed for
+# applications. Do not ignore Cargo.lock unless you have a library-only repo.
+
+# --- Build artifacts ---
+# binaries, libraries, debug/release outputs
+*.dll
+*.so
+*.dylib
+*.pdb
+
+# --- Editors / IDEs ---
+.vscode/
+.idea/
+*.iml
+*.sublime-project
+*.sublime-workspace
+
+# Vim / swap
+*.swp
+*.swo
+
+# Backup files
+*~
+
+# --- OS files ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- Logs / temp ---
+*.log
+*.tmp
+*.temp
+
+# --- Misc ---
+# Ignore coverage reports
+.coverage
+coverage/
+
+# Ignore generated files often produced by build tools
+build/
+
