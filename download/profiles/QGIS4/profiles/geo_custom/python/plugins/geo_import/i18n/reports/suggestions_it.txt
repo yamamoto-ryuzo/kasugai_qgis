@@ -1,0 +1,417 @@
+Suggestions for it
+====================
+Total unfinished: 59
+
+[1] Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:93;../geo_import_dialog_base.ui:216;../geo_import_dialog_base.ui:524;../geo_import_dialog_base.ui:599
+Source:
+?
+Suggestion (English source fallback):
+?
+
+[2] Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:117
+Source:
+CSV
+Suggestion (English source fallback):
+CSV
+
+[3] Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:122
+Source:
+GeoJSON
+Suggestion (English source fallback):
+GeoJSON
+
+[4] Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:127
+Source:
+Shapefile
+Suggestion (English source fallback):
+Shapefile
+
+[5] Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:132
+Source:
+KML
+Suggestion (English source fallback):
+KML
+
+[6] Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:137
+Source:
+JSON
+Suggestion (English source fallback):
+JSON
+
+[7] Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:253
+Source:
+dlg_base_current_server
+Suggestion (English source fallback):
+dlg_base_current_server
+
+[8] Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:275
+Source:
+dlg_base_lbl_cache_dir
+Suggestion (English source fallback):
+dlg_base_lbl_cache_dir
+
+[9] Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:307
+Source:
+dlg_base_lbl_plugin_version
+Suggestion (English source fallback):
+dlg_base_lbl_plugin_version
+
+[10] Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:314
+Source:
+dlg_base_btn_select_dataprovider
+Suggestion (English source fallback):
+dlg_base_btn_select_dataprovider
+
+[11] Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:388
+Source:
+IDC_lblPage
+Suggestion (English source fallback):
+IDC_lblPage
+
+[12] Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:543
+Source:
+選択中: 0件
+Suggestion (English source fallback):
+選択中: 0件
+
+[13] Context: GeoImportDialogDataProviders
+Locations: ../geo_import_dialog_dataproviders.ui:26
+Source:
+dlg_dataproviders_title
+Suggestion (English source fallback):
+dlg_dataproviders_title
+
+[14] Context: GeoImportDialogDataProviders
+Locations: ../geo_import_dialog_dataproviders.ui:38
+Source:
+dlg_dataproviders_grp_manual
+Suggestion (English source fallback):
+dlg_dataproviders_grp_manual
+
+[15] Context: GeoImportDialogDataProviders
+Locations: ../geo_import_dialog_dataproviders.ui:50
+Source:
+dlg_dataproviders_lbl_enter_dataprovider_url
+Suggestion (English source fallback):
+dlg_dataproviders_lbl_enter_dataprovider_url
+
+[16] Context: GeoImportDialogDataProviders
+Locations: ../geo_import_dialog_dataproviders.ui:63
+Source:
+dlg_dataproviders_btn_test_connection
+Suggestion (English source fallback):
+dlg_dataproviders_btn_test_connection
+
+[17] Context: GeoImportDialogDataProviders
+Locations: ../geo_import_dialog_dataproviders.ui:70
+Source:
+dlg_dataproviders_btn_add_connection
+Suggestion (English source fallback):
+dlg_dataproviders_btn_add_connection
+
+[18] Context: GeoImportDialogDataProviders
+Locations: ../geo_import_dialog_dataproviders.ui:77
+Source:
+dlg_dataproviders_btn_browse_local
+Suggestion (English source fallback):
+dlg_dataproviders_btn_browse_local
+
+[19] Context: GeoImportDialogDataProviders
+Locations: ../geo_import_dialog_dataproviders.ui:80
+Source:
+dlg_dataproviders_btn_browse_local_tooltip
+Suggestion (English source fallback):
+dlg_dataproviders_btn_browse_local_tooltip
+
+[20] Context: GeoImportDialogDataProviders
+Locations: ../geo_import_dialog_dataproviders.ui:106
+Source:
+dlg_dataproviders_lbl_search_for_provider
+Suggestion (English source fallback):
+dlg_dataproviders_lbl_search_for_provider
+
+[21] Context: GeoImportDialogDataProviders
+Locations: ../geo_import_dialog_dataproviders.ui:116
+Source:
+dlg_dataproviders_lbl_nr_of_instances
+Suggestion (English source fallback):
+dlg_dataproviders_lbl_nr_of_instances
+
+[22] Context: GeoImportDialogDisclaimer
+Locations: ../geo_import_dialog_disclaimer.ui:32
+Source:
+dlg_dsc_dlg_title
+Suggestion (English source fallback):
+dlg_dsc_dlg_title
+
+[23] Context: GeoImportDialogDisclaimer
+Locations: ../geo_import_dialog_disclaimer.ui:70
+Source:
+dlg_dsc_title
+Suggestion (English source fallback):
+dlg_dsc_title
+
+[24] Context: GeoImportDialogSettings
+Locations: ../geo_import_dialog_settings.ui:26
+Source:
+dlg_set_title
+Suggestion (English source fallback):
+dlg_set_title
+
+[25] Context: GeoImportDialogSettings
+Locations: ../geo_import_dialog_settings.ui:38
+Source:
+dlg_settings_grp_cache_folder
+Suggestion (English source fallback):
+dlg_settings_grp_cache_folder
+
+[26] Context: GeoImportDialogSettings
+Locations: ../geo_import_dialog_settings.ui:65
+Source:
+dlg_set_tool_cache
+Suggestion (English source fallback):
+dlg_set_tool_cache
+
+[27] Context: GeoImportDialogSettings
+Locations: ../geo_import_dialog_settings.ui:68
+Source:
+?
+Suggestion (English source fallback):
+?
+
+[28] Context: GeoImportDialogSettings
+Locations: ../geo_import_dialog_settings.ui:90
+Source:
+dlg_set_cache_path
+Suggestion (English source fallback):
+dlg_set_cache_path
+
+[29] Context: GeoImportDialogSettings
+Locations: ../geo_import_dialog_settings.ui:125
+Source:
+dlg_set_ellipsis
+Suggestion (English source fallback):
+dlg_set_ellipsis
+
+[30] Context: GeoImportDialogSettings
+Locations: ../geo_import_dialog_settings.ui:144
+Source:
+dlg_settings_grp_authentication
+Suggestion (English source fallback):
+dlg_settings_grp_authentication
+
+[31] Context: GeoImportDialogSettings
+Locations: ../geo_import_dialog_settings.ui:150
+Source:
+Authentication
+Suggestion (English source fallback):
+Authentication
+
+[32] Context: GeoImportDialogSettings
+Locations: ../geo_import_dialog_settings.ui:170
+Source:
+Edit
+Suggestion (English source fallback):
+Edit
+
+[33] Context: GeoImportDialogSettings
+Locations: ../geo_import_dialog_settings.ui:177
+Source:
+Clear
+Suggestion (English source fallback):
+Clear
+
+[34] Context: GeoImportDialogSettings
+Locations: ../geo_import_dialog_settings.ui:200
+Source:
+<html><head/><body><p><span style=" font-weight:600;">Warning: </span>if this option is enabled, the same authentication configuration will be implicitely propagated to <span style=" font-weight:600;">all</span> OGC layers (WMS, WFS ...) returned by this catalog, this may leak credentials to the result endpoint  if it is not supposed to use the same authentication configuration.</p></body></html>
+Suggestion (English source fallback):
+<html><head/><body><p><span style=" font-weight:600;">Warning: </span>if this option is enabled, the same authentication configuration will be implicitely propagated to <span style=" font-weight:600;">all</span> OGC layers (WMS, WFS ...) returned by this catalog, this may leak credentials to the result endpoint  if it is not supposed to use the same authentication configuration.</p></body></html>
+
+[35] Context: GeoImportDialogSettings
+Locations: ../geo_import_dialog_settings.ui:203
+Source:
+Use the same authentication settings for all OGC layers
+Suggestion (English source fallback):
+Use the same authentication settings for all OGC layers
+
+[36] Context: GeoImportDialogSettings
+Locations: ../geo_import_dialog_settings.ui:213
+Source:
+dlg_settings_grpbox_misc
+Suggestion (English source fallback):
+dlg_settings_grpbox_misc
+
+[37] Context: GeoImportDialogSettings
+Locations: ../geo_import_dialog_settings.ui:225
+Source:
+dlg_settings_chkbox_show_debug_info
+Suggestion (English source fallback):
+dlg_settings_chkbox_show_debug_info
+
+[38] Context: GeoImportDialogSettings
+Locations: ../geo_import_dialog_settings.ui:248
+Source:
+dlg_set_btn_save
+Suggestion (English source fallback):
+dlg_set_btn_save
+
+[39] Context: GeoImportDialogSettings
+Locations: ../geo_import_dialog_settings.ui:255
+Source:
+dlg_set_btn_cancel
+Suggestion (English source fallback):
+dlg_set_btn_cancel
+
+[40] Context: self.util
+Locations: ../geo_import_dialog.py:268
+Source:
+py_dlg_base_page_1_1
+Suggestion (English source fallback):
+py_dlg_base_page_1_1
+
+[41] Context: self.util
+Locations: ../geo_import_dialog.py:626;../geo_import_dialog.py:891
+Source:
+py_dlg_set_info_empty_local_created
+Suggestion (English source fallback):
+py_dlg_set_info_empty_local_created
+
+[42] Context: self.util
+Locations: ../geo_import_dialog.py:906
+Source:
+py_dlg_set_info_local_read_error_boxdrive
+Suggestion (English source fallback):
+py_dlg_set_info_local_read_error_boxdrive
+
+[43] Context: self.util
+Locations: ../geo_import_dialog.py:909
+Source:
+py_dlg_set_info_local_read_error
+Suggestion (English source fallback):
+py_dlg_set_info_local_read_error
+
+[44] Context: self.util
+Locations: ../geo_import_dialog.py:937
+Source:
+CKAN全件取得中...
+Suggestion (English source fallback):
+CKAN全件取得中...
+
+[45] Context: self.util
+Locations: ../geo_import_dialog.py:937
+Source:
+キャンセル
+Suggestion (English source fallback):
+キャンセル
+
+[46] Context: self.util
+Locations: ../geo_import_dialog.py:938
+Source:
+進捗
+Suggestion (English source fallback):
+進捗
+
+[47] Context: self.util
+Locations: ../geo_import_dialog.py:947
+Source:
+CKAN全件取得中... ({}/{})
+Suggestion (English source fallback):
+CKAN全件取得中... ({}/{})
+
+[48] Context: self.util
+Locations: ../geo_import_dialog.py:1006
+Source:
+Current server: {0}
+Suggestion (English source fallback):
+Current server: {0}
+
+[49] Context: self.util
+Locations: ../geo_import_dialog.py:1007
+Source:
+Cache path: {0}
+Suggestion (English source fallback):
+Cache path: {0}
+
+[50] Context: self.util
+Locations: ../geo_import_dialog_dataproviders.py:66
+Source:
+Browse folder...
+Suggestion (English source fallback):
+Browse folder...
+
+[51] Context: self.util
+Locations: ../geo_import_dialog_dataproviders.py:252;../geo_import_dialog_dataproviders.py:473
+Source:
+py_dlg_data_providers_no_server_selected
+Suggestion (English source fallback):
+py_dlg_data_providers_no_server_selected
+
+[52] Context: self.util
+Locations: ../geo_import_dialog_dataproviders.py:257
+Source:
+py_dlg_data_providers_cannot_delete_sever_from_official_list
+Suggestion (English source fallback):
+py_dlg_data_providers_cannot_delete_sever_from_official_list
+
+[53] Context: self.util
+Locations: ../geo_import_dialog_dataproviders.py:279
+Source:
+Select LOCAL folder
+Suggestion (English source fallback):
+Select LOCAL folder
+
+[54] Context: self.util
+Locations: ../geo_import_dialog_dataproviders.py:345
+Source:
+py_dlg_set_info_local_not_found
+Suggestion (English source fallback):
+py_dlg_set_info_local_not_found
+
+[55] Context: self.util
+Locations: ../geo_import_dialog_dataproviders.py:410
+Source:
+py_dlg_data_providers_custom_server
+Suggestion (English source fallback):
+py_dlg_data_providers_custom_server
+
+[56] Context: self.util
+Locations: ../geo_import_dialog_dataproviders.py:411
+Source:
+py_dlg_data_providers_name_custom_server
+Suggestion (English source fallback):
+py_dlg_data_providers_name_custom_server
+
+[57] Context: self.util
+Locations: ../geo_import_dialog_dataproviders.py:419
+Source:
+py_dlg_data_providers_custom_server_name_exists
+Suggestion (English source fallback):
+py_dlg_data_providers_custom_server_name_exists
+
+[58] Context: self.util
+Locations: ../geo_import_dialog_disclaimer.py:60
+Source:
+py_disc_info_html
+Suggestion (English source fallback):
+py_disc_info_html
+
+[59] Context: self.util
+Locations: ../geo_import_dialog_settings.py:121
+Source:
+Select Authentication
+Suggestion (English source fallback):
+Select Authentication
+

@@ -1,0 +1,320 @@
+# -*- coding: utf-8 -*-
+# (C) 2017 Minoru Akagi
+# SPDX-License-Identifier: GPL-2.0-or-later
+# begin: 2017-06-11
+
+import os
+from datetime import datetime
+
+from qgis.PyQt.QtCore import Qt, QDir, QSettings, QUrl
+from qgis.PyQt.QtWidgets import QDialog, QDialogButtonBox, QFileDialog, QMessageBox, QPushButton
+from qgis.core import QgsApplication, QgsProject
+import qgis
+
+from .ui.exporttowebdialog import Ui_ExportToWebDialog
+from ..conf import PLUGIN_NAME
+from ..core.export.export import ExportCancelled, ThreeJSExporter
+from ..utils.basic import getTemplateConfig, templateDir, temporaryOutputDir
+from ..utils.gui import openHelp, openUrl
+
+
+class ExportToWebDialog(QDialog):
+
+    def __init__(self, parent, settings, controller):
+        super().__init__(parent)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+
+        self.settings = settings
+        self.controller = controller
+        self.logHtml = ""
+        self.logNextIndex = 1
+        self.warnings = 0
+        self.lastExportDir = ""
+
+        self.ui = Ui_ExportToWebDialog()
+        self.ui.setupUi(self)
+        self.ui.exportButton = QPushButton("Export")
+        self.ui.exportButton.setDefault(True)
+        self.ui.buttonBox.addButton(self.ui.exportButton, QDialogButtonBox.ButtonRole.ActionRole)
+
+        # general settings
+        fn = settings.outputFileName()
+        self.ui.lineEdit_OutputDir.setText(os.path.dirname(fn))
+
+        bn = os.path.basename(fn)
+        self.ui.lineEdit_Filename.setText(bn or "index.html")
+
+        title = settings.title() or QgsProject.instance().title() or QgsProject.instance().baseName() or os.path.splitext(bn)[0]
+        self.ui.lineEdit_Title.setText(title)
+
+        self.ui.checkBox_UseCurrentView.setChecked(bool(settings.option("viewpoint")))
+        self.ui.checkBox_LocalMode.setChecked(bool(settings.option("localMode")))
+
+        # template settings
+        cbox = self.ui.comboBox_Template
+        for i, entry in enumerate(QDir(templateDir()).entryList(["*.html", "*.htm"])):
+            config = getTemplateConfig(entry)
+            cbox.addItem(config.get("name", entry), entry)
+
+            # set tool tip text
+            desc = config.get("description", "")
+            if desc:
+                cbox.setItemData(i, desc, Qt.ItemDataRole.ToolTipRole)
+
+        index = cbox.findData(settings.template())
+        if index != -1:
+            cbox.setCurrentIndex(index)
+
+        self.templateChanged()
+
+        for key, value in settings.options().items():
+            if key == "gui.customPlane":
+                self.ui.checkBox_Plane.setChecked(True)
+
+            if key == "AR.MND":
+                self.ui.lineEdit_MND.setText(str(value))
+
+        # animation
+        anm = settings.animationData()
+        self.ui.groupBox_Animation.setChecked(anm.get("enabled", False))
+        self.ui.checkBox_StartOnLoad.setChecked(anm.get("startOnLoad", False))
+
+        # connections
+        self.ui.comboBox_Template.currentIndexChanged.connect(self.templateChanged)
+        self.ui.pushButton_Browse.clicked.connect(self.browseClicked)
+        self.ui.buttonBox.clicked.connect(self.buttonClicked)
+
+        self.ui.textBrowser.setOpenLinks(False)
+        self.ui.textBrowser.anchorClicked.connect(openUrl)
+
+        # Qgis2OnlineMap plugin integration
+        self.q2om = qgis.utils.plugins.get("Qgis2OnlineMap")
+        if self.q2om:
+            self.ui.pushButton_Publish.clicked.connect(self.publish)
+            try:
+                self.ui.pushButton_Publish.setIcon(self.q2om.action.icon())
+            except:
+                pass
+        else:
+            self.ui.pushButton_Publish.setEnabled(False)
+
+        self.ui.pushButton_Publish.setVisible(False)
+
+    def templateChanged(self, index=None):
+        # update settings widget visibility
+        config = getTemplateConfig(self.ui.comboBox_Template.currentData())
+        optset = set(config.get("options", "").split(","))
+        optset.discard("")
+
+        b = "gui.customPlane" in optset
+        for w in [self.ui.label_Plane, self.ui.checkBox_Plane]:
+            w.setVisible(b)
+
+        b = "AR.MND" in optset
+        for w in [self.ui.label_MND, self.ui.lineEdit_MND, self.ui.label_MND2]:
+            w.setVisible(b)
+
+        anim = bool(config.get("animation", "yes") == "yes")
+        self.ui.groupBox_Animation.setEnabled(anim)
+
+    def browseClicked(self):
+        # directory select dialog
+        d = self.ui.lineEdit_OutputDir.text() or QDir.homePath()
+        d = QFileDialog.getExistingDirectory(self, self.tr("Select Output Directory"), d)
+        if d:
+            self.ui.lineEdit_OutputDir.setText(d)
+
+    def buttonClicked(self, button):
+        role = self.ui.buttonBox.buttonRole(button)
+        if role == QDialogButtonBox.ButtonRole.ActionRole:
+            self.export()
+        elif role == QDialogButtonBox.ButtonRole.HelpRole:
+            openHelp(f"dlg=export")
+
+    def export(self):
+        self.settings.clearOptions()
+
+        # general settings
+        out_dir = self.ui.lineEdit_OutputDir.text()
+        is_temporary = (out_dir == "")
+        if is_temporary:
+            out_dir = temporaryOutputDir(datetime.today().strftime("%Y%m%d%H%M%S"))
+
+        filename = self.ui.lineEdit_Filename.text()
+        if not filename.strip():
+            filename = "index.html"
+        elif not filename.lower().endswith((".html", ".htm")):
+            filename += ".html"
+
+        filepath = os.path.join(out_dir, filename)
+        if not is_temporary and os.path.exists(filepath):
+            if QMessageBox.question(self, PLUGIN_NAME, "The HTML file already exists. Do you want to overwrite it?", QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel) != QMessageBox.StandardButton.Ok:
+                return
+
+        self.settings.setOutputFilename("" if is_temporary else filepath)
+        self.settings.setTitle(self.ui.lineEdit_Title.text())
+
+        if self.ui.checkBox_UseCurrentView.isChecked():
+            self.settings.setOption("viewpoint", self.controller.cameraState())
+
+        local_mode = self.ui.checkBox_LocalMode.isChecked()
+        if local_mode:
+            self.settings.setOption("localMode", True)
+
+        # template settings
+        self.settings.setTemplate(self.ui.comboBox_Template.currentData())
+
+        options = self.settings.templateConfig().get("options", "")
+        if options:
+            optlist = options.split(",")
+
+            if "gui.customPlane" in optlist and self.ui.checkBox_Plane.isChecked():
+                self.settings.setOption("gui.customPlane", True)
+
+            if "AR.MND" in optlist:
+                try:
+                    self.settings.setOption("AR.MND", float(self.ui.lineEdit_MND.text()))
+                except Exception as e:
+                    QMessageBox.warning(self, PLUGIN_NAME, "Invalid setting value for M.N. direction. Must be a numeric value.")
+                    return
+
+        # animation settings
+        anim_enabled = self.ui.groupBox_Animation.isEnabled() and self.ui.groupBox_Animation.isChecked()
+        startOnLoad = self.ui.checkBox_StartOnLoad.isChecked()
+
+        # save checked states to settings
+        keyframeData = self.settings.animationData()
+        keyframeData["enabled"] = anim_enabled
+        keyframeData["startOnLoad"] = startOnLoad
+
+        if anim_enabled:
+            self.settings.setOption("animation.enabled", True)
+
+            if startOnLoad:
+                self.settings.setOption("animation.startOnLoad", True)
+
+            if keyframeData.get("repeat"):
+                self.settings.setOption("animation.repeat", True)
+
+        settings = self.settings.clone()
+        settings.isPreview = False
+        settings.localMode = settings.requiresJsonSerializable = local_mode
+
+        err_msg = settings.checkValidity()
+        if err_msg:
+            QMessageBox.warning(self, PLUGIN_NAME, err_msg or "Invalid settings")
+            return
+
+        disabled_widgets = [self.ui.tabSettings, self.ui.buttonBox]
+        for w in disabled_widgets:
+            w.setEnabled(False)
+
+        self.ui.tabWidget.setCurrentIndex(1)
+
+        self.logHtml = """
+<style>
+div.progress {margin-top:10px;}
+div.warning {font-weight:bold;}
+div.indented {margin-left:3em;}
+th {text-align:left;}
+</style>
+"""
+        self.logNextIndex = 1
+        self.warnings = 0
+        success = False
+
+        self.progress(0, msg="Export started.")
+        t0 = datetime.now()
+
+        # export
+        exporter = ThreeJSExporter(settings=settings, progress=self.progressNumbered, log=self.logMessageIndented)
+        try:
+            exporter.export(filepath, abortSignal=self.ui.pushButton_Cancel.clicked)
+            success = True
+
+        except ExportCancelled:
+            self.progress(msg="<br>Export was canceled by the user.")
+
+        except Exception as e:
+            self.progress(msg=f"<br>Export failed: {e}")
+
+        elapsed = datetime.now() - t0
+
+        for w in disabled_widgets:
+            w.setEnabled(True)
+
+        self.ui.pushButton_Publish.setVisible(success)
+
+        if not success:
+            self.ui.progressBar.setValue(0)
+            return
+
+        msg = "<br><a name='complete'>Export completed in {:,.2f} seconds.</a>".format(elapsed.total_seconds())
+        if self.warnings:
+            msg += "<br><b>There {} during the export. See above.</b>".format("was a warning" if self.warnings == 1 else "were {} warnings".format(self.warnings))
+        self.progress(100, msg=msg)
+
+        data_dir = settings.outputDataDirectory()
+
+        url_dir = QUrl.fromLocalFile(out_dir)
+        url_data = QUrl.fromLocalFile(data_dir)
+        url_scene = QUrl.fromLocalFile(os.path.join(data_dir, "scene.js" if local_mode else "scene.json"))
+        url_page = QUrl.fromLocalFile(filepath)
+
+        self.logHtml += f"""
+<br>
+<table>
+<tr><th>Output directory</th>
+<td><a href="{url_dir.toString()}">{url_dir.toLocalFile()}</a></td></tr>
+<tr><th>Data directory</th>
+<td><a href="{url_data.toString()}">{url_data.toLocalFile()}</a></td></tr>
+<tr><th>Scene file</th>
+<td>{url_scene.toLocalFile()}</td></tr>
+<tr><th>Web page file</th>
+<td><a href="{url_page.toString()}">{url_page.toLocalFile()}</a></td></tr>
+</table>
+"""
+
+        self.ui.textBrowser.setHtml(self.logHtml)
+        self.ui.textBrowser.scrollToAnchor("complete")
+
+        self.lastExportDir = out_dir
+        QSettings().setValue("/Qgis2threejs/lastExportDir", out_dir)
+
+    def progress(self, current=None, total=100, msg="", numbered=False):
+        if current is not None:
+            percentage = int(current / total * 100)
+            self.ui.progressBar.setValue(percentage)
+
+            v = bool(percentage != 100)
+            self.ui.progressBar.setEnabled(v)
+            self.ui.pushButton_Cancel.setEnabled(v)
+
+        if msg:
+            if numbered:
+                msg = f"{self.logNextIndex}. {msg}"
+                self.logNextIndex += 1
+            self.logHtml += f"<div class='progress'>{msg}</div>"
+            self.ui.textBrowser.setHtml(self.logHtml)
+
+        QgsApplication.processEvents()
+
+    def progressNumbered(self, current=None, total=100, msg=""):
+        self.progress(current, total, msg, numbered=True)
+
+    def log(self, msg, warning=False, indented=False):
+        if warning:
+            self.warnings += 1
+
+        classes = (["warning"] if warning else []) + (["indented"] if indented else [])
+
+        self.logHtml += "<div{}>{}</div>".format(" class='{}'".format(" ".join(classes)) if classes else "", msg)
+        self.ui.textBrowser.setHtml(self.logHtml)
+
+        QgsApplication.processEvents()
+
+    def logMessageIndented(self, msg, warning=False):
+        self.log(msg, warning, indented=True)
+
+    def publish(self):
+        self.q2om.open_with_path(self.lastExportDir)

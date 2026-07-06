@@ -1,0 +1,147 @@
+"""様々なモデルで共通して使われる定義"""
+
+from .base import Attribute
+
+# uro:facilityIdAttribute の属性セット
+# 未使用
+facility_id_attribute_attrs = [
+    Attribute(
+        name="facilityId:alternativeName",
+        path="./uro:alternativeName",
+        datatype="[]string",
+    ),
+    Attribute(
+        name="facilityId:branchId",
+        path="./uro:branchId",
+        datatype="string",
+    ),
+    Attribute(
+        name="facilityId:city",
+        path="./uro:city",
+        datatype="[]string",
+        predefined_codelist="Common_localPublicAuthorities",
+    ),
+    Attribute(
+        name="facilityId:endPost",
+        path="./uro:endPost",
+        datatype="string",
+    ),
+    Attribute(
+        name="facilityId:id",
+        path="./uro:id",
+        datatype="string",
+    ),
+    Attribute(
+        name="facilityId:partId",
+        path="./uro:partId",
+        datatype="string",
+    ),
+    Attribute(
+        name="facilityId:prefecture",
+        path="./uro:prefecture",
+        datatype="[]string",
+        predefined_codelist="Common_localPublicAuthorities",
+    ),
+    Attribute(
+        name="facilityId:route",
+        path="./uro:route",
+        datatype="string",
+    ),
+    Attribute(
+        name="facilityId:startLat",
+        path="./uro:startLat",
+        datatype="double",
+    ),
+    Attribute(
+        name="facilityId:startLong",
+        path="./uro:startLong",
+        datatype="double",
+    ),
+    Attribute(
+        name="facilityId:startPost",
+        path="./uro:startPost",
+        datatype="string",
+    ),
+]
+
+# uro:RiverfacilityIdAttribute の属性セット
+# (uro:facilityIdAttribute の拡張)
+river_facility_id_attribute_attrs = [
+    *facility_id_attribute_attrs,  # uro:facilityIdAttribute を拡張する
+    Attribute(
+        name="facilityId:leftDistance",
+        path="./uro:leftDistance",
+        datatype="double",
+    ),
+    Attribute(
+        name="facilityId:leftEndDistance",
+        path="./uro:leftEndDistance",
+        datatype="double",
+    ),
+    Attribute(
+        name="facilityId:leftEndPost",
+        path="./uro:leftEndPost",
+        datatype="double",
+    ),
+    Attribute(
+        name="facilityId:leftPost",
+        path="./uro:leftPost",
+        datatype="double",
+    ),
+    Attribute(
+        name="facilityId:leftStartDistance",
+        path="./uro:leftStartDistance",
+        datatype="double",
+    ),
+    Attribute(
+        name="facilityId:leftStartPost",
+        path="./uro:leftStartPost",
+        datatype="double",
+    ),
+    Attribute(
+        name="facilityId:rightDistance",
+        path="./uro:rightDistance",
+        datatype="double",
+    ),
+    Attribute(
+        name="facilityId:rightEndDistance",
+        path="./uro:rightEndDistance",
+        datatype="double",
+    ),
+    Attribute(
+        name="facilityId:rightEndPost",
+        path="./uro:rightEndPost",
+        datatype="double",
+    ),
+    Attribute(
+        name="facilityId:rightPost",
+        path="./uro:rightPost",
+        datatype="double",
+    ),
+    Attribute(
+        name="facilityId:rightStartDistance",
+        path="./uro:rightStartDistance",
+        datatype="double",
+    ),
+    Attribute(
+        name="facilityId:rightStartPost",
+        path="./uro:rightStartPost",
+        datatype="double",
+    ),
+    Attribute(
+        name="facilityId:riverCode",
+        path="./uro:riverCode",
+        datatype="string",
+    ),
+    Attribute(
+        name="facilityId:riverName",
+        path="./uro:riverName",
+        datatype="string",
+    ),
+    Attribute(
+        name="facilityId:sideType",
+        path="./uro:sideType",
+        datatype="string",
+        predefined_codelist="RiverfacilityIdAttribute_sideType",
+    ),
+]

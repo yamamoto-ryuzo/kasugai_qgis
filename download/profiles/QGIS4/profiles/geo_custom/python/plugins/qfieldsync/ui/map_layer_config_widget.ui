@@ -1,0 +1,494 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>QFieldLayerSettingsPage</class>
+ <widget class="QWidget" name="QFieldLayerSettingsPage">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>500</width>
+    <height>250</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <layout class="QVBoxLayout" name="QFieldLayerSettingsPageLayout">
+   <item>
+    <widget class="QGroupBox" name="generalSettingsGroupBox">
+     <property name="title">
+      <string>General Settings</string>
+     </property>
+     <layout class="QFormLayout" name="generalSettingsLayout">
+      <item row="0" column="1">
+       <widget class="QComboBox" name="cloudLayerActionComboBox">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="cloudPackagingActionLabel">
+        <property name="text">
+         <string>QFieldCloud packaging action</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="cablePackagingActionLabel">
+        <property name="text">
+         <string>Cable packaging action</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="lockLabel">
+        <property name="text">
+         <string>Permissions</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <layout class="QGridLayout" name="lockGridLayout">
+        <item row="0" column="0">
+         <widget class="QCheckBox" name="isFeatureAdditionLockedCheckBox">
+          <property name="toolTip">
+           <string>When enabled, this option prevents the addition of new features into the layer.</string>
+          </property>
+          <property name="text">
+           <string>Disable feature addition</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QgsPropertyOverrideButton" name="isFeatureAdditionLockedDDButton">
+          <property name="text">
+           <string>…</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="2">
+         <widget class="QCheckBox" name="isFeatureDeletionLockedCheckBox">
+          <property name="toolTip">
+           <string>When enabled, this option prevents the deletion of features from the layer.</string>
+          </property>
+          <property name="text">
+           <string>Disable feature deletion</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="3">
+         <widget class="QgsPropertyOverrideButton" name="isFeatureDeletionLockedDDButton">
+          <property name="text">
+           <string>…</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="4">
+         <spacer name="horizontalSpacer">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item row="1" column="0">
+         <widget class="QCheckBox" name="isAttributeEditingLockedCheckBox">
+          <property name="toolTip">
+           <string>When enabled, this option disables editing of attributes of existing features.</string>
+          </property>
+          <property name="text">
+           <string>Disable attribute editing</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QgsPropertyOverrideButton" name="isAttributeEditingLockedDDButton">
+          <property name="text">
+           <string>…</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="2">
+         <widget class="QCheckBox" name="isGeometryEditingLockedCheckBox">
+          <property name="toolTip">
+           <string>When enabled, this option disables editing of geometries of existing features.</string>
+          </property>
+          <property name="text">
+           <string>Disable geometry editing</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="3">
+         <widget class="QgsPropertyOverrideButton" name="isGeometryEditingLockedDDButton">
+          <property name="text">
+           <string>…</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item row="1" column="1">
+       <widget class="QComboBox" name="cableLayerActionComboBox"/>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="featureFormGroupBox">
+     <property name="title">
+      <string>Feature Form Settings</string>
+     </property>
+     <layout class="QGridLayout" name="featureFormLayout">
+      <item row="0" column="0">
+       <layout class="QHBoxLayout" name="valueMapButtonInterfaceLayout">
+        <item>
+         <widget class="QLabel" name="valueMapButtonInterfaceLabel">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+            <horstretch>1</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="text">
+           <string>Item threshold under which value map editor widgets will use a toggle buttons interface</string>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QgsSpinBox" name="valueMapButtonInterfaceSpinBox">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="suffix">
+           <string> item(s)</string>
+          </property>
+          <property name="minimum">
+           <number>0</number>
+          </property>
+          <property name="maximum">
+           <number>9999999</number>
+          </property>
+          <property name="value">
+           <number>0</number>
+          </property>
+          <property name="showClearButton">
+           <bool>true</bool>
+          </property>
+           <property name="clearValue">
+            <bool>false</bool>
+           </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item row="1" column="0">
+       <widget class="QCheckBox" name="allowValueRelationFeatureAddition">
+        <property name="text">
+         <string>Allow adding new features to value relation editor widgets</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QgsCollapsibleGroupBox" name="attachmentsGroupBox">
+     <property name="title">
+      <string>Attachments Settings</string>
+     </property>
+     <property name="saveCollapsedState">
+      <bool>false</bool>
+     </property>
+     <layout class="QGridLayout" name="attachmentsLayout">
+      <item row="0" column ="0">
+       <widget class="QLabel" name="attachmentsTipLabel">
+        <property name="text">
+         <string>Configure the relative filename of your attachments editor widgets. In your expressions, use {filename} and {extension} tags to refer to the default filenames and extensions.</string>
+        </property>
+        <property name="wordWrap">
+         <bool>true</bool>
+        </property>
+        <property name="font">
+         <font>
+          <italic>true</italic>
+         </font>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QgsCollapsibleGroupBox" name="relationsGroupBox">
+     <property name="title">
+      <string>Relationships Settings</string>
+     </property>
+     <property name="saveCollapsedState">
+      <bool>false</bool>
+     </property>
+     <layout class="QGridLayout" name="relationsLayout">
+      <item row="0" column ="0">
+       <widget class="QLabel" name="relationsTipLabel">
+        <property name="text">
+         <string>Configure relation editor widgets behavior. To improve the overall user experience with QFieldCloud, it is recommended that all vector layers use expression-generated &lt;b&gt;UUIDs for primary keys&lt;/b&gt;.</string>
+        </property>
+        <property name="wordWrap">
+         <bool>true</bool>
+        </property>
+        <property name="font">
+         <font>
+          <italic>true</italic>
+         </font>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QgsCollapsibleGroupBox" name="trackingSessionGroupBox">
+     <property name="title">
+      <string>Tracking Session</string>
+     </property>
+     <property name="checkable">
+      <bool>true</bool>
+     </property>
+     <property name="checked">
+      <bool>false</bool>
+     </property>
+     <property name="saveCollapsedState">
+      <bool>false</bool>
+     </property>
+     <layout class="QVBoxLayout" name="trackingSessionLayout">
+       <item>
+        <widget class="QLabel" name="trackingSessionLabel">
+         <property name="text">
+          <string>When enabled, QField will automatically start a tracking session upon successfully loading the project using the settings provided below.</string>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+         <property name="font">
+          <font>
+           <italic>true</italic>
+          </font>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="trackingRequirementsGroupBox">
+         <property name="title">
+          <string>Requirement Settings</string>
+         </property>
+         <layout class="QGridLayout" name="trackingRequirementsLayout">
+          <item row="0" column="0">
+           <widget class="QCheckBox" name="timeRequirementCheckBox">
+            <property name="text">
+             <string>Enable time requirement</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QgsSpinBox" name="timeRequirementIntervalSecondsSpinBox">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+              <horstretch>1</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="suffix">
+             <string> seconds</string>
+            </property>
+            <property name="minimum">
+             <number>1</number>
+            </property>
+            <property name="maximum">
+             <number>600</number>
+            </property>
+            <property name="value">
+             <number>30</number>
+            </property>
+            <property name="showClearButton">
+             <bool>true</bool>
+            </property>
+            <property name="clearValue">
+             <number>30</number>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QCheckBox" name="distanceRequirementCheckBox">
+            <property name="text">
+             <string>Enable distance requirement</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QgsSpinBox" name="distanceRequirementMinimumMetersSpinBox">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+              <horstretch>1</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="suffix">
+             <string> meters</string>
+            </property>
+            <property name="minimum">
+             <number>1</number>
+            </property>
+            <property name="maximum">
+             <number>1000</number>
+            </property>
+            <property name="value">
+             <number>30</number>
+            </property>
+            <property name="showClearButton">
+             <bool>true</bool>
+            </property>
+            <property name="clearValue">
+             <number>30</number>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0" colspan="2">
+           <widget class="QCheckBox" name="sensorDataRequirementCheckBox">
+            <property name="text">
+             <string>Enable sensor data requirement</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0" colspan="2">
+           <widget class="QCheckBox" name="allRequirementsCheckBox">
+            <property name="text">
+             <string>Wait for all active requirements</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="trackingGeneralSettingsGroupBox">
+         <property name="title">
+          <string>General Settings</string>
+         </property>
+         <layout class="QGridLayout" name="trackingGeneralSettingsLayout">
+          <item row="0" column="0">
+           <widget class="QCheckBox" name="erroneousDistanceSafeguardCheckBox">
+            <property name="text">
+             <string>Enable erroneous distance safeguard</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QgsSpinBox" name="erroneousDistanceSafeguardMaximumMetersSpinBox">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+              <horstretch>1</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="suffix">
+             <string> meters</string>
+            </property>
+            <property name="minimum">
+             <number>1</number>
+            </property>
+            <property name="maximum">
+             <number>1000</number>
+            </property>
+            <property name="value">
+             <number>100</number>
+            </property>
+            <property name="showClearButton">
+             <bool>true</bool>
+            </property>
+            <property name="clearValue">
+             <number>100</number>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="measurementTypeLabel">
+            <property name="text">
+             <string>Measure (M) value attached to vertices</string>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QComboBox" name="measurementTypeComboBox">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+              <horstretch>1</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="sizeAdjustPolicy">
+             <enum>QComboBox::AdjustToMinimumContentsLengthWithIcon</enum>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <spacer name="verticalSpacer">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::MinimumExpanding</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>0</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QgsCollapsibleGroupBox</class>
+   <extends>QGroupBox</extends>
+   <header>qgscollapsiblegroupbox.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>QgsPropertyOverrideButton</class>
+   <extends>QToolButton</extends>
+   <header>qgspropertyoverridebutton.h</header>
+  </customwidget>
+  <customwidget>
+   <class>QgsSpinBox</class>
+   <extends>QSpinBox</extends>
+   <header>qgsspinbox.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

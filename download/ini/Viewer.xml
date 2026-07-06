@@ -1,0 +1,43 @@
+<!DOCTYPE Customization>
+<Customization enabled="true" version="1">
+  <Menus name="Menus" visible="true">
+    <Menu name="mDatabaseMenu" visible="false"/>
+    <Menu name="mEditMenu" visible="false"/>
+    <Menu name="mLayerMenu" visible="false">
+      <Action name="mActionToggleEditing" visible="false"/>
+    </Menu>
+    <Menu name="mSettingsMenu" visible="false"/>
+
+    <Menu name="mProjectMenu" visible="true">
+      <Action name="mActionCloseProject" visible="false"/>
+      <Action name="mActionExit" visible="true"/>
+      <Menu name="menuImport_Export" visible="true">
+        <Action name="mActionDwgImport" visible="true"/>
+        <Action name="mActionDxfExport" visible="true"/>
+        <Action name="mActionSaveMapAsImage" visible="true"/>
+        <Action name="mActionSaveMapAsPdf" visible="true"/>
+      </Menu>
+      <Action name="mActionShowLayoutManager" visible="true"/>
+      <Menu name="mLayoutsMenu" visible="true"/>
+      <Action name="mActionNewPrintLayout" visible="false"/>
+      <Action name="mActionNewProject" visible="false"/>
+      <Action name="mActionNewReport" visible="false"/>
+      <Action name="mActionOpenProject" visible="false"/>
+      <Action name="mActionProjectProperties" visible="false"/>
+      <Action name="mActionRevertProject" visible="false"/>
+      <Action name="mActionSaveProject" visible="false"/>
+      <Action name="mActionSaveProjectAs" visible="false"/>
+      <Action name="mActionSnappingOptions" visible="false"/>
+      <Menu name="mProjectFromStorageMenu" visible="false"/>
+      <Menu name="mProjectFromTemplateMenu" visible="false"/>
+      <Menu name="mProjectToStorageMenu" visible="false"/>
+      <Menu name="mRecentProjectsMenu" visible="false"/>
+    </Menu>
+  </Menus>
+
+  <ToolBars name="ToolBars" visible="true">
+    <ToolBar name="mDigitizeToolBar" visible="true">
+      <Action name="mActionToggleEditing" visible="false"/>
+    </ToolBar>
+  </ToolBars>
+</Customization>

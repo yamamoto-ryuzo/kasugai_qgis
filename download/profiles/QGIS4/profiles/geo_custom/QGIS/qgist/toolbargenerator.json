@@ -1,0 +1,67 @@
+{
+    "toolbar_list": [
+        {
+            "actions_list": [
+                {
+                    "name_internal": "",
+                    "name_translated": "\u7c21\u6613\u5370\u5237",
+                    "parent_name_internal": "QgisApp"
+                }
+            ],
+            "enabled": true,
+            "name_internal": "custom_\u5370\u5237",
+            "name_translated": "\u5370\u5237"
+        },
+        {
+            "actions_list": [
+                {
+                    "name_internal": "Qgis2threejsExporter",
+                    "name_translated": "Qgis2threejs Exporter",
+                    "parent_name_internal": "QgisApp"
+                },
+                {
+                    "name_internal": "",
+                    "name_translated": "Create web map",
+                    "parent_name_internal": "QgisApp"
+                },
+                {
+                    "name_internal": "",
+                    "name_translated": "Lizmap",
+                    "parent_name_internal": "QgisApp"
+                }
+            ],
+            "enabled": true,
+            "name_internal": "custom_WEB",
+            "name_translated": "WEB"
+        },
+        {
+            "actions_list": [
+                {
+                    "name_internal": "searchLayers",
+                    "name_translated": "\u691c\u7d22\u30ec\u30a4\u30e4",
+                    "parent_name_internal": "QgisApp"
+                },
+                {
+                    "name_internal": "\u5730\u56f3\u691c\u7d22",
+                    "name_translated": "\u5730\u56f3\u691c\u7d22",
+                    "parent_name_internal": "QgisApp"
+                }
+            ],
+            "enabled": true,
+            "name_internal": "custom_\u691c\u7d22",
+            "name_translated": "\u691c\u7d22"
+        },
+        {
+            "actions_list": [
+                {
+                    "name_internal": "",
+                    "name_translated": "PLATEAU 3D\u90fd\u5e02\u30e2\u30c7\u30eb\u3092\u8aad\u307f\u8fbc\u3080",
+                    "parent_name_internal": "QgisApp"
+                }
+            ],
+            "enabled": true,
+            "name_internal": "custom_DATA",
+            "name_translated": "DATA"
+        }
+    ]
+}

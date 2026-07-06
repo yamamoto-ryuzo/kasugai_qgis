@@ -1,0 +1,48 @@
+{
+  "box_url": null,
+  "current_project": "Q: - ProjectFiles - ProjectFile.qgs",
+  "drive_mappings": [
+    {
+      "drive": "Q:",
+      "local_cache": "C:\\qgis_cache\\master",
+      "mode": "subst",
+      "read_only": false,
+      "remote": null,
+      "robocopy_exclude": [
+        "secret-folder",
+        "private-data"
+      ],
+      "robocopy_src": "BOX:\\Geo_Portal",
+      "vfs_cache_max_age": null,
+      "vfs_cache_max_size": null,
+      "vfs_cache_mode": null,
+      "vfs_cache_poll_interval": null,
+      "vfs_write_back": null
+    },
+    {
+      "drive": "R:",
+      "local_cache": "BOX:\\Geo_Portal",
+      "mode": "subst",
+      "read_only": false,
+      "remote": null,
+      "robocopy_exclude": [],
+      "robocopy_src": null,
+      "vfs_cache_max_age": null,
+      "vfs_cache_max_size": null,
+      "vfs_cache_mode": null,
+      "vfs_cache_poll_interval": null,
+      "vfs_write_back": null
+    }
+  ],
+  "path_aliases": {
+    "BOX": "%USERPROFILE%\\Box"
+  },
+  "profile": "geo_custom",
+  "project_path": [
+    "ProjectFiles"
+  ],
+  "project_root": "Q:\\",
+  "qgis_executable": "C:\\PROGRA~1\\QGIS 4.0.1\\bin\\qgis.bat",
+  "reearth_url": null,
+  "userrole": "Administrator"
+}

@@ -1,0 +1,25 @@
+# QGIS Plugin metadata file
+## Required
+[general]
+name=geo_import
+qgisMinimumVersion=3.40
+qgisMaximumVersion=4.99
+version=V2.3.45
+author=Ryuzo Yamamoto
+email=ryu@yamakun.net
+description=さまざまなデータセットを検索・追加できるQGISプラグインです / A QGIS plugin to search and add various datasets.
+about=さまざまなデータセットを検索・追加できるQGISプラグインです / A QGIS plugin to search and add various datasets.
+category=Web;Data Management;Database
+icon=icon.png
+homepage=https://github.com/yamamoto-ryuzo/geo_import
+tracker=https://github.com/yamamoto-ryuzo/geo_import/issues
+repository=https://github.com/yamamoto-ryuzo/geo_import
+changelog=
+	1.0.0: Initial release
+tags=CKAN,OpenData,GeoNetwork,Data Catalog,Search,Integration
+supportsQt6=True
+
+## Optional
+
+license=GPL-3.0-or-later
+

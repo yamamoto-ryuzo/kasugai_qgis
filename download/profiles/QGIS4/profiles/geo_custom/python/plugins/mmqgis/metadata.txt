@@ -1,0 +1,16 @@
+[general]
+name=mmqgis
+qgisMinimumVersion=3.99
+qgisMaximumVersion=4.99
+supportsQt6=True
+description=A collection of QGIS vector layer operation plugins
+about=MMQGIS is a set of Python plugins for manipulating vector map layers in Quantum GIS: CSV input/output/join, geocoding, geometry conversion, buffering, hub analysis, simplification, column modification, and simple animation. MMQGIS provides an alternative to the Processing toolbox, with verbose progress reporting, an intuitive user interface, direct shapefile/CSV-file access, and some additional capabilities missing from other plugin sets.
+category=Vector
+version=2026.3.19
+author=Michael Minn
+email=pyqgis@michaelminn.com
+homepage=http://michaelminn.com/linux/mmqgis
+tracker=https://michaelminn.com/linux/mmqgis
+repository=https://plugins.qgis.org/plugins/mmqgis
+experimental=False
+deprecated=False

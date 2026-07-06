@@ -1,0 +1,16 @@
+{
+  "_comment": "このファイルを qgis_settings_{ログインユーザー名}.json にリネームして配置してください。",
+  "_comment2": "例: ログインユーザーが yamamoto なら qgis_settings_yamamoto.json",
+  "_comment3": "drive_mappings は drive キーで既存エントリを探して指定フィールドだけ上書きします。",
+  "_comment4": "path_aliases はキー単位でマージされます（未指定キーは維持）。",
+
+  "path_aliases": {
+    "BOX": "D:\\Box"
+  },
+  "drive_mappings": [
+    {
+      "drive": "Q:",
+      "robocopy_src": "BOX:\\MyFolder\\Geo_Portal"
+    }
+  ]
+}

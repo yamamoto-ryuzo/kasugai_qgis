@@ -1,0 +1,415 @@
+# Unfinished translations report for geo_import_zh.ts (language=zh_CN)
+# Count: 59
+
+---
+Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:93, ../geo_import_dialog_base.ui:216, ../geo_import_dialog_base.ui:524, ../geo_import_dialog_base.ui:599
+Source:
+?
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:117
+Source:
+CSV
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:122
+Source:
+GeoJSON
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:127
+Source:
+Shapefile
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:132
+Source:
+KML
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:137
+Source:
+JSON
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:253
+Source:
+dlg_base_current_server
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:275
+Source:
+dlg_base_lbl_cache_dir
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:307
+Source:
+dlg_base_lbl_plugin_version
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:314
+Source:
+dlg_base_btn_select_dataprovider
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:388
+Source:
+IDC_lblPage
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:543
+Source:
+選択中: 0件
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogDataProviders
+Locations: ../geo_import_dialog_dataproviders.ui:26
+Source:
+dlg_dataproviders_title
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogDataProviders
+Locations: ../geo_import_dialog_dataproviders.ui:38
+Source:
+dlg_dataproviders_grp_manual
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogDataProviders
+Locations: ../geo_import_dialog_dataproviders.ui:50
+Source:
+dlg_dataproviders_lbl_enter_dataprovider_url
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogDataProviders
+Locations: ../geo_import_dialog_dataproviders.ui:63
+Source:
+dlg_dataproviders_btn_test_connection
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogDataProviders
+Locations: ../geo_import_dialog_dataproviders.ui:70
+Source:
+dlg_dataproviders_btn_add_connection
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogDataProviders
+Locations: ../geo_import_dialog_dataproviders.ui:77
+Source:
+dlg_dataproviders_btn_browse_local
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogDataProviders
+Locations: ../geo_import_dialog_dataproviders.ui:80
+Source:
+dlg_dataproviders_btn_browse_local_tooltip
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogDataProviders
+Locations: ../geo_import_dialog_dataproviders.ui:106
+Source:
+dlg_dataproviders_lbl_search_for_provider
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogDataProviders
+Locations: ../geo_import_dialog_dataproviders.ui:116
+Source:
+dlg_dataproviders_lbl_nr_of_instances
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogDisclaimer
+Locations: ../geo_import_dialog_disclaimer.ui:32
+Source:
+dlg_dsc_dlg_title
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogDisclaimer
+Locations: ../geo_import_dialog_disclaimer.ui:70
+Source:
+dlg_dsc_title
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogSettings
+Locations: ../geo_import_dialog_settings.ui:26
+Source:
+dlg_set_title
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogSettings
+Locations: ../geo_import_dialog_settings.ui:38
+Source:
+dlg_settings_grp_cache_folder
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogSettings
+Locations: ../geo_import_dialog_settings.ui:65
+Source:
+dlg_set_tool_cache
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogSettings
+Locations: ../geo_import_dialog_settings.ui:68
+Source:
+?
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogSettings
+Locations: ../geo_import_dialog_settings.ui:90
+Source:
+dlg_set_cache_path
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogSettings
+Locations: ../geo_import_dialog_settings.ui:125
+Source:
+dlg_set_ellipsis
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogSettings
+Locations: ../geo_import_dialog_settings.ui:144
+Source:
+dlg_settings_grp_authentication
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogSettings
+Locations: ../geo_import_dialog_settings.ui:150
+Source:
+Authentication
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogSettings
+Locations: ../geo_import_dialog_settings.ui:170
+Source:
+Edit
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogSettings
+Locations: ../geo_import_dialog_settings.ui:177
+Source:
+Clear
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogSettings
+Locations: ../geo_import_dialog_settings.ui:200
+Source:
+<html><head/><body><p><span style=" font-weight:600;">Warning: </span>if this option is enabled, the same authentication configuration will be implicitely propagated to <span style=" font-weight:600;">all</span> OGC layers (WMS, WFS ...) returned by this catalog, this may leak credentials to the result endpoint  if it is not supposed to use the same authentication configuration.</p></body></html>
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogSettings
+Locations: ../geo_import_dialog_settings.ui:203
+Source:
+Use the same authentication settings for all OGC layers
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogSettings
+Locations: ../geo_import_dialog_settings.ui:213
+Source:
+dlg_settings_grpbox_misc
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogSettings
+Locations: ../geo_import_dialog_settings.ui:225
+Source:
+dlg_settings_chkbox_show_debug_info
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogSettings
+Locations: ../geo_import_dialog_settings.ui:248
+Source:
+dlg_set_btn_save
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogSettings
+Locations: ../geo_import_dialog_settings.ui:255
+Source:
+dlg_set_btn_cancel
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../geo_import_dialog.py:268
+Source:
+py_dlg_base_page_1_1
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../geo_import_dialog.py:626, ../geo_import_dialog.py:891
+Source:
+py_dlg_set_info_empty_local_created
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../geo_import_dialog.py:906
+Source:
+py_dlg_set_info_local_read_error_boxdrive
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../geo_import_dialog.py:909
+Source:
+py_dlg_set_info_local_read_error
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../geo_import_dialog.py:937
+Source:
+CKAN全件取得中...
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../geo_import_dialog.py:937
+Source:
+キャンセル
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../geo_import_dialog.py:938
+Source:
+進捗
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../geo_import_dialog.py:947
+Source:
+CKAN全件取得中... ({}/{})
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../geo_import_dialog.py:1006
+Source:
+Current server: {0}
+Existing translation (empty/unfinished):
+当前服务器: {0}
+---
+Context: self.util
+Locations: ../geo_import_dialog.py:1007
+Source:
+Cache path: {0}
+Existing translation (empty/unfinished):
+缓存路径: {0}
+---
+Context: self.util
+Locations: ../geo_import_dialog_dataproviders.py:66
+Source:
+Browse folder...
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../geo_import_dialog_dataproviders.py:252, ../geo_import_dialog_dataproviders.py:473
+Source:
+py_dlg_data_providers_no_server_selected
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../geo_import_dialog_dataproviders.py:257
+Source:
+py_dlg_data_providers_cannot_delete_sever_from_official_list
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../geo_import_dialog_dataproviders.py:279
+Source:
+Select LOCAL folder
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../geo_import_dialog_dataproviders.py:345
+Source:
+py_dlg_set_info_local_not_found
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../geo_import_dialog_dataproviders.py:410
+Source:
+py_dlg_data_providers_custom_server
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../geo_import_dialog_dataproviders.py:411
+Source:
+py_dlg_data_providers_name_custom_server
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../geo_import_dialog_dataproviders.py:419
+Source:
+py_dlg_data_providers_custom_server_name_exists
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../geo_import_dialog_disclaimer.py:60
+Source:
+py_disc_info_html
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../geo_import_dialog_settings.py:121
+Source:
+Select Authentication
+Existing translation (empty/unfinished):

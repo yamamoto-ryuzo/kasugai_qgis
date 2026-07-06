@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>mmqgis_geocode_web_service_form</class>
+ <widget class="QDialog" name="mmqgis_geocode_web_service_form">
+  <property name="windowModality">
+   <enum>Qt::ApplicationModal</enum>
+  </property>
+  <property name="enabled">
+   <bool>true</bool>
+  </property>
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>549</width>
+    <height>454</height>
+   </rect>
+  </property>
+  <property name="mouseTracking">
+   <bool>false</bool>
+  </property>
+  <property name="windowTitle">
+   <string>Web Service Geocode</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QLabel" name="label_2">
+     <property name="text">
+      <string>Input CSV File (UTF-8)</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QgsFileWidget" name="input_csv_name"/>
+   </item>
+   <item>
+    <layout class="QGridLayout" name="gridLayout">
+     <item row="0" column="0">
+      <widget class="QLabel" name="parameter_name_1">
+       <property name="text">
+        <string>Address</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QComboBox" name="parameter_attribute_1"/>
+     </item>
+     <item row="1" column="2">
+      <widget class="QComboBox" name="parameter_attribute_2"/>
+     </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="parameter_name_3">
+       <property name="text">
+        <string>State</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="2">
+      <widget class="QLabel" name="parameter_name_2">
+       <property name="text">
+        <string>City</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="2">
+      <widget class="QComboBox" name="parameter_attribute_4"/>
+     </item>
+     <item row="2" column="2">
+      <widget class="QLabel" name="parameter_name_4">
+       <property name="text">
+        <string>Country</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="0">
+      <widget class="QComboBox" name="parameter_attribute_3"/>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_8">
+     <property name="text">
+      <string>Web Service</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QComboBox" name="web_service"/>
+   </item>
+   <item>
+    <widget class="QLabel" name="api_key_label">
+     <property name="text">
+      <string>API Key</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLineEdit" name="api_key"/>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_9">
+     <property name="text">
+      <string>Duplicate Handling</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QComboBox" name="duplicate_handling"/>
+   </item>
+   <item>
+    <widget class="QLabel" name="label">
+     <property name="text">
+      <string>Output File Name</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QgsFileWidget" name="output_file_name"/>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_5">
+     <property name="text">
+      <string>Not Found Output List</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QgsFileWidget" name="not_found_file_name"/>
+   </item>
+   <item>
+    <widget class="QProgressBar" name="status">
+     <property name="value">
+      <number>24</number>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Apply|QDialogButtonBox::Close</set>
+     </property>
+     <property name="centerButtons">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QgsFileWidget</class>
+   <extends>QWidget</extends>
+   <header>qgsfilewidget.h</header>
+  </customwidget>
+ </customwidgets>
+ <tabstops>
+  <tabstop>parameter_attribute_1</tabstop>
+  <tabstop>parameter_attribute_2</tabstop>
+  <tabstop>parameter_attribute_3</tabstop>
+  <tabstop>buttonBox</tabstop>
+ </tabstops>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>accepted()</signal>
+   <receiver>mmqgis_geocode_web_service_form</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>248</x>
+     <y>254</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>157</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>rejected()</signal>
+   <receiver>mmqgis_geocode_web_service_form</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>316</x>
+     <y>260</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>286</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>

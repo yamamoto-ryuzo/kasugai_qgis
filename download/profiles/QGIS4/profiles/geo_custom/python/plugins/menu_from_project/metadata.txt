@@ -1,0 +1,45 @@
+[general]
+name=Layers menu from project
+about=Allow easy opening of layers maintaining their style.
+description=Build layers shortcuts menus based on QGIS remote projects stored in PostgreSQL, local network or HTTP(S).
+icon=resources/menu_from_project.png
+tags=menu,layers,project,deployment,shared resource,centralized,remote,shortcut
+
+# credits and contact
+author=Xavier Culos (Agence de l'eau Adour Garonne), Etienne Trimaille, Julien M. (Oslandia), Jean-Marie Kerloch (Oslandia)
+email=xavier.culos@eau-adour-garonne.fr
+homepage=https://aeag.github.io/MenuFromProject-Qgis-Plugin/
+repository=https://github.com/aeag/MenuFromProject-Qgis-Plugin
+tracker=https://github.com/aeag/MenuFromProject-Qgis-Plugin/issues
+
+# QGIS integration
+deprecated=False
+experimental=False
+qgisMinimumVersion=3.34
+qgisMaximumVersion=4.98
+supportsQt6=True
+
+# Author contact information
+
+# versioning
+changelog=
+ Version 2.4.4:
+ * fix corruption of the "helpSearchPath" variable fix #217 by @xcaeag in <https://github.com/aeag/MenuFromProject-Qgis-Plugin/pull/219>
+ * fix release workflow by @Guts
+ * complete qgis-plugin-ci configuration by @Guts
+ * fix documentation worflow by @Guts
+
+ Version 2.4.3:
+ * cache disabled by default by @xcaeag in <https://github.com/aeag/MenuFromProject-Qgis-Plugin/pull/218>
+ * sorted layers in browser
+
+ Version 2.4.2:
+ * fix(ui): restore window's icon and title by @Guts in <https://github.com/aeag/MenuFromProject-Qgis-Plugin/pull/182>
+ * QGIS4 support <https://github.com/aeag/MenuFromProject-Qgis-Plugin/pull/201>
+ * fix: The "add all" option adds layers in reverse order <https://github.com/aeag/MenuFromProject-Qgis-Plugin/pull/215>
+ * fix(cache): Problem if the cache validation file is incorrect <https://github.com/aeag/MenuFromProject-Qgis-Plugin/pull/184>
+ * fix(ui): Use QgsProject icon instead of blank page <https://github.com/aeag/MenuFromProject-Qgis-Plugin/pull/178>
+ * update(docs): cache configuration
+
+
+version=2.4.4

@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>mmqgis_float_to_text_form</class>
+ <widget class="QDialog" name="mmqgis_float_to_text_form">
+  <property name="windowModality">
+   <enum>Qt::ApplicationModal</enum>
+  </property>
+  <property name="enabled">
+   <bool>true</bool>
+  </property>
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>553</width>
+    <height>503</height>
+   </rect>
+  </property>
+  <property name="mouseTracking">
+   <bool>false</bool>
+  </property>
+  <property name="windowTitle">
+   <string>Float to Text</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QLabel" name="label_4">
+     <property name="text">
+      <string>Input Layer Name</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QComboBox" name="input_layer_name"/>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_5">
+     <property name="text">
+      <string>Fields to Convert</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QListWidget" name="attributes">
+     <property name="selectionMode">
+      <enum>QAbstractItemView::ExtendedSelection</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <layout class="QGridLayout" name="gridLayout_2">
+     <item row="1" column="0">
+      <widget class="QComboBox" name="separator">
+       <item>
+        <property name="text">
+         <string>None</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Comma</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Space</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item row="0" column="0">
+      <widget class="QLabel" name="label_6">
+       <property name="text">
+        <string>000's Separator</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QLabel" name="label_7">
+       <property name="text">
+        <string>Decimal Places</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QComboBox" name="decimals">
+       <item>
+        <property name="text">
+         <string>0</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>1</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>2</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>3</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>4</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>5</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>6</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>7</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>8</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>9</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>10</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>11</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>12</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item row="0" column="2">
+      <widget class="QLabel" name="label_2">
+       <property name="text">
+        <string>Multiplier</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="2">
+      <widget class="QLineEdit" name="multiplier"/>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QGridLayout" name="gridLayout_3">
+     <item row="0" column="1">
+      <widget class="QLabel" name="label_9">
+       <property name="text">
+        <string>Suffix</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="0">
+      <widget class="QLabel" name="label_8">
+       <property name="text">
+        <string>Prefix</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLineEdit" name="prefix"/>
+     </item>
+     <item row="1" column="1">
+      <widget class="QLineEdit" name="suffix"/>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QLabel" name="label">
+     <property name="text">
+      <string>Output File Name</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QgsFileWidget" name="output_file_name"/>
+   </item>
+   <item>
+    <widget class="QProgressBar" name="status">
+     <property name="value">
+      <number>24</number>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Apply|QDialogButtonBox::Close</set>
+     </property>
+     <property name="centerButtons">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QgsFileWidget</class>
+   <extends>QWidget</extends>
+   <header>qgsfilewidget.h</header>
+  </customwidget>
+ </customwidgets>
+ <tabstops>
+  <tabstop>input_layer_name</tabstop>
+  <tabstop>attributes</tabstop>
+  <tabstop>buttonBox</tabstop>
+ </tabstops>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>accepted()</signal>
+   <receiver>mmqgis_float_to_text_form</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>248</x>
+     <y>254</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>157</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>rejected()</signal>
+   <receiver>mmqgis_float_to_text_form</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>316</x>
+     <y>260</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>286</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>

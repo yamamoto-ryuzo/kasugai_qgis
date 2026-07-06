@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>qgis2web WIKI</title>
+    <style>
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #fff;
+			height: 100%; /* Imposta l'altezza di html e body al 100% della viewport */
+        }
+		
+		#page {
+			display: flex;
+			flex-direction: column;
+		}
+		
+		#tableOfContents {
+			max-width: 1000px;
+			width: 95%;
+			margin: auto;
+			font-size: 13px;
+			left: 50%;
+			background-color: #f9f9f9;
+			padding: 10px;
+			box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+		}
+
+		.toc-column {
+			float: left;
+			margin-left: 10px;
+		}
+
+        #container {
+			max-width: 1000px;
+			width: 95%;
+			margin: 0 auto;
+			padding: 10px;
+			box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+			background-color: #f9f9f9;
+			height: calc(97vh - 150px);
+			overflow-y: auto;
+			font-size: 15px;
+		}
+		
+		.line {
+		border-bottom: 3px solid black;
+		padding: 12px;
+		}
+		
+		.dotted-line {
+		border-bottom: 1px dashed black;
+		padding: 12px;
+		width: 50%;
+		position: relative;
+		left: 25%;
+		}
+		
+		code {
+		font-size: 14px;
+		background: #ddd;
+		padding-left: 4px;
+		padding-right: 4px;
+		border-radius: 5px;
+		}
+		
+		img{
+		max-width: 100%
+		}
+    </style>
+</head>
+<body>
+	
+	<div id="page">
+	<div id="tableOfContents">
+		<div class="toc-column">
+			<b>SUMMARY</b></br>
+			<a href="#Firststeps">First steps</a></br>
+			<a href="#Installation">Installation</a></br>
+			<a href="#Usage">Usage</a></br>
+			<a href="#BestPractices">Best Practices</a>
+		</div>
+		<div class="toc-column">
+			<b>Project settings</b></br>
+			<a href="#SetQGISproject">Set QGIS project</a></br>
+			<a href="#setLayers">Set Layers</a></br>
+			<a href="#SetStyles">Set Styles</a></br>
+			<a href="#setLabels">Set Labels</a></br>
+			<a href="#setBasemaps">Set Basemaps</a></br>
+		</div>
+		<div class="toc-column">
+			<b>qgis2web settings</b></br>
+			<a href="#LayersandGroups">Layers and Groups</a></br>
+			<a href="#Appearance">Appearance</a></br>
+			<a href="#Export">Export</a></br>
+		</div>
+		<div class="toc-column">
+			<b>Bug</b></br>
+			<a href="#Reportingbugs">Reporting bugs</a>
+		</div>
+	</div>
+	
+    <div id="container">
+
+        <img src="https://raw.githubusercontent.com/qgis2web/qgis2web/master/icons/qgis2web.png">
+
+        <h1>qgis2web WIKI</h1>
+
+        <h1 id="Firststeps">First steps</h1>
+
+			<h2 id="Installation">Installation</h2>
+			
+				<ul>
+					<li>In QGIS, select <code>Plugins &gt; Manage and Install Plugins...</code></li>
+					<li>Find <code>qgis2web</code></li>
+				</ul>
+
+				<img src="installation.png" alt="Installation Screenshot">
+
+				<ul>
+					<li><p>Click <code>Install plugin</code></p>
+				<p>or:</p>			
+					<li><a href="https://github.com/qgis2web/qgis2web/archive/master.zip" target="_blank">Download</a> master repository from github</li>
+					<li>In QGIS, open <code>Plugins &gt; Manage and Install Plugins... &gt; Install from ZIP</code></li>	
+				</ul>
+
+				<img src="install_from_zip.png" alt="Install From Zip">
+			
+		<div class="dotted-line"></div>
+		
+			<h2 id="Usage">Usage</h2>
+				
+				<p>Prepare your QGIS map with simple symbologies. You can improve your webmap like this:
+				</p>
+				<ul>
+					<li>Set your project title, abstract, background and highlight colours in <code>Project > Properties... > General/Metadata</code></li>
+					<li>Give your layers human-friendly names in <code>Layers Panel</code></li>
+					<li>Give your layer columns human friendly names via <code>Layer > Properties > Attributes Form > Fields > Alias</code></li>
+					<li>Hide fields you don't want to appear in your popups by changing their Widget Type to "Hidden"</li>
+					<li>Show media in your popups by changing their Widget Type to "Attachment" (your fields must contain image's path)</li>
+					<li>Style your layers as explained in this wiki, and set their scale-dependent visibility, if required</li>
+				</ul>
+				<p>Run qgis2web from the Web menu, or via its icon in Web toolbar</p>
+				<p>The panes lets you set options to export your map. All options are written to your QGIS project, so save your project if you want to keep these settings.
+			
+				<p>When you first start qgis2web, you will see a preview of your webmap in the plugin's dialog box.</p>	
+				<p>This preview <em>does not update automatically</em> when you change settings within the dialog. Click <code>Update preview</code> to see your changes *</p>
+				<p>When you switch output format, by changing selection between <code>OpenLayers</code> and <code>Leaflet</code>, the preview <em>does</em> automatically update.</p>
+				<p>* You can disable the initial automatic preview on the <code>Settings</code> tab</p>
+				<p>** The preview window will automatically be disabled if you have a layer with more than 1000 features</p>
+
+			<h2 id="BestPractices">Best Practices</h2>
+
+				<p>QGIS Desktop and web mapping technologies such as Leaflet or OpenLayers are very different technologies. It is hardly possible to create a 1:1 copy of all desktop
+				features for the web. Manual post-processing of the exported code may therefore	be necessary for complex requirements.</p>
+				<p><a href="#Projectsettings">Project settings</a> section of this wiki explains how to configure your QGIS project.</p>
+				<p><a href="#qgis2websettings">qgis2web settings</a> section of this wiki explains how to configure the plugin's settings for an optimal export.</p>
+
+				<b>Geometry simplification:</b> qgis2web provides a built-in <code>Precision</code> setting in the <code>Export</code> tab (scale 1–15; 1 = most aggressive simplification).
+				For polygons, a value of 5 is a good starting point. The QGIS <code>Simplify</code> tool can also be used for pre-processing. A slight loss of detail is usually
+				 invisible on the web but significantly improves load time. <br>
+				<b>Attribute pre-calculation:</b> Instead of computing colours or rotations during	web export, use the field calculator to create fixed columns (e.g. `web_color`,
+				`rotation`). Select these fields directly in the plugin for styling. This reduces JavaScript processing load for the end user.<br>
+				<b>Manual feature sorting:</b> Since web maps often ignore symbol levels, sort the layer permanently before exporting. Features at the end of the attribute table
+				are typically drawn on top (Z-order). Use the <code>Permanent sort</code> (or <code>Sort</code>) tool in the Processing Toolbox.<br>
+				<b>Raster fallback for complex symbols:</b> If a style cannot be reproduced (e.g. very specific textures or artistic lines), export that layer from QGIS as a
+				raster image (GeoTIFF) and include it as a raster layer. This preserves the appearance completely.<br>
+				<b>Limit data volume:</b> Very large vector datasets are not suitable for static qgis2web exports. Look at techniques like heatmaps, point clustering or server 
+				side rendering (GIS servers) to cope with.
+			
+		<div class="line"></div>
+
+        <h1 id="Projectsettings">Project settings</h1>
+		
+			<h2 id="SetQGISproject">Set QGIS project</h2>
+			
+				<p>In QGIS, open <code>Project &gt; Project Properties... &gt; General</code>. The following settings will affect your webmap:</p>
+
+				<ul>
+					<li><code>Selection color</code></li>
+					<li><code>Background color</code></li>
+				</ul>
+
+				<img src="selection-and-backround-color.png" alt="Project Selection and Backround"></img>
+				
+				<p>and open <code>Metadata</code>. The following settings will affect your webmap:</p>
+				
+				<ul>
+					<li><code>Title</code></li>
+					<li><code>Abstract</code></li>
+				</ul>
+				
+				<img src="title-and-abstract.png" alt="Project Title and Abstract"></img>
+
+				<p><code>Project title</code> and <code>Project abstract</code> are visible in your exported webmap; they can be positioned <code>upper left</code>, <code>upper right</code>, <code>bottom left</code> or <code>bottom right</code></p>
+
+				<img src="title-and-abstract-example.png" alt="Project Title and Abstract Example"></img>
+
+				<p><code>Selection color</code> is used as the highlight colour if <code>Highlight on hover</code> is checked:</p>
+
+				<img src="highlight.png" alt="Highlight on Hover Screenshot"></img>
+				
+		<div class="dotted-line"></div>		
+		
+			<h2 id="setLayers">Set Layers</h2>
+				   
+				<h4>Limitations</h4>
+				<ul>
+					<li><p>Single quotes <code>'</code> and double quotes <code>"</code> are technically supported but should be avoided.</p></li>
+				</ul>
+				<p>Give your layers human-friendly names in <code>Layer properties &gt; Source</code></p>
+				<img src="layername.png" alt="Layer Properties Screenshot">
+				<p>These will appear in your map's <code>Layer list</code> , grouped or not :</p>
+				<img src="layerlist.png" alt="Layer Title in Layers List Screenshot">
+				<p>Set your layers' scale-dependent visibility, if required:</p>
+				<img src="scaledependent.png" alt="Set Scale-Dependent Visibility Screenshot">
+
+				<h3>Alias</h3>
+
+				<p>Give your layer fields human friendly names via <code>Layer &gt; Properties &gt; Attributes Form &gt; Select Field &gt; Alias</code></p>
+				
+				<img src="alias.png" alt="Field Alias Screenshot">
+
+				<h3>Hidden Fields</h3>
+				<p>Hide the field if you don't want to export it, by changing their <code>Widget Type</code> to "Hidden". As a result, the information will not export and not appear in the popup:</p>
+				<img src="hidden.png" alt="Hide Field Screenshot">
+
+				<h3>Media (Image, Audio and Video)</h3>
+
+				<p>If you want to show images or audio or video in popup you must set <code>Widget Type</code> to "Attachment" and do not change other values.
+				<u>Only the Absolute path is supported</u> :</p>
+				<img src="attachment.png" alt="Photo Screenshot">
+
+				<p>Set the absolute path as the field text:</p>
+				<img src="absolutepath.png" alt="Absolute Path Screenshot">
+
+				<p>The result in your map will look like this</p>
+				<img src="popupresultimage.png" alt="Image Screenshot">
+				<p>or this, for audio</p>
+				<img src="audio.png" alt="Audio Screenshot">
+				<p>or this, for video</p>
+				<img src="video.png" alt="Video Screenshot">
+
+				<h3>Attach documents</h3>
+				<p>To attach documents and open them in another browser window, create a text field in your layer and write a string like this:</p>
+				<code>&lt;a href="NTA_ENTE.pdf" target="_blank"&gt;NTA_ENTE.pdf&lt;/a&gt;</code>
+				<p></p>
+				<img src="attach-document.png" alt="Attach Document Screenshot">
+				
+				<p>Insert your document into exported folder</p>
+				<img src="save-document.png" alt="Save Document Screenshot">
+				
+				<p>Popup will show the link as clickable and when clicked it will open a new browser tab showing Document (for supported format), or Download it</p>
+				<img src="popup-attach-example.png" alt="Popup Attach Example Screenshot">
+	
+				<div class="dotted-line"></div>		
+		
+			<h2 id="SetStyles">Set Styles</h2>
+				<h4>Limitations</h4>
+				<ul>
+					<li>Rule-based symbology is exported in principle, but is error-prone and should always be verified with a test.</li>
+					<li>Diagrams are not supported. Special renderers such as Geometry Generator and 2.5D symbology are not correctly translated into web code 
+						and are sometimes reduced to simple symbols. Heatmaps are only partially supported and depend on the export engine.</li>
+					<li>Symbol levels are supported in OpenLayers; in Leaflet they are not reliably supported.</li>
+				</ul>
+
+				<h3>No symbol</h3>
+				<p>Data will not be drawn on the map. Useful if you want to show only labels.</p>
+
+				<h3>Single symbol</h3>
+				<img src="single.png" alt="Single Symbol Renderer">
+
+				<h3>Categorized</h3>
+				<img src="categorized.png" alt="Categorized Symbol Renderer">
+
+				<h3>Graduated</h3>
+				<img src="graduated.png" alt="Graduated Symbol Renderer">
+
+				<h3>Dash Line</h3>
+				<img src="dashline.png" alt="Dash Line">
+
+				<h3>Dot Line</h3>
+				<img src="dotline.png" alt="Dot Line">
+
+				<h3>Dash Dot Line</h3>
+				<img src="dashdotline.png" alt="Dash Dot Line">
+
+				<h3>Dash Dot Dot Line</h3>
+				<img src="dashdotdotline.png" alt="Dash Dot Dot Line">
+
+				<h3>SVG Marker (for point layers only)</h3>
+				<p>Supported customization:</p>
+				<li>Size</li>
+				<li>Fill color</li>
+				<li>Stroke color</li>
+				<li>Stroke width</li>
+
+				<img src="svgmarker.png" alt="SVG Marker">
+
+				<a>SVG Categorized or Graduated</a>
+				<p>Supported customization for all svg's in simbology:</p>
+				<li>Size</li>
+				<li>Fill color</li>
+				<li>Stroke color</li>
+				<li>Stroke width</li>
+				<p></p>
+				<img src="svg_categorized_or_graduated.png" alt="SVG Categorized or Graduated">
+				<p></p>
+				<li><u>Only openlayers export</u>: Multiple use of the same svg icon with different properties</li>
+				<p></p>
+				<img src="multiple-same-svg.png" alt="Multiple Same SVG Screenshot">
+				
+				<h3>Transparency</h3>
+				<h4>Vector Layer</h4>
+				<p>Change color's opacity, not layer's opacity</p>
+				<img src="vectortransparency.png" alt="Vector Layer No Yes Transparency">
+				<p></p>
+				<img src="vectortransparency1.png" alt="Vector Layer Transparency">
+
+				<h4>Raster Layer</h4>
+				<img src="rastertransparency.png" alt="Raster Layer Transparency">
+
+				<h4>WMS Layer</h4>
+				<img src="wmstransparency.png" alt="WMS Layer Transparency">
+
+		<div class="dotted-line"></div>		
+		
+			<h2 id="setLabels">Set Labels</h2>
+				<h4>Limitation</h4>
+				<ul>
+					<li>The plugin only exports the information about which font should be used, not the font file itself.
+						The end user's browser must have the font installed locally, or it must be embedded manually. <br>
+						<b>Tip for embedding:</b> Copy the following link into the <code>&lt;head&gt;</code> of <code>index.html</code> and update the
+						   font name in the export's CSS file to <code>'Roboto', sans-serif;</code> :<br>
+							<br>
+							<code>&lt;link href="https://fonts.googleapis.com/css2?family=Roboto" rel="stylesheet"&gt;</code>
+							<br><br>
+					</li>
+					<li>Simple expressions (e.g. concatenating field values) are supported. Complex QGIS functions (such as aggregate functions)
+						 and data-defined overrides for size, colour, or rotation are often ignored or incorrectly translated during export.</li>
+					<li>Rule-based labelling is not supported.</li>
+				</ul>
+
+				<h4>Layers labelled in QGIS will be labelled in your webmap. The following formatting will be exported:</h4>
+				<ul>
+					<li>font size</li>
+					<li>font colour</li>
+					<li>typeface</li>
+					<li>bold</li>
+					<li>italic</li>
+					<li>buffer</li>
+				</ul>
+				<img src="labels.png" alt="Labeled Features">
+		
+		<div class="dotted-line"></div>				
+			
+			<h2 id="setBasemaps">Set Basemaps using XYZ Tiles</h2>
+				
+				<p>Basemaps (XYZ tiles) are normally only available in EPSG:3857 (Web Mercator).</p>
+				<p>As of QGIS 3.0 and qgis2web 3.0 basemaps are now handled through the XYZ Tiles data source in QGIS.</p>
+
+				<h3>Basemap Sources:</h3>
+				<b>OpenStreetMap (doesn't work locally -403r error-, requires a web server)</b></p>
+				<code>http://tile.openstreetmap.org/{z}/{x}/{y}.png</code></p>
+				<b>OpenFreeMap (works locally, see <a href="#ofmTrick">OFM Trick</a>)</b></p>
+				<code>https://tiles.openfreemap.org/natural_earth/ne2sr/{z}/{x}/{y}.png</code></p>
+				<b>OpenTopoMap</b></p>
+				<code>https://tile.opentopomap.org/{z}/{x}/{y}.png</code></p>
+				<b>Google Hybrid</b></p>
+				<code>https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}</code></p>
+				<b>Google Satellite</b></p>
+				<code>https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}</code></p>
+				<b>Google Road</b></p>
+				<code>https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}</code></p>
+			    </br>
+
+				<p>XYZ Tiles can be accessed from menù on top:</p>
+				<img src="browse_xyz.png" alt="Browse XYZ">
+				<p>Then put in a name for basemap and the aforementioned URL</p>
+				<img src="add_new_xyz.png" alt="Add new XYZ">
+				<p>Then click to "add" to put in Map</p>
+				<img src="add_xyz_to_map.png" alt="Add XYZ to map">
+
+				<h3 id="ofmTrick">OpenFreeMap Trick</h3>
+				<p>OpenFreeMap is composed of 3 different layers: a background, a vector, and a label layer. To make OFM work in the exported webmap, simply load only
+				the XYZ layer described above into QGIS. The webmap will display a group containing the 3layers (which are not visible).</p>
+				<p>In QGIS, only the XYZ background layer will be visible:</p>
+				<img src="ofm-qgis.png" alt="OFM QGIS">
+				<p>But in the webmap, you will see a complete data</p>
+				<img src="ofm-webmap.png" alt="OFM Webmap">
+				
+		<div class="line"></div>
+
+        <h1 id="qgis2websettings">qgis2web settings</h1>
+		
+			<h2 id="LayersandGroups">Layers and Groups</h2>
+			
+				<h3>"Set all" input</h3>				
+				<p>The settings shown on this page can be set massively for all layers using the "Set all" input. The entries dedicated to the checks first insert them all, then remove them, then insert them etc...</p>
+				<img src="setall.png" alt="Set all input">
+				 
+				<h3>Export Layers</h3>
+				<p>When you launch qgis2web all activated layers in your qgis project will be checked as exportable. If you want to export all the layers of your project, turn them on before launching qgis2web or use the "Set all" input</p>
+
+				<h3>Visible</h3>
+				<p>Select whether the layer will be visible on map load. This only determines visibility - the layer will be loaded regardless of this setting:</p>
+				<img src="visible.png" alt="Set layer title">
+				
+				<h3>Popups</h3>
+				<p>Select whether a layer should show a popup and respond or whether the layer should not listen to click events.</p>
+				<p>OpenLayers popup will show all features information present in a click point, showing layer's name relating to queried feature</p>
+				<img src="openlayerspopup.png" alt="OpenLayers Popup">
+				<p>Leaflet popup will only show information for one feature at a time</p>
+				<img src="leafletpopup.png" alt="Leaflet Popup">
+				
+				<h3>Popup fields</h3>
+				<p>Specify how each field will be labeled in pop-ups</p>
+				<table>
+					<tr>
+						<td><img src="nolabel.png" alt="No Label"></td>
+						<td><img src="inlinelabel.png" alt="Inline Label"></td>
+						<td><img src="headerlabel.png" alt="Header Label"></td>
+					</tr>
+					<tr>
+						<td>no label</td>
+						<td>inline label</td>
+						<td>header label</td>
+					</tr>
+				</table>
+				<p></p>
+				<p>The options will have the following result in the popup:</p>
+				<ul>
+					<li><code>no label</code> (displays only data in the popup without showing the field name)</li>
+					<li><code>inline label - always visible</code> (displays field name on the same line as data)</li>
+					<li><code>inline label - visible with data</code> (displays field name on the same line as data, only if data is present)</li>
+					<li><code>hidden</code> (keeps information in the popup hidden at all times)</li>
+					<li><code>header label - always visible</code> (displays field name above data)</li>
+					<li><code>header label - visible with data</code> (displays field name above data, only if data is present)</li>
+				</ul>
+
+				<h3>Encode to JSON</h3>
+				<p>If unchecked, WFS layers will remain remote WFS layers in the webmap. If checked, the layer will be written to a local GeoJSON file</p>
+
+				<h3>Cluster</h3>
+				<p>Cluster point features:</p>
+				<img src="cluster.png" alt="Cluster point features">
+				
+				<h3>GetFeatureInfo</h3>
+				<p>If checked, the wms layers will be queryable with popup</p>
+				<img src="getfeatureinfo.png" alt="GetFeatureInfo">
+
+				<h3>Basemap</h3>
+				<p>Option visible only for <code>raster, xyz and wms</code> layers. If checked the layer will be visible in the LayersList with a radio button, not with a checkbutton.</p>
+				<img src="basemap-option.png" alt="Basemap Option">
+				<img src="basemap-radio.png" alt="Basemap Radio Button">
+
+				<h3>Group</h3>
+				<p>If you have organized your layers into groups you will find them in the interface.</p>
+				<p>There is an option "Collapsed if LayersList" that is automatically enabled if your group is collapsed in the QGIS layer list. The option reflects the group's status in the LayersList, if it is visible.</p>
+				<img src="collapsed-group-option.png" alt="Collapsed Group Option">
+				<img src="layerslist-group-collapsed.png" alt="LayersList Group Collapsed">
+
+
+		<div class="dotted-line"></div>	
+				
+			<h2 id="Appearance">Appearance</h2>
+				
+				<h3>Title</h3>
+				<p>Add a info window in the webmap which shows the projects title</p>
+				<h3>Abstract</h3>
+					<p>Add a collapsible info window in the webmap which shows the projects metadata abstract</p>
+				<h3>Layers list</h3>
+					<p>Include list of layers (with legend icons, where possible)</p>
+				<h3>Attribute Filter</h3>
+					<p>Only for Leaflet export: Allows you to choose multiple fields and will show the graphical possibility of filtering the data visible on the map</p>
+				<h3>Geolocate user</h3>
+					<p>Show user's location on map<br />
+					<strong>Note:</strong> Chrome now blocks geolocation unless your map is hosted securely (HTTPS)</p>
+				<h3>Measure tool</h3>
+					<p>Include interactive measuring widget - choose metric or imperial units</p>	
+				<h3>Address search</h3>
+					<p>Add field to allow searching for address locations (geocode)</p>
+				<h3>Layer search</h3>
+					<p>Add option to search for values in layer field values, also in cluster</p>
+					<strong>Note:</strong> Layer search does not work in leaflet export if a point layer with symbols other than circle is used
+				<h3>Show popups on hover</h3>
+					<p>Show popups when mouse hovers over features</p>
+				<h3>Highlight on hover</h3>
+					<p>Highlight features on mouseover</p>
+				<h3>Template</h3>
+					<p>Select HTML template for webmap - add your own templates to /qgis2web/templates directory in your current QGIS3 profile folder</p>
+				<h3>Widget Icon</h3>
+					<p>Choose controls main color</p>
+				<h3>Widget Background</h3>
+					<p>Choose controls background color</p>
+				<h3>Match project CRS</h3>
+					<p>By default, the web map is exported in EPSG:3857. Using the "Match project CRS" option, the project CRS can be retained instead.</p>
+				<h3>Restrict to extent</h3>
+					<p>Prevent panning or zooming beyond the selected extent</p>
+				<h3>Extent</h3>
+					<p>Either match the current QGIS view or show all contents of all layers (only local GeoJSON and rasters, not WFS/WMS)</p>
+				<h3>Max zoom level</h3>
+					<p>How far the webmap will zoom in</p>
+				<h3>Min zoom level</h3>
+					<p>How far the webmap will zoom out</p>
+				
+		<div class="dotted-line"></div>
+		
+			<h2 id="Export">Export</h2>
+			
+				<h3>Export folder</h3>
+					<p>The folder where the webmap will be saved</p> 
+				<h3>Exporter</h3>
+					<p>How your map will be exported - currently supported are `Export to folder` and `Export to FTP site`: Click the `...` button to configure the export settings</p> 
+				<h3>Minify GeoJSON files</h3>
+					<p>Remove unnecessary whitespace from exported GeoJSON to reduce file size</p>
+				<h3>Precision</h3>
+					<p>Simplify geometry to reduce file size. Note that 1 is the most aggressive simplification and 15 the least, for polygons a setting of 4 is probably about the right compromise between data size and quality</p>
+
+		<div class="line"></div>
+		
+		<h1 id="Bug">Bug</h1>
+
+			<h2 id="Reportingbugs">Reporting bugs</h2>
+				<p>Please report any problems you have with qgis2web. Without this feedback, I
+				am often completely unaware that a problem exists. To ensure no time or effort
+				is wasted in bug reporting, please follow these steps:</p>
+				<ol>
+					<li>Make sure you are using the latest release of qgis2web</li>
+					<li>Check the issues on Github to see whether the bug has already been
+						reported, and if so, read through all the comments on the issue, and
+						add any additional information from your experience of the bug</li>
+					<li>Make sure you can reproduce the bug reliably</li>
+					<li>Reduce the complexity of your bug conditions as far as you can,
+						especially by reducing the number of layers, ideally to one</li>
+					<li>Raise a Github issue in <code>github.com/qgis2web/qgis2web/issues</code>, including:
+					<ul>
+						<li>only one bug per Github issue</li>
+						<li>the qgis2web version (or make it clear you are using Github master
+							branch)</li>
+						<li>any Python error text/stack trace which occurs</li>
+						<li>browser JS console errors - press F12 in qgis2web to open the 
+							developer toolbar and find the console</li>
+						<li>screenshot of your settings</li>
+						<li>screenshot of the output</li>
+						<li>a link to the data you used, if possible</li>
+					</ul></li>
+				</ol>
+				<p>The stability of qgis2web relies on your bug reports, so please keep them
+				coming.</p>
+		
+    </div>
+
+</body>
+	</div>
+</html>

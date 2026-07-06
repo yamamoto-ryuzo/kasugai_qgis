@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>mmqgis_spatial_join_form</class>
+ <widget class="QDialog" name="mmqgis_spatial_join_form">
+  <property name="windowModality">
+   <enum>Qt::ApplicationModal</enum>
+  </property>
+  <property name="enabled">
+   <bool>true</bool>
+  </property>
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>567</width>
+    <height>444</height>
+   </rect>
+  </property>
+  <property name="mouseTracking">
+   <bool>false</bool>
+  </property>
+  <property name="windowTitle">
+   <string>Spatial Join</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QLabel" name="label_4">
+     <property name="text">
+      <string>Output Shape (Target) Layer</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QComboBox" name="target_layer_name"/>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_5">
+     <property name="text">
+      <string>Spatial Operation</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QComboBox" name="spatial_operation">
+     <item>
+      <property name="text">
+       <string>Intersects</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Within</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Contains</string>
+      </property>
+     </item>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_3">
+     <property name="text">
+      <string>Data (Join) Layer</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QComboBox" name="join_layer_name"/>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_7">
+     <property name="text">
+      <string>Fields</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QListWidget" name="field_names">
+     <property name="selectionMode">
+      <enum>QAbstractItemView::ExtendedSelection</enum>
+     </property>
+     <item>
+      <property name="text">
+       <string>Alpha</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Beta</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Gamma</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Delta</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Epsilon</string>
+      </property>
+     </item>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_6">
+     <property name="text">
+      <string>Field Operation</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QComboBox" name="field_operation"/>
+   </item>
+   <item>
+    <widget class="QLabel" name="label">
+     <property name="text">
+      <string>Output File Name</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QgsFileWidget" name="output_file_name"/>
+   </item>
+   <item>
+    <widget class="QProgressBar" name="status">
+     <property name="value">
+      <number>24</number>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Apply|QDialogButtonBox::Close</set>
+     </property>
+     <property name="centerButtons">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QgsFileWidget</class>
+   <extends>QWidget</extends>
+   <header>qgsfilewidget.h</header>
+  </customwidget>
+ </customwidgets>
+ <tabstops>
+  <tabstop>target_layer_name</tabstop>
+  <tabstop>spatial_operation</tabstop>
+  <tabstop>join_layer_name</tabstop>
+  <tabstop>field_operation</tabstop>
+  <tabstop>field_names</tabstop>
+  <tabstop>buttonBox</tabstop>
+ </tabstops>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>accepted()</signal>
+   <receiver>mmqgis_spatial_join_form</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>248</x>
+     <y>254</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>157</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>rejected()</signal>
+   <receiver>mmqgis_spatial_join_form</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>316</x>
+     <y>260</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>286</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>

@@ -1,0 +1,25 @@
+[general]
+name = geo_webview
+qgisMinimumVersion = 3.40
+qgisMaximumVersion = 4.99
+description = Navigate QGIS map views through external permalink system; includes dynamic WMS/OpenLayers and MapLibre (WMTS/WFS with style injection) endpoints for remote navigation
+supports = WMS, WMTS, WFS, OpenLayers, MapLibre, Google Maps, Google Earth
+version = 3.10.3
+author = yamamoto-ryuzo
+email = ryu@yamakun.net
+supportsQt6 = True
+about = geo_webview は QGIS を軽量な OGC サーバー（WMS/WMTS/WFS）として起動し、QGIS の地図表示状態を外部から復元するパーマリンク機能を提供します。ドッキング可能なパネルからサーバーを起動し、`/wms`、`/wmts`、`/wfs`、`/qgis-map`、`/maplibre`、`/maplibre-style` 等のエンドポイントを公開します。詳細な使用法・ユースケースは `README_JP.md` を参照してください。
+about[en] = geo_webview enables instant conversion of QGIS projects into lightweight OGC-compliant map services (WMS/WMTS/WFS) and provides permalink-based navigation of full map states (center, zoom, layer visibility, themes, styles). The plugin runs an embedded HTTP server exposing endpoints such as `/wms`, `/wmts`, `/wfs`, `/qgis-map`, `/maplibre` and `/maplibre-style`. See README.md / README_JP.md for usage details and deployment scenarios.
+tracker = https://github.com/yamamoto-ryuzo/geo_webview
+repository = https://github.com/yamamoto-ryuzo/geo_webview
+homepage = https://github.com/yamamoto-ryuzo/geo_webview
+tags = permalink,navigation,map,view,link,external,document,excel,pdf,theme,layer,state,style,google,maps,earth,integration,wms,wmts,openlayers,maplibre,webmap,server,http,remote,gis,wms-server,openlayers-map,geo_suite,ogc
+category = Plugins
+icon = icon.png
+experimental = false
+deprecated = false
+hasProcessingProvider = false
+changelog = 
+	- OpenLayers and MapLibre HTML generation with independent file saving
+	- Added settings dialog to configure custom output directories for OpenLayers and MapLibre
+

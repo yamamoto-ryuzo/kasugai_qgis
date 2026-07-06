@@ -1,0 +1,315 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>mmqgis_geocode_street_layer_form</class>
+ <widget class="QDialog" name="mmqgis_geocode_street_layer_form">
+  <property name="windowModality">
+   <enum>Qt::ApplicationModal</enum>
+  </property>
+  <property name="enabled">
+   <bool>true</bool>
+  </property>
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>548</width>
+    <height>504</height>
+   </rect>
+  </property>
+  <property name="mouseTracking">
+   <bool>false</bool>
+  </property>
+  <property name="windowTitle">
+   <string>Geocode from Street Layer</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QLabel" name="label_2">
+     <property name="text">
+      <string>Input CSV File (UTF-8)</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QgsFileWidget" name="input_csv_name"/>
+   </item>
+   <item>
+    <layout class="QGridLayout" name="gridLayout">
+     <item row="1" column="3">
+      <widget class="QComboBox" name="zip_column"/>
+     </item>
+     <item row="0" column="3">
+      <widget class="QLabel" name="label_17">
+       <property name="text">
+        <string>ZIP Column (optional)</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QComboBox" name="number_column"/>
+     </item>
+     <item row="0" column="1">
+      <widget class="QLabel" name="label_16">
+       <property name="text">
+        <string>Number Column</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="2">
+      <widget class="QLabel" name="label_4">
+       <property name="text">
+        <string>Street Name Column</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="2">
+      <widget class="QComboBox" name="street_name_column"/>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_3">
+     <property name="text">
+      <string>Street Layer</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QComboBox" name="input_layer_name"/>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_6">
+     <property name="text">
+      <string>Street Name Attribute</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QComboBox" name="street_name_attr"/>
+   </item>
+   <item>
+    <layout class="QGridLayout" name="gridLayout_3">
+     <item row="1" column="0">
+      <widget class="QLabel" name="label_12">
+       <property name="text">
+        <string>Left From Number</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QLabel" name="label_14">
+       <property name="text">
+        <string>Right From Number</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="0">
+      <widget class="QComboBox" name="left_to_attr"/>
+     </item>
+     <item row="4" column="1">
+      <widget class="QComboBox" name="right_to_attr"/>
+     </item>
+     <item row="3" column="1">
+      <widget class="QLabel" name="label_13">
+       <property name="text">
+        <string>Right To Number</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QComboBox" name="right_from_attr"/>
+     </item>
+     <item row="5" column="1">
+      <widget class="QLabel" name="label_19">
+       <property name="text">
+        <string>Right ZIP (optional)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QComboBox" name="left_from_attr"/>
+     </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="label_11">
+       <property name="text">
+        <string>Left To Number</string>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="0">
+      <widget class="QComboBox" name="left_zip_attr"/>
+     </item>
+     <item row="5" column="0">
+      <widget class="QLabel" name="label_18">
+       <property name="text">
+        <string>Left ZIP (optional)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="1">
+      <widget class="QComboBox" name="right_zip_attr"/>
+     </item>
+     <item row="1" column="2">
+      <widget class="QLabel" name="label_7">
+       <property name="text">
+        <string>From X Attribute</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="3">
+      <widget class="QLabel" name="label_8">
+       <property name="text">
+        <string>From Y Attribute</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="2">
+      <widget class="QComboBox" name="from_x_attr"/>
+     </item>
+     <item row="2" column="3">
+      <widget class="QComboBox" name="from_y_attr"/>
+     </item>
+     <item row="3" column="2">
+      <widget class="QLabel" name="label_9">
+       <property name="text">
+        <string>To X Attribute</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="3">
+      <widget class="QLabel" name="label_10">
+       <property name="text">
+        <string>To Y Attribute</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="2">
+      <widget class="QComboBox" name="to_x_attr"/>
+     </item>
+     <item row="4" column="3">
+      <widget class="QComboBox" name="to_y_attr"/>
+     </item>
+     <item row="5" column="3">
+      <widget class="QLabel" name="label_20">
+       <property name="text">
+        <string>Setback (Map Units)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="3">
+      <widget class="QLineEdit" name="setback"/>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QLabel" name="label">
+     <property name="text">
+      <string>Output File Name</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QgsFileWidget" name="output_file_name">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_5">
+     <property name="text">
+      <string>Not Found Output List</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QgsFileWidget" name="not_found_file_name"/>
+   </item>
+   <item>
+    <widget class="QProgressBar" name="status">
+     <property name="value">
+      <number>24</number>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Apply|QDialogButtonBox::Close</set>
+     </property>
+     <property name="centerButtons">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QgsFileWidget</class>
+   <extends>QWidget</extends>
+   <header>qgsfilewidget.h</header>
+  </customwidget>
+ </customwidgets>
+ <tabstops>
+  <tabstop>number_column</tabstop>
+  <tabstop>zip_column</tabstop>
+  <tabstop>buttonBox</tabstop>
+ </tabstops>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>accepted()</signal>
+   <receiver>mmqgis_geocode_street_layer_form</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>248</x>
+     <y>254</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>157</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>rejected()</signal>
+   <receiver>mmqgis_geocode_street_layer_form</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>316</x>
+     <y>260</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>286</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>

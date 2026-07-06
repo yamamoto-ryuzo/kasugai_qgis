@@ -1,0 +1,72 @@
+# -*- coding: utf-8 -*-
+# (C) 2018 Minoru Akagi
+# SPDX-License-Identifier: GPL-2.0-or-later
+# begin: 2018-11-29
+
+from qgis.PyQt.QtWidgets import QDialog
+
+# from .export import ImageExporter
+from .ui.imagesavedialog import Ui_ImageSaveDialog
+from ..utils.gui import openHelp
+
+
+class ImageSaveDialog(QDialog):
+
+    def __init__(self, parent):
+        super().__init__(parent)
+
+        self.wnd = parent
+
+        self.ui = Ui_ImageSaveDialog()
+        self.ui.setupUi(self)
+        self.ui.pushButton_Copy.clicked.connect(self.copyToClipboard)
+        self.ui.buttonBox.helpRequested.connect(self.helpClicked)
+
+        webView = self.wnd.ui.webView
+        size = webView.size()
+        if size:
+           self.setSizeFields(size.width(), size.height())
+
+        elif hasattr(webView, "getSizeAsync"):
+            def callback(msg):
+                params = msg["params"]
+                self.setSizeFields(params["width"], params["height"])
+
+            webView.getSizeAsync(callback)
+
+    def setSizeFields(self, width, height):
+        self.ui.spinBox_Width.setValue(width)
+        self.ui.spinBox_Height.setValue(height)
+
+    def copyToClipboard(self):
+        self.setEnabled(False)
+
+        width = self.ui.spinBox_Width.value()
+        height = self.ui.spinBox_Height.value()
+
+        self.wnd.ui.statusbar.showMessage(self.tr("Rendering..."))
+
+        def finalized(_):
+            self.setEnabled(True)
+
+        self.wnd.runScript(f"copyCanvasToClipboard({width}, {height})", callback=finalized)
+
+    def accept(self):
+        # filename, _ = QFileDialog.getSaveFileName(self, self.tr("Choose a file name to save current view as"), QDir.homePath(), "PNG files (*.png)")
+        # if not filename:
+        #    return
+
+        self.setEnabled(False)
+
+        width = self.ui.spinBox_Width.value()
+        height = self.ui.spinBox_Height.value()
+
+        self.wnd.ui.statusbar.showMessage(self.tr("Rendering..."))
+
+        def finalized(_):
+            QDialog.accept(self)
+
+        self.wnd.runScript(f"saveCanvasImage({width}, {height})", callback=finalized)
+
+    def helpClicked(self):
+        openHelp("dlg=imagesave")

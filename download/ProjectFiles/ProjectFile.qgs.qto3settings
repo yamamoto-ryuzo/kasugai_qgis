@@ -1,0 +1,904 @@
+{
+  "CAMERA": "ORTHO",
+  "KEYFRAMES": {
+    "camera": {
+      "groups": []
+    },
+    "layers": {
+      "2_______10_____ee2e1fed_f546_4af5_8ff8_3566c9a53bd4": {
+        "enabled": true,
+        "groups": []
+      },
+      "3_______1km____5e222f5c_c8d0_4b33_996e_8d95dc798a12": {
+        "enabled": true,
+        "groups": []
+      },
+      "5km______5km____856c5721_6f48_4df5_bf31_6facd3ea3395": {
+        "enabled": true,
+        "groups": []
+      },
+      "DM_1_86aab25f_dbf5_47f7_ad0b_2c85f3fd4824": {
+        "enabled": true,
+        "groups": []
+      },
+      "DM_3_2467d90e_df62_495f_b906_28c20df6531f": {
+        "enabled": true,
+        "groups": []
+      },
+      "DM_C_e155b9a9_9c15_4ad6_bed8_60341174445f": {
+        "enabled": true,
+        "groups": []
+      },
+      "Line_eaea2f25_4df0_4777_b046_2c3e8ce21fd5": {
+        "enabled": true,
+        "groups": []
+      },
+      "_____5585fdb6_0644_49cd_a6a9_9b76e7435af8": {
+        "enabled": true,
+        "groups": []
+      },
+      "______179770f2_142a_426a_bfae_19e640719f55": {
+        "enabled": true,
+        "groups": []
+      },
+      "dummy_b0e38718_9239_496a_b841_c88036adcc32": {
+        "enabled": true,
+        "groups": []
+      },
+      "fp:01138ea1": {
+        "enabled": true,
+        "groups": []
+      },
+      "fp:b4826e6a": {
+        "enabled": true,
+        "groups": []
+      },
+      "point_letter__65d4840b_d16a_4a0b_a5f0_e1ab9abd8cf1": {
+        "enabled": true,
+        "groups": []
+      }
+    },
+    "repeat": false
+  },
+  "LAYERS": [
+    {
+      "geomType": 1,
+      "layerId": "DM_C_e155b9a9_9c15_4ad6_bed8_60341174445f",
+      "name": "DM_C",
+      "properties": {
+        "checkBox_Clickable": true,
+        "checkBox_Clip": true,
+        "checkBox_ExportAttrs": false,
+        "checkBox_Label": false,
+        "checkBox_Outline": true,
+        "checkBox_Underline": false,
+        "checkBox_Visible": true,
+        "colorButton_BgColor": [
+          255,
+          255,
+          255,
+          176
+        ],
+        "colorButton_ConnColor": [
+          192,
+          192,
+          208,
+          255
+        ],
+        "colorButton_Label": [
+          0,
+          0,
+          0,
+          255
+        ],
+        "colorButton_OtlColor": [
+          255,
+          255,
+          255,
+          255
+        ],
+        "comboBox_FontFamily": "sans-serif",
+        "comboBox_ObjectType": "Sphere",
+        "comboBox_altitudeMode": null,
+        "comboEdit_Color": {
+          "comboData": 1,
+          "comboText": "Feature style",
+          "editText": "",
+          "type": 2
+        },
+        "comboEdit_Color2": {
+          "comboData": null,
+          "comboText": "None",
+          "editText": "",
+          "type": 7
+        },
+        "comboEdit_FilePath": {},
+        "comboEdit_Opacity": {
+          "comboData": 1,
+          "comboText": "Feature style",
+          "editText": "",
+          "type": 5
+        },
+        "comboEdit_altitude2": {},
+        "expression_Label": "\"fid\"",
+        "fieldExpressionWidget_altitude": "0",
+        "geomWidget0": {
+          "comboData": null,
+          "comboText": "Expression",
+          "editText": "7.74",
+          "type": 1
+        },
+        "geomWidget1": {},
+        "geomWidget2": {},
+        "geomWidget3": {},
+        "geomWidget4": {},
+        "groupBox_Background": true,
+        "groupBox_Conn": true,
+        "labelHeightWidget": {
+          "comboData": 1,
+          "comboText": "Relative",
+          "editText": "50",
+          "type": 6
+        },
+        "lineEdit_Name": "",
+        "mtlWidget0": {},
+        "mtlWidget1": {},
+        "radioButton_Expression": true,
+        "radioButton_IntersectingFeatures": true,
+        "slider_FontSize": 3
+      },
+      "visible": false
+    },
+    {
+      "geomType": 1,
+      "layerId": "DM_1_86aab25f_dbf5_47f7_ad0b_2c85f3fd4824",
+      "name": "DM_1",
+      "properties": {
+        "checkBox_Clickable": true,
+        "checkBox_Clip": true,
+        "checkBox_ExportAttrs": false,
+        "checkBox_Label": false,
+        "checkBox_Outline": true,
+        "checkBox_Underline": false,
+        "checkBox_Visible": true,
+        "colorButton_BgColor": [
+          255,
+          255,
+          255,
+          176
+        ],
+        "colorButton_ConnColor": [
+          192,
+          192,
+          208,
+          255
+        ],
+        "colorButton_Label": [
+          0,
+          0,
+          0,
+          255
+        ],
+        "colorButton_OtlColor": [
+          255,
+          255,
+          255,
+          255
+        ],
+        "comboBox_FontFamily": "sans-serif",
+        "comboBox_ObjectType": "Sphere",
+        "comboBox_altitudeMode": null,
+        "comboEdit_Color": {
+          "comboData": 1,
+          "comboText": "Feature style",
+          "editText": "",
+          "type": 2
+        },
+        "comboEdit_Color2": {
+          "comboData": null,
+          "comboText": "None",
+          "editText": "",
+          "type": 7
+        },
+        "comboEdit_FilePath": {},
+        "comboEdit_Opacity": {
+          "comboData": 1,
+          "comboText": "Feature style",
+          "editText": "",
+          "type": 5
+        },
+        "comboEdit_altitude2": {},
+        "expression_Label": "\"fid\"",
+        "fieldExpressionWidget_altitude": "0",
+        "geomWidget0": {
+          "comboData": null,
+          "comboText": "Expression",
+          "editText": "7.74",
+          "type": 1
+        },
+        "geomWidget1": {},
+        "geomWidget2": {},
+        "geomWidget3": {},
+        "geomWidget4": {},
+        "groupBox_Background": true,
+        "groupBox_Conn": true,
+        "labelHeightWidget": {
+          "comboData": 1,
+          "comboText": "Relative",
+          "editText": "50",
+          "type": 6
+        },
+        "lineEdit_Name": "",
+        "mtlWidget0": {},
+        "mtlWidget1": {},
+        "radioButton_Expression": true,
+        "radioButton_IntersectingFeatures": true,
+        "slider_FontSize": 3
+      },
+      "visible": false
+    },
+    {
+      "geomType": 2,
+      "layerId": "DM_3_2467d90e_df62_495f_b906_28c20df6531f",
+      "name": "DM_3",
+      "properties": {
+        "checkBox_Clickable": true,
+        "checkBox_Clip": true,
+        "checkBox_ExportAttrs": false,
+        "checkBox_Visible": true,
+        "comboBox_ObjectType": "Line",
+        "comboBox_altitudeMode": null,
+        "comboEdit_Color": {
+          "comboData": 1,
+          "comboText": "Feature style",
+          "editText": "",
+          "type": 2
+        },
+        "comboEdit_Color2": {
+          "comboData": null,
+          "comboText": "None",
+          "editText": "",
+          "type": 7
+        },
+        "comboEdit_FilePath": {},
+        "comboEdit_Opacity": {
+          "comboData": 1,
+          "comboText": "Feature style",
+          "editText": "",
+          "type": 5
+        },
+        "comboEdit_altitude2": {},
+        "fieldExpressionWidget_altitude": "0",
+        "geomWidget0": {},
+        "geomWidget1": {},
+        "geomWidget2": {},
+        "geomWidget3": {},
+        "geomWidget4": {},
+        "lineEdit_Name": "",
+        "mtlWidget0": {
+          "checkBox": false,
+          "type": 9
+        },
+        "mtlWidget1": {},
+        "radioButton_Expression": true,
+        "radioButton_IntersectingFeatures": true
+      },
+      "visible": false
+    },
+    {
+      "geomType": 2,
+      "layerId": "Line_eaea2f25_4df0_4777_b046_2c3e8ce21fd5",
+      "name": "Line",
+      "properties": {
+        "checkBox_Clickable": true,
+        "checkBox_Clip": true,
+        "checkBox_ExportAttrs": false,
+        "checkBox_Visible": true,
+        "comboBox_ObjectType": "Line",
+        "comboBox_altitudeMode": null,
+        "comboEdit_Color": {
+          "comboData": 1,
+          "comboText": "Feature style",
+          "editText": "",
+          "type": 2
+        },
+        "comboEdit_Color2": {
+          "comboData": null,
+          "comboText": "None",
+          "editText": "",
+          "type": 7
+        },
+        "comboEdit_FilePath": {},
+        "comboEdit_Opacity": {
+          "comboData": 1,
+          "comboText": "Feature style",
+          "editText": "",
+          "type": 5
+        },
+        "comboEdit_altitude2": {},
+        "fieldExpressionWidget_altitude": "0",
+        "geomWidget0": {},
+        "geomWidget1": {},
+        "geomWidget2": {},
+        "geomWidget3": {},
+        "geomWidget4": {},
+        "lineEdit_Name": "",
+        "mtlWidget0": {
+          "checkBox": false,
+          "type": 9
+        },
+        "mtlWidget1": {},
+        "radioButton_Expression": true,
+        "radioButton_IntersectingFeatures": true
+      },
+      "visible": false
+    },
+    {
+      "geomType": 1,
+      "layerId": "point_letter__65d4840b_d16a_4a0b_a5f0_e1ab9abd8cf1",
+      "name": "point(letter)",
+      "properties": {
+        "checkBox_Clickable": true,
+        "checkBox_Clip": true,
+        "checkBox_ExportAttrs": false,
+        "checkBox_Label": false,
+        "checkBox_Outline": true,
+        "checkBox_Underline": false,
+        "checkBox_Visible": true,
+        "colorButton_BgColor": [
+          255,
+          255,
+          255,
+          176
+        ],
+        "colorButton_ConnColor": [
+          192,
+          192,
+          208,
+          255
+        ],
+        "colorButton_Label": [
+          0,
+          0,
+          0,
+          255
+        ],
+        "colorButton_OtlColor": [
+          255,
+          255,
+          255,
+          255
+        ],
+        "comboBox_FontFamily": "sans-serif",
+        "comboBox_ObjectType": "Sphere",
+        "comboBox_altitudeMode": null,
+        "comboEdit_Color": {
+          "comboData": 1,
+          "comboText": "Feature style",
+          "editText": "",
+          "type": 2
+        },
+        "comboEdit_Color2": {
+          "comboData": null,
+          "comboText": "None",
+          "editText": "",
+          "type": 7
+        },
+        "comboEdit_FilePath": {},
+        "comboEdit_Opacity": {
+          "comboData": 1,
+          "comboText": "Feature style",
+          "editText": "",
+          "type": 5
+        },
+        "comboEdit_altitude2": {},
+        "expression_Label": "\"fid\"",
+        "fieldExpressionWidget_altitude": "0",
+        "geomWidget0": {
+          "comboData": null,
+          "comboText": "Expression",
+          "editText": "62.0",
+          "type": 1
+        },
+        "geomWidget1": {},
+        "geomWidget2": {},
+        "geomWidget3": {},
+        "geomWidget4": {},
+        "groupBox_Background": true,
+        "groupBox_Conn": true,
+        "labelHeightWidget": {
+          "comboData": 1,
+          "comboText": "Relative",
+          "editText": "50",
+          "type": 6
+        },
+        "lineEdit_Name": "",
+        "mtlWidget0": {},
+        "mtlWidget1": {},
+        "radioButton_Expression": true,
+        "radioButton_IntersectingFeatures": true,
+        "slider_FontSize": 3
+      },
+      "visible": false
+    },
+    {
+      "geomType": 3,
+      "layerId": "_____5585fdb6_0644_49cd_a6a9_9b76e7435af8",
+      "name": "行政区域",
+      "properties": {
+        "checkBox_Clickable": true,
+        "checkBox_Clip": true,
+        "checkBox_ExportAttrs": false,
+        "checkBox_Label": false,
+        "checkBox_Outline": true,
+        "checkBox_Underline": false,
+        "checkBox_Visible": true,
+        "colorButton_BgColor": [
+          255,
+          255,
+          255,
+          176
+        ],
+        "colorButton_ConnColor": [
+          192,
+          192,
+          208,
+          255
+        ],
+        "colorButton_Label": [
+          0,
+          0,
+          0,
+          255
+        ],
+        "colorButton_OtlColor": [
+          255,
+          255,
+          255,
+          255
+        ],
+        "comboBox_FontFamily": "sans-serif",
+        "comboBox_ObjectType": "Polygon",
+        "comboBox_altitudeMode": null,
+        "comboEdit_Color": {
+          "comboData": 1,
+          "comboText": "Feature style",
+          "editText": "",
+          "type": 2
+        },
+        "comboEdit_Color2": {
+          "comboData": null,
+          "comboText": "None",
+          "editText": "",
+          "type": 7
+        },
+        "comboEdit_FilePath": {},
+        "comboEdit_Opacity": {
+          "comboData": 1,
+          "comboText": "Feature style",
+          "editText": "",
+          "type": 5
+        },
+        "comboEdit_altitude2": {},
+        "expression_Label": "\"fid\"",
+        "fieldExpressionWidget_altitude": "0",
+        "geomWidget0": {},
+        "geomWidget1": {},
+        "geomWidget2": {},
+        "geomWidget3": {},
+        "geomWidget4": {},
+        "groupBox_Background": true,
+        "groupBox_Conn": true,
+        "labelHeightWidget": {
+          "comboData": 1,
+          "comboText": "Relative",
+          "editText": "50",
+          "type": 6
+        },
+        "lineEdit_Name": "",
+        "mtlWidget0": {},
+        "mtlWidget1": {},
+        "radioButton_Expression": true,
+        "radioButton_IntersectingFeatures": true,
+        "slider_FontSize": 3
+      },
+      "visible": true
+    },
+    {
+      "geomType": 1,
+      "layerId": "dummy_b0e38718_9239_496a_b841_c88036adcc32",
+      "name": "都道府県名",
+      "properties": {
+        "checkBox_Clickable": true,
+        "checkBox_Clip": true,
+        "checkBox_ExportAttrs": false,
+        "checkBox_Label": false,
+        "checkBox_Outline": true,
+        "checkBox_Underline": false,
+        "checkBox_Visible": true,
+        "colorButton_BgColor": [
+          255,
+          255,
+          255,
+          176
+        ],
+        "colorButton_ConnColor": [
+          192,
+          192,
+          208,
+          255
+        ],
+        "colorButton_Label": [
+          0,
+          0,
+          0,
+          255
+        ],
+        "colorButton_OtlColor": [
+          255,
+          255,
+          255,
+          255
+        ],
+        "comboBox_FontFamily": "sans-serif",
+        "comboBox_ObjectType": "Sphere",
+        "comboBox_altitudeMode": null,
+        "comboEdit_Color": {
+          "comboData": 1,
+          "comboText": "Feature style",
+          "editText": "\"fid\"",
+          "type": 2
+        },
+        "comboEdit_Color2": {
+          "comboData": null,
+          "comboText": "None",
+          "editText": "\"fid\"",
+          "type": 7
+        },
+        "comboEdit_FilePath": {},
+        "comboEdit_Opacity": {
+          "comboData": 1,
+          "comboText": "Feature style",
+          "editText": "\"fid\"",
+          "type": 5
+        },
+        "comboEdit_altitude2": {},
+        "expression_Label": "\"fid\"",
+        "fieldExpressionWidget_altitude": "0",
+        "geomWidget0": {
+          "comboData": null,
+          "comboText": "Expression",
+          "editText": "62.0",
+          "type": 1
+        },
+        "geomWidget1": {},
+        "geomWidget2": {},
+        "geomWidget3": {},
+        "geomWidget4": {},
+        "groupBox_Background": true,
+        "groupBox_Conn": true,
+        "labelHeightWidget": {
+          "comboData": 1,
+          "comboText": "Relative",
+          "editText": "50",
+          "type": 6
+        },
+        "lineEdit_Name": "",
+        "mtlWidget0": {},
+        "mtlWidget1": {},
+        "radioButton_Expression": true,
+        "radioButton_IntersectingFeatures": true,
+        "slider_FontSize": 3
+      },
+      "visible": false
+    },
+    {
+      "geomType": 1,
+      "layerId": "______179770f2_142a_426a_bfae_19e640719f55",
+      "name": "市区町村名",
+      "properties": {
+        "checkBox_Clickable": true,
+        "checkBox_Clip": true,
+        "checkBox_ExportAttrs": false,
+        "checkBox_Label": false,
+        "checkBox_Outline": true,
+        "checkBox_Underline": false,
+        "checkBox_Visible": true,
+        "colorButton_BgColor": [
+          255,
+          255,
+          255,
+          176
+        ],
+        "colorButton_ConnColor": [
+          192,
+          192,
+          208,
+          255
+        ],
+        "colorButton_Label": [
+          0,
+          0,
+          0,
+          255
+        ],
+        "colorButton_OtlColor": [
+          255,
+          255,
+          255,
+          255
+        ],
+        "comboBox_FontFamily": "sans-serif",
+        "comboBox_ObjectType": "Sphere",
+        "comboBox_altitudeMode": null,
+        "comboEdit_Color": {
+          "comboData": 1,
+          "comboText": "Feature style",
+          "editText": "\"fid\"",
+          "type": 2
+        },
+        "comboEdit_Color2": {
+          "comboData": null,
+          "comboText": "None",
+          "editText": "\"fid\"",
+          "type": 7
+        },
+        "comboEdit_FilePath": {},
+        "comboEdit_Opacity": {
+          "comboData": 1,
+          "comboText": "Feature style",
+          "editText": "\"fid\"",
+          "type": 5
+        },
+        "comboEdit_altitude2": {},
+        "expression_Label": "\"fid\"",
+        "fieldExpressionWidget_altitude": "0",
+        "geomWidget0": {
+          "comboData": null,
+          "comboText": "Expression",
+          "editText": "62.0",
+          "type": 1
+        },
+        "geomWidget1": {},
+        "geomWidget2": {},
+        "geomWidget3": {},
+        "geomWidget4": {},
+        "groupBox_Background": true,
+        "groupBox_Conn": true,
+        "labelHeightWidget": {
+          "comboData": 1,
+          "comboText": "Relative",
+          "editText": "50",
+          "type": 6
+        },
+        "lineEdit_Name": "",
+        "mtlWidget0": {},
+        "mtlWidget1": {},
+        "radioButton_Expression": true,
+        "radioButton_IntersectingFeatures": true,
+        "slider_FontSize": 3
+      },
+      "visible": false
+    },
+    {
+      "geomType": 3,
+      "layerId": "2_______10_____ee2e1fed_f546_4af5_8ff8_3566c9a53bd4",
+      "name": "2次メッシュ（約10㎞四方）",
+      "properties": {
+        "checkBox_Clickable": true,
+        "checkBox_Clip": true,
+        "checkBox_ExportAttrs": false,
+        "checkBox_Label": false,
+        "checkBox_Outline": true,
+        "checkBox_Underline": false,
+        "checkBox_Visible": true,
+        "colorButton_BgColor": [
+          255,
+          255,
+          255,
+          176
+        ],
+        "colorButton_ConnColor": [
+          192,
+          192,
+          208,
+          255
+        ],
+        "colorButton_Label": [
+          0,
+          0,
+          0,
+          255
+        ],
+        "colorButton_OtlColor": [
+          255,
+          255,
+          255,
+          255
+        ],
+        "comboBox_FontFamily": "sans-serif",
+        "comboBox_ObjectType": "Polygon",
+        "comboBox_altitudeMode": null,
+        "comboEdit_Color": {
+          "comboData": 1,
+          "comboText": "Feature style",
+          "editText": "",
+          "type": 2
+        },
+        "comboEdit_Color2": {
+          "comboData": null,
+          "comboText": "None",
+          "editText": "",
+          "type": 7
+        },
+        "comboEdit_FilePath": {},
+        "comboEdit_Opacity": {
+          "comboData": 1,
+          "comboText": "Feature style",
+          "editText": "",
+          "type": 5
+        },
+        "comboEdit_altitude2": {},
+        "expression_Label": "\"fid\"",
+        "fieldExpressionWidget_altitude": "0",
+        "geomWidget0": {},
+        "geomWidget1": {},
+        "geomWidget2": {},
+        "geomWidget3": {},
+        "geomWidget4": {},
+        "groupBox_Background": true,
+        "groupBox_Conn": true,
+        "labelHeightWidget": {
+          "comboData": 1,
+          "comboText": "Relative",
+          "editText": "50",
+          "type": 6
+        },
+        "lineEdit_Name": "",
+        "mtlWidget0": {},
+        "mtlWidget1": {},
+        "radioButton_Expression": true,
+        "radioButton_IntersectingFeatures": true,
+        "slider_FontSize": 3
+      },
+      "visible": false
+    },
+    {
+      "geomType": 3,
+      "layerId": "5km______5km____856c5721_6f48_4df5_bf31_6facd3ea3395",
+      "name": "5kmメッシュ（約5km四方）",
+      "properties": {},
+      "visible": false
+    },
+    {
+      "geomType": 3,
+      "layerId": "3_______1km____5e222f5c_c8d0_4b33_996e_8d95dc798a12",
+      "name": "3次メッシュ（約1km四方）",
+      "properties": {},
+      "visible": false
+    },
+    {
+      "geomType": 0,
+      "layerId": "fp:b4826e6a",
+      "name": "Flat Plane",
+      "properties": {
+        "checkBox_Clickable": true,
+        "checkBox_Frame": true,
+        "checkBox_Sides": true,
+        "checkBox_Tiles": false,
+        "checkBox_Visible": true,
+        "checkBox_Wireframe": true,
+        "colorButton_Edge": [
+          0,
+          0,
+          0,
+          255
+        ],
+        "colorButton_Side": [
+          204,
+          187,
+          170,
+          255
+        ],
+        "colorButton_Wireframe": [
+          0,
+          0,
+          0,
+          255
+        ],
+        "lineEdit_Altitude": "0",
+        "lineEdit_Bottom": "0",
+        "lineEdit_Name": "",
+        "materials": [
+          {
+            "id": "d7098080",
+            "name": "map (canvas)",
+            "properties": {},
+            "type": 0
+          }
+        ],
+        "mtlId": "d7098080",
+        "spinBox_Size": 3
+      },
+      "visible": false
+    },
+    {
+      "geomType": 0,
+      "layerId": "fp:01138ea1",
+      "name": "Flat Plane",
+      "properties": {
+        "checkBox_Clickable": true,
+        "checkBox_Frame": false,
+        "checkBox_Sides": false,
+        "checkBox_Tiles": false,
+        "checkBox_Visible": true,
+        "checkBox_Wireframe": false,
+        "colorButton_Edge": [
+          0,
+          0,
+          0,
+          255
+        ],
+        "colorButton_Side": [
+          204,
+          187,
+          170,
+          255
+        ],
+        "colorButton_Wireframe": [
+          0,
+          0,
+          0,
+          255
+        ],
+        "lineEdit_Altitude": "0",
+        "lineEdit_Bottom": "0",
+        "lineEdit_Name": "",
+        "materials": [
+          {
+            "id": "32c7c457",
+            "name": "map (canvas)",
+            "properties": {},
+            "type": 0
+          }
+        ],
+        "mtlId": "32c7c457",
+        "spinBox_Size": 3
+      },
+      "visible": false
+    }
+  ],
+  "SCENE": {
+    "checkBox_FixAspectRatio": true,
+    "checkBox_Outline": false,
+    "colorButton_Color": [
+      0,
+      0,
+      0,
+      255
+    ],
+    "colorButton_Fog": [
+      255,
+      255,
+      255,
+      255
+    ],
+    "comboBox_MaterialType": 2,
+    "comboBox_xyShift": true,
+    "groupBox_Fog": false,
+    "lineEdit_CenterX": "-20032.134894585346",
+    "lineEdit_CenterY": "-12015.398733014685",
+    "lineEdit_Height": "42.33170085485472",
+    "lineEdit_Rotation": "0",
+    "lineEdit_Width": "42.33170085485472",
+    "lineEdit_zFactor": "1.0",
+    "slider_Fog": 41
+  },
+  "Version": 20800,
+  "WIDGETS": {
+    "NorthArrow": {
+      "color": "0x666666",
+      "visible": true
+    }
+  }
+}

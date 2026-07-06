@@ -1,0 +1,619 @@
+"""
+/***************************************************************************
+                              -------------------
+        begin                : 21.11.2016
+        git sha              : :%H$
+        copyright            : (C) 2016 by OPENGIS.ch
+        email                : info@opengis.ch
+ ***************************************************************************/
+
+/***************************************************************************
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ ***************************************************************************/
+"""
+
+import contextlib
+import os
+
+from libqfieldsync.layer import LayerSource
+from libqfieldsync.project import ProjectConfiguration, ProjectProperties
+from qgis.core import (
+    Qgis,
+    QgsCoordinateReferenceSystem,
+    QgsMapLayerProxyModel,
+    QgsPolygon,
+    QgsProject,
+)
+from qgis.gui import (
+    QgsExtentWidget,
+    QgsOptionsPageWidget,
+    QgsPanelWidget,
+    QgsPanelWidgetStack,
+    QgsSpinBox,
+)
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import QLineEdit, QVBoxLayout
+from qgis.PyQt.uic import loadUiType
+from qgis.utils import iface
+
+from qfieldsync.core.preferences import Preferences
+from qfieldsync.gui.directories_configuration_widget import (
+    DirectoriesConfigurationWidget,
+)
+from qfieldsync.gui.image_stamping_configuration_widget import (
+    ImageStampingConfigurationWidget,
+)
+from qfieldsync.gui.layers_config_widget import LayersConfigWidget
+from qfieldsync.gui.map_overlay_configuration_widget import (
+    MapOverlayConfigurationWidget,
+)
+from qfieldsync.gui.mapthemes_config_widget import MapThemesConfigWidget
+
+WidgetUi, _ = loadUiType(
+    os.path.join(os.path.dirname(__file__), "../ui/project_configuration_widget.ui")
+)
+
+
+class ProjectConfigurationStackWidget(QgsOptionsPageWidget):
+    """Configuration widget for QFieldSync on a particular project."""
+
+    def __init__(self, parent=None):
+        """Constructor."""
+        super().__init__(parent)
+
+        self.panel_stack = QgsPanelWidgetStack(self)
+        self.project_configuration_widget = ProjectConfigurationWidget(self)
+        self.panel_stack.setMainPanel(self.project_configuration_widget)
+
+        self.layout = QVBoxLayout()
+        self.layout.addWidget(self.panel_stack)
+        self.setLayout(self.layout)
+
+    def apply(self):
+        self.panel_stack.acceptAllPanels()
+        self.project_configuration_widget.apply()
+
+
+class ProjectConfigurationWidget(WidgetUi, QgsPanelWidget):
+    """Configuration widget for QFieldSync on a particular project."""
+
+    def __init__(self, parent=None):
+        """Constructor."""
+        super().__init__(parent)
+        self.setupUi(self)
+
+        self.setDockMode(True)
+
+        self.project = QgsProject.instance()
+        self.preferences = Preferences()
+        self.__project_configuration = ProjectConfiguration(self.project)
+
+        self.stamping_font_style = self.__project_configuration.stamping_font_style
+        self.stamping_horizontal_alignment = (
+            self.__project_configuration.stamping_horizontal_alignment
+        )
+        self.stamping_image_decoration = (
+            self.__project_configuration.stamping_image_decoration
+        )
+        if self.__project_configuration.stamping_image_decoration:
+            self.stamping_image_decoration = (
+                QgsProject.instance()
+                .pathResolver()
+                .readPath(self.__project_configuration.stamping_image_decoration)
+            )
+        else:
+            self.stamping_image_decoration = ""
+
+        self.stamping_details_template = (
+            self.__project_configuration.stamping_details_template
+        )
+        self.force_stamping = self.__project_configuration.force_stamping
+        self.customizeImageStampingButton.clicked.connect(
+            self.show_image_stamping_settings
+        )
+
+        self.location_arrow_fill_color = (
+            self.__project_configuration.location_arrow_fill_color
+        )
+        self.location_arrow_outline_color = (
+            self.__project_configuration.location_arrow_outline_color
+        )
+        self.location_arrow_size = self.__project_configuration.location_arrow_size
+        self.coordinate_cursor_fill_color = (
+            self.__project_configuration.coordinate_cursor_fill_color
+        )
+        self.coordinate_cursor_outline_color = (
+            self.__project_configuration.coordinate_cursor_outline_color
+        )
+        self.coordinate_cursor_size = (
+            self.__project_configuration.coordinate_cursor_size
+        )
+        self.customizeMapOverlayButton.clicked.connect(self.show_map_overlay_settings)
+
+        self.areaOfInterestExtentWidget = QgsExtentWidget(self)
+        self.areaOfInterestExtentWidget.setToolTip(
+            self.tr("Leave empty to use the full project extent")
+        )
+        # A bit of a hack to deliver a nice instructive placeholder text to users
+        line_edits = self.areaOfInterestExtentWidget.findChildren(QLineEdit)
+        for line_edit in line_edits:
+            line_edit.setPlaceholderText(
+                self.tr("Leave empty to use the full project extent")
+            )
+
+        self.areaOfInterestExtentWidget.setNullValueAllowed(True)
+
+        if iface:
+            self.areaOfInterestExtentWidget.setMapCanvas(iface.mapCanvas())
+
+        if self.__project_configuration.area_of_interest_crs:
+            self.areaOfInterestExtentWidget.setOutputCrs(
+                QgsCoordinateReferenceSystem(
+                    self.__project_configuration.area_of_interest_crs
+                )
+            )
+
+        geom = QgsPolygon()
+        if self.__project_configuration.area_of_interest and geom.fromWkt(
+            self.__project_configuration.area_of_interest,
+        ):
+            self.areaOfInterestExtentWidget.setOutputExtentFromUser(
+                geom.boundingBox(),
+                self.areaOfInterestExtentWidget.outputCrs(),
+            )
+
+        self.areaOfInterestBaseMapLayout.layout().addWidget(
+            self.areaOfInterestExtentWidget, 1, 1
+        )
+
+        self.singleLayerRadioButton.toggled.connect(self._on_base_map_type_changed)
+
+        self.forceAutoPush.clicked.connect(self._on_force_auto_push_clicked)
+
+        self.directoriesConfigurationWidget = DirectoriesConfigurationWidget(self)
+        self.attachmentsDirectoriesTab.layout().addWidget(
+            self.directoriesConfigurationWidget, 1, 0, 1, 2
+        )
+
+        self.geofencingBehaviorComboBox.addItem(
+            self.tr("Alert users when inside an area"),
+            ProjectProperties.GeofencingBehavior.ALERT_INSIDE_AREAS,
+        )
+        self.geofencingBehaviorComboBox.addItem(
+            self.tr("Alert users when outside all areas"),
+            ProjectProperties.GeofencingBehavior.ALERT_OUTSIDE_AREAS,
+        )
+        self.geofencingBehaviorComboBox.addItem(
+            self.tr("Inform users when entering and leaving an area"),
+            ProjectProperties.GeofencingBehavior.INFORM_ENTER_LEAVE_AREAS,
+        )
+
+        self.initialMapModeComboBox.addItem(
+            QIcon(
+                os.path.join(os.path.dirname(__file__), "../resources/state_browse.svg")
+            ),
+            self.tr("Browse"),
+            ProjectProperties.InitialMapMode.BROWSE,
+        )
+        self.initialMapModeComboBox.addItem(
+            QIcon(
+                os.path.join(
+                    os.path.dirname(__file__), "../resources/state_digitize.svg"
+                )
+            ),
+            self.tr("Digitize"),
+            ProjectProperties.InitialMapMode.DIGITIZE,
+        )
+
+        self._reload_project()
+
+    def _reload_project(self):  # noqa: PLR0915
+        """Load all layers from the map layer registry into the table."""
+        self.unsupportedLayersList = []
+
+        layer_sources = [
+            LayerSource(layer) for layer in QgsProject.instance().mapLayers().values()
+        ]
+        self.cloudLayersConfigWidget = LayersConfigWidget(
+            self.project, True, layer_sources
+        )
+        self.cableLayersConfigWidget = LayersConfigWidget(
+            self.project, False, layer_sources
+        )
+
+        self.cloudExportTab.layout().addWidget(self.cloudLayersConfigWidget, 2, 0, 1, 2)
+        self.cableExportTab.layout().addWidget(self.cableLayersConfigWidget)
+
+        # Map Themes configuration widgets
+        for theme in self.project.mapThemeCollection().mapThemes():
+            self.mapThemeComboBox.addItem(theme)
+
+        self.layerComboBox.setFilters(QgsMapLayerProxyModel.Filter.RasterLayer)
+
+        self.geofencingLayerComboBox.setFilters(
+            QgsMapLayerProxyModel.Filter.PolygonLayer
+        )
+        self.geofencingLayerComboBox.setAllowEmptyLayer(True)
+
+        self.digitizingLogsLayerComboBox.setFilters(
+            QgsMapLayerProxyModel.Filter.PointLayer
+        )
+        self.digitizingLogsLayerComboBox.setAllowEmptyLayer(True)
+
+        self.initialActiveLayerComboBox.setFilters(
+            QgsMapLayerProxyModel.Filter.VectorLayer
+        )
+        self.initialActiveLayerComboBox.setAllowEmptyLayer(False)
+
+        if Qgis.versionInt() >= 32400:  # noqa: PLR2004
+            self.layerComboBox.setProject(self.project)
+            self.geofencingLayerComboBox.setProject(self.project)
+            self.digitizingLogsLayerComboBox.setProject(self.project)
+            self.initialActiveLayerComboBox.setProject(self.project)
+
+        self.__project_configuration = ProjectConfiguration(self.project)
+
+        self.mapThemesConfigWidget = MapThemesConfigWidget(
+            self.project, self.__project_configuration.map_themes_active_layer
+        )
+        self.mapThemesGroupBox.layout().addWidget(self.mapThemesConfigWidget)
+
+        # Base map settings
+        self.createBaseMapGroupBox.setChecked(
+            self.__project_configuration.create_base_map
+        )
+
+        if (
+            self.__project_configuration.base_map_type
+            == ProjectProperties.BaseMapType.SINGLE_LAYER
+        ):
+            self.singleLayerRadioButton.setChecked(True)
+        else:
+            self.mapThemeRadioButton.setChecked(True)
+
+        self.baseMapLayerLabel.setVisible(self.singleLayerRadioButton.isChecked())
+        self.layerComboBox.setVisible(self.singleLayerRadioButton.isChecked())
+        self.baseMapMapThemeLabel.setVisible(
+            not self.singleLayerRadioButton.isChecked()
+        )
+        self.mapThemeComboBox.setVisible(not self.singleLayerRadioButton.isChecked())
+
+        self.mapThemeComboBox.setCurrentIndex(
+            self.mapThemeComboBox.findText(self.__project_configuration.base_map_theme)
+        )
+
+        layer = QgsProject.instance().mapLayer(
+            self.__project_configuration.base_map_layer
+        )
+        self.layerComboBox.setLayer(layer)
+
+        # Geofencing settings
+        self.geofencingGroupBox.setChecked(
+            self.__project_configuration.geofencing_is_active
+        )
+
+        geofencing_layer = QgsProject.instance().mapLayer(
+            self.__project_configuration.geofencing_layer
+        )
+        self.geofencingLayerComboBox.setLayer(geofencing_layer)
+
+        self.geofencingBehaviorComboBox.setCurrentIndex(
+            self.geofencingBehaviorComboBox.findData(
+                self.__project_configuration.geofencing_behavior
+            )
+        )
+
+        self.geofencingShouldPreventDigitizingCheckBox.setChecked(
+            self.__project_configuration.geofencing_should_prevent_digitizing
+        )
+
+        # General settings
+        digitizing_logs_layer = QgsProject.instance().mapLayer(
+            self.__project_configuration.digitizing_logs_layer
+        )
+        self.digitizingLogsLayerComboBox.setLayer(digitizing_logs_layer)
+
+        initial_active_layer = QgsProject.instance().mapLayer(
+            self.__project_configuration.initial_active_layer
+        )
+        self.initialActiveLayerComboBox.setLayer(initial_active_layer)
+
+        mode_index = self.initialMapModeComboBox.findData(
+            self.__project_configuration.initial_map_mode
+        )
+        if mode_index == -1:
+            mode_index = 0
+
+        self.initialMapModeComboBox.setCurrentIndex(mode_index)
+
+        self.featureFormWizardModeCheckBox.setChecked(
+            self.__project_configuration.feature_form_wizard_mode_enabled
+        )
+
+        self.maximumImageWidthHeight.setClearValueMode(
+            QgsSpinBox.ClearValueMode.CustomValue, self.tr("No restriction")
+        )
+        self.maximumImageWidthHeight.setValue(
+            self.__project_configuration.maximum_image_width_height
+        )
+
+        tiles_size_index = self.baseMapTileSizeComboBox.findText(
+            str(self.__project_configuration.base_map_tile_size)
+        )
+        if tiles_size_index >= 0:
+            self.baseMapTileSizeComboBox.setCurrentIndex(tiles_size_index)
+
+        self.baseMapTilesMinZoomLevelSpinBox.setValue(
+            self.__project_configuration.base_map_tiles_min_zoom_level
+        )
+        self.baseMapTilesMaxZoomLevelSpinBox.setValue(
+            self.__project_configuration.base_map_tiles_max_zoom_level
+        )
+
+        self.onlyOfflineCopyFeaturesInAoi.setChecked(
+            self.__project_configuration.offline_copy_only_aoi
+        )
+
+        self.forceAutoPush.setChecked(self.__project_configuration.force_auto_push)
+        self.forceAutoPushInterval.setEnabled(
+            self.__project_configuration.force_auto_push
+        )
+        self.forceAutoPushInterval.setValue(
+            self.__project_configuration.force_auto_push_interval_mins
+        )
+
+        self.directoriesConfigurationWidget.reload(
+            {
+                "attachment_dirs": [*self.preferences.value("attachmentDirs")],
+                "data_dirs": [*self.preferences.value("dataDirs")],
+            }
+        )
+
+        if self.unsupportedLayersList:
+            self.unsupportedLayersLabel.setVisible(True)
+
+            unsupported_layers_text = "<b>{}: </b>".format(self.tr("Warning"))
+            unsupported_layers_text += self.tr(
+                "There are unsupported layers in your project which will not be available in QField."
+            )
+            unsupported_layers_text += self.tr(
+                " If needed, you can create a Base Map to include those layers in your packaged project."
+            )
+            self.unsupportedLayersLabel.setText(unsupported_layers_text)
+
+    def apply(self):  # noqa: PLR0915
+        """Update layer configuration in project"""
+        self.cloudLayersConfigWidget.apply()
+        self.cableLayersConfigWidget.apply()
+
+        # Base map settings
+        self.__project_configuration.create_base_map = (
+            self.createBaseMapGroupBox.isChecked()
+        )
+
+        if self.singleLayerRadioButton.isChecked():
+            self.__project_configuration.base_map_type = (
+                ProjectProperties.BaseMapType.SINGLE_LAYER
+            )
+        else:
+            self.__project_configuration.base_map_type = (
+                ProjectProperties.BaseMapType.MAP_THEME
+            )
+
+        self.__project_configuration.base_map_theme = (
+            self.mapThemeComboBox.currentText()
+        )
+
+        # try/pass layer ID fetching because the save button is global for all
+        # project settings, not only QField
+        with contextlib.suppress(AttributeError):
+            self.__project_configuration.base_map_layer = (
+                self.layerComboBox.currentLayer().id()
+            )
+
+        # Geofencing settings
+        self.__project_configuration.geofencing_is_active = (
+            self.geofencingGroupBox.isChecked()
+        )
+
+        with contextlib.suppress(AttributeError):
+            if self.geofencingLayerComboBox.currentLayer():
+                geofencing_layer = self.geofencingLayerComboBox.currentLayer().id()
+            else:
+                geofencing_layer = ""
+
+            self.__project_configuration.geofencing_layer = geofencing_layer
+
+        self.__project_configuration.geofencing_behavior = (
+            self.geofencingBehaviorComboBox.currentData()
+        )
+
+        self.__project_configuration.geofencing_should_prevent_digitizing = (
+            self.geofencingShouldPreventDigitizingCheckBox.isChecked()
+        )
+
+        # General settings
+        with contextlib.suppress(AttributeError):
+            if self.digitizingLogsLayerComboBox.currentLayer():
+                digitizing_logs_layer = (
+                    self.digitizingLogsLayerComboBox.currentLayer().id()
+                )
+            else:
+                digitizing_logs_layer = ""
+
+            self.__project_configuration.digitizing_logs_layer = digitizing_logs_layer
+
+        with contextlib.suppress(AttributeError):
+            if self.initialActiveLayerComboBox.currentLayer():
+                initial_active_layer = (
+                    self.initialActiveLayerComboBox.currentLayer().id()
+                )
+            else:
+                initial_active_layer = ""
+
+            self.__project_configuration.initial_active_layer = initial_active_layer
+
+        self.__project_configuration.initial_map_mode = (
+            self.initialMapModeComboBox.currentData()
+        )
+
+        self.__project_configuration.feature_form_wizard_mode_enabled = (
+            self.featureFormWizardModeCheckBox.isChecked()
+        )
+
+        self.__project_configuration.base_map_tile_size = int(
+            self.baseMapTileSizeComboBox.currentText()
+        )
+
+        self.__project_configuration.base_map_tiles_min_zoom_level = (
+            self.baseMapTilesMinZoomLevelSpinBox.value()
+        )
+        self.__project_configuration.base_map_tiles_max_zoom_level = (
+            self.baseMapTilesMaxZoomLevelSpinBox.value()
+        )
+
+        self.__project_configuration.maximum_image_width_height = (
+            self.maximumImageWidthHeight.value()
+        )
+
+        self.__project_configuration.offline_copy_only_aoi = (
+            self.onlyOfflineCopyFeaturesInAoi.isChecked()
+        )
+        if self.areaOfInterestExtentWidget.isValid():
+            self.__project_configuration.area_of_interest = (
+                self.areaOfInterestExtentWidget.outputExtent().asWktPolygon()
+            )
+            self.__project_configuration.area_of_interest_crs = (
+                self.areaOfInterestExtentWidget.outputCrs().authid()
+            )
+        else:
+            self.__project_configuration.area_of_interest = ""
+            self.__project_configuration.area_of_interest_crs = ""
+
+        self.__project_configuration.force_auto_push = self.forceAutoPush.isChecked()
+        self.__project_configuration.force_auto_push_interval_mins = (
+            self.forceAutoPushInterval.value()
+        )
+
+        configuration = self.directoriesConfigurationWidget.create_configuration()
+        self.preferences.set_value("attachmentDirs", configuration["attachment_dirs"])
+        self.preferences.set_value("dataDirs", configuration["data_dirs"])
+
+        self.__project_configuration.map_themes_active_layer = (
+            self.mapThemesConfigWidget.create_configuration()
+        )
+
+        self.__project_configuration.stamping_font_style = self.stamping_font_style
+        self.__project_configuration.stamping_horizontal_alignment = (
+            self.stamping_horizontal_alignment
+        )
+        if self.stamping_image_decoration:
+            self.__project_configuration.stamping_image_decoration = (
+                QgsProject.instance()
+                .pathResolver()
+                .writePath(self.stamping_image_decoration)
+            )
+        else:
+            self.__project_configuration.stamping_image_decoration = ""
+
+        self.__project_configuration.stamping_details_template = (
+            self.stamping_details_template
+        )
+        self.__project_configuration.force_stamping = self.force_stamping
+
+        self._save_map_overlay_to_project()
+
+    def _save_map_overlay_to_project(self):
+        self.__project_configuration.location_arrow_fill_color = (
+            self.location_arrow_fill_color
+        )
+        self.__project_configuration.location_arrow_outline_color = (
+            self.location_arrow_outline_color
+        )
+        self.__project_configuration.location_arrow_size = self.location_arrow_size
+        self.__project_configuration.coordinate_cursor_fill_color = (
+            self.coordinate_cursor_fill_color
+        )
+        self.__project_configuration.coordinate_cursor_outline_color = (
+            self.coordinate_cursor_outline_color
+        )
+        self.__project_configuration.coordinate_cursor_size = (
+            self.coordinate_cursor_size
+        )
+
+    def show_image_stamping_settings(self):
+        self.image_stamping_panel = ImageStampingConfigurationWidget(self)
+        self.image_stamping_panel.set_font_style(self.stamping_font_style)
+        self.image_stamping_panel.set_horizontal_alignment(
+            self.stamping_horizontal_alignment
+        )
+        self.image_stamping_panel.set_image_decoration(self.stamping_image_decoration)
+        self.image_stamping_panel.set_details_template(self.stamping_details_template)
+        self.image_stamping_panel.set_force_stamping(self.force_stamping)
+        self.image_stamping_panel.panelAccepted.connect(
+            self.apply_image_stamping_settings
+        )
+        self.openPanel(self.image_stamping_panel)
+
+    def apply_image_stamping_settings(self, _panel):
+        self.stamping_font_style = self.image_stamping_panel.font_style()
+        self.stamping_horizontal_alignment = (
+            self.image_stamping_panel.horizontal_alignment()
+        )
+        self.stamping_image_decoration = self.image_stamping_panel.image_decoration()
+        self.stamping_details_template = self.image_stamping_panel.details_template()
+        self.force_stamping = self.image_stamping_panel.force_stamping()
+        self.image_stamping_panel.deleteLater()
+        self.image_stamping_panel = None
+
+    def _on_force_auto_push_clicked(self, checked):
+        self.forceAutoPushInterval.setEnabled(checked)
+
+    def _on_base_map_type_changed(self):
+        self.baseMapLayerLabel.setVisible(self.singleLayerRadioButton.isChecked())
+        self.layerComboBox.setVisible(self.singleLayerRadioButton.isChecked())
+        self.baseMapMapThemeLabel.setVisible(
+            not self.singleLayerRadioButton.isChecked()
+        )
+        self.mapThemeComboBox.setVisible(not self.singleLayerRadioButton.isChecked())
+
+    def show_map_overlay_settings(self):
+        self.map_overlay_panel = MapOverlayConfigurationWidget(self)
+        self.map_overlay_panel.set_location_arrow_fill_color(
+            self.location_arrow_fill_color
+        )
+        self.map_overlay_panel.set_location_arrow_outline_color(
+            self.location_arrow_outline_color
+        )
+        self.map_overlay_panel.set_location_arrow_size(self.location_arrow_size)
+        self.map_overlay_panel.set_coordinate_cursor_fill_color(
+            self.coordinate_cursor_fill_color
+        )
+        self.map_overlay_panel.set_coordinate_cursor_outline_color(
+            self.coordinate_cursor_outline_color
+        )
+        self.map_overlay_panel.set_coordinate_cursor_size(self.coordinate_cursor_size)
+        self.map_overlay_panel.panelAccepted.connect(self.apply_map_overlay_settings)
+        self.openPanel(self.map_overlay_panel)
+
+    def apply_map_overlay_settings(self, _panel):
+        self.location_arrow_fill_color = (
+            self.map_overlay_panel.location_arrow_fill_color()
+        )
+        self.location_arrow_outline_color = (
+            self.map_overlay_panel.location_arrow_outline_color()
+        )
+        self.location_arrow_size = self.map_overlay_panel.location_arrow_size()
+        self.coordinate_cursor_fill_color = (
+            self.map_overlay_panel.coordinate_cursor_fill_color()
+        )
+        self.coordinate_cursor_outline_color = (
+            self.map_overlay_panel.coordinate_cursor_outline_color()
+        )
+        self.coordinate_cursor_size = self.map_overlay_panel.coordinate_cursor_size()
+        self.map_overlay_panel = None

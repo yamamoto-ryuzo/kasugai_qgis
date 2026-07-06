@@ -1,0 +1,124 @@
+0.22
+Fix duplicated toolbars/dock widgets on plugin reload. Patch by Qiusheng Wu.
+
+0.21
+Security fix: avoid using shell=True in subprocess
+
+0.20
+Fix QGIS4 compatibility.
+
+0.19
+Fix hang on plugin startup on QGIS 4. Patch by Nyall Dawson.
+
+0.18
+Add Spanish translation. Patch by franzpc.
+
+0.17
+Update Italian translation. Patch by Matteo Ghetta.
+
+0.16
+Fix toolbar icon
+
+0.15
+Make toolbar button text optional.
+Simplify keyboard shortcut management by keeping the default action constant.
+Update French translation - patch by Étienne Trimaille.
+
+0.14
+Fix Qt6 compatibility
+
+0.13
+Update translations
+
+0.12
+Handle multiple plugins
+
+0.11
+Add Japanese translation. Patch by Baba Yoshihiko.
+
+0.10
+Cleanups and bugfixes
+
+0.9.4
+Support for Qt6
+
+0.9.3
+Fix missing icons in some cases. Patch by Jean-François Bourdon.
+
+0.9.2
+Add Italian translation. Patch by ValPinna.
+
+0.9.1
+Add French translation. Patch by Jean-François Bourdon.
+
+0.9
+Prevent error if no plugin is set. Patch by Jean-François Bourdon.
+Extra commands fixes and improvements by Jean-François Bourdon:
+    - Don't run empty extra commands.
+    - Allow temporary disabling of extra commands.
+    - Handle non-utf8 caracters in error message if extra commands fails.
+    - Option to append plugin' name to the extra commands typed.
+Add the reload time to the success message.
+Add German translation. Patch by Werner Macho.
+Update Polish translation.
+
+0.8.2
+Make the notification Success rather than Info. Patch by Étienne Trimaille.
+
+0.8.1
+Fix Polish translation
+
+0.8
+Add ability to run extra commands before reloading plugin. Patch by Ricardo Silva.
+
+0.7.9
+Enable localizations, add Polish translation. Thanks to Zbigniew Prajs.
+
+0.7.8
+Make the notification optional in case you hate trivial notifications covering error messages from the plugin.
+Drop the "experimental" flag.
+
+0.7.7
+Show icons in plugin selection combo box. Patch by Nyall Dawson.
+
+0.7.6
+Fix outdated action tooltip on changing plugin setting. Patch by Nyall Dawson.
+
+0.7.5
+Fix reloading plugin submodules.
+
+0.7.4
+Set the keyboard shortcut to Ctrl+F5 by default and make it properly configurable
+
+0.7.3
+Update to recent API changes. Thanks to Francisco Raga, olivierh65 and Heikki Vesanto.
+Improve GUI strings.
+
+0.7.2
+Restore QGIS UI state after reloading (backport changes from 0.6.4). Patch by GeorchW.
+Push a message to the main QgsMessageBar after reloading.
+Fixed tool button removing when unloading the plugin reloader itself.
+
+0.7.1
+Set compatibility to QGIS version range 2.99 - 3.99
+
+0.7
+Python3 and PyQt5 compatible. Patch by Denis Rouzaud.
+Version for QGIS 2.99 only
+
+0.6.4
+Restore QGIS UI state after reloading. Patch by GeorchW.
+Version for QGIS 1.8 up to 2.98
+
+0.6.3
+Both actions grouped into a single toolbutton with a menu. Patch by Ricardo Garcia Silva.
+Last version compatible with QGIS < 1.8
+
+0.6.2
+Metadata fix
+
+0.6.1
+Also tell QGIS about the compatibility with QGIS 2 :)
+
+0.6
+Compatible with SIP API v2 (thanks to Etienne Tourigny)

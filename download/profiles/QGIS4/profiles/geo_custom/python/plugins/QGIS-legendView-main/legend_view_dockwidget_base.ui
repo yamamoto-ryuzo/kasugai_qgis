@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>LegendViewDockWidgetBase</class>
+ <widget class="QDockWidget" name="LegendViewDockWidgetBase">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>267</width>
+    <height>342</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Legend View</string>
+  </property>
+  <widget class="QWidget" name="dockWidgetContents">
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <item>
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QLabel" name="label_2">
+        <property name="maximumSize">
+         <size>
+          <width>48</width>
+          <height>22</height>
+         </size>
+        </property>
+        <property name="text">
+         <string>Layer Name</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="comboBox"/>
+      </item>
+      <item>
+       <widget class="QPushButton" name="currentLayerButton">
+        <property name="maximumSize">
+         <size>
+         <width>75</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="text">
+         <string>Current</string>
+        </property>
+        <property name="toolTip">
+         <string>Select the currently active layer</string>
+        </property>
+       </widget>
+      </item>
+    <item>
+     <widget class="QPushButton" name="registerButton">
+      <property name="maximumSize">
+       <size>
+       <width>75</width>
+        <height>16777215</height>
+       </size>
+      </property>
+      <property name="text">
+       <string>Register</string>
+      </property>
+      <property name="toolTip">
+       <string>Register the current layer as a project variable (legend_...)</string>
+      </property>
+     </widget>
+    </item>
+     </layout>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="horizontalLayout_2">
+      <item>
+       <widget class="QLabel" name="label">
+        <property name="maximumSize">
+         <size>
+          <width>48</width>
+          <height>22</height>
+         </size>
+        </property>
+        <property name="text">
+         <string>Opacity</string>
+        </property>
+       </widget>
+      </item>
+  <item>
+   <widget class="QLabel" name="priorityLabel">
+    <property name="maximumSize">
+     <size>
+      <width>36</width>
+      <height>22</height>
+     </size>
+    </property>
+    <property name="text">
+     <string>Prio</string>
+    </property>
+    <property name="toolTip">
+     <string>Priority for the legend variable (numeric)</string>
+    </property>
+   </widget>
+  </item>
+  <item>
+   <widget class="QSpinBox" name="prioritySpinBox">
+    <property name="maximumSize">
+     <size>
+      <width>60</width>
+      <height>22</height>
+     </size>
+    </property>
+    <property name="minimum">
+     <number>0</number>
+    </property>
+    <property name="maximum">
+     <number>100</number>
+    </property>
+    <property name="value">
+     <number>0</number>
+    </property>
+    <property name="toolTip">
+     <string>Set numeric priority for the legend variable</string>
+    </property>
+   </widget>
+  </item>
+  <item>
+   <widget class="QPushButton" name="varsButton">
+    <property name="maximumSize">
+     <size>
+     <width>75</width>
+      <height>16777215</height>
+     </size>
+    </property>
+    <property name="text">
+     <string>Vars</string>
+    </property>
+    <property name="toolTip">
+     <string>Show existing legend_ project variables</string>
+    </property>
+   </widget>
+  </item>
+      <item>
+       <widget class="QgsOpacityWidget" name="mOpacityWidget"/>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="horizontalLayout_3">
+      <item>
+       <widget class="QLabel" name="styleLabel">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>48</width>
+          <height>22</height>
+         </size>
+        </property>
+        <property name="text">
+         <string>Style</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="styleComboBox"/>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <widget class="QTableWidget" name="tableWidget">
+      <property name="editTriggers">
+       <set>QAbstractItemView::NoEditTriggers</set>
+      </property>
+      <property name="showGrid">
+       <bool>false</bool>
+      </property>
+      <property name="columnCount">
+       <number>2</number>
+      </property>
+      <attribute name="horizontalHeaderVisible">
+       <bool>true</bool>
+      </attribute>
+      <attribute name="verticalHeaderVisible">
+       <bool>false</bool>
+      </attribute>
+      <column>
+       <property name="text">
+        <string>New Column</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>New Column</string>
+       </property>
+      </column>
+     </widget>
+    </item>
+    <item>
+     <widget class="QListWidget" name="listWidget">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::NoFrame</enum>
+      </property>
+      <property name="editTriggers">
+       <set>QAbstractItemView::EditKeyPressed</set>
+      </property>
+      <property name="showDropIndicator" stdset="0">
+       <bool>false</bool>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QgsOpacityWidget</class>
+   <extends>QWidget</extends>
+   <header>qgsopacitywidget.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <tabstops>
+  <tabstop>comboBox</tabstop>
+  <tabstop>styleComboBox</tabstop>
+  <tabstop>tableWidget</tabstop>
+  <tabstop>listWidget</tabstop>
+ </tabstops>
+ <resources/>
+ <connections/>
+</ui>

@@ -1,0 +1,41 @@
+# This file contains metadata for your plugin. Since 
+# version 2.0 of QGIS this is the proper way to supply 
+# information about a plugin. The old method of 
+# embedding metadata in __init__.py will 
+# is no longer supported since version 2.0.
+
+# This file should be included when you package your plugin.# Mandatory items:
+
+[general]
+name=QuickDEM4JP
+qgisMinimumVersion=3.16
+qgisMaximumVersion=4.99
+description=Convert DEM XML files, provided by Geospatial Information Authority of Japan(GSI) to DEM GeoTiff and/or Terrain RGB format GeoTiff.
+version=2.2.2
+author=MIERUNE Inc.
+email=info@mierune.co.jp
+
+about=Geospatial Information Authority of Japan(GSI) provides 1m, 5m and 10m DEM XML files of Japan <a href='https://service.gsi.go.jp/kiban/app/map/?search=dem'>on the web</a>. This plugin imports XML files or XML included zip files and converts them to DEM GeoTiff and/or Terrain RGB format GeoTiff.
+	国土地理院が提供する<a href='https://service.gsi.go.jp/kiban/app/map/?search=dem'>基盤地図情報数値標高モデル(DEM)</a>のXML形式及びそのZIPファイルを GeoTIFF形式のDEMとTerrain RGBに変換します。
+tracker=https://github.com/MIERUNE/QuickDEM4JP/issues
+repository=https://github.com/MIERUNE/QuickDEM4JP
+# End of mandatory metadata
+
+# Recommended items:
+
+# Uncomment the following line and add your changelog:
+# changelog=
+
+# Tags are comma separated with spaces allowed
+tags=DEM, GeoTiff, Terrain, GSI, Terrain RGB, XML, 国土地理院, 標高
+
+homepage=https://github.com/MIERUNE/QuickDEM4JP
+category=Plugins
+icon=icon.png
+# experimental flag
+experimental=False
+
+# deprecated flag (applies to the whole plugin, not just a single version)
+deprecated=False
+
+hasProcessingProvider=yes

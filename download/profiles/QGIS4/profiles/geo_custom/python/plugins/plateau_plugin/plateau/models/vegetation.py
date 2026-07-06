@@ -1,0 +1,155 @@
+"""植生モデル (./veg/)"""
+
+from .base import (
+    Attribute,
+    AttributeGroup,
+    FacilityAttributePaths,
+    FeatureProcessingDefinition,
+    GeometricAttribute,
+    GeometricAttributes,
+)
+
+_uro_vegetation_data_quality_attribute = AttributeGroup(
+    base_element="./uro:vegetationDataQualityAttribute/uro:VegetationDataQualityAttribute",
+    attributes=[
+        Attribute(
+            name="srcScale",
+            path="./uro:srcScale",
+            datatype="[]string",
+            predefined_codelist="VegetationDataQualityAttribute_srcScale",
+        ),
+        Attribute(
+            name="geometrySrcDesc",
+            path="./uro:geometrySrcDesc",
+            datatype="[]string",
+            predefined_codelist="VegetationDataQualityAttribute_geometrySrcDesc",
+        ),
+        Attribute(
+            name="thematicSrcDesc",
+            path="./uro:thematicSrcDesc",
+            datatype="[]string",
+            predefined_codelist="VegetationDataQualityAttribute_thematicSrcDesc",
+        ),
+        Attribute(
+            name="appearanceSrcDesc",
+            path="./uro:appearanceSrcDesc",
+            datatype="[]string",
+            predefined_codelist="VegetationDataQualityAttribute_appearanceSrcDesc",
+        ),
+    ],
+)
+
+SOLITARY_VEGETATION_OBJECT = FeatureProcessingDefinition(
+    id="veg:SolitaryVegetationObject",
+    name="SolitaryVegetationObject",
+    target_elements=["veg:SolitaryVegetationObject"],
+    attribute_groups=[
+        AttributeGroup(
+            base_element=None,
+            attributes=[
+                Attribute(
+                    name="class",
+                    path="./veg:class",
+                    datatype="string",
+                    predefined_codelist="SolitaryVegetationObject_class",
+                ),
+                Attribute(
+                    name="function",
+                    path="./veg:function",
+                    datatype="string",
+                    predefined_codelist="SolitaryVegetationObject_function",
+                ),
+                Attribute(
+                    name="height",
+                    path="./veg:height",
+                    datatype="double",
+                ),
+                Attribute(
+                    name="trunkDiameter",
+                    path="./veg:trunkDiameter",
+                    datatype="double",
+                ),
+                Attribute(
+                    name="crownDiameter",
+                    path="./veg:crownDiameter",
+                    datatype="double",
+                ),
+            ],
+        ),
+        _uro_vegetation_data_quality_attribute,
+    ],
+    dm_attr_container_path="./uro:vegDmAttribute",
+    facility_attr_paths=FacilityAttributePaths(
+        facility_id="./uro:vegFacilityIdAttribute",
+        facility_types="./uro:vegFacilityTypeAttribute",
+        facility_attrs="./uro:vegFacilityAttribute",
+    ),
+    geometries=GeometricAttributes(
+        lod1=GeometricAttribute(
+            lod_detection=["./veg:lod1Geometry"],
+            collect_all=["./veg:lod1Geometry//gml:Polygon"],
+        ),
+        lod2=GeometricAttribute(
+            lod_detection=["./veg:lod2Geometry"],
+            collect_all=["./veg:lod2Geometry//gml:Polygon"],
+        ),
+        lod3=GeometricAttribute(
+            lod_detection=["./veg:lod3Geometry"],
+            collect_all=["./veg:lod3Geometry//gml:Polygon"],
+        ),
+    ),
+)
+
+PLANT_COVER = FeatureProcessingDefinition(
+    id="veg:PlantCover",
+    name="PlantCover",
+    target_elements=["veg:PlantCover"],
+    attribute_groups=[
+        AttributeGroup(
+            base_element=None,
+            attributes=[
+                Attribute(
+                    name="class",
+                    path="./veg:class",
+                    datatype="string",
+                    predefined_codelist="PlantCover_class",
+                ),
+                Attribute(
+                    name="averageHeight",
+                    path="./veg:averageHeight",
+                    datatype="double",
+                ),
+            ],
+        ),
+        _uro_vegetation_data_quality_attribute,
+    ],
+    dm_attr_container_path="./uro:vegDmAttribute",
+    facility_attr_paths=FacilityAttributePaths(
+        facility_id="./uro:vegFacilityIdAttribute",
+        facility_types="./uro:vegFacilityTypeAttribute",
+        facility_attrs="./uro:vegFacilityAttribute",
+    ),
+    geometries=GeometricAttributes(
+        lod1=GeometricAttribute(
+            lod_detection=["./veg:lod1MultiSolid", "./veg:lod1MultiSurface"],
+            collect_all=[
+                "./veg:lod1MultiSolid//gml:Polygon",
+                "./veg:lod1MultiSurface//gml:Polygon",
+            ],
+        ),
+        lod2=GeometricAttribute(
+            lod_detection=["./veg:lod2MultiSolid", "./veg:lod2MultiSurface"],
+            collect_all=[
+                "./veg:lod2MultiSolid//gml:Polygon",
+                "./veg:lod2MultiSurface//gml:Polygon",
+            ],
+        ),
+        lod3=GeometricAttribute(
+            lod_detection=["./veg:lod3MultiSolid", "./veg:lod3MultiSurface"],
+            collect_all=[
+                "./veg:lod3MultiSolid//gml:Polygon",
+                "./veg:lod3MultiSurface//gml:Polygon",
+            ],
+        ),
+    ),
+)

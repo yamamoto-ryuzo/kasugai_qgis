@@ -1,0 +1,191 @@
+# Unfinished translations report for geo_import_fr.ts (language=fr_FR)
+# Count: 27
+
+---
+Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:104
+Source:
+Data Format
+Existing translation (empty/unfinished):
+Format de données
+---
+Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:112
+Source:
+All
+Existing translation (empty/unfinished):
+Tous
+---
+Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:117
+Source:
+CSV
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:122
+Source:
+GeoJSON
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:127
+Source:
+Shapefile
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:132
+Source:
+KML
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:137
+Source:
+JSON
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:285
+Source:
+Refresh all datasets and recreate SQLite cache
+Existing translation (empty/unfinished):
+Actualiser tous les jeux de données et recréer le cache SQLite
+---
+Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:288
+Source:
+Refresh SQLite
+Existing translation (empty/unfinished):
+Actualiser SQLite
+---
+Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:370
+Source:
+Clear Selection
+Existing translation (empty/unfinished):
+Effacer la sélection
+---
+Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:373
+Source:
+Clear the selection of search results
+Existing translation (empty/unfinished):
+Effacer la sélection des résultats de recherche
+---
+Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:380
+Source:
+Select All
+Existing translation (empty/unfinished):
+Tout sélectionner
+---
+Context: GeoImportDialogBase
+Locations: ../geo_import_dialog_base.ui:543
+Source:
+選択中: 0件
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogDataProviders
+Locations: ../geo_import_dialog_dataproviders.ui:77
+Source:
+dlg_dataproviders_btn_browse_local
+Existing translation (empty/unfinished):
+
+---
+Context: GeoImportDialogDataProviders
+Locations: ../geo_import_dialog_dataproviders.ui:80
+Source:
+dlg_dataproviders_btn_browse_local_tooltip
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../geo_import_dialog.py:626, ../geo_import_dialog.py:891
+Source:
+py_dlg_set_info_empty_local_created
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../geo_import_dialog.py:906
+Source:
+py_dlg_set_info_local_read_error_boxdrive
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../geo_import_dialog.py:909
+Source:
+py_dlg_set_info_local_read_error
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../geo_import_dialog.py:937
+Source:
+CKAN全件取得中...
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../geo_import_dialog.py:937
+Source:
+キャンセル
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../geo_import_dialog.py:938
+Source:
+進捗
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../geo_import_dialog.py:947
+Source:
+CKAN全件取得中... ({}/{})
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../geo_import_dialog.py:1006
+Source:
+Current server: {0}
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../geo_import_dialog.py:1007
+Source:
+Cache path: {0}
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../geo_import_dialog_dataproviders.py:66
+Source:
+Browse folder...
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../geo_import_dialog_dataproviders.py:279
+Source:
+Select LOCAL folder
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../geo_import_dialog_dataproviders.py:345
+Source:
+py_dlg_set_info_local_not_found
+Existing translation (empty/unfinished):

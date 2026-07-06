@@ -1,0 +1,450 @@
+"""
+/***************************************************************************
+ QFieldSync
+                             -------------------
+        begin                : 2020-08-01
+        git sha              : $Format:%H$
+        copyright            : (C) 2020 by OPENGIS.ch
+        email                : info@opengis.ch
+ ***************************************************************************/
+
+/***************************************************************************
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ ***************************************************************************/
+"""
+
+import sqlite3
+from collections.abc import Iterator
+from datetime import datetime, timezone
+from enum import IntFlag
+from pathlib import Path
+from typing import Any, Optional
+
+from libqfieldsync.utils.qgis import get_qgis_files_within_dir
+from qgis.core import (
+    Qgis,
+    QgsApplication,
+    QgsMessageLog,
+    QgsProject,
+    QgsProviderRegistry,
+)
+from qgis.PyQt.QtCore import QDir
+
+from qfieldsync.core.preferences import Preferences
+from qfieldsync.utils.file_utils import calc_etag
+
+
+class ProjectFileCheckout(IntFlag):
+    Deleted = 0
+    Local = 1
+    Cloud = 2
+    LocalAndCloud = 3
+
+
+class ProjectFile:
+    def __init__(self, data: dict[str, Any], local_dir: Optional[str] = None) -> None:
+        self._local_dir = local_dir
+        self._temp_dir = None
+        self._data = data
+
+    @property
+    def name(self) -> str:
+        return self._data["name"]
+
+    @property
+    def path(self) -> Path:
+        return Path(self.name)
+
+    @property
+    def dirname(self) -> str:
+        return str(self.path.parent)
+
+    @property
+    def created_at(self) -> Optional[str]:
+        if not self.versions:
+            return None
+
+        return self.versions[-1].get("last_modified")
+
+    @property
+    def uploaded_at(self) -> Optional[datetime]:
+        if not self.versions:
+            return None
+
+        newest_version = self.versions[0]
+        uploaded_at = newest_version.get("uploaded_at")
+        if uploaded_at:
+            return datetime.fromisoformat(uploaded_at)
+
+        # NOTE older QFieldCloud API versions support only the deprecated `last_modified` field instead of the newly supported ISO-like `uploaded_at`
+        last_modified = newest_version.get("last_modified")
+        if last_modified:
+            return datetime.strptime(
+                last_modified,
+                "%d.%m.%Y %H:%M:%S %Z",
+            ).astimezone(timezone.utc)
+
+        return None
+
+    @property
+    def versions(self) -> Optional[list[dict[str, str]]]:
+        return self._data.get("versions")
+
+    @property
+    def checkout(self) -> ProjectFileCheckout:
+        checkout = ProjectFileCheckout.Deleted
+
+        if self.local_path and self.local_path.exists():
+            checkout |= ProjectFileCheckout.Local
+
+        # indirect way to check whether it is a cloud project
+        if self.size is not None:
+            checkout |= ProjectFileCheckout.Cloud
+
+        return checkout
+
+    @property
+    def size(self) -> Optional[int]:
+        return self._data.get("size")
+
+    @property
+    def etag(self) -> Optional[str]:
+        # NOTE the etag is actually stored in the `md5sum` key by mistake
+        return self._data.get("md5sum")
+
+    @property
+    def local_size(self) -> Optional[int]:
+        if not self.local_path_exists:
+            return None
+
+        assert self.local_path
+
+        return self.local_path.stat().st_size
+
+    @property
+    def local_dir(self) -> Optional[str]:
+        return self._local_dir
+
+    @property
+    def local_path(self) -> Optional[Path]:
+        if not self._local_dir:
+            return None
+
+        return Path(self._local_dir + "/" + self.name)
+
+    @property
+    def local_path_exists(self) -> bool:
+        if self.local_path:
+            return self.local_path.exists()
+
+        return False
+
+    @property
+    def local_etag(self) -> Optional[str]:
+        if not self.local_path_exists:
+            return None
+
+        assert self.local_path
+        assert self.local_path.is_file()
+
+        try:
+            return calc_etag(self.local_path)
+        except PermissionError:
+            QgsMessageLog.logMessage(
+                f"Cannot read '{self.local_path}' to compute ETag "
+                f"(file may be locked by OneDrive). "
+                f"Treating as changed.",
+                "QFieldSync",
+            )
+            return None
+
+    def flush(self) -> None:
+        if not self._local_dir:
+            return
+
+        if self.name.endswith(".gpkg"):
+            path = Path(str(self.local_path) + "-wal")
+            if path.exists() and path.stat().st_size > 0:
+                conn = sqlite3.connect(str(self.local_path))
+
+                with conn:
+                    conn.execute("PRAGMA wal_checkpoint")
+
+
+class CloudProject:
+    def __init__(self, project_data: dict[str, Any]) -> None:
+        """Constructor."""
+        self._preferences = Preferences()
+        self._files = {}
+        self._data = {}
+        self._cloud_files = None
+        self._local_dir = None
+
+        self.update_data(project_data)
+
+    def update_data(self, new_data: dict[str, Any]) -> None:
+        self._data = {**self._data, **new_data}
+        # make sure empty string is converted to None
+
+        if "local_dir" in new_data and self._local_dir != new_data.get("local_dir"):
+            self._local_dir = (self._data.get("local_dir") or "").strip() or None
+
+            del self._data["local_dir"]
+
+            if self._local_dir and not Path(self._local_dir).is_absolute():
+                self._local_dir = None
+
+            old_project_local_dirs = self._preferences.value(
+                "qfieldCloudProjectLocalDirs"
+            )
+            new_value = {
+                **old_project_local_dirs,
+                self.id: self._local_dir,
+            }
+
+            self._preferences.set_value("qfieldCloudProjectLocalDirs", new_value)
+
+            if self._local_dir:
+                Path(self._local_dir).mkdir(exist_ok=True, parents=True)
+
+        # NOTE the cloud_files value is a list and may be in any order, so always assume that if the key is present in the new data, then there is a change
+        if "cloud_files" in new_data:
+            self._cloud_files = self._data.get("cloud_files")
+
+            del self._data["cloud_files"]
+
+            if isinstance(self._cloud_files, list):
+                self._preferences.set_value(
+                    "qfieldCloudLastProjectFiles",
+                    {
+                        **self._preferences.value("qfieldCloudLastProjectFiles"),
+                        self.id: [
+                            cloud_file["name"] for cloud_file in self._cloud_files
+                        ],
+                    },
+                )
+                self._cloud_files = sorted(self._cloud_files, key=lambda f: f["name"])
+            else:
+                assert self._cloud_files is None
+
+        if "cloud_files" in new_data or "local_dir" in new_data or not self._files:
+            self.refresh_files()
+
+    @property
+    def id(self) -> str:
+        return self._data["id"]
+
+    @property
+    def name(self) -> str:
+        return self._data["name"]
+
+    @property
+    def owner(self) -> str:
+        return self._data["owner"]
+
+    @property
+    def description(self) -> str:
+        return self._data["description"]
+
+    @property
+    def is_public(self) -> bool:
+        return self._data["is_public"]
+
+    @property
+    def created_at(self) -> str:
+        return self._data["created_at"]
+
+    @property
+    def updated_at(self) -> str:
+        return self._data["updated_at"]
+
+    @property
+    def user_role(self) -> str:
+        return self._data["user_role"]
+
+    @property
+    def user_role_origin(self) -> str:
+        return self._data["user_role_origin"]
+
+    @property
+    def status(self) -> bool:
+        # TODO @suricactus: remove as soon as all API servers support `status` key
+        return self._data.get("status", "busy")
+
+    @property
+    def local_dir(self) -> Optional[str]:
+        dirname = self._preferences.value("qfieldCloudProjectLocalDirs").get(self.id)
+
+        if not dirname or not Path(dirname).exists() or not Path(dirname).is_absolute():
+            return None
+
+        return dirname
+
+    @property
+    def human_local_dir(self) -> Optional[str]:
+        dirname = self._preferences.value("qfieldCloudProjectLocalDirs").get(self.id)
+
+        if not dirname or not Path(dirname).exists() or not Path(dirname).is_absolute():
+            return None
+
+        if QDir(dirname).absolutePath().startswith(QDir.homePath()):
+            return f"{QDir.toNativeSeparators(QDir.home().relativeFilePath(dirname))}"
+        else:
+            return dirname
+
+    @property
+    def cloud_files(self) -> Optional[list]:
+        return self._cloud_files
+
+    @property
+    def files_to_sync(self) -> Iterator[ProjectFile]:
+        for project_file in self.get_files():
+            project_file.flush()
+
+            # don't attempt to sync files that are the same both locally and remote
+            if project_file.etag == project_file.local_etag:
+                continue
+
+            # ignore local files that are not in the temp directory
+            if (
+                project_file.checkout & ProjectFileCheckout.Local
+                and not project_file.local_path_exists
+            ):
+                continue
+
+            yield project_file
+
+    @property
+    def is_current_qgis_project(self) -> bool:
+        project_home_path = QgsProject.instance().homePath()
+
+        return len(project_home_path) > 0 and self.local_dir == project_home_path
+
+    @property
+    def url(self) -> str:
+        return f"a/{self.owner}/{self.name}"
+
+    @property
+    def name_with_owner(self) -> str:
+        return f"{self.owner}/{self.name}"
+
+    @property
+    def root_project_files(self) -> list[Path]:
+        if self.local_dir:
+            return get_qgis_files_within_dir(Path(self.local_dir))
+        else:
+            return []
+
+    @property
+    def local_project_file(self) -> Optional[ProjectFile]:
+        if len(self.root_project_files) != 1:
+            return None
+
+        for project_file in self.get_files():
+            if project_file.local_path == self.root_project_files[0]:
+                return project_file
+
+        return None
+
+    def get_localized_dataset_files(self) -> list[ProjectFile]:
+        localized_data_paths = (
+            QgsApplication.instance().localizedDataPathRegistry().paths()
+        )
+        if (
+            len(localized_data_paths) == 0
+            or not self.local_project_file
+            or not self.local_project_file.local_path_exists
+        ):
+            return []
+
+        read_flags = QgsProject.ReadFlags()
+        if Qgis.versionInt() >= 32600:  # noqa: PLR2004
+            read_flags |= Qgis.ProjectReadFlag.DontLoadLayouts
+            read_flags |= Qgis.ProjectReadFlag.TrustLayerMetadata
+            read_flags |= Qgis.ProjectReadFlag.DontLoad3DViews
+        else:
+            read_flags |= QgsProject.ReadFlag.FlagDontLoadLayouts
+            read_flags |= QgsProject.ReadFlag.FlagTrustLayerMetadata
+
+        temporary_project = QgsProject()
+        temporary_project.read(str(self.local_project_file.local_path), read_flags)
+        layers = temporary_project.mapLayers()
+
+        localized_datasets_files = []
+        for layer in layers.values():
+            if not layer.dataProvider():
+                continue
+
+            metadata = QgsProviderRegistry.instance().providerMetadata(
+                layer.dataProvider().name()
+            )
+            metadata.decodeUri(layer.source())
+
+            filename = metadata.decodeUri(layer.source()).get("path", "")
+            if not filename:
+                continue
+
+            for localized_data_path in localized_data_paths:
+                if not filename.startswith(localized_data_path):
+                    continue
+
+                localized_datasets_name = (
+                    Path(filename).relative_to(localized_data_path).as_posix()
+                )
+                localized_datasets_files.append(
+                    ProjectFile(
+                        {"name": localized_datasets_name},
+                        local_dir=localized_data_path,
+                    )
+                )
+
+        return localized_datasets_files
+
+    def get_files(
+        self, checkout_filter: Optional[ProjectFileCheckout] = None
+    ) -> list[ProjectFile]:
+        if checkout_filter is None:
+            return list(self._files.values())
+
+        return [
+            file for file in self._files.values() if file.checkout & checkout_filter
+        ]
+
+    def refresh_files(self) -> None:
+        self._files = {}
+
+        if self._cloud_files:
+            for file_obj in self._cloud_files:
+                self._files[file_obj["name"]] = ProjectFile(
+                    file_obj, local_dir=self.local_dir
+                )
+
+        if self.local_dir:
+            local_filenames = [
+                f
+                for f in [
+                    str(f.relative_to(self.local_dir).as_posix())
+                    for f in Path(self.local_dir).glob("**/*")
+                    if f.is_file()
+                ]
+                if not f.startswith(".")
+            ]
+
+            for filename in local_filenames:
+                if filename in self._files:
+                    continue
+
+                if filename.endswith((".gpkg-shm", ".gpkg-wal")):
+                    continue
+
+                if filename.endswith((".qgs~", ".qgz~")):
+                    continue
+
+                self._files[filename] = ProjectFile(
+                    {"name": filename}, local_dir=self.local_dir
+                )

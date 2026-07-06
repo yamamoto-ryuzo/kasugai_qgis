@@ -1,0 +1,53 @@
+Suggestions for fi
+====================
+Total unfinished: 7
+
+[1] Context: self.util
+Locations: ../ckan_browser_dialog.py:96
+Source:
+py_dlg_base_current_server
+Suggestion (English source fallback):
+py_dlg_base_current_server
+
+[2] Context: self.util
+Locations: ../ckan_browser_dialog.py:97
+Source:
+py_dlg_base_cache_path
+Suggestion (English source fallback):
+py_dlg_base_cache_path
+
+[3] Context: self.util
+Locations: ../ckan_browser_dialog_dataproviders.py:297
+Source:
+py_dlg_data_providers_no_server_selected
+Suggestion (English source fallback):
+py_dlg_data_providers_no_server_selected
+
+[4] Context: self.util
+Locations: ../ckan_browser_dialog_dataproviders.py:166
+Source:
+py_dlg_data_providers_cannot_delete_sever_from_official_list
+Suggestion (English source fallback):
+py_dlg_data_providers_cannot_delete_sever_from_official_list
+
+[5] Context: self.util
+Locations: ../ckan_browser_dialog_dataproviders.py:237
+Source:
+py_dlg_data_providers_custom_server
+Suggestion (English source fallback):
+py_dlg_data_providers_custom_server
+
+[6] Context: self.util
+Locations: ../ckan_browser_dialog_dataproviders.py:237
+Source:
+py_dlg_data_providers_name_custom_server
+Suggestion (English source fallback):
+py_dlg_data_providers_name_custom_server
+
+[7] Context: self.util
+Locations: ../ckan_browser_dialog_dataproviders.py:249
+Source:
+py_dlg_data_providers_custom_server_name_exists
+Suggestion (English source fallback):
+py_dlg_data_providers_custom_server_name_exists
+

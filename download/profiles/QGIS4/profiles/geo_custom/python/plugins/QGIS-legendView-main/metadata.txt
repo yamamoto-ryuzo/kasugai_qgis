@@ -1,0 +1,79 @@
+# This file contains metadata for your plugin.
+
+# This file should be included when you package your plugin.# Mandatory items:
+
+[general]
+name=QGIS-legendView-main
+qgisMinimumVersion=3.40
+qgisMaximumVersion=4.99
+description=Display only the necessary legends in a clear, easy-to-understand manner with Qt5/Qt6 compatibility
+version=2.0.16
+author=yamamoto ryuzo
+email=ryu@yamakun.net
+supportsQt6=True
+
+about=The legend you want to display is set in the project variable legend_group_layer_name. This plugin provides a dockable widget that displays legends for selected layers in a compact and organized way. Features include multi-language support (Japanese/English), Qt5/Qt6 compatibility, and enhanced user interface. Supports QGIS 3.0 to 3.99 with both Qt5 and Qt6 frameworks.
+
+tracker=https://github.com/yamamoto-ryuzo/QGIS-legendView/
+repository=https://github.com/yamamoto-ryuzo/QGIS-legendView/
+# End of mandatory metadata
+
+# Recommended items:
+
+hasProcessingProvider=no
+
+# Changelog for version 2.0.2
+changelog=
+    Version 2.0.16:
+    - (ここに変更内容を記載)
+    Version 2.0.15:
+    - レイヤ名に_がある場合も対応
+    - プロジェクト変数へレイヤ名を登録するボタンを追加
+    Version 2.0.2:
+    - Currentボタンの幅を1.5倍に拡大
+    - legend_view_dockwidget_base.uiのUI調整
+    - 各言語翻訳ファイルの構造修正・再生成（.ts/.qm）
+    - ドイツ語・イタリア語翻訳ファイルの再構築
+    - lreleaseによる全言語の.qm再生成
+    - 最新の翻訳・UI修正を反映したZIPパッケージ作成
+    - 多言語翻訳抽出・反映の不具合修正
+    - .tsファイルの重複・壊れたXML宣言の整理
+    - Currentボタンの翻訳が抽出されない問題の修正
+    - CHANGELOG.mdのバージョン管理手順明記
+    - バージョン管理スクリプトの利用例をREADME等に追記
+    Version 2.0.1:
+    - Fixed Qt5/Qt6 compatibility issues with dedicated logic per version
+    - Added Qt5-specific safe alignment handling to prevent freezing
+    - Added Qt6-specific proper enum handling for modern QGIS
+    - Created version-specific setLabelAlignment function
+    - Enhanced error handling and version detection
+    - Improved toolbar creation and error handling
+    - Fixed setAlignment TypeError in Qt6 environments
+    Version 2.0.0:
+    - Added Qt5/Qt6 compatibility support
+    - Implemented multi-language support (Japanese and English)
+    - Enhanced translation system with fallback mechanisms
+    - Improved compatibility across QGIS versions (3.0 to 3.30+)
+    - Added comprehensive version management
+    - Fixed translation issues and Qt compatibility problems
+
+# Tags are comma separated with spaces allowed
+tags=python,legend,dock,widget,qt5,qt6,qt6-compatible,visualization,cartography,compatibility
+
+homepage=https://github.com/yamamoto-ryuzo/QGIS-legendView/
+category=Plugins
+icon=icon.png
+# experimental flag
+experimental=False
+
+# deprecated flag (applies to the whole plugin, not just a single version)
+deprecated=False
+
+# Since QGIS 3.8, a comma separated list of plugins to be installed
+# (or upgraded) can be specified.
+# Check the documentation for more information.
+# plugin_dependencies=
+
+# If the plugin can run on QGIS Server.
+server=False
+
