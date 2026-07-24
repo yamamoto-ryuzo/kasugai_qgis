@@ -405,23 +405,35 @@ fn apply_override_value(mut base: serde_json::Value, override_path: &PathBuf) ->
 
 fn get_current_settings(custom_dir: &str) -> QgisSettings {
     let path = get_settings_path(custom_dir);
-    if let Ok(data) = fs::read_to_string(path) {
+    if let Ok(data) = fs::read_to_string(&path) {
         // 読み込み時に常にバックスラッシュを事前修正してからパースする。
         // Accept either string or array for `project_path` for backward compatibility.
         let fixed = fix_backslashes_in_json(&data);
-        if let Ok(mut v) = serde_json::from_str::<serde_json::Value>(&fixed) {
-            // 無条件オーバーライドファイルをマージする（ベースの直後に適用）
-            v = apply_force_override(custom_dir, v);
-            // ユーザーオーバーライドファイルをマージする（最終適用）
-            v = apply_user_override(custom_dir, v);
-            if let Some(p) = v.get("project_path") {
-                if p.is_string() {
-                    let s = p.as_str().unwrap_or("");
-                    v["project_path"] = serde_json::Value::Array(vec![serde_json::Value::String(s.to_string())]);
+        match serde_json::from_str::<serde_json::Value>(&fixed) {
+            Ok(mut v) => {
+                // 無条件オーバーライドファイルをマージする（ベースの直後に適用）
+                v = apply_force_override(custom_dir, v);
+                // ユーザーオーバーライドファイルをマージする（最終適用）
+                v = apply_user_override(custom_dir, v);
+                if let Some(p) = v.get("project_path") {
+                    if p.is_string() {
+                        let s = p.as_str().unwrap_or("");
+                        v["project_path"] = serde_json::Value::Array(vec![serde_json::Value::String(s.to_string())]);
+                    }
+                }
+                // kasugai_qgis_version を数値でも受け付ける（文字列に正規化）
+                if let Some(ver) = v.get("kasugai_qgis_version") {
+                    if ver.is_number() {
+                        let s = ver.to_string();
+                        v["kasugai_qgis_version"] = serde_json::Value::String(s);
+                    }
+                }
+                if let Ok(s) = serde_json::from_value::<QgisSettings>(v) {
+                    return s;
                 }
             }
-            if let Ok(s) = serde_json::from_value::<QgisSettings>(v) {
-                return s;
+            Err(e) => {
+                eprintln!("qgis_settings.json parse error ({}): {}", path.display(), e);
             }
         }
         QgisSettings::default()
@@ -541,6 +553,17 @@ fn resolve_local_sync_config(settings: &QgisSettings, settings_dir: &str) -> Opt
     Some(file)
 }
 
+/// JSON 値から文字列としてバージョン値を取り出す（文字列・数値両対応）。
+fn version_value_as_string(value: &serde_json::Value) -> Option<String> {
+    if let Some(s) = value.as_str() {
+        return Some(s.to_string());
+    }
+    if value.is_number() {
+        return Some(value.to_string());
+    }
+    None
+}
+
 /// KASUGA-QGIS ランチャー本体の配布元バージョンを取得する。
 /// まず SYNC_SRC 側の qgis_settings.json を読み、kasugai_qgis_version を優先する。
 /// SYNC_SRC 側のファイルが無いか値が無ければ、ローカルの qgis_settings.json の値を返す。
@@ -553,9 +576,14 @@ fn resolve_kasugai_qgis_version(settings: &QgisSettings, settings_dir: &str) -> 
     if server_settings_path.exists() {
         if let Ok(text) = fs::read_to_string(&server_settings_path) {
             let fixed = fix_backslashes_in_json(&text);
-            if let Ok(value) = serde_json::from_str::<serde_json::Value>(&fixed) {
-                if let Some(ver) = value.get("kasugai_qgis_version").and_then(|v| v.as_str()) {
-                    return Some(ver.to_string());
+            match serde_json::from_str::<serde_json::Value>(&fixed) {
+                Ok(value) => {
+                    if let Some(ver) = value.get("kasugai_qgis_version").and_then(version_value_as_string) {
+                        return Some(ver);
+                    }
+                }
+                Err(e) => {
+                    eprintln!("SYNC_SRC qgis_settings.json parse error ({}): {}", server_settings_path.display(), e);
                 }
             }
         }
