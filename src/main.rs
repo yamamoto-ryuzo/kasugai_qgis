@@ -555,12 +555,68 @@ fn find_prefixed_folders(src: &str, prefix: &str) -> Vec<String> {
     result
 }
 
+/// KASUGAI/yr-qgis-launcher 方式のローカル同期が必要かどうかを判定する。
+/// qgislocalsync.config / JSON local_sync の設定に基づき、SYNC_SRC の存在、
+/// QField*/QGIS*/portable_profile のバージョン差分、SYNC_DST の未作成を判定する。
+fn local_sync_needed(settings: &QgisSettings, settings_dir: &str) -> bool {
+    let Some(config) = resolve_local_sync_config(settings, settings_dir) else { return false; };
+    let Some(src) = config.sync_src.as_ref() else { return false; };
+    let Some(dst) = config.sync_dst.as_ref() else { return false; };
+
+    let src = expand_env_vars(&resolve_path(src, &settings.path_aliases));
+    let dst = expand_env_vars(&resolve_path(dst, &settings.path_aliases));
+
+    if !PathBuf::from(&src).exists() {
+        return false;
+    }
+    if !PathBuf::from(&dst).exists() {
+        return true;
+    }
+
+    let qfield_folders = find_prefixed_folders(&src, "QField");
+    if let Some(qfield_ver) = config.qfield_version.as_ref() {
+        let local_ver = read_version_file(&dst, "LOCAL_QFIELD_VERSION");
+        if local_ver != *qfield_ver && !qfield_folders.is_empty() {
+            return true;
+        }
+    }
+
+    let qgis_folders = find_prefixed_folders(&src, "QGIS");
+    if let Some(qgis_ver) = config.qgis_version.as_ref() {
+        let local_ver = read_version_file(&dst, "LOCAL_QGIS_VERSION");
+        if local_ver != *qgis_ver && !qgis_folders.is_empty() {
+            return true;
+        }
+    }
+
+    if let Some(pp_ver) = config.portable_profile_version.as_ref() {
+        let local_ver = read_version_file(&dst, "portable.ver");
+        let folder = "portable_profile";
+        let s = PathBuf::from(&src).join(folder).to_string_lossy().to_string();
+        if local_ver != *pp_ver && PathBuf::from(&s).exists() {
+            return true;
+        }
+    }
+
+    // トップレベル同期が必要かは robocopy で判定するため、
+    // ここではバージョン管理対象フォルダの差分と SYNC_DST の未作成のみで判定する。
+    false
+}
+
 /// KASUGAI/yr-qgis-launcher 方式のローカル自動同期を実行する。
 /// SYNC_SRC → SYNC_DST へ、QField*/QGIS* フォルダはバージョン文字列比較で差分がある場合のみ同期する。
-fn run_local_sync(settings: &QgisSettings, settings_dir: &str, sender: Option<&std::sync::mpsc::Sender<String>>) {
-    let Some(config) = resolve_local_sync_config(settings, settings_dir) else { return; };
-    let Some(src) = config.sync_src.as_ref() else { return; };
-    let Some(dst) = config.sync_dst.as_ref() else { return; };
+/// 戻り値: 同期を実行した場合は true、アップデートが不要でスキップした場合は false。
+fn run_local_sync(settings: &QgisSettings, settings_dir: &str, sender: Option<&std::sync::mpsc::Sender<String>>) -> bool {
+    if !local_sync_needed(settings, settings_dir) {
+        let msg = "local_sync: アップデートは不要です。";
+        if let Some(s) = sender { let _ = s.send(format!("MSG:{}", msg)); }
+        println!("{}", msg);
+        return false;
+    }
+
+    let config = resolve_local_sync_config(settings, settings_dir).unwrap();
+    let src = config.sync_src.as_ref().unwrap();
+    let dst = config.sync_dst.as_ref().unwrap();
 
     let src = expand_env_vars(&resolve_path(src, &settings.path_aliases));
     let dst = expand_env_vars(&resolve_path(dst, &settings.path_aliases));
@@ -573,13 +629,13 @@ fn run_local_sync(settings: &QgisSettings, settings_dir: &str, sender: Option<&s
         let msg = format!("local_sync: SYNC_SRC '{}' が見つかりません。スキップします。", src);
         if let Some(s) = sender { let _ = s.send(format!("MSG:{}", msg)); }
         eprintln!("{}", msg);
-        return;
+        return false;
     }
     if let Err(e) = fs::create_dir_all(&dst) {
         let msg = format!("local_sync: SYNC_DST 作成失敗 ({}): {}", dst, e);
         if let Some(s) = sender { let _ = s.send(format!("MSG:{}", msg)); }
         eprintln!("{}", msg);
-        return;
+        return false;
     }
 
     // QField*/QGIS* フォルダを予め列挙して /XD 用の固定名リストを作る
@@ -646,6 +702,7 @@ fn run_local_sync(settings: &QgisSettings, settings_dir: &str, sender: Option<&s
     let msg = "local_sync: 完了".to_string();
     if let Some(s) = sender { let _ = s.send(format!("MSG:{}", msg)); }
     println!("{}", msg);
+    true
 }
 
 /// robocopy を用いた 1 フォルダ同期。/E でサブディレクトリ含む、/MIR でミラー。
@@ -998,8 +1055,9 @@ fn run_gui() {
     let sync_config_dir = resolved_settings_dir.clone();
     std::thread::spawn(move || {
         let _ = s_start.send("MSG:Start".to_string());
-        // KASUGAI/yr-qgis-launcher 方式のローカル自動同期
-        run_local_sync(&settings_for_thread, &sync_config_dir, Some(&s_start));
+        // KASUGAI/yr-qgis-launcher 方式のローカル同期要否を判定し通知
+        let update_needed = local_sync_needed(&settings_for_thread, &sync_config_dir);
+        let _ = s_start.send(format!("UPDATE_AVAILABLE:{}", if update_needed { "true" } else { "false" }));
         // SUBST / robocopy
         mount_drive_mappings(&settings_for_thread.drive_mappings, &settings_for_thread, Some(&s_start));
         // プロファイル配布
@@ -1012,6 +1070,7 @@ fn run_gui() {
     // クロージャ用にクローンを用意（move しても元を保持するため）
     let settings_profile_for_closure = settings_profile_clone.clone();
     let settings_project_path_for_closure = settings_project_path_clone.clone();
+    let mut update_available = false;
     // UI スレッドでチャネルをポーリングして進捗と完了を処理
     app::add_idle3(move |_| {
         while let Ok(msg) = r_start.try_recv() {
@@ -1021,13 +1080,30 @@ fn run_gui() {
                 pbar.set_value(100.0);
                 pbar.redraw();
                 pwin.hide();
-                // 初期化完了: Launch / Update ボタンを有効化
+                // 初期化完了: Launch ボタンを有効化
                 launch_btn_for_startup.activate();
-                update_btn_for_startup.activate();
+                // Update ボタンはアップデート有無に応じたまま
                 // 完了時に選択肢を再読み込み
                 let _ = update_choices(&mut profile_in_for_startup, &mut project_in_for_startup, &project_root_for_closure, &settings_profile_for_closure, &settings_project_path_for_closure);
-                status_for_startup.set_label("Initialization complete.");
+                let status_text = if update_available {
+                    "Initialization complete. Update available."
+                } else {
+                    "Initialization complete. Up to date."
+                };
+                status_for_startup.set_label(status_text);
                 status_for_startup.redraw();
+            } else if msg.starts_with("UPDATE_AVAILABLE:") {
+                let flag = msg.trim_start_matches("UPDATE_AVAILABLE:");
+                update_available = flag == "true";
+                if update_available {
+                    pframe.set_label("Update available.");
+                    update_btn_for_startup.activate();
+                } else {
+                    pframe.set_label("Up to date.");
+                    update_btn_for_startup.deactivate();
+                }
+                pframe.redraw();
+                update_btn_for_startup.redraw();
             } else if msg.starts_with("ERR:") {
                 let e = msg.trim_start_matches("ERR:");
                 pframe.set_label(&format!("Init failed: {}", e));
@@ -1279,14 +1355,14 @@ fn run_gui() {
             let sync_config_dir = sync_config_dir.clone();
             std::thread::spawn(move || {
                 let _ = s.send("MSG:Start".to_string());
-                run_local_sync(&settings, &sync_config_dir, Some(&s));
-                let _ = s.send("DONE".to_string());
+                let did_sync = run_local_sync(&settings, &sync_config_dir, Some(&s));
+                let _ = s.send(if did_sync { "DONE:SYNCED".to_string() } else { "DONE:NOSYNC".to_string() });
             });
 
             // UI スレッドでチャネルをポーリングして進捗と完了を処理
             app::add_idle3(move |_| {
                 while let Ok(msg) = r.try_recv() {
-                    if msg == "DONE" {
+                    if msg == "DONE:SYNCED" {
                         pframe.set_label("Update complete.");
                         pframe.redraw();
                         pbar.set_value(100.0);
@@ -1294,8 +1370,19 @@ fn run_gui() {
                         pwin.hide();
                         if reset_was_active { reset_btn_for_idle.activate(); }
                         if launch_was_active { launch_btn_for_idle.activate(); }
-                        if update_was_active { update_btn_for_idle.activate(); }
-                        status_for_idle.set_label("Update complete.");
+                        update_btn_for_idle.deactivate();
+                        status_for_idle.set_label("Update complete. Up to date.");
+                        status_for_idle.redraw();
+                    } else if msg == "DONE:NOSYNC" {
+                        pframe.set_label("No update available.");
+                        pframe.redraw();
+                        pbar.set_value(100.0);
+                        pbar.redraw();
+                        pwin.hide();
+                        if reset_was_active { reset_btn_for_idle.activate(); }
+                        if launch_was_active { launch_btn_for_idle.activate(); }
+                        update_btn_for_idle.deactivate();
+                        status_for_idle.set_label("No update available.");
                         status_for_idle.redraw();
                     } else if msg.starts_with("ERR:") {
                         let e = msg.trim_start_matches("ERR:");
