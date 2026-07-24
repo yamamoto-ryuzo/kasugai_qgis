@@ -505,21 +505,34 @@ fn read_qgislocalsync_config(settings_dir: &str) -> Option<LocalSyncConfig> {
 }
 
 /// JSON 設定と `qgislocalsync.config` を統合する。
-/// `qgislocalsync.config` が存在する場合はそちらを優先し、
-/// JSON の `local_sync` は未指定項目のフォールバックとして使用する。
+/// まず settings_dir 内の qgislocalsync.config、または JSON の local_sync をベースとし、
+/// その SYNC_SRC 先にある qgislocalsync.config からバージョン情報を上書き取得する。
+/// これにより、サーバー側（SYNC_SRC）で qgislocalsync.config のバージョンを更新すると
+/// クライアント側でも Update 有効化を検知できる。
 fn resolve_local_sync_config(settings: &QgisSettings, settings_dir: &str) -> Option<LocalSyncConfig> {
-    let json_cfg = settings.local_sync.as_ref()?;
-    let file_cfg = read_qgislocalsync_config(settings_dir);
-    if file_cfg.is_none() {
-        return Some(json_cfg.clone());
-    }
-    let mut file = file_cfg.unwrap();
+    let json_cfg = settings.local_sync.as_ref()?.clone();
+    let mut file = read_qgislocalsync_config(settings_dir).unwrap_or_else(|| json_cfg.clone());
+    // ローカルファイルが無い項目は JSON の local_sync をフォールバック
     if file.sync_src.is_none() { file.sync_src = json_cfg.sync_src.clone(); }
     if file.sync_dst.is_none() { file.sync_dst = json_cfg.sync_dst.clone(); }
     if file.qfield_version.is_none() { file.qfield_version = json_cfg.qfield_version.clone(); }
     if file.qgis_version.is_none() { file.qgis_version = json_cfg.qgis_version.clone(); }
     if file.exclude_dirs.is_empty() { file.exclude_dirs = json_cfg.exclude_dirs.clone(); }
     if file.portable_profile_version.is_none() { file.portable_profile_version = json_cfg.portable_profile_version.clone(); }
+
+    // サーバー側（SYNC_SRC）の qgislocalsync.config からバージョン情報を上書き
+    if let Some(src) = file.sync_src.as_ref() {
+        let src_path = expand_env_vars(&resolve_path(src, &settings.path_aliases));
+        if let Some(server_cfg) = read_qgislocalsync_config(&src_path) {
+            if server_cfg.qfield_version.is_some() { file.qfield_version = server_cfg.qfield_version; }
+            if server_cfg.qgis_version.is_some() { file.qgis_version = server_cfg.qgis_version; }
+            if server_cfg.portable_profile_version.is_some() { file.portable_profile_version = server_cfg.portable_profile_version; }
+            if !server_cfg.exclude_dirs.is_empty() { file.exclude_dirs = server_cfg.exclude_dirs; }
+            // SYNC_SRC 内の qgislocalsync.config には SYNC_DST は通常指定しないが、
+            // 指定されていてもローカル側の設定を優先する。
+            if file.sync_dst.is_none() { file.sync_dst = server_cfg.sync_dst; }
+        }
+    }
     Some(file)
 }
 
