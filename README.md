@@ -1,1 +1,17 @@
-https://yamamoto-ryuzo.github.io/kasugai_qgis/
+# kasugai_qgis
+
+QGIS / QField 起動用デスクトップランチャー（Rust + FLTK）。
+
+- ドキュメント・ダウンロード: <https://yamamoto-ryuzo.github.io/kasugai_qgis/>
+- ライセンス: [GPL-3.0-only](LICENSE)
+
+## 主な機能
+
+- QGIS / QField の GUI / CLI 起動
+- プロファイル・プロジェクト・QGIS バージョンの切り替え
+- ユーザーロール制御（Viewer / Editor / Administrator）
+- クラウドドライブ自動割り当て（`drive_mappings`）
+- ローカル自動同期（`local_sync`）
+- NSIS ベースの自動更新
+
+詳細は [GitHub Pages](https://yamamoto-ryuzo.github.io/kasugai_qgis/) を参照してください。
