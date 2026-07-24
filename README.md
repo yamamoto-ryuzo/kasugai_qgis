@@ -3,7 +3,7 @@
 QGIS / QField 起動用デスクトップランチャー（Rust + FLTK）。
 
 - ドキュメント・ダウンロード: <https://yamamoto-ryuzo.github.io/kasugai_qgis/>
-- 初回インストーラー: [kasugai_qgis_1.4.0_x64-setup.exe](https://yamamoto-ryuzo.github.io/kasugai_qgis/public/kasugai_qgis_1.4.0_x64-setup.exe)
+- 初回インストーラー: [kasugai_qgis-setup.exe](https://yamamoto-ryuzo.github.io/kasugai_qgis/public/kasugai_qgis-setup.exe)
 - ライセンス: [GPL-3.0-only](LICENSE)
 
 ## 主な機能

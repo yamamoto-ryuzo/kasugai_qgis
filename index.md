@@ -1,6 +1,6 @@
 # QGIS Launcher (qgis_launcher)
 
-[インストーラーはこちらから](https://yamamoto-ryuzo.github.io/kasugai_qgis/public/kasugai_qgis_1.4.0_x64-setup.exe)
+[インストーラーはこちらから](https://yamamoto-ryuzo.github.io/kasugai_qgis/public/kasugai_qgis-setup.exe)
 
 ![alt text](https://yamamoto-ryuzo.github.io/kasugai_qgis/images/qgis_launcher.png)
 ![alt text](https://yamamoto-ryuzo.github.io/kasugai_qgis/images/qgis_launcher_info.png)
@@ -518,11 +518,11 @@ GNU General Public License v3.0 (GPL-3.0-only) — 詳細は [LICENSE](LICENSE) 
 
 ### 初回導入（インストーラー版：推奨）
 
-NSIS インストーラー `kasugai_qgis_1.4.0_x64-setup.exe` を使って、`C:\Kasugai\kasugai_qgis\` へ自動的にインストールできます。
+NSIS インストーラー `kasugai_qgis-setup.exe` を使って、`C:\Kasugai\kasugai_qgis\` へ自動的にインストールできます。
 
 1. インストーラーをダウンロード
-   - [kasugai_qgis_1.4.0_x64-setup.exe](https://yamamoto-ryuzo.github.io/kasugai_qgis/public/kasugai_qgis_1.4.0_x64-setup.exe)
-2. ダウンロードした `kasugai_qgis_1.4.0_x64-setup.exe` を実行
+   - [kasugai_qgis-setup.exe](https://yamamoto-ryuzo.github.io/kasugai_qgis/public/kasugai_qgis-setup.exe)
+2. ダウンロードした `kasugai_qgis-setup.exe` を実行
    - インストール先はデフォルトで `C:\Kasugai\kasugai_qgis\` です
    - インストール先フォルダは GUI インストール時に変更できます
    - 管理者権限で実行すると、スタートメニューにショートカットが作成されます
@@ -533,7 +533,7 @@ NSIS インストーラー `kasugai_qgis_1.4.0_x64-setup.exe` を使って、`C:
 コマンドラインから以下のように実行すると、画面を表示せずにインストールできます。
 
 ```batch
-kasugai_qgis_1.4.0_x64-setup.exe /S /D=C:\Kasugai\kasugai_qgis
+kasugai_qgis-setup.exe /S /D=C:\Kasugai\kasugai_qgis
 ```
 
 ### 推奨フォルダ構成
@@ -579,7 +579,7 @@ C:\Kasugai\kasugai_qgis\
 2. `installer/setup.nsi` の `PRODUCT_VERSION` を更新
 3. `update.json` の `version` と `url` を更新
 4. `cargo build --release`
-5. `cd installer && build.bat` で `..\public\kasugai_qgis_<version>_x64-setup.exe` を生成
+5. `cd installer && build.bat` で `..\public\kasugai_qgis-setup.exe` を生成
 6. GitHub に push して GitHub Pages に反映
 
 ### 注意

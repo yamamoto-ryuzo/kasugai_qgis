@@ -3,7 +3,7 @@ chcp 65001 >nul
 
 REM kasugai_qgis NSIS installer build batch
 REM Run "cargo build --release" before this script
-REM Output: ..\public\kasugai_qgis_<version>_x64-setup.exe
+REM Output: ..\public\kasugai_qgis-setup.exe
 
 set "VERSION=1.4.0"
 
@@ -47,4 +47,4 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo Done: ..\public\kasugai_qgis_%VERSION%_x64-setup.exe
+echo Done: ..\public\kasugai_qgis-setup.exe
