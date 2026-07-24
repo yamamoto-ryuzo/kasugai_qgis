@@ -1638,7 +1638,8 @@ fn run_nsis_installer_and_exit(installer: &std::path::Path, install_dir: &str) {
     let mut cmd = Command::new(installer);
     cmd.creation_flags(CREATE_NO_WINDOW);
     cmd.arg("/S");
-    cmd.arg(format!("/D={}", install_dir_trimmed));
+    // NSIS /D は最後の引数で、パスに空白があってもクォートを含めてはいけない
+    cmd.raw_arg(format!("/D={}", install_dir_trimmed));
     cmd.stdin(Stdio::null());
     cmd.stdout(Stdio::null());
     cmd.stderr(Stdio::null());
@@ -1798,6 +1799,28 @@ fn main() {
     launch_qgis(&profile_to_use, &settings.project_path, &project_root_dir, &qgis_exe, &userrole);
 }
 
+/// コマンド文字列から最初のトークン（実行ファイルパス）を取り出す。
+/// クォートに対応し、空白を含むパスも正しく解析する。
+fn extract_first_command_token(s: &str) -> Option<&str> {
+    let s = s.trim();
+    if s.is_empty() {
+        return None;
+    }
+    if s.starts_with('"') {
+        // クォートされたパス: 閉じクォートまで
+        for (i, c) in s[1..].char_indices() {
+            if c == '"' {
+                return Some(&s[1..1 + i]);
+            }
+        }
+        // 閉じクォートがない場合は末尾まで
+        Some(&s[1..])
+    } else {
+        // 非クォート: 最初の空白まで
+        s.split_whitespace().next()
+    }
+}
+
 fn find_qgis_path_from_registry() -> Option<String> {
     println!("レジストリからQGISのパスを検索中...");
     let hkcr = RegKey::predef(HKEY_CLASSES_ROOT);
@@ -1831,11 +1854,7 @@ fn find_qgis_path_from_registry() -> Option<String> {
         }
     };
 
-    let exe_path = if command_string.starts_with('"') {
-        command_string.split('"').nth(1).unwrap_or(&command_string)
-    } else {
-        command_string.split_whitespace().next().unwrap_or(&command_string)
-    };
+    let exe_path = extract_first_command_token(&command_string).unwrap_or(&command_string);
 
     let exe_str = exe_path.to_string();
     if exe_str.is_empty() {
@@ -2504,7 +2523,16 @@ fn launch_qgis(profile_name: &str, project_paths: &[String], project_root: &str,
 
     // Helper to spawn one process with optional project
     let spawn_with_project = |maybe_project: Option<PathBuf>| {
-        let mut cmd = Command::new(&qgis_path);
+        let qgis_lower = qgis_path.to_lowercase();
+        let is_batch = qgis_lower.ends_with(".bat") || qgis_lower.ends_with(".cmd");
+        let mut cmd = if is_batch {
+            // .bat/.cmd は CreateProcessW から直接起動できないため cmd.exe 経由で実行
+            let mut c = Command::new("cmd.exe");
+            c.arg("/C").arg(&qgis_path);
+            c
+        } else {
+            Command::new(&qgis_path)
+        };
         // QGIS プロセスの作業ディレクトリを実行ファイルのフォルダに設定
         if let Ok(exe_path) = env::current_exe() {
             if let Some(parent) = exe_path.parent() {
