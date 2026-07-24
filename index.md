@@ -1,6 +1,6 @@
 # QGIS Launcher (qgis_launcher)
 
-[システム一式ダウンロードはこちらから](https://yamamoto-ryuzo.github.io/kasugai_qgis/public/qgis_launcher.zip)
+[インストーラーはこちらから](https://yamamoto-ryuzo.github.io/kasugai_qgis/public/kasugai_qgis_1.4.0_x64-setup.exe)
 
 ![alt text](https://yamamoto-ryuzo.github.io/kasugai_qgis/images/qgis_launcher.png)
 ![alt text](https://yamamoto-ryuzo.github.io/kasugai_qgis/images/qgis_launcher_info.png)
@@ -535,15 +535,6 @@ NSIS インストーラー `kasugai_qgis_1.4.0_x64-setup.exe` を使って、`C:
 ```batch
 kasugai_qgis_1.4.0_x64-setup.exe /S /D=C:\Kasugai\kasugai_qgis
 ```
-
-### 初回導入（zip 版）
-
-配布パッケージ `qgis_launcher.zip` をダウンロードして展開する方法もあります。
-
-1. `qgis_launcher.zip` をダウンロード
-   - [システム一式ダウンロードはこちらから](https://yamamoto-ryuzo.github.io/kasugai_qgis/public/qgis_launcher.zip)
-2. 任意のフォルダ（推奨は `C:\Kasugai\kasugai_qgis\`）に展開
-3. 展開したフォルダ内の `qgis_launcher.exe` をダブルクリックで起動
 
 ### 推奨フォルダ構成
 
