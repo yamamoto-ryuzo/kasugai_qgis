@@ -490,7 +490,7 @@ EXCLUDE_DIRS=secret-folder private-data
 
 ## ライセンス
 
-### このリポジトリ（Geo_Portal / qgis_launcher）
+### このリポジトリ
 
 GNU General Public License v3.0 (GPL-3.0-only) — 詳細は [LICENSE](LICENSE) を参照してください。
 
@@ -516,12 +516,33 @@ GNU General Public License v3.0 (GPL-3.0-only) — 詳細は [LICENSE](LICENSE) 
 
 ## 導入・起動方法
 
-### 初回導入
+### 初回導入（インストーラー版：推奨）
 
-1. 配布パッケージ `qgis_launcher.zip` をダウンロードして展開
+NSIS インストーラー `kasugai_qgis_1.4.0_x64-setup.exe` を使って、`C:\Kasugai\kasugai_qgis\` へ自動的にインストールできます。
+
+1. インストーラーをダウンロード
+   - [kasugai_qgis_1.4.0_x64-setup.exe](https://yamamoto-ryuzo.github.io/kasugai_qgis/download/kasugai_qgis_1.4.0_x64-setup.exe)
+2. ダウンロードした `kasugai_qgis_1.4.0_x64-setup.exe` を実行
+   - インストール先はデフォルトで `C:\Kasugai\kasugai_qgis\` です
+   - 管理者権限で実行すると、スタートメニューにショートカットが作成されます
+3. インストールフォルダ内の `qgis_launcher.exe` をダブルクリックで起動
+
+#### サイレントインストール
+
+コマンドラインから以下のように実行すると、画面を表示せずにインストールできます。
+
+```batch
+kasugai_qgis_1.4.0_x64-setup.exe /S /D=C:\Kasugai\kasugai_qgis
+```
+
+### 初回導入（zip 版）
+
+配布パッケージ `qgis_launcher.zip` をダウンロードして展開する方法もあります。
+
+1. `qgis_launcher.zip` をダウンロード
    - [システム一式ダウンロードはこちらから](https://yamamoto-ryuzo.github.io/kasugai_qgis/public/qgis_launcher.zip)
-2. 展開したフォルダ内の `qgis_launcher.exe` をダブルクリックで起動
-3. 初回起動時に `qgis_settings.json` が同じフォルダにあれば読み込み、なければデフォルト動作で起動します
+2. 任意のフォルダ（推奨は `C:\Kasugai\kasugai_qgis\`）に展開
+3. 展開したフォルダ内の `qgis_launcher.exe` をダブルクリックで起動
 
 ### 推奨フォルダ構成
 
