@@ -17,6 +17,7 @@ mslnk = "0.1.8"
 fltk = { version = "1.5", features = ["fltk-bundled"], optional = true }
 quick-xml = "0.29"
 zip = "0.6"
+reqwest = { version = "0.12", features = ["blocking", "json"] }
 
 [features]
 default = ["gui"]

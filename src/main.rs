@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::os::windows::process::CommandExt;
 use serde::{Deserialize, Serialize};
 use winreg::enums::*;
@@ -107,6 +107,13 @@ pub struct QgisSettings {
     /// SYNC_SRC 側の qgis_settings.json に記述しておくことで、配布元のバージョンアップを検知できる。
     #[serde(default)]
     pub kasugai_qgis_version: Option<String>,
+    /// NSIS インストーラー方式の自動更新 JSON エンドポイント URL。
+    /// 例: "https://example.com/kasugai_qgis/update.json"
+    #[serde(default)]
+    pub update_url: Option<String>,
+    /// 自動更新チェックを有効にするか。省略時は update_url が設定されていれば有効。
+    #[serde(default)]
+    pub update_check: Option<bool>,
     /// KASUGAI/yr-qgis-launcher 方式のローカル自動同期設定。
     /// qgislocalsync.config が存在する場合はそちらを優先して読み込む。
     #[serde(default)]
@@ -127,6 +134,8 @@ impl Default for QgisSettings {
             current_project: None,
             project_root: None,
             kasugai_qgis_version: None,
+            update_url: None,
+            update_check: None,
             local_sync: None,
         }
     }
@@ -1534,6 +1543,149 @@ fn run_gui() {
     app.run().unwrap();
 }
 
+/// NSIS インストーラー方式の更新情報。
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+struct NsisUpdateInfo {
+    version: String,
+    url: String,
+    signature: Option<String>,
+    sha256: Option<String>,
+    notes: Option<String>,
+}
+
+/// バージョン文字列 a が b より新しければ true を返す。
+/// 数値として比較し、不足セグメントは 0 扱いとする。
+fn version_is_newer(a: &str, b: &str) -> bool {
+    let a_parts = parse_version_parts(a);
+    let b_parts = parse_version_parts(b);
+    for i in 0..3 {
+        let an = a_parts.get(i).and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+        let bn = b_parts.get(i).and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+        if an != bn {
+            return an > bn;
+        }
+    }
+    false
+}
+
+/// 更新チェック・ダウンロード用の HTTP クライアントを生成する（タイムアウト付き）。
+fn update_http_client() -> Result<reqwest::blocking::Client, String> {
+    reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .connect_timeout(std::time::Duration::from_secs(10))
+        .build()
+        .map_err(|e| format!("HTTP クライアント作成失敗: {}", e))
+}
+
+/// NSIS 更新 JSON エンドポイントを確認し、新しい版があれば情報を返す。
+fn check_nsis_update(settings: &QgisSettings) -> Result<Option<NsisUpdateInfo>, String> {
+    let update_url = match settings.update_url.as_ref() {
+        Some(u) if !u.trim().is_empty() => u.trim(),
+        _ => return Ok(None),
+    };
+
+    if !settings.update_check.unwrap_or(true) {
+        return Ok(None);
+    }
+
+    let current = env!("CARGO_PKG_VERSION");
+
+    let client = update_http_client()?;
+    let resp = client.get(update_url)
+        .send()
+        .map_err(|e| format!("update.json 取得失敗: {}", e))?
+        .json::<serde_json::Value>()
+        .map_err(|e| format!("update.json パース失敗: {}", e))?;
+
+    let version = resp.get("version")
+        .and_then(|v| v.as_str())
+        .ok_or("update.json に version がありません")?;
+    let url = resp.get("url")
+        .and_then(|v| v.as_str())
+        .ok_or("update.json に url がありません")?;
+
+    if !version_is_newer(version, current) {
+        println!("NSIS更新: 最新版です (current={}, latest={})", current, version);
+        return Ok(None);
+    }
+
+    Ok(Some(NsisUpdateInfo {
+        version: version.to_string(),
+        url: url.to_string(),
+        signature: resp.get("signature").and_then(|v| v.as_str()).map(|s| s.to_string()),
+        sha256: resp.get("sha256").and_then(|v| v.as_str()).map(|s| s.to_string()),
+        notes: resp.get("notes").and_then(|v| v.as_str()).map(|s| s.to_string()),
+    }))
+}
+
+/// ファイルを一時フォルダにダウンロードする。
+fn download_installer(url: &str, dest: &std::path::Path) -> Result<(), String> {
+    let client = update_http_client()?;
+    let bytes = client.get(url)
+        .send()
+        .map_err(|e| format!("インストーラー取得失敗 ({}): {}", url, e))?
+        .bytes()
+        .map_err(|e| format!("インストーラー読み込み失敗: {}", e))?;
+    std::fs::write(dest, bytes)
+        .map_err(|e| format!("インストーラー書き込み失敗 ({}): {}", dest.display(), e))?;
+    Ok(())
+}
+
+/// NSIS インストーラーを起動し、本体を終了する。
+fn run_nsis_installer_and_exit(installer: &std::path::Path, install_dir: &str) {
+    let install_dir_trimmed = install_dir.trim_end_matches('\\');
+    let mut cmd = Command::new(installer);
+    cmd.creation_flags(CREATE_NO_WINDOW);
+    cmd.arg("/S");
+    cmd.arg(format!("/D={}", install_dir_trimmed));
+    cmd.stdin(Stdio::null());
+    cmd.stdout(Stdio::null());
+    cmd.stderr(Stdio::null());
+
+    match cmd.spawn() {
+        Ok(_) => {
+            println!("NSIS更新: インストーラーを起動しました。終了します。");
+            std::process::exit(0);
+        }
+        Err(e) => {
+            eprintln!("NSIS更新: インストーラー起動失敗: {}", e);
+        }
+    }
+}
+
+/// NSIS 更新が必要ならダウンロード・実行して終了する。
+/// エラー時はログを出力して通常起動を継続する。
+fn maybe_run_nsis_update(settings: &QgisSettings) {
+    let info = match check_nsis_update(settings) {
+        Ok(Some(i)) => i,
+        Ok(None) => return,
+        Err(e) => {
+            eprintln!("NSIS更新チェック失敗: {}", e);
+            return;
+        }
+    };
+
+    let current = env!("CARGO_PKG_VERSION");
+    println!("NSIS更新: {} → {}", current, info.version);
+
+    let temp = std::env::temp_dir().join("kasugai_qgis_setup.exe");
+    if let Err(e) = download_installer(&info.url, &temp) {
+        eprintln!("{}", e);
+        return;
+    }
+
+    // 注: セキュリティのため sha256 / 電子署名検証を追加推奨（sha2 クレート等）
+
+    // インストール先は現在の実行ファイルの親フォルダ
+    let install_dir = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|p| p.to_path_buf()))
+        .unwrap_or_else(|| std::env::temp_dir());
+
+    run_nsis_installer_and_exit(&temp, &install_dir.to_string_lossy());
+}
+
 fn main() {
     let args = Args::parse();
 
@@ -1563,6 +1715,9 @@ fn main() {
 
     let settings_dir = get_default_settings_dir();
     let settings = get_current_settings(&settings_dir);
+
+    // NSIS インストーラー方式の自動更新チェック（update_url が設定されていれば）
+    maybe_run_nsis_update(&settings);
 
     // get_settings_path と同じフォールバックロジックで実際の settings_dir を解決する
     let resolved_settings_dir = {

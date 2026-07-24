@@ -51,6 +51,8 @@
   ],
   "project_root": "Q:\\",
   "kasugai_qgis_version": null,
+  "update_url": "https://yamamoto-ryuzo.github.io/kasugai_qgis/update.json",
+  "update_check": true,
   "qgis_executable": "C:\\PROGRA~1\\QGIS 4.0.1\\bin\\qgis.bat",
   "reearth_url": null,
   "userrole": "Administrator"

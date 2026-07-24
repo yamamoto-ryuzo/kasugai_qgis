@@ -500,6 +500,76 @@ GNU General Public License v3.0 (GPL-3.0-only) — 詳細は [LICENSE](LICENSE) 
   qgis_launcher.exe
   qgis_settings.json
 ```
+
+---
+
+## 導入・起動方法
+
+### 初回導入
+
+1. 配布パッケージ `qgis_launcher.zip` をダウンロードして展開
+   - [システム一式ダウンロードはこちらから](https://yamamoto-ryuzo.github.io/kasugai_qgis/public/qgis_launcher.zip)
+2. 展開したフォルダ内の `qgis_launcher.exe` をダブルクリックで起動
+3. 初回起動時に `qgis_settings.json` が同じフォルダにあれば読み込み、なければデフォルト動作で起動します
+
+### 推奨フォルダ構成
+
+```
+C:\Kasugai\kasugai_qgis\
+  qgis_launcher.exe
+  qgis_settings.json
+  ini\                 # ユーザーロール制御用（必要に応じて）
+  profiles\            # 配布プロファイル（必要に応じて）
+```
+
+### 起動方法
+
+- **GUI 起動**: `qgis_launcher.exe` を実行
+- **CLI 起動**: `qgis_launcher.exe --cli`
+- **設定ファイルの所在**: `qgis_launcher.exe` と同じフォルダの `qgis_settings.json` を読み込みます
+
+---
+
+## 自動更新
+
+`qgis_settings.json` に以下を設定すると、`qgis_launcher.exe` 起動時に自動で更新を確認します。
+
+```json
+{
+  "update_url": "https://yamamoto-ryuzo.github.io/kasugai_qgis/update.json",
+  "update_check": true
+}
+```
+
+### 更新の流れ
+
+1. 起動時に `update_url` の JSON を取得
+2. リモートの `version` と `kasugai_qgis_version` を比較
+3. リモートの方が新しければ `url` の NSIS インストーラーをダウンロード
+4. ダウンロードした `setup.exe` を `/S /D=<インストールフォルダ>` でサイレント実行
+5. インストーラーが `qgis_launcher.exe` を上書き後、新しい exe を起動して終了
+
+### リリース時の更新手順
+
+1. `Cargo.toml` の `version` を更新
+2. `installer/setup.nsi` の `PRODUCT_VERSION` を更新
+3. `update.json` の `version` と `url` を更新
+4. `cargo build --release`
+5. `cd installer && build.bat` で `..\download\kasugai_qgis_<version>_x64-setup.exe` を生成
+6. GitHub に push して GitHub Pages に反映
+
+### 注意
+
+- 自動更新は `update_check: true` かつ `update_url` が有効な場合のみ動作します
+- 更新確認に失敗しても、ランチャーは通常起動します（ネット不通時も安全）
+- NSIS インストーラーは本体 `qgis_launcher.exe` のみを更新します。プロファイル・プラグイン等は `local_sync` 機能で別途更新してください
+
+---
+
+## CHANGELOG
+
+主な変更履歴は [CHANGELOG.md](CHANGELOG.md) を参照してください。
+
 ## 免責事項
 
 本システムは個人のPCで作成・テストされたものです。  
