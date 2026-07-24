@@ -103,6 +103,10 @@ pub struct QgisSettings {
     /// 省略時は settings.json の所在フォルダ（デフォルト）を使用する。
     #[serde(default)]
     pub project_root: Option<String>,
+    /// KASUGA-QGIS ランチャー本体のバージョン。
+    /// SYNC_SRC 側の qgis_settings.json に記述しておくことで、配布元のバージョンアップを検知できる。
+    #[serde(default)]
+    pub kasugai_qgis_version: Option<String>,
     /// KASUGAI/yr-qgis-launcher 方式のローカル自動同期設定。
     /// qgislocalsync.config が存在する場合はそちらを優先して読み込む。
     #[serde(default)]
@@ -122,6 +126,7 @@ impl Default for QgisSettings {
             userrole: None,
             current_project: None,
             project_root: None,
+            kasugai_qgis_version: None,
             local_sync: None,
         }
     }
@@ -536,6 +541,28 @@ fn resolve_local_sync_config(settings: &QgisSettings, settings_dir: &str) -> Opt
     Some(file)
 }
 
+/// KASUGA-QGIS ランチャー本体の配布元バージョンを取得する。
+/// まず SYNC_SRC 側の qgis_settings.json を読み、kasugai_qgis_version を優先する。
+/// SYNC_SRC 側のファイルが無いか値が無ければ、ローカルの qgis_settings.json の値を返す。
+fn resolve_kasugai_qgis_version(settings: &QgisSettings, settings_dir: &str) -> Option<String> {
+    // まずは local_sync / qgislocalsync.config から SYNC_SRC を解決
+    let sync_src = resolve_local_sync_config(settings, settings_dir)
+        .and_then(|c| c.sync_src)?;
+    let src_path = expand_env_vars(&resolve_path(&sync_src, &settings.path_aliases));
+    let server_settings_path = PathBuf::from(&src_path).join("qgis_settings.json");
+    if server_settings_path.exists() {
+        if let Ok(text) = fs::read_to_string(&server_settings_path) {
+            let fixed = fix_backslashes_in_json(&text);
+            if let Ok(value) = serde_json::from_str::<serde_json::Value>(&fixed) {
+                if let Some(ver) = value.get("kasugai_qgis_version").and_then(|v| v.as_str()) {
+                    return Some(ver.to_string());
+                }
+            }
+        }
+    }
+    settings.kasugai_qgis_version.clone()
+}
+
 /// 同期先のバージョンファイルを読み込む。ファイルが無ければ空文字列を返す。
 fn read_version_file(dir: &str, filename: &str) -> String {
     let p = PathBuf::from(dir).join(filename);
@@ -607,6 +634,14 @@ fn local_sync_needed(settings: &QgisSettings, settings_dir: &str) -> bool {
         let folder = "portable_profile";
         let s = PathBuf::from(&src).join(folder).to_string_lossy().to_string();
         if local_ver != *pp_ver && PathBuf::from(&s).exists() {
+            return true;
+        }
+    }
+
+    // KASUGA-QGIS ランチャー本体のバージョン判定
+    if let Some(ver) = resolve_kasugai_qgis_version(settings, settings_dir) {
+        let local_ver = read_version_file(&dst, "LOCAL_KASUGAI_QGIS_VERSION");
+        if local_ver != ver {
             return true;
         }
     }
@@ -710,6 +745,11 @@ fn run_local_sync(settings: &QgisSettings, settings_dir: &str, sender: Option<&s
             run_robocopy_local(&s, &d, &config.exclude_dirs, sender, "portable_profile");
             write_version_file(&dst, "portable.ver", pp_ver);
         }
+    }
+
+    // KASUGA-QGIS ランチャー本体のバージョンを記録
+    if let Some(ver) = resolve_kasugai_qgis_version(settings, settings_dir) {
+        write_version_file(&dst, "LOCAL_KASUGAI_QGIS_VERSION", &ver);
     }
 
     let msg = "local_sync: 完了".to_string();
