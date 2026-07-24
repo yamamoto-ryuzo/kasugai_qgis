@@ -13,6 +13,7 @@ use winreg::enums::*;
 /// 子プロセスのコンソールウィンドウを非表示にする Windows フラグ
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 use winreg::RegKey;
+#[cfg(feature = "gui")]
 use fltk::misc::Progress;
 use quick_xml::Reader;
 use quick_xml::events::Event;
@@ -51,6 +52,36 @@ pub struct RcloneMount {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct LocalSyncConfig {
+    /// 同期元フォルダ（KASUGAI/yr-qgis-launcher の SYNC_SRC に相当）
+    pub sync_src: Option<String>,
+    /// 同期先フォルダ（KASUGAI/yr-qgis-launcher の SYNC_DST に相当）
+    pub sync_dst: Option<String>,
+    /// QField バージョン文字列（qgislocalsync.config の QFIELD_VERSION と等価）
+    pub qfield_version: Option<String>,
+    /// QGIS バージョン文字列（qgislocalsync.config の QGIS_VERSION と等価）
+    pub qgis_version: Option<String>,
+    /// 除外フォルダ名リスト（qgislocalsync.config の EXCLUDE_DIRS と等価）
+    #[serde(default)]
+    pub exclude_dirs: Vec<String>,
+    /// ポータブルプロファイルのバージョン文字列（portable.ver 対応）
+    pub portable_profile_version: Option<String>,
+}
+
+impl Default for LocalSyncConfig {
+    fn default() -> Self {
+        Self {
+            sync_src: None,
+            sync_dst: None,
+            qfield_version: None,
+            qgis_version: None,
+            exclude_dirs: Vec::new(),
+            portable_profile_version: None,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct QgisSettings {
     pub profile: String,
     pub project_path: Vec<String>,
@@ -72,6 +103,10 @@ pub struct QgisSettings {
     /// 省略時は settings.json の所在フォルダ（デフォルト）を使用する。
     #[serde(default)]
     pub project_root: Option<String>,
+    /// KASUGAI/yr-qgis-launcher 方式のローカル自動同期設定。
+    /// qgislocalsync.config が存在する場合はそちらを優先して読み込む。
+    #[serde(default)]
+    pub local_sync: Option<LocalSyncConfig>,
 }
 
 impl Default for QgisSettings {
@@ -87,6 +122,7 @@ impl Default for QgisSettings {
             userrole: None,
             current_project: None,
             project_root: None,
+            local_sync: None,
         }
     }
 }
@@ -431,6 +467,233 @@ fn save_settings(custom_dir: &str, s: &QgisSettings) -> Result<(), String> {
     fs::write(&p, data).map_err(|e| e.to_string())
 }
 
+/// `qgislocalsync.config`（KASUGAI/yr-qgis-launcher 形式、key=value）を読み込み、
+/// `LocalSyncConfig` として返す。ファイルが無ければ None。
+fn read_qgislocalsync_config(settings_dir: &str) -> Option<LocalSyncConfig> {
+    let p = PathBuf::from(settings_dir).join("qgislocalsync.config");
+    if !p.exists() {
+        return None;
+    }
+    let text = fs::read_to_string(&p).ok()?;
+    let mut cfg = LocalSyncConfig::default();
+    for line in text.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') || line.starts_with(';') {
+            continue;
+        }
+        if let Some((key, val)) = line.split_once('=') {
+            let key = key.trim();
+            let val = val.trim();
+            match key {
+                "SYNC_SRC" => cfg.sync_src = Some(val.to_string()),
+                "SYNC_DST" => cfg.sync_dst = Some(val.to_string()),
+                "QFIELD_VERSION" => cfg.qfield_version = Some(val.to_string()),
+                "QGIS_VERSION" => cfg.qgis_version = Some(val.to_string()),
+                "EXCLUDE_DIRS" => {
+                    cfg.exclude_dirs = val
+                        .split_whitespace()
+                        .map(|s| s.to_string())
+                        .filter(|s| !s.is_empty())
+                        .collect();
+                }
+                "PORTABLE_PROFILE_VERSION" => cfg.portable_profile_version = Some(val.to_string()),
+                _ => {}
+            }
+        }
+    }
+    Some(cfg)
+}
+
+/// JSON 設定と `qgislocalsync.config` を統合する。
+/// `qgislocalsync.config` が存在する場合はそちらを優先し、
+/// JSON の `local_sync` は未指定項目のフォールバックとして使用する。
+fn resolve_local_sync_config(settings: &QgisSettings, settings_dir: &str) -> Option<LocalSyncConfig> {
+    let json_cfg = settings.local_sync.as_ref()?;
+    let file_cfg = read_qgislocalsync_config(settings_dir);
+    if file_cfg.is_none() {
+        return Some(json_cfg.clone());
+    }
+    let mut file = file_cfg.unwrap();
+    if file.sync_src.is_none() { file.sync_src = json_cfg.sync_src.clone(); }
+    if file.sync_dst.is_none() { file.sync_dst = json_cfg.sync_dst.clone(); }
+    if file.qfield_version.is_none() { file.qfield_version = json_cfg.qfield_version.clone(); }
+    if file.qgis_version.is_none() { file.qgis_version = json_cfg.qgis_version.clone(); }
+    if file.exclude_dirs.is_empty() { file.exclude_dirs = json_cfg.exclude_dirs.clone(); }
+    if file.portable_profile_version.is_none() { file.portable_profile_version = json_cfg.portable_profile_version.clone(); }
+    Some(file)
+}
+
+/// 同期先のバージョンファイルを読み込む。ファイルが無ければ空文字列を返す。
+fn read_version_file(dir: &str, filename: &str) -> String {
+    let p = PathBuf::from(dir).join(filename);
+    fs::read_to_string(&p).unwrap_or_default().trim().to_string()
+}
+
+/// 同期先のバージョンファイルに書き込む。
+fn write_version_file(dir: &str, filename: &str, value: &str) {
+    let p = PathBuf::from(dir).join(filename);
+    if let Err(e) = fs::write(&p, value) {
+        eprintln!("local_sync: バージョンファイル書き込み失敗 ({}): {}", p.display(), e);
+    }
+}
+
+/// `src` 直下のフォルダ名で prefix に一致するものを列挙する（大文字小文字区別なし）。
+fn find_prefixed_folders(src: &str, prefix: &str) -> Vec<String> {
+    let mut result = Vec::new();
+    if let Ok(entries) = fs::read_dir(src) {
+        for entry in entries.flatten() {
+            if let Ok(ft) = entry.file_type() {
+                if ft.is_dir() {
+                    let name = entry.file_name().to_string_lossy().to_string();
+                    if name.to_lowercase().starts_with(&prefix.to_lowercase()) {
+                        result.push(name);
+                    }
+                }
+            }
+        }
+    }
+    result
+}
+
+/// KASUGAI/yr-qgis-launcher 方式のローカル自動同期を実行する。
+/// SYNC_SRC → SYNC_DST へ、QField*/QGIS* フォルダはバージョン文字列比較で差分がある場合のみ同期する。
+fn run_local_sync(settings: &QgisSettings, settings_dir: &str, sender: Option<&std::sync::mpsc::Sender<String>>) {
+    let Some(config) = resolve_local_sync_config(settings, settings_dir) else { return; };
+    let Some(src) = config.sync_src.as_ref() else { return; };
+    let Some(dst) = config.sync_dst.as_ref() else { return; };
+
+    let src = expand_env_vars(&resolve_path(src, &settings.path_aliases));
+    let dst = expand_env_vars(&resolve_path(dst, &settings.path_aliases));
+
+    let msg = format!("local_sync: {} → {}", src, dst);
+    if let Some(s) = sender { let _ = s.send(format!("MSG:{}", msg)); }
+    println!("{}", msg);
+
+    if !PathBuf::from(&src).exists() {
+        let msg = format!("local_sync: SYNC_SRC '{}' が見つかりません。スキップします。", src);
+        if let Some(s) = sender { let _ = s.send(format!("MSG:{}", msg)); }
+        eprintln!("{}", msg);
+        return;
+    }
+    if let Err(e) = fs::create_dir_all(&dst) {
+        let msg = format!("local_sync: SYNC_DST 作成失敗 ({}): {}", dst, e);
+        if let Some(s) = sender { let _ = s.send(format!("MSG:{}", msg)); }
+        eprintln!("{}", msg);
+        return;
+    }
+
+    // QField*/QGIS* フォルダを予め列挙して /XD 用の固定名リストを作る
+    let qfield_folders = find_prefixed_folders(&src, "QField");
+    let qgis_folders = find_prefixed_folders(&src, "QGIS");
+
+    // トップレベル同期: ファイルとサブフォルダを含むが QField*/QGIS*/EXCLUDE_DIRS は除外
+    let mut top_excludes: Vec<String> = config.exclude_dirs.clone();
+    for f in &qfield_folders { if !top_excludes.contains(f) { top_excludes.push(f.clone()); } }
+    for f in &qgis_folders { if !top_excludes.contains(f) { top_excludes.push(f.clone()); } }
+    run_robocopy_local(&src, &dst, &top_excludes, sender, "トップレベル");
+
+    // QField* フォルダのバージョン判定同期
+    if let Some(qfield_ver) = config.qfield_version.as_ref() {
+        let local_ver = read_version_file(&dst, "LOCAL_QFIELD_VERSION");
+        if local_ver != *qfield_ver && !qfield_folders.is_empty() {
+            let msg = format!("local_sync: QField 更新 ({} → {})", local_ver, qfield_ver);
+            if let Some(s) = sender { let _ = s.send(format!("MSG:{}", msg)); }
+            println!("{}", msg);
+            for folder in &qfield_folders {
+                let s = PathBuf::from(&src).join(folder).to_string_lossy().to_string();
+                let d = PathBuf::from(&dst).join(folder).to_string_lossy().to_string();
+                if PathBuf::from(&s).exists() {
+                    run_robocopy_local(&s, &d, &config.exclude_dirs, sender, &format!("QField {}", folder));
+                }
+            }
+            write_version_file(&dst, "LOCAL_QFIELD_VERSION", qfield_ver);
+        }
+    }
+
+    // QGIS* フォルダのバージョン判定同期
+    if let Some(qgis_ver) = config.qgis_version.as_ref() {
+        let local_ver = read_version_file(&dst, "LOCAL_QGIS_VERSION");
+        if local_ver != *qgis_ver && !qgis_folders.is_empty() {
+            let msg = format!("local_sync: QGIS 更新 ({} → {})", local_ver, qgis_ver);
+            if let Some(s) = sender { let _ = s.send(format!("MSG:{}", msg)); }
+            println!("{}", msg);
+            for folder in &qgis_folders {
+                let s = PathBuf::from(&src).join(folder).to_string_lossy().to_string();
+                let d = PathBuf::from(&dst).join(folder).to_string_lossy().to_string();
+                if PathBuf::from(&s).exists() {
+                    run_robocopy_local(&s, &d, &config.exclude_dirs, sender, &format!("QGIS {}", folder));
+                }
+            }
+            write_version_file(&dst, "LOCAL_QGIS_VERSION", qgis_ver);
+        }
+    }
+
+    // ポータブルプロファイルのバージョン判定同期
+    if let Some(pp_ver) = config.portable_profile_version.as_ref() {
+        let local_ver = read_version_file(&dst, "portable.ver");
+        let folder = "portable_profile";
+        let s = PathBuf::from(&src).join(folder).to_string_lossy().to_string();
+        if local_ver != *pp_ver && PathBuf::from(&s).exists() {
+            let msg = format!("local_sync: portable_profile 更新 ({} → {})", local_ver, pp_ver);
+            if let Some(s) = sender { let _ = s.send(format!("MSG:{}", msg)); }
+            println!("{}", msg);
+            let d = PathBuf::from(&dst).join(folder).to_string_lossy().to_string();
+            run_robocopy_local(&s, &d, &config.exclude_dirs, sender, "portable_profile");
+            write_version_file(&dst, "portable.ver", pp_ver);
+        }
+    }
+
+    let msg = "local_sync: 完了".to_string();
+    if let Some(s) = sender { let _ = s.send(format!("MSG:{}", msg)); }
+    println!("{}", msg);
+}
+
+/// robocopy を用いた 1 フォルダ同期。/E でサブディレクトリ含む、/MIR でミラー。
+fn run_robocopy_local(src: &str, dst: &str, exclude: &[String], sender: Option<&std::sync::mpsc::Sender<String>>, label: &str) {
+    if !PathBuf::from(src).exists() {
+        let msg = format!("local_sync: {}: コピー元 '{}' が見つかりません。", label, src);
+        if let Some(s) = sender { let _ = s.send(format!("MSG:{}", msg)); }
+        eprintln!("{}", msg);
+        return;
+    }
+    if let Err(e) = fs::create_dir_all(dst) {
+        let msg = format!("local_sync: {}: コピー先作成失敗 ({}): {}", label, dst, e);
+        if let Some(s) = sender { let _ = s.send(format!("MSG:{}", msg)); }
+        eprintln!("{}", msg);
+        return;
+    }
+    let msg = format!("local_sync: {}: {} → {}", label, src, dst);
+    if let Some(s) = sender { let _ = s.send(format!("MSG:{}", msg)); }
+    println!("{}", msg);
+
+    let mut cmd = Command::new("robocopy");
+    cmd.creation_flags(CREATE_NO_WINDOW);
+    cmd.args([src, dst, "/MIR", "/MT:8", "/R:1", "/W:0", "/NP"]);
+    if !exclude.is_empty() {
+        cmd.arg("/XD");
+        for dir in exclude {
+            cmd.arg(dir);
+        }
+    }
+    match cmd.status() {
+        Ok(s) => {
+            let code = s.code().unwrap_or(-1);
+            if code < 8 {
+                println!("local_sync: {}: 完了 (exit {})", label, code);
+            } else {
+                let msg = format!("local_sync: {}: robocopy エラー終了 (exit {})", label, code);
+                if let Some(s) = sender { let _ = s.send(format!("MSG:{}", msg)); }
+                eprintln!("{}", msg);
+            }
+        }
+        Err(e) => {
+            let msg = format!("local_sync: {}: robocopy 起動エラー: {}", label, e);
+            if let Some(s) = sender { let _ = s.send(format!("MSG:{}", msg)); }
+            eprintln!("{}", msg);
+        }
+    }
+}
+
 #[cfg(feature = "gui")]
 fn get_available_profiles(_settings_dir: &str, current_val: &str) -> Vec<String> {
     let mut profiles = Vec::new();
@@ -613,11 +876,14 @@ fn run_gui() {
     let app = app::App::default();
 
     // --- ウィンドウ ---
-    let mut wind = window::Window::new(200, 150, 500, 360, "QGIS Launcher");
+    let version = env!("CARGO_PKG_VERSION");
+    let title_text = format!("QGIS Launcher v{}", version);
+    let mut wind = window::Window::new(200, 150, 500, 360, title_text.as_str());
     wind.set_color(enums::Color::from_rgb(245, 245, 245));
 
     // --- タイトル ---
-    let mut title = frame::Frame::new(0, 8, 500, 30, "QGIS Launcher");
+    let mut title = frame::Frame::new(0, 8, 500, 30, "");
+    title.set_label(&title_text);
     title.set_label_size(18);
     title.set_label_color(enums::Color::from_rgb(40, 80, 160));
 
@@ -681,12 +947,14 @@ fn run_gui() {
     let btn_w = 140;
     let btn_h = 36;
     let gap = 12;
-    let total_w = btn_w * 2 + gap;
+    let total_w = btn_w * 3 + gap * 2;
     let left = (500 - total_w) / 2; // 中央配置の左端
     let mut reset_btn = button::Button::new(left, btn_y, btn_w, btn_h, "Reset Profiles");
-    let mut launch_btn = button::Button::new(left + btn_w + gap, btn_y, btn_w, btn_h, "Launch QGIS");
-    // 起動処理が完了するまで Launch を押せないようにする
+    let mut update_btn = button::Button::new(left + btn_w + gap, btn_y, btn_w, btn_h, "Update");
+    let mut launch_btn = button::Button::new(left + (btn_w + gap) * 2, btn_y, btn_w, btn_h, "Launch QGIS");
+    // 起動処理が完了するまで Launch / Update を押せないようにする
     launch_btn.deactivate();
+    update_btn.deactivate();
 
     wind.end();
     wind.show();
@@ -718,6 +986,7 @@ fn run_gui() {
     let mut project_in_for_startup = project_in.clone();
     let mut status_for_startup = status.clone();
     let mut launch_btn_for_startup = launch_btn.clone();
+    let mut update_btn_for_startup = update_btn.clone();
     // クローンして move に備える（クロージャが settings を動かさないようにする）
     let settings_profile_clone = settings.profile.clone();
     let settings_project_path_clone = settings.project_path.clone();
@@ -726,8 +995,11 @@ fn run_gui() {
     // バックグラウンドで mount/copy を実行
     let sd = project_root_dir.clone();
     let settings_for_thread = settings.clone();
+    let sync_config_dir = resolved_settings_dir.clone();
     std::thread::spawn(move || {
         let _ = s_start.send("MSG:Start".to_string());
+        // KASUGAI/yr-qgis-launcher 方式のローカル自動同期
+        run_local_sync(&settings_for_thread, &sync_config_dir, Some(&s_start));
         // SUBST / robocopy
         mount_drive_mappings(&settings_for_thread.drive_mappings, &settings_for_thread, Some(&s_start));
         // プロファイル配布
@@ -736,7 +1008,7 @@ fn run_gui() {
     });
 
     // 初期表示: まず既存情報で選択肢を埋める
-    let mut project_map = update_choices(&mut profile_in, &mut project_in, &project_root_dir, &settings_profile_clone, &settings_project_path_clone);
+    let project_map = update_choices(&mut profile_in, &mut project_in, &project_root_dir, &settings_profile_clone, &settings_project_path_clone);
     // クロージャ用にクローンを用意（move しても元を保持するため）
     let settings_profile_for_closure = settings_profile_clone.clone();
     let settings_project_path_for_closure = settings_project_path_clone.clone();
@@ -749,8 +1021,9 @@ fn run_gui() {
                 pbar.set_value(100.0);
                 pbar.redraw();
                 pwin.hide();
-                // 初期化完了: Launch ボタンを有効化
+                // 初期化完了: Launch / Update ボタンを有効化
                 launch_btn_for_startup.activate();
+                update_btn_for_startup.activate();
                 // 完了時に選択肢を再読み込み
                 let _ = update_choices(&mut profile_in_for_startup, &mut project_in_for_startup, &project_root_for_closure, &settings_profile_for_closure, &settings_project_path_for_closure);
                 status_for_startup.set_label("Initialization complete.");
@@ -968,6 +1241,84 @@ fn run_gui() {
         });
     }
 
+    // Update
+    {
+        let settings = settings.clone();
+        let sync_config_dir = resolved_settings_dir.clone();
+        let status = status.clone();
+        let mut reset_btn_outer = reset_btn.clone();
+        let mut launch_btn_outer = launch_btn.clone();
+        update_btn.set_callback(move |update_btn_self| {
+            let (s, r) = std::sync::mpsc::channel::<String>();
+
+            // 進捗ウィンドウ
+            let mut pwin = window::Window::new(220, 180, 360, 120, "Update");
+            let mut pframe = frame::Frame::new(12, 12, 336, 24, "Updating local files...");
+            let mut pbar = Progress::new(12, 44, 336, 20, "");
+            pbar.set_maximum(100.0);
+            pbar.set_minimum(0.0);
+            pbar.set_value(0.0);
+            pwin.show();
+
+            // 操作重複防止のためボタンを無効化
+            let reset_was_active = reset_btn_outer.active();
+            let launch_was_active = launch_btn_outer.active();
+            let update_was_active = update_btn_self.active();
+            reset_btn_outer.deactivate();
+            update_btn_self.deactivate();
+            launch_btn_outer.deactivate();
+
+            // idle ハンドラ用にクローンを作成
+            let mut reset_btn_for_idle = reset_btn_outer.clone();
+            let mut update_btn_for_idle = update_btn_self.clone();
+            let mut launch_btn_for_idle = launch_btn_outer.clone();
+            let mut status_for_idle = status.clone();
+
+            // バックグラウンドでローカル同期を実行
+            let settings = settings.clone();
+            let sync_config_dir = sync_config_dir.clone();
+            std::thread::spawn(move || {
+                let _ = s.send("MSG:Start".to_string());
+                run_local_sync(&settings, &sync_config_dir, Some(&s));
+                let _ = s.send("DONE".to_string());
+            });
+
+            // UI スレッドでチャネルをポーリングして進捗と完了を処理
+            app::add_idle3(move |_| {
+                while let Ok(msg) = r.try_recv() {
+                    if msg == "DONE" {
+                        pframe.set_label("Update complete.");
+                        pframe.redraw();
+                        pbar.set_value(100.0);
+                        pbar.redraw();
+                        pwin.hide();
+                        if reset_was_active { reset_btn_for_idle.activate(); }
+                        if launch_was_active { launch_btn_for_idle.activate(); }
+                        if update_was_active { update_btn_for_idle.activate(); }
+                        status_for_idle.set_label("Update complete.");
+                        status_for_idle.redraw();
+                    } else if msg.starts_with("ERR:") {
+                        let e = msg.trim_start_matches("ERR:");
+                        pframe.set_label(&format!("Update failed: {}", e));
+                        pframe.redraw();
+                        pwin.hide();
+                        if reset_was_active { reset_btn_for_idle.activate(); }
+                        if launch_was_active { launch_btn_for_idle.activate(); }
+                        if update_was_active { update_btn_for_idle.activate(); }
+                        status_for_idle.set_label(&format!("Update failed: {}", e));
+                        status_for_idle.redraw();
+                    } else if msg.starts_with("PROG:") {
+                        if let Ok(v) = msg[5..].parse::<f64>() { pbar.set_value(v); pbar.redraw(); }
+                    } else if msg.starts_with("MSG:") {
+                        let m = &msg[4..];
+                        pframe.set_label(m);
+                        pframe.redraw();
+                    }
+                }
+            });
+        });
+    }
+
     // Launch
     {
         let profile_in = profile_in.clone();
@@ -1067,6 +1418,9 @@ fn main() {
         run_gui();
         return;
     }
+
+    // KASUGAI/yr-qgis-launcher 方式のローカル自動同期（CLI モード）
+    run_local_sync(&settings, &resolved_settings_dir, None);
 
     // CLI 起動
     let mut qgis_exe = if let Some(exe) = &args.qgis_executable {

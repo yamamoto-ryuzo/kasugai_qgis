@@ -1,0 +1,33 @@
+# KASUGAI / yr-qgis-launcher 形式のローカル自動同期設定ファイル例
+# このファイルを qgis_launcher.exe と同じフォルダに "qgislocalsync.config" として配置すると、
+# 起動時に SYNC_SRC から SYNC_DST へ自動同期します。
+#
+# 同期ロジック:
+# ・トップレベルのファイル・フォルダを SYNC_SRC → SYNC_DST にミラー（/MIR）
+#   ただし QField*, QGIS*, EXCLUDE_DIRS で指定したフォルダは除外
+# ・QField* フォルダは QFIELD_VERSION と LOCAL_QFIELD_VERSION を比較し、
+#   異なる場合のみ同期後にバージョンファイルを更新
+# ・QGIS* フォルダは QGIS_VERSION と LOCAL_QGIS_VERSION を比較し、
+#   異なる場合のみ同期後にバージョンファイルを更新
+# ・portable_profile フォルダは PORTABLE_PROFILE_VERSION と portable.ver を比較し、
+#   異なる場合のみ同期後にバージョンファイルを更新
+
+# 同期元フォルダ（環境変数も利用可能）
+# SYNC_SRC=%USERPROFILE%\Box\yr-qgis-launcher
+SYNC_SRC=C:\github\yr-qgis-launcher
+
+# 同期先フォルダ（環境変数も利用可能）
+# SYNC_DST=%USERPROFILE%\qgis-local-launcher
+SYNC_DST=C:\qgis-local-launcher
+
+# QField バージョン（例: 3.4.2 など。日付や任意文字列でも可）
+QFIELD_VERSION=3.4.2
+
+# QGIS バージョン（例: 3.42.0 など。日付や任意文字列でも可）
+QGIS_VERSION=3.42.0
+
+# ポータブルプロファイルのバージョン（例: 1.0.0 など。任意文字列でも可）
+PORTABLE_PROFILE_VERSION=1.0.0
+
+# 同期したくないフォルダ名（スペース区切り）
+EXCLUDE_DIRS=secret-folder private-data

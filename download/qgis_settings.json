@@ -1,6 +1,14 @@
 {
   "box_url": null,
   "current_project": "Q: -  - ProjectFiles - ProjectFile.qgs",
+  "local_sync": {
+    "sync_src": "C:\\github\\yr-qgis-launcher",
+    "sync_dst": "C:\\qgis-local-launcher",
+    "qfield_version": "3.4.2",
+    "qgis_version": "3.42.0",
+    "exclude_dirs": ["secret-folder", "private-data"],
+    "portable_profile_version": "1.0.0"
+  },
   "drive_mappings": [
     {
       "drive": "Q:",

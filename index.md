@@ -415,6 +415,67 @@ QGIS プロジェクトファイル（.qgs）のデータソースパスを `Q:\
 
 ---
 
+## ローカル自動同期（KASUGAI/yr-qgis-launcher 方式）
+
+`qgis_launcher.exe` と同じフォルダに `qgislocalsync.config` を配置すると、起動時に自動でローカル同期を行います。これは KASUGAI（yr-qgis-launcher）の `local-launcher.bat` と同等の機能です。GUI 下部の **Update** ボタンから手動で再実行することもできます。
+
+### 仕組み
+
+- `SYNC_SRC` → `SYNC_DST` へ、トップレベルのファイル・フォルダを `robocopy /MIR` でミラー同期します。
+- `QField*` / `QGIS*` フォルダはバージョン文字列を比較し、変更がある場合のみ同期します。
+- `portable_profile` フォルダも同様に `portable.ver` と比較して変更時のみ同期します。
+
+### 設定ファイル（`qgislocalsync.config`）
+
+```ini
+# 同期元フォルダ（環境変数も利用可能）
+SYNC_SRC=C:\github\yr-qgis-launcher
+
+# 同期先フォルダ（環境変数も利用可能）
+SYNC_DST=C:\qgis-local-launcher
+
+# QField バージョン（任意文字列可）
+QFIELD_VERSION=3.4.2
+
+# QGIS バージョン（任意文字列可）
+QGIS_VERSION=3.42.0
+
+# ポータブルプロファイルのバージョン（任意文字列可）
+PORTABLE_PROFILE_VERSION=1.0.0
+
+# 除外フォルダ（スペース区切り）
+EXCLUDE_DIRS=secret-folder private-data
+```
+
+| キー | 説明 |
+|---|---|
+| `SYNC_SRC` | 同期元フォルダ。クラウドストレージやネットワークドライブ上のマスターを指定できます。 |
+| `SYNC_DST` | 同期先フォルダ。ローカル SSD 等を推奨します。 |
+| `QFIELD_VERSION` | QField ポータブル版のバージョン文字列。`SYNC_DST/LOCAL_QFIELD_VERSION` と比較されます。 |
+| `QGIS_VERSION` | QGIS ポータブル版のバージョン文字列。`SYNC_DST/LOCAL_QGIS_VERSION` と比較されます。 |
+| `PORTABLE_PROFILE_VERSION` | 配布プロファイルのバージョン文字列。`SYNC_DST/portable.ver` と比較されます。 |
+| `EXCLUDE_DIRS` | トップレベル同期で除外するフォルダ名（スペース区切り）。 |
+
+### `qgis_settings.json` からの上書き
+
+`qgislocalsync.config` が無い、または一部のキーが未指定の場合、`qgis_settings.json` の `local_sync` セクションをフォールバックとして使用できます。ただし `qgislocalsync.config` の値が優先されます。
+
+```json
+{
+  "local_sync": {
+    "sync_src": "C:\\github\\yr-qgis-launcher",
+    "sync_dst": "C:\\qgis-local-launcher",
+    "qfield_version": "3.4.2",
+    "qgis_version": "3.42.0",
+    "exclude_dirs": ["secret-folder", "private-data"],
+    "portable_profile_version": "1.0.0"
+  }
+}
+```
+
+サンプルファイル: [download/qgislocalsync.config.example](download/qgislocalsync.config.example)
+
+---
 
 ## ライセンス
 
