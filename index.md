@@ -524,6 +524,7 @@ NSIS インストーラー `kasugai_qgis_1.4.0_x64-setup.exe` を使って、`C:
    - [kasugai_qgis_1.4.0_x64-setup.exe](https://yamamoto-ryuzo.github.io/kasugai_qgis/public/kasugai_qgis_1.4.0_x64-setup.exe)
 2. ダウンロードした `kasugai_qgis_1.4.0_x64-setup.exe` を実行
    - インストール先はデフォルトで `C:\Kasugai\kasugai_qgis\` です
+   - インストール先フォルダは GUI インストール時に変更できます
    - 管理者権限で実行すると、スタートメニューにショートカットが作成されます
 3. インストールフォルダ内の `qgis_launcher.exe` をダブルクリックで起動
 
