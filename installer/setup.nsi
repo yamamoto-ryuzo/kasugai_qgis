@@ -1,5 +1,5 @@
 ; kasugai_qgis NSIS インストーラースクリプト
-; 本体（qgis_launcher.exe）のみをインストール/更新する軽量セットアップ
+; 本体 qgis_launcher.exe と動作に必要なファイル一式をインストール/更新
 ; 使い方: release ビルド後、 makensis.exe setup.nsi でコンパイル
 
 !define PRODUCT_NAME "kasugai_qgis"
@@ -16,6 +16,9 @@ Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
 OutFile "..\download\kasugai_qgis_${PRODUCT_VERSION}_x64-setup.exe"
 InstallDir "C:\Kasugai\${PRODUCT_DIR}"
 RequestExecutionLevel admin
+
+; 圧縮設定（プロファイル・プラグインを含めるため LZMA/SOLID）
+SetCompressor /SOLID lzma
 
 ; UI 設定
 !define MUI_ABORTWARNING
@@ -52,6 +55,24 @@ Section "MainSection" SecMain
     File "..\download\qgis_settings.json"
   ${EndIf}
 
+  ; ユーザーロール制御用 ini フォルダ
+  SetOutPath "$INSTDIR\ini"
+  File /r "..\download\ini\*.*"
+
+  ; 配布プロファイル
+  SetOutPath "$INSTDIR\profiles"
+  File /r "..\download\profiles\*.*"
+
+  ; サンプルプロジェクト
+  SetOutPath "$INSTDIR\ProjectFiles"
+  File /r "..\download\ProjectFiles\*.*"
+
+  ; 設定例ファイル
+  SetOutPath "$INSTDIR"
+  File "..\download\qgislocalsync.config.example"
+  File "..\download\qgis_settings_override.json.example"
+  File "..\download\qgis_settings_USERNAME.json.example"
+
   ; インストール情報をレジストリに記録
   WriteRegStr HKLM "Software\${PRODUCT_NAME}" "InstallDir" "$INSTDIR"
   WriteRegStr HKLM "Software\${PRODUCT_NAME}" "Version" "${PRODUCT_VERSION}"
@@ -80,6 +101,12 @@ Section "Uninstall"
   Delete "$INSTDIR\qgis_launcher.exe.old"
   Delete "$INSTDIR\qgis_settings.json"
   Delete "$INSTDIR\uninstall.exe"
+  Delete "$INSTDIR\qgislocalsync.config.example"
+  Delete "$INSTDIR\qgis_settings_override.json.example"
+  Delete "$INSTDIR\qgis_settings_USERNAME.json.example"
+  RMDir /r "$INSTDIR\ini"
+  RMDir /r "$INSTDIR\profiles"
+  RMDir /r "$INSTDIR\ProjectFiles"
   RMDir /r "$SMPROGRAMS\${PRODUCT_NAME}"
   RMDir "$INSTDIR"
   DeleteRegKey HKLM "Software\${PRODUCT_NAME}"
