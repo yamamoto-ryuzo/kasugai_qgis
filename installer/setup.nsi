@@ -13,7 +13,7 @@
 
 ; 基本情報
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
-OutFile "..\download\kasugai_qgis_${PRODUCT_VERSION}_x64-setup.exe"
+OutFile "..\public\kasugai_qgis_${PRODUCT_VERSION}_x64-setup.exe"
 InstallDir "C:\Kasugai\${PRODUCT_DIR}"
 RequestExecutionLevel admin
 
