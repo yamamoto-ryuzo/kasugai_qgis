@@ -1232,12 +1232,12 @@ fn run_gui() {
         let clean_text = initial_text.replace("\r\n", "\n").replace('\r', "\n");
         let mut s_buf = text::TextBuffer::default();
         s_buf.set_text(&clean_text);
-        let mut editor = text::TextEditor::new(15, 60, 750, 540, "");
+        let mut editor = text::TextEditor::new(15, 60, 750, 600, "");
         editor.set_buffer(s_buf.clone());
-        let mut s_status = frame::Frame::new(15, 615, 750, 30, "");
+        let mut s_status = frame::Frame::new(15, 670, 400, 30, "");
         s_status.set_align(Align::Left | Align::Inside);
-        let mut save_btn = button::Button::new(420, 660, 150, 45, "Save");
-        let mut cancel_btn = button::Button::new(600, 660, 150, 45, "Cancel");
+        let mut save_btn = button::Button::new(510, 670, 120, 30, "Save");
+        let mut cancel_btn = button::Button::new(645, 670, 120, 30, "Cancel");
         s_win.end();
         s_win.show();
 
