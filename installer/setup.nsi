@@ -14,7 +14,7 @@
 ; 基本情報
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
 OutFile "..\public\kasugai_qgis-setup.exe"
-InstallDir "$LOCALAPPDATA\${PRODUCT_DIR}"
+InstallDir "C:\Kasugai\${PRODUCT_DIR}"
 RequestExecutionLevel user
 
 ; 圧縮設定（プロファイル・プラグインを含めるため LZMA/SOLID）
@@ -73,10 +73,6 @@ Section "MainSection" SecMain
   File "..\download\qgis_settings_override.json.example"
   File "..\download\qgis_settings_USERNAME.json.example"
 
-  ; インストール情報をレジストリに記録（HKCU: 管理者権限なしで書き込み可能）
-  WriteRegStr HKCU "Software\${PRODUCT_NAME}" "InstallDir" "$INSTDIR"
-  WriteRegStr HKCU "Software\${PRODUCT_NAME}" "Version" "${PRODUCT_VERSION}"
-
   ; スタートメニューショートカット
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
   CreateShortcut "$SMPROGRAMS\${PRODUCT_NAME}\kasugai_qgis.lnk" "$INSTDIR\qgis_launcher.exe"
@@ -91,7 +87,7 @@ SectionEnd
 ; サイレントインストール時の /D 対応
 Function .onInit
   ${If} $INSTDIR == ""
-    StrCpy $INSTDIR "$LOCALAPPDATA\${PRODUCT_DIR}"
+    StrCpy $INSTDIR "C:\Kasugai\${PRODUCT_DIR}"
   ${EndIf}
 FunctionEnd
 
@@ -109,5 +105,4 @@ Section "Uninstall"
   RMDir /r "$INSTDIR\ProjectFiles"
   RMDir /r "$SMPROGRAMS\${PRODUCT_NAME}"
   RMDir "$INSTDIR"
-  DeleteRegKey HKCU "Software\${PRODUCT_NAME}"
 SectionEnd

@@ -518,13 +518,14 @@ GNU General Public License v3.0 (GPL-3.0-only) — 詳細は [LICENSE](LICENSE) 
 
 ### 初回導入（インストーラー版：推奨）
 
-NSIS インストーラー `kasugai_qgis-setup.exe` を使って、`%LOCALAPPDATA%\kasugai_qgis\` へ自動的にインストールできます（管理者権限は不要です）。
+NSIS インストーラー `kasugai_qgis-setup.exe` を使って、`C:\Kasugai\kasugai_qgis\` へ自動的にインストールできます。
 
 1. インストーラーをダウンロード
    - [kasugai_qgis-setup.exe](https://yamamoto-ryuzo.github.io/kasugai_qgis/public/kasugai_qgis-setup.exe)
 2. ダウンロードした `kasugai_qgis-setup.exe` を実行
-   - インストール先はデフォルトで `%LOCALAPPDATA%\kasugai_qgis\` です（`C:\Users\<ユーザ>\AppData\Local\kasugai_qgis\`）
-   - インストール先フォルダは GUI インストール時に変更できます（ユーザーが書き込み可能なフォルダに限ります）
+   - インストール先はデフォルトで `C:\Kasugai\kasugai_qgis\` です
+   - インストール先フォルダは GUI インストール時に変更できます
+   - `C:\Kasugai` フォルダが存在し、ユーザーが書き込み可能であれば管理者権限は不要です
    - スタートメニューにショートカットが作成されます
 3. インストールフォルダ内の `qgis_launcher.exe` をダブルクリックで起動
 
@@ -533,13 +534,13 @@ NSIS インストーラー `kasugai_qgis-setup.exe` を使って、`%LOCALAPPDAT
 コマンドラインから以下のように実行すると、画面を表示せずにインストールできます。
 
 ```batch
-kasugai_qgis-setup.exe /S /D=%LOCALAPPDATA%\kasugai_qgis
+kasugai_qgis-setup.exe /S /D=C:\Kasugai\kasugai_qgis
 ```
 
 ### 推奨フォルダ構成
 
 ```
-%LOCALAPPDATA%\kasugai_qgis\
+C:\Kasugai\kasugai_qgis\
   qgis_launcher.exe
   qgis_settings.json
   ini\                 # ユーザーロール制御用（必要に応じて）
