@@ -85,10 +85,11 @@ Section "MainSection" SecMain
   File "..\download\qgislocalsync.config.example"
   File "..\download\qgis_settings_override.json.example"
   File "..\download\qgis_settings_USERNAME.json.example"
+  File "app_icon.ico"
 
   ; スタートメニューショートカット
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
-  CreateShortcut "$SMPROGRAMS\${PRODUCT_NAME}\kasugai_qgis.lnk" "$INSTDIR\qgis_launcher.exe"
+  CreateShortcut "$SMPROGRAMS\${PRODUCT_NAME}\kasugai_qgis.lnk" "$INSTDIR\qgis_launcher.exe" "" "$INSTDIR\app_icon.ico"
 
   ; 古いバックアップを削除
   Delete "$INSTDIR\qgis_launcher.exe.old"
@@ -125,7 +126,7 @@ FunctionEnd
 
 ; 完了ページの「デスクトップショートカットを作成する」チェックボックスが選択されたときの処理
 Function CreateDesktopShortcut
-  CreateShortcut "$DESKTOP\kasugai_qgis.lnk" "$INSTDIR\qgis_launcher.exe"
+  CreateShortcut "$DESKTOP\kasugai_qgis.lnk" "$INSTDIR\qgis_launcher.exe" "" "$INSTDIR\app_icon.ico"
 FunctionEnd
 
 ; アンインストール
@@ -137,6 +138,7 @@ Section "Uninstall"
   Delete "$INSTDIR\qgislocalsync.config.example"
   Delete "$INSTDIR\qgis_settings_override.json.example"
   Delete "$INSTDIR\qgis_settings_USERNAME.json.example"
+  Delete "$INSTDIR\app_icon.ico"
   RMDir /r "$INSTDIR\ini"
   RMDir /r "$INSTDIR\profiles"
   RMDir /r "$INSTDIR\ProjectFiles"
