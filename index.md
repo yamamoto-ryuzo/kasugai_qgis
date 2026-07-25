@@ -537,6 +537,17 @@ NSIS インストーラー `kasugai_qgis-setup.exe` を使って、`C:\Kasugai\k
 kasugai_qgis-setup.exe /S /D=C:\Kasugai\kasugai_qgis
 ```
 
+### ZIP 版（インストール権限がない場合）
+
+インストーラーの実行権限がない場合は、配布用 ZIP を任意のフォルダに展開して使用できます。
+
+1. ZIP をダウンロード
+   - [kasugai_qgis.zip](https://yamamoto-ryuzo.github.io/kasugai_qgis/public/kasugai_qgis.zip)
+2. 任意のユーザー書き込み可能なフォルダ（例: `%USERPROFILE%\kasugai_qgis\` や `%LOCALAPPDATA%\kasugai_qgis\`）に展開
+3. 展開したフォルダ内の `qgis_launcher.exe` をダブルクリックで起動
+
+> 注意: ZIP 版はスタートメニューショートカットを作成しません。必要に応じて手動でショートカットを作成してください。
+
 ### 推奨フォルダ構成
 
 ```
@@ -580,7 +591,7 @@ C:\Kasugai\kasugai_qgis\
 2. `installer/setup.nsi` の `PRODUCT_VERSION` を更新
 3. `update.json` の `version` と `url` を更新
 4. `cargo build --release`
-5. `cd installer && build.bat` で `..\public\kasugai_qgis-setup.exe` を生成
+5. `cd installer && build.bat` で `..\public\kasugai_qgis-setup.exe` と `..\public\kasugai_qgis.zip` を生成
 6. GitHub に push して GitHub Pages に反映
 
 ### 注意

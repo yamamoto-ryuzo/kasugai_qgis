@@ -1,5 +1,6 @@
 @echo off
 chcp 65001 >nul
+cd /d "%~dp0"
 
 REM kasugai_qgis NSIS installer build batch
 REM Run "cargo build --release" before this script
@@ -48,3 +49,10 @@ if errorlevel 1 (
 )
 
 echo Done: ..\public\kasugai_qgis-setup.exe
+
+REM build distribution ZIP as well
+call build_zip.bat
+if errorlevel 1 (
+    echo ERROR: ZIP build failed.
+    exit /b 1
+)
