@@ -1,6 +1,8 @@
 {
   "version": "1.4.1",
-  "url": "https://yamamoto-ryuzo.github.io/kasugai_qgis/public/kasugai_qgis-setup.exe",
+  "url": "https://yamamoto-ryuzo.github.io/kasugai_qgis/public/kasugai_qgis-update.exe",
+  "full_url": "https://yamamoto-ryuzo.github.io/kasugai_qgis/public/kasugai_qgis-setup.exe",
+  "full": false,
   "signature": null,
   "sha256": null,
   "notes": "Kasugai QGIS Launcher 1.4.1"

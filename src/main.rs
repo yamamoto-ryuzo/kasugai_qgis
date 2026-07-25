@@ -1546,11 +1546,16 @@ fn run_gui() {
 }
 
 /// NSIS インストーラー方式の更新情報。
+/// url は通常更新用（EXE のみの kasugai_qgis-update.exe）、
+/// full_url は全体更新用（データ込みの kasugai_qgis-setup.exe）を指す。
+/// full が true の場合は full_url を使って全体更新を行う。
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 struct NsisUpdateInfo {
     version: String,
     url: String,
+    full_url: Option<String>,
+    full: bool,
     signature: Option<String>,
     sha256: Option<String>,
     notes: Option<String>,
@@ -1606,6 +1611,8 @@ fn check_nsis_update(settings: &QgisSettings) -> Result<Option<NsisUpdateInfo>, 
     let url = resp.get("url")
         .and_then(|v| v.as_str())
         .ok_or("update.json に url がありません")?;
+    let full_url = resp.get("full_url").and_then(|v| v.as_str()).map(|s| s.to_string());
+    let full = resp.get("full").and_then(|v| v.as_bool()).unwrap_or(false);
 
     if !version_is_newer(version, current) {
         println!("NSIS更新: 最新版です (current={}, latest={})", current, version);
@@ -1615,6 +1622,8 @@ fn check_nsis_update(settings: &QgisSettings) -> Result<Option<NsisUpdateInfo>, 
     Ok(Some(NsisUpdateInfo {
         version: version.to_string(),
         url: url.to_string(),
+        full_url,
+        full,
         signature: resp.get("signature").and_then(|v| v.as_str()).map(|s| s.to_string()),
         sha256: resp.get("sha256").and_then(|v| v.as_str()).map(|s| s.to_string()),
         notes: resp.get("notes").and_then(|v| v.as_str()).map(|s| s.to_string()),
@@ -1750,14 +1759,25 @@ fn maybe_run_nsis_update(settings: &QgisSettings) {
     };
 
     let current = env!("CARGO_PKG_VERSION");
-    println!("NSIS更新: {} → {}", current, info.version);
+
+    // full が true かつ full_url がある場合は全体更新（データ込み）、
+    // それ以外は通常更新（EXE のみ）を行う。
+    let (download_url, kind) = match (info.full, info.full_url.as_ref()) {
+        (true, Some(full_url)) => (full_url.as_str(), "全体更新"),
+        (true, None) => {
+            eprintln!("NSIS更新: full=true ですが full_url がありません。通常更新を行います。");
+            (info.url.as_str(), "通常更新")
+        }
+        _ => (info.url.as_str(), "通常更新"),
+    };
+    println!("NSIS更新({}): {} → {}", kind, current, info.version);
 
     let temp = std::env::temp_dir().join("kasugai_qgis_setup.exe");
 
     #[cfg(feature = "gui")]
     {
         let (progress, label, _win) = create_update_progress_window();
-        if let Err(e) = download_installer(&info.url, &temp, progress, label) {
+        if let Err(e) = download_installer(download_url, &temp, progress, label) {
             eprintln!("{}", e);
             return;
         }
@@ -1765,7 +1785,7 @@ fn maybe_run_nsis_update(settings: &QgisSettings) {
 
     #[cfg(not(feature = "gui"))]
     {
-        if let Err(e) = download_installer(&info.url, &temp) {
+        if let Err(e) = download_installer(download_url, &temp) {
             eprintln!("{}", e);
             return;
         }

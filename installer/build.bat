@@ -4,7 +4,8 @@ cd /d "%~dp0"
 
 REM kasugai_qgis NSIS installer build batch
 REM Run "cargo build --release" before this script
-REM Output: ..\public\kasugai_qgis-setup.exe
+REM Output: ..\public\kasugai_qgis-setup.exe  (full: EXE + data, for initial install / full update)
+REM         ..\public\kasugai_qgis-update.exe (EXE only, for normal auto-update)
 
 set "VERSION=1.4.0"
 
@@ -41,14 +42,23 @@ if "%MAKENSIS%"=="" (
 
 echo makensis: %MAKENSIS%
 
-REM Compile NSIS script with UTF-8 input
+REM Compile NSIS script with UTF-8 input (full installer: EXE + data)
 "%MAKENSIS%" /INPUTCHARSET UTF8 setup.nsi
 if errorlevel 1 (
-    echo ERROR: NSIS compilation failed.
+    echo ERROR: NSIS compilation failed. [full installer]
     exit /b 1
 )
 
 echo Done: ..\public\kasugai_qgis-setup.exe
+
+REM Compile update-only installer (EXE only, no data)
+"%MAKENSIS%" /INPUTCHARSET UTF8 /DUPDATE_ONLY setup.nsi
+if errorlevel 1 (
+    echo ERROR: NSIS compilation failed. [update-only installer]
+    exit /b 1
+)
+
+echo Done: ..\public\kasugai_qgis-update.exe
 
 REM build distribution ZIP as well
 call build_zip.bat

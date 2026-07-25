@@ -577,28 +577,53 @@ C:\Kasugai\kasugai_qgis\
 }
 ```
 
+### 通常更新と全体更新
+
+配布物は 2 種類あり、更新の内容によって使い分けます。
+
+| 種類 | ファイル | 内容 | 用途 |
+| --- | --- | --- | --- |
+| 全体版 | `kasugai_qgis-setup.exe` | EXE 本体 + ini/profiles/ProjectFiles 等のデータ一式 | 初期インストール・全体更新 |
+| EXEのみ版 | `kasugai_qgis-update.exe` | EXE 本体のみ（既存データは変更しない） | 通常のバージョンアップ |
+
+`update.json` の形式:
+
+```json
+{
+  "version": "1.4.1",
+  "url": "https://yamamoto-ryuzo.github.io/kasugai_qgis/public/kasugai_qgis-update.exe",
+  "full_url": "https://yamamoto-ryuzo.github.io/kasugai_qgis/public/kasugai_qgis-setup.exe",
+  "full": false,
+  "notes": "Kasugai QGIS Launcher 1.4.1"
+}
+```
+
+- 通常は `full: false` のままとし、自動更新では `url` の EXE のみ版が使われます（軽量・ユーザーデータに影響なし）
+- データも含めて更新したい特殊なリリースでは `full: true` にすると、`full_url` の全体版がダウンロード・実行されます
+
 ### 更新の流れ
 
 1. 起動時に `update_url` の JSON を取得
-2. リモートの `version` と `kasugai_qgis_version` を比較
-3. リモートの方が新しければ `url` の NSIS インストーラーをダウンロード
-4. ダウンロードした `setup.exe` を `/S /D=<インストールフォルダ>` でサイレント実行
+2. リモートの `version` と現在のバージョンを比較
+3. リモートの方が新しければ、`full` が `false` なら `url`（EXE のみ版）、`true` なら `full_url`（全体版）の NSIS インストーラーをダウンロード
+4. ダウンロードしたインストーラーを `/S /D=<インストールフォルダ>` でサイレント実行
 5. インストーラーが `qgis_launcher.exe` を上書き後、新しい exe を起動して終了
 
 ### リリース時の更新手順
 
 1. `Cargo.toml` の `version` を更新
 2. `installer/setup.nsi` の `PRODUCT_VERSION` を更新
-3. `update.json` の `version` と `url` を更新
+3. `update.json` の `version` を更新（データ込みの全体更新にしたい場合のみ `full: true` を設定）
 4. `cargo build --release`
-5. `cd installer && build.bat` で `..\public\kasugai_qgis-setup.exe` と `..\public\kasugai_qgis.zip` を生成
+5. `cd installer && build.bat` で `..\public\kasugai_qgis-setup.exe`（全体版）、`..\public\kasugai_qgis-update.exe`（EXEのみ版）、`..\public\kasugai_qgis.zip` を生成
 6. GitHub に push して GitHub Pages に反映
 
 ### 注意
 
 - 自動更新は `update_check: true` かつ `update_url` が有効な場合のみ動作します
 - 更新確認に失敗しても、ランチャーは通常起動します（ネット不通時も安全）
-- NSIS インストーラーは本体 `qgis_launcher.exe` のみを更新します。プロファイル・プラグイン等は `local_sync` 機能で別途更新してください
+- 通常更新（EXEのみ版）は本体 `qgis_launcher.exe` のみを更新します。プロファイル・プラグイン等は `local_sync` 機能または全体更新（`full: true`）で更新してください
+- 全体更新でも `qgis_settings.json` は初回のみ配置されるため、ユーザー設定は上書きされません
 
 ---
 

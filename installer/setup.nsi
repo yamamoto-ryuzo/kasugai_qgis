@@ -1,6 +1,14 @@
 ; kasugai_qgis NSIS インストーラースクリプト
 ; 本体 qgis_launcher.exe と動作に必要なファイル一式をインストール/更新
 ; 使い方: release ビルド後、 makensis.exe setup.nsi でコンパイル
+;
+; 2種類のインストーラーを生成できる:
+;   全体版   : makensis.exe setup.nsi
+;              → kasugai_qgis-setup.exe (EXE + ini/profiles/ProjectFiles 等のデータ一式)
+;              初期インストールおよび「全体更新」用
+;   EXEのみ版: makensis.exe /DUPDATE_ONLY setup.nsi
+;              → kasugai_qgis-update.exe (EXE 本体のみ、データは触らない)
+;              通常のバージョンアップ(自動更新)用
 
 !define PRODUCT_NAME "kasugai_qgis"
 !define PRODUCT_VERSION "1.4.1"
@@ -12,8 +20,13 @@
 !include "LogicLib.nsh"
 
 ; 基本情報
+!ifdef UPDATE_ONLY
+Name "${PRODUCT_NAME} ${PRODUCT_VERSION} (本体更新)"
+OutFile "..\public\kasugai_qgis-update.exe"
+!else
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
 OutFile "..\public\kasugai_qgis-setup.exe"
+!endif
 InstallDir "C:\Kasugai\${PRODUCT_DIR}"
 RequestExecutionLevel user
 
@@ -61,6 +74,9 @@ Section "MainSection" SecMain
   ; 本体実行ファイル
   File "..\target\release\qgis_launcher.exe"
 
+!ifndef UPDATE_ONLY
+  ; ===== 以下は全体版のみ: データ一式の配置 =====
+
   ; qgis_settings.json は初回のみ配置（ユーザー設定を上書きしない）
   ${If} ${FileExists} "$INSTDIR\qgis_settings.json"
     ; 既存設定あり：上書きしない
@@ -90,12 +106,15 @@ Section "MainSection" SecMain
   ; スタートメニューショートカット
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
   CreateShortcut "$SMPROGRAMS\${PRODUCT_NAME}\kasugai_qgis.lnk" "$INSTDIR\qgis_launcher.exe" "" "$INSTDIR\app_icon.ico"
+!endif
 
   ; 古いバックアップを削除
   Delete "$INSTDIR\qgis_launcher.exe.old"
 
+!ifndef UPDATE_ONLY
   ; アンインストーラー作成
   WriteUninstaller "$INSTDIR\uninstall.exe"
+!endif
 SectionEnd
 
 ; サイレントインストール完了後は本体を自動起動
@@ -136,7 +155,8 @@ Function CreateDesktopShortcut
   CreateShortcut "$DESKTOP\kasugai_qgis.lnk" "$INSTDIR\qgis_launcher.exe" "" "$INSTDIR\app_icon.ico"
 FunctionEnd
 
-; アンインストール
+; アンインストール（全体版のみ）
+!ifndef UPDATE_ONLY
 Section "Uninstall"
   Delete "$INSTDIR\qgis_launcher.exe"
   Delete "$INSTDIR\qgis_launcher.exe.old"
@@ -153,3 +173,4 @@ Section "Uninstall"
   RMDir /r "$SMPROGRAMS\${PRODUCT_NAME}"
   RMDir "$INSTDIR"
 SectionEnd
+!endif
