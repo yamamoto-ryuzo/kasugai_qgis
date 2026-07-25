@@ -1229,8 +1229,11 @@ fn run_gui() {
 
         let mut s_win = window::Window::new(150, 100, 520, 480, "QGIS Settings");
         let _s_title = frame::Frame::new(10, 10, 500, 24, "qgis_settings.json 編集");
-        let mut editor = input::MultilineInput::new(10, 40, 500, 360, "");
-        editor.set_value(&initial_text);
+        let clean_text = initial_text.replace("\r\n", "\n").replace('\r', "\n");
+        let mut s_buf = text::TextBuffer::default();
+        s_buf.set_text(&clean_text);
+        let mut editor = text::TextEditor::new(10, 40, 500, 360, "");
+        editor.set_buffer(s_buf.clone());
         let mut s_status = frame::Frame::new(10, 410, 500, 20, "");
         s_status.set_align(Align::Left | Align::Inside);
         let mut save_btn = button::Button::new(280, 440, 100, 30, "Save");
@@ -1243,7 +1246,7 @@ fn run_gui() {
         let mut s_status_save = s_status.clone();
         let mut status_main = status_for_settings.clone();
         save_btn.set_callback(move |_| {
-            let text = editor.value();
+            let text = s_buf.text();
             let fixed = fix_backslashes_in_json(&text);
             match serde_json::from_str::<serde_json::Value>(&fixed) {
                 Ok(_) => {
