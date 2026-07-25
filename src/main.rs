@@ -1105,6 +1105,8 @@ fn run_gui() {
     launch_btn.deactivate();
     update_btn.deactivate();
 
+    let mut settings_btn = button::Button::new(440, 10, 50, 24, "Settings");
+
     wind.end();
     wind.show();
 
@@ -1213,6 +1215,64 @@ fn run_gui() {
         }
     });
     role_in.set_value(settings.userrole.as_deref().unwrap_or("Viewer"));
+
+    // Settings ボタン：2番目の画面で qgis_settings.json を編集
+    let settings_dir_for_settings = settings_dir.clone();
+    let status_for_settings = status.clone();
+    settings_btn.set_callback(move |_| {
+        let settings_path = get_settings_path(&settings_dir_for_settings);
+        let initial_text = if settings_path.exists() {
+            fs::read_to_string(&settings_path).unwrap_or_else(|_| "{}".to_string())
+        } else {
+            serde_json::to_string_pretty(&QgisSettings::default()).unwrap_or_else(|_| "{}".to_string())
+        };
+
+        let mut s_win = window::Window::new(150, 100, 520, 480, "QGIS Settings");
+        let _s_title = frame::Frame::new(10, 10, 500, 24, "qgis_settings.json 編集");
+        let mut editor = input::MultilineInput::new(10, 40, 500, 360, "");
+        editor.set_value(&initial_text);
+        let mut s_status = frame::Frame::new(10, 410, 500, 20, "");
+        s_status.set_align(Align::Left | Align::Inside);
+        let mut save_btn = button::Button::new(280, 440, 100, 30, "Save");
+        let mut cancel_btn = button::Button::new(400, 440, 100, 30, "Cancel");
+        s_win.end();
+        s_win.show();
+
+        // Save
+        let settings_dir_for_save = settings_dir_for_settings.clone();
+        let mut s_status_save = s_status.clone();
+        let mut status_main = status_for_settings.clone();
+        save_btn.set_callback(move |_| {
+            let text = editor.value();
+            let fixed = fix_backslashes_in_json(&text);
+            match serde_json::from_str::<serde_json::Value>(&fixed) {
+                Ok(_) => {
+                    let path = get_settings_path(&settings_dir_for_save);
+                    match fs::write(&path, fixed) {
+                        Ok(_) => {
+                            s_status_save.set_label("保存しました。再起動で反映されます。");
+                            status_main.set_label("Settings saved. Restart to apply.");
+                        }
+                        Err(e) => {
+                            s_status_save.set_label(&format!("書き込みエラー: {}", e));
+                        }
+                    }
+                }
+                Err(e) => {
+                    s_status_save.set_label(&format!("JSONエラー: {}", e));
+                }
+            }
+            s_status_save.redraw();
+            status_main.redraw();
+        });
+
+        // Cancel
+        let mut s_win_for_cancel = s_win;
+        cancel_btn.set_callback(move |_| {
+            s_win_for_cancel.hide();
+        });
+    });
+
     profile_in.set_value(&settings_profile_clone);
     // 初期表示: current_project（前回選択）を優先し、なければ project_path[0] を使用
     {
