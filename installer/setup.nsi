@@ -22,7 +22,8 @@ SetCompressor /SOLID lzma
 
 ; UI 設定
 !define MUI_ABORTWARNING
-!define MUI_ICON "${NSISDIR}\Contrib\Graphics\Icons\modern-install.ico"
+!define MUI_ICON "app_icon.ico"
+!define MUI_UNICON "app_icon.ico"
 
 ; ページ
 !insertmacro MUI_PAGE_WELCOME
