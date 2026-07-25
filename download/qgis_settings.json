@@ -12,7 +12,7 @@
   "drive_mappings": [
     {
       "drive": "Q:",
-      "local_cache": "C:\\kasugai\\mkasugai",
+      "local_cache": "C:\\kasugai\\kasugai_qgis",
       "mode": "subst",
       "read_only": false,
       "remote": null,
@@ -29,7 +29,7 @@
     },
     {
       "drive": "R:",
-      "local_cache": "C:\\kasugai\\mkasugai",
+      "local_cache": "C:\\kasugai\\kasugai_qgis",
       "mode": "subst",
       "read_only": false,
       "remote": null,
