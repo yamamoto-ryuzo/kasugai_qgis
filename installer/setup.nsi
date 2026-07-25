@@ -3,7 +3,7 @@
 ; 使い方: release ビルド後、 makensis.exe setup.nsi でコンパイル
 
 !define PRODUCT_NAME "kasugai_qgis"
-!define PRODUCT_VERSION "1.4.0"
+!define PRODUCT_VERSION "1.4.1"
 !define PRODUCT_PUBLISHER "yamamoto-ryuzo"
 !define PRODUCT_DIR "kasugai_qgis"
 
@@ -97,6 +97,13 @@ Section "MainSection" SecMain
   ; アンインストーラー作成
   WriteUninstaller "$INSTDIR\uninstall.exe"
 SectionEnd
+
+; サイレントインストール完了後は本体を自動起動
+Function .onInstSuccess
+  ${If} ${Silent}
+    Exec "$INSTDIR\qgis_launcher.exe"
+  ${EndIf}
+FunctionEnd
 
 ; サイレントインストール時の /D 対応
 Function .onInit
