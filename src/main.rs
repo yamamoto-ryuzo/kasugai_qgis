@@ -19,9 +19,11 @@ use quick_xml::Reader;
 use quick_xml::events::Event;
 use quick_xml::name::QName;
 use std::sync::{Arc, Mutex};
+use std::rc::Rc;
+use std::cell::RefCell;
 use std::time::SystemTime;
 use zip::ZipArchive;
-use std::io::Read;
+use std::io::{Read, Write};
 
 #[cfg(feature = "gui")]
 use fltk::{prelude::*, *};
@@ -1619,7 +1621,55 @@ fn check_nsis_update(settings: &QgisSettings) -> Result<Option<NsisUpdateInfo>, 
     }))
 }
 
+#[cfg(feature = "gui")]
+struct ProgressWriter<W: Write> {
+    inner: W,
+    progress: Rc<RefCell<Progress>>,
+    label: Rc<RefCell<frame::Frame>>,
+    current: usize,
+    total: Option<u64>,
+}
+
+#[cfg(feature = "gui")]
+impl<W: Write> Write for ProgressWriter<W> {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        let n = self.inner.write(buf)?;
+        if n > 0 {
+            self.current += n;
+            let pct = if let Some(t) = self.total.filter(|&t| t > 0) {
+                ((self.current as f64 / t as f64) * 100.0).min(100.0)
+            } else {
+                0.0
+            };
+            self.progress.borrow_mut().set_value(pct);
+            self.label.borrow_mut().set_label(&format!("ダウンロード中... {:.0}%", pct));
+            self.progress.borrow_mut().redraw();
+            self.label.borrow_mut().redraw();
+            app::flush();
+        }
+        Ok(n)
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.inner.flush()
+    }
+}
+
+#[cfg(feature = "gui")]
+fn create_update_progress_window() -> (Rc<RefCell<Progress>>, Rc<RefCell<frame::Frame>>, window::Window) {
+    let mut win = window::Window::new(220, 180, 360, 120, "更新ダウンロード");
+    let label = frame::Frame::new(12, 12, 336, 24, "更新ファイルをダウンロード中...");
+    let mut progress = Progress::new(12, 44, 336, 20, "");
+    progress.set_minimum(0.0);
+    progress.set_maximum(100.0);
+    progress.set_value(0.0);
+    win.end();
+    win.show();
+    (Rc::new(RefCell::new(progress)), Rc::new(RefCell::new(label)), win)
+}
+
 /// ファイルを一時フォルダにダウンロードする。
+#[cfg(not(feature = "gui"))]
 fn download_installer(url: &str, dest: &std::path::Path) -> Result<(), String> {
     let client = update_http_client()?;
     let bytes = client.get(url)
@@ -1629,6 +1679,38 @@ fn download_installer(url: &str, dest: &std::path::Path) -> Result<(), String> {
         .map_err(|e| format!("インストーラー読み込み失敗: {}", e))?;
     std::fs::write(dest, bytes)
         .map_err(|e| format!("インストーラー書き込み失敗 ({}): {}", dest.display(), e))?;
+    Ok(())
+}
+
+#[cfg(feature = "gui")]
+fn download_installer(
+    url: &str,
+    dest: &std::path::Path,
+    progress: Rc<RefCell<Progress>>,
+    label: Rc<RefCell<frame::Frame>>,
+) -> Result<(), String> {
+    let client = update_http_client()?;
+    let mut resp = client.get(url)
+        .send()
+        .map_err(|e| format!("インストーラー取得失敗 ({}): {}", url, e))?;
+    let total = resp.content_length();
+
+    let file = std::fs::OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(dest)
+        .map_err(|e| format!("インストーラー書き込み失敗 ({}): {}", dest.display(), e))?;
+
+    let mut writer = ProgressWriter {
+        inner: file,
+        progress,
+        label,
+        current: 0,
+        total,
+    };
+    resp.copy_to(&mut writer)
+        .map_err(|e| format!("インストーラー読み込み失敗: {}", e))?;
     Ok(())
 }
 
@@ -1671,9 +1753,22 @@ fn maybe_run_nsis_update(settings: &QgisSettings) {
     println!("NSIS更新: {} → {}", current, info.version);
 
     let temp = std::env::temp_dir().join("kasugai_qgis_setup.exe");
-    if let Err(e) = download_installer(&info.url, &temp) {
-        eprintln!("{}", e);
-        return;
+
+    #[cfg(feature = "gui")]
+    {
+        let (progress, label, _win) = create_update_progress_window();
+        if let Err(e) = download_installer(&info.url, &temp, progress, label) {
+            eprintln!("{}", e);
+            return;
+        }
+    }
+
+    #[cfg(not(feature = "gui"))]
+    {
+        if let Err(e) = download_installer(&info.url, &temp) {
+            eprintln!("{}", e);
+            return;
+        }
     }
 
     // 注: セキュリティのため sha256 / 電子署名検証を追加推奨（sha2 クレート等）
