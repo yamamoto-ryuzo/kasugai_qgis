@@ -1105,7 +1105,7 @@ fn run_gui() {
     launch_btn.deactivate();
     update_btn.deactivate();
 
-    let mut settings_btn = button::Button::new(440, 10, 50, 24, "Settings");
+    let mut settings_btn = button::Button::new(420, 10, 75, 24, "Settings");
 
     wind.end();
     wind.show();
