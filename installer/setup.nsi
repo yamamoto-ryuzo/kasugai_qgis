@@ -89,6 +89,25 @@ Function .onInit
   ${If} $INSTDIR == ""
     StrCpy $INSTDIR "C:\Kasugai\${PRODUCT_DIR}"
   ${EndIf}
+
+  ; 既に管理者権限で実行されている場合は権限チェック不要
+  UserInfo::GetAccountType
+  Pop $0
+  ${If} $0 == "Admin"
+    Return
+  ${EndIf}
+
+  ; インストール先への書き込み権限を確認
+  CreateDirectory "$INSTDIR"
+  FileOpen $0 "$INSTDIR\__write_test__.tmp" w
+  ${If} $0 == ""
+    ; 書き込み権限がないので管理者権限で再起動
+    MessageBox MB_OK|MB_ICONINFORMATION "インストール先フォルダに書き込む権限が必要なため、管理者権限で再起動します。"
+    ExecShell "runas" "$EXEDIR\$EXEFILE" "$CMDLINE"
+    Quit
+  ${EndIf}
+  FileClose $0
+  Delete "$INSTDIR\__write_test__.tmp"
 FunctionEnd
 
 ; アンインストール
