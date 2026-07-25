@@ -30,6 +30,9 @@ SetCompressor /SOLID lzma
 !insertmacro MUI_PAGE_INSTFILES
 
 ; 完了ページのチェックボックス設定
+!define MUI_FINISHPAGE_TITLE "kasugai セットアップの完了"
+!define MUI_FINISHPAGE_TEXT "kasugai は、このコンピュータにインストールされました。$\r$\n「完了」をクリックしてセットアップを閉じます。"
+!define MUI_FINISHPAGE_TEXT_LARGE
 !define MUI_FINISHPAGE_RUN "$INSTDIR\qgis_launcher.exe"
 !define MUI_FINISHPAGE_RUN_TEXT "kasugai を実行(R)"
 !define MUI_FINISHPAGE_RUN_CHECKED
