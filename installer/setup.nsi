@@ -77,6 +77,9 @@ Section "MainSection" SecMain
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
   CreateShortcut "$SMPROGRAMS\${PRODUCT_NAME}\kasugai_qgis.lnk" "$INSTDIR\qgis_launcher.exe"
 
+  ; デスクトップショートカット
+  CreateShortcut "$DESKTOP\kasugai_qgis.lnk" "$INSTDIR\qgis_launcher.exe"
+
   ; 古いバックアップを削除
   Delete "$INSTDIR\qgis_launcher.exe.old"
 
@@ -122,6 +125,7 @@ Section "Uninstall"
   RMDir /r "$INSTDIR\ini"
   RMDir /r "$INSTDIR\profiles"
   RMDir /r "$INSTDIR\ProjectFiles"
+  Delete "$DESKTOP\kasugai_qgis.lnk"
   RMDir /r "$SMPROGRAMS\${PRODUCT_NAME}"
   RMDir "$INSTDIR"
 SectionEnd
