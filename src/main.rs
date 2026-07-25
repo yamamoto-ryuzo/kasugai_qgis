@@ -1227,17 +1227,22 @@ fn run_gui() {
             serde_json::to_string_pretty(&QgisSettings::default()).unwrap_or_else(|_| "{}".to_string())
         };
 
-        let mut s_win = window::Window::new(150, 100, 520, 480, "QGIS Settings");
-        let _s_title = frame::Frame::new(10, 10, 500, 24, "qgis_settings.json 編集");
+        let mut s_win = window::Window::new(150, 100, 780, 720, "QGIS Settings");
+        let mut s_title = frame::Frame::new(15, 15, 750, 36, "qgis_settings.json 編集");
+        s_title.set_label_size(21);
         let clean_text = initial_text.replace("\r\n", "\n").replace('\r', "\n");
         let mut s_buf = text::TextBuffer::default();
         s_buf.set_text(&clean_text);
-        let mut editor = text::TextEditor::new(10, 40, 500, 360, "");
+        let mut editor = text::TextEditor::new(15, 60, 750, 540, "");
         editor.set_buffer(s_buf.clone());
-        let mut s_status = frame::Frame::new(10, 410, 500, 20, "");
+        editor.set_text_size(21);
+        let mut s_status = frame::Frame::new(15, 615, 750, 30, "");
         s_status.set_align(Align::Left | Align::Inside);
-        let mut save_btn = button::Button::new(280, 440, 100, 30, "Save");
-        let mut cancel_btn = button::Button::new(400, 440, 100, 30, "Cancel");
+        s_status.set_label_size(18);
+        let mut save_btn = button::Button::new(420, 660, 150, 45, "Save");
+        save_btn.set_label_size(21);
+        let mut cancel_btn = button::Button::new(600, 660, 150, 45, "Cancel");
+        cancel_btn.set_label_size(21);
         s_win.end();
         s_win.show();
 
