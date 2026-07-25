@@ -1228,21 +1228,16 @@ fn run_gui() {
         };
 
         let mut s_win = window::Window::new(150, 100, 780, 720, "QGIS Settings");
-        let mut s_title = frame::Frame::new(15, 15, 750, 36, "qgis_settings.json 編集");
-        s_title.set_label_size(21);
+        let _s_title = frame::Frame::new(15, 15, 750, 36, "qgis_settings.json 編集");
         let clean_text = initial_text.replace("\r\n", "\n").replace('\r', "\n");
         let mut s_buf = text::TextBuffer::default();
         s_buf.set_text(&clean_text);
         let mut editor = text::TextEditor::new(15, 60, 750, 540, "");
         editor.set_buffer(s_buf.clone());
-        editor.set_text_size(21);
         let mut s_status = frame::Frame::new(15, 615, 750, 30, "");
         s_status.set_align(Align::Left | Align::Inside);
-        s_status.set_label_size(18);
         let mut save_btn = button::Button::new(420, 660, 150, 45, "Save");
-        save_btn.set_label_size(21);
         let mut cancel_btn = button::Button::new(600, 660, 150, 45, "Cancel");
-        cancel_btn.set_label_size(21);
         s_win.end();
         s_win.show();
 
