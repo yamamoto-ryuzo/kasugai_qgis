@@ -33,7 +33,7 @@ SetCompressor /SOLID lzma
 !define MUI_FINISHPAGE_RUN "$INSTDIR\qgis_launcher.exe"
 !define MUI_FINISHPAGE_RUN_TEXT "kasugai を実行(R)"
 !define MUI_FINISHPAGE_RUN_CHECKED
-!define MUI_FINISHPAGE_SHOWREADME "$DESKTOP\kasugai_qgis.lnk"
+!define MUI_FINISHPAGE_SHOWREADME
 !define MUI_FINISHPAGE_SHOWREADME_TEXT "デスクトップショートカットを作成する"
 !define MUI_FINISHPAGE_SHOWREADME_CHECKED
 !define MUI_FINISHPAGE_SHOWREADME_FUNCTION CreateDesktopShortcut
