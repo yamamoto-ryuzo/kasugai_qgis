@@ -7,7 +7,7 @@ REM Run "cargo build --release" before this script
 REM Output: ..\public\kasugai_qgis-setup.exe  (full: EXE + data, for initial install / full update)
 REM         ..\public\kasugai_qgis-update.exe (EXE only, for normal auto-update)
 
-set "VERSION=1.4.0"
+set "VERSION=1.4.2"
 
 if not exist "..\target\release\qgis_launcher.exe" (
     echo ERROR: release build of qgis_launcher.exe not found.

@@ -6,7 +6,7 @@ REM kasugai_qgis distribution ZIP build batch
 REM Run "cargo build --release" before this script
 REM Output: ..\public\kasugai_qgis.zip
 
-set "VERSION=1.4.0"
+set "VERSION=1.4.2"
 
 if not exist "..\target\release\qgis_launcher.exe" (
     echo ERROR: release build of qgis_launcher.exe not found.

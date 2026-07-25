@@ -11,7 +11,7 @@
 ;              通常のバージョンアップ(自動更新)用
 
 !define PRODUCT_NAME "kasugai_qgis"
-!define PRODUCT_VERSION "1.4.1"
+!define PRODUCT_VERSION "1.4.2"
 !define PRODUCT_PUBLISHER "yamamoto-ryuzo"
 !define PRODUCT_DIR "kasugai_qgis"
 
