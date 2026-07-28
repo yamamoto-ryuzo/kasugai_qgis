@@ -1,5 +1,31 @@
 # Changelog
 
+## [2.0.0] - 2026-07-29
+
+### Added
+- AXUM ベースの HTTP API サーバー機能を追加
+  - `GET /` — 操作 UI (`public/index.html`) を返す
+  - `GET /health` — 生存確認
+  - `GET /settings` / `POST /settings` — 設定読み書き
+  - `GET /profiles` / `GET /projects` / `GET /qgis` — 選択候補一覧
+  - `POST /launch` — QGIS 起動
+  - `POST /reset` — プロファイル初期化
+  - `GET /project-version` — プロジェクトファイルの QGIS バージョン取得
+  - `GET /update` / `POST /update/apply` — 手動更新確認・適用
+- ブラウザベースの操作 UI (`public/index.html`)
+  - タブ形式：起動 / 探索パス / 詳細設定 / メンテナンス
+  - プロファイル・QGIS バージョン・プロジェクトのドロップダウン選択
+  - 生 JSON エディタによる `qgis_settings.json` 直接編集
+- 新しい CLI 引数 `--server` / `--port`（Tauri サイドカー対応）
+
+### Changed
+- デフォルト動作をヘッドレス API サーバーに変更
+- `--cli` 実行時のヘルプ文言を修正
+
+### Removed
+- FLTK ベースの GUI を削除
+- `fltk` 依存と `gui` feature を削除
+
 ## [1.4.1] - 2026-07-25
 
 ### Changed

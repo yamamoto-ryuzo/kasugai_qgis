@@ -1,6 +1,6 @@
 [package]
 name = "qgis_launcher"
-version = "1.4.2"
+version = "2.0.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -14,11 +14,6 @@ tower-http = { version = "0.5", features = ["cors"] }
 clap = { version = "4.5", features = ["derive"] }
 winreg = "0.55.0"
 mslnk = "0.1.8"
-fltk = { version = "1.5", features = ["fltk-bundled"], optional = true }
 quick-xml = "0.29"
 zip = "0.6"
 reqwest = { version = "0.12", features = ["blocking", "json"] }
-
-[features]
-default = ["gui"]
-gui = ["fltk"]

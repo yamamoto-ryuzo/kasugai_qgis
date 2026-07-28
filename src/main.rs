@@ -1,7 +1,5 @@
-#![cfg_attr(feature = "gui", windows_subsystem = "windows")]
-
 use clap::Parser;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::env;
 use std::fs;
 use std::path::PathBuf;
@@ -13,22 +11,14 @@ use winreg::enums::*;
 /// 子プロセスのコンソールウィンドウを非表示にする Windows フラグ
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 use winreg::RegKey;
-#[cfg(feature = "gui")]
-use fltk::misc::Progress;
 use quick_xml::Reader;
 use quick_xml::events::Event;
 use quick_xml::name::QName;
-use std::sync::{Arc, Mutex};
-use std::rc::Rc;
-use std::cell::RefCell;
-use std::time::SystemTime;
 use zip::ZipArchive;
-use std::io::{Read, Write};
+use std::io::Read;
+use axum::{extract::{Query, State}, http::StatusCode, response::Html, routing::{get, post}, Json, Router};
+use tower_http::cors::CorsLayer;
 
-#[cfg(feature = "gui")]
-use fltk::{prelude::*, *};
-#[cfg(feature = "gui")]
-use fltk::enums::Align;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct RcloneMount {
@@ -262,13 +252,21 @@ struct Args {
     #[arg(short, long, default_value = "geo_custom")]
     profile: String,
 
-    /// コマンドラインモードで動作する（指定がなければ GUI を起動）
+    /// コマンドラインモードで QGIS を起動する
     #[arg(long, default_value_t = false)]
     cli: bool,
 
     /// 検出されるQGIS一覧を出力して終了する（デバッグ用）
     #[arg(long, default_value_t = false)]
     list_qgis: bool,
+
+    /// API サーバーモードで動作する（Tauri サイドカー用）
+    #[arg(long, default_value_t = false)]
+    server: bool,
+
+    /// API サーバーが待ち受けるポート（0 の場合は自動割り当て）
+    #[arg(long, default_value_t = 0)]
+    port: u16,
 
     /// QGISの実行ファイルパス（指定がなければ自動検出）
     #[arg(long)]
@@ -843,770 +841,10 @@ fn run_robocopy_local(src: &str, dst: &str, exclude: &[String], sender: Option<&
     }
 }
 
-#[cfg(feature = "gui")]
-fn get_available_profiles(_settings_dir: &str, current_val: &str) -> Vec<String> {
-    let mut profiles = Vec::new();
-    if !current_val.is_empty() {
-        profiles.push(current_val.to_string());
-    }
-    
-    // 1. APPDATA 以下の既存の QGIS プロファイルを検索する
-    // QGIS の実際のプロファイルは通常 `%APPDATA%/QGIS/QGISx/profiles/<name>` にあるため
-    // まず `profiles` サブフォルダを優先して列挙し、存在しなければ互換性のために直下を列挙する。
-    for p in qgis_launcher::get_qgis_profile_paths() {
-        let probe = p.join("profiles");
-        if probe.exists() {
-            if let Ok(entries) = fs::read_dir(&probe) {
-                for entry in entries.flatten() {
-                    if let Ok(ft) = entry.file_type() {
-                        if ft.is_dir() {
-                            if let Ok(name) = entry.file_name().into_string() {
-                                if !profiles.contains(&name) {
-                                    profiles.push(name);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        } else {
-            if let Ok(entries) = fs::read_dir(&p) {
-                for entry in entries.flatten() {
-                    if let Ok(ft) = entry.file_type() {
-                        if ft.is_dir() {
-                            if let Ok(name) = entry.file_name().into_string() {
-                                // 直下を読む場合、誤って 'profiles' というディレクトリ名を
-                                // プロファイル名として表示してしまうことがあるため除外する。
-                                if name.eq_ignore_ascii_case("profiles") {
-                                    continue;
-                                }
-                                if !profiles.contains(&name) {
-                                    profiles.push(name);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
 
-    // NOTE: Only enumerate immediate subfolders under `%APPDATA%/QGIS/QGISx/profiles`.
-    // Do not fallback to listing `%APPDATA%/QGIS/QGISx` itself and do not scan
-    // the distribution `settings_dir/profiles` here — this keeps the list limited
-    // to actual QGIS profile folders managed by the installation.
-    for p in qgis_launcher::get_qgis_profile_paths() {
-        let probe = p.join("profiles");
-        if probe.exists() {
-            if let Ok(entries) = fs::read_dir(&probe) {
-                for entry in entries.flatten() {
-                    if let Ok(ft) = entry.file_type() {
-                        if ft.is_dir() {
-                            if let Ok(name) = entry.file_name().into_string() {
-                                if !profiles.contains(&name) {
-                                    profiles.push(name);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    profiles
-}
 
-#[cfg(feature = "gui")]
-/// ファイルの絶対パスから GUI 表示名「親フォルダ名 - ファイル名」を生成する。
-/// ルートレベル（C:\ 直下など）の場合はドライブ文字を親名として使用。
-fn display_name_for(abs_path: &str) -> String {
-    let pb = PathBuf::from(abs_path);
-    let fname = match pb.file_name().and_then(|n| n.to_str()) {
-        Some(s) => s.to_string(),
-        None => return abs_path.to_string(),
-    };
-    let parent = match pb.parent() {
-        Some(p) => p,
-        None => return fname,
-    };
-    // 通常フォルダ: 末尾コンポーネント名を使用
-    if let Some(dir_name) = parent.file_name().and_then(|n| n.to_str()) {
-        return format!("{} - {}", dir_name, fname);
-    }
-    // ルート（C:\ など）: ドライブ文字を使用
-    let root = parent.to_str().unwrap_or("").trim_end_matches(['/', '\\']);
-    if !root.is_empty() {
-        format!("{} - {}", root, fname)
-    } else {
-        fname
-    }
-}
 
-#[cfg(feature = "gui")]
-/// GUI 用プロジェクト一覧を返す。
-/// 戻り値: (表示名, 実絶対パス) のペアのリスト
-/// - 拡張子 .qgs/.qgz → ファイル指定: 存在すれば1エントリ追加
-/// - それ以外          → フォルダ指定: 直下の .qgs/.qgz を列挙して追加
-fn get_available_projects(project_root: &str, current_val: &Vec<String>) -> Vec<(String, String)> {
-    let mut projects: Vec<(String, String)> = Vec::new();
-    let base = PathBuf::from(project_root);
 
-    for path_str in current_val {
-        let path_str = path_str.trim();
-        if path_str.is_empty() {
-            continue;
-        }
-
-        let pb = PathBuf::from(path_str);
-        let lower = path_str.to_lowercase();
-        let is_qgis_file = lower.ends_with(".qgs") || lower.ends_with(".qgz");
-
-        // 絶対パスはそのまま、相対パスはランチャー実行フォルダ基準で解決
-        let effective = if pb.is_absolute() { pb.clone() } else { base.join(&pb) };
-
-        if is_qgis_file {
-            // ファイル指定: 存在すれば追加
-            if effective.is_file() {
-                let actual = effective.to_string_lossy().to_string();
-                let display = display_name_for(&actual);
-                if !projects.iter().any(|(_, a)| a == &actual) {
-                    projects.push((display, actual));
-                }
-            }
-        } else {
-            // フォルダ指定: 直下の .qgs/.qgz を列挙
-            if effective.is_dir() {
-                if let Ok(entries) = fs::read_dir(&effective) {
-                    let mut file_entries: Vec<_> = entries.flatten()
-                        .filter(|e| e.file_type().map(|ft| ft.is_file()).unwrap_or(false))
-                        .filter(|e| {
-                            let name = e.file_name().to_string_lossy().to_lowercase();
-                            name.ends_with(".qgs") || name.ends_with(".qgz")
-                        })
-                        .collect();
-                    file_entries.sort_by_key(|e| e.file_name());
-                    for entry in file_entries {
-                        let actual = effective.join(entry.file_name()).to_string_lossy().to_string();
-                        let display = display_name_for(&actual);
-                        if !projects.iter().any(|(_, a)| a == &actual) {
-                            projects.push((display, actual));
-                        }
-                    }
-                }
-            }
-        }
-    }
-    projects
-}
-
-#[cfg(feature = "gui")]
-/// コンボボックスを更新し、プロジェクトの (表示名, 実パス) マッピングを返す
-fn update_choices(
-    profile_in: &mut misc::InputChoice,
-    project_in: &mut misc::InputChoice,
-    project_root: &str,
-    current_profile: &str,
-    current_project: &Vec<String>,
-) -> Vec<(String, String)> {
-    profile_in.clear();
-    for p in get_available_profiles(project_root, current_profile) {
-        profile_in.add(&p);
-    }
-    project_in.clear();
-    let project_map = get_available_projects(project_root, current_project);
-    for (display, _) in &project_map {
-        project_in.add(display);
-    }
-    project_map
-}
-
-#[cfg(feature = "gui")]
-fn run_gui() {
-    let app = app::App::default();
-
-    // --- ウィンドウ ---
-    let version = env!("CARGO_PKG_VERSION");
-    let title_text = format!("QGIS Launcher v{}", version);
-    let mut wind = window::Window::new(200, 150, 500, 360, title_text.as_str());
-    wind.set_color(enums::Color::from_rgb(245, 245, 245));
-
-    // --- タイトル ---
-    let mut title = frame::Frame::new(0, 8, 500, 30, "");
-    title.set_label(&title_text);
-    title.set_label_size(18);
-    title.set_label_color(enums::Color::from_rgb(40, 80, 160));
-
-    // --- ラベル + 入力フィールド (x=20, 各行 y を固定) ---
-    let lw = 120; // ラベル幅
-    let iw = 340; // 入力幅
-    let lx = 20;
-    let ix = lx + lw + 8;
-    let row_h = 28;
-
-    let y1 = 52;
-    let mut profile_label = frame::Frame::new(lx, y1, lw, row_h, "Profile:");
-    profile_label.set_align(Align::Right | Align::Inside);
-    profile_label.set_label_size(13);
-    let mut profile_in = misc::InputChoice::new(ix, y1, iw, row_h, "");
-
-    let y2 = y1 + row_h + 14;
-    let mut project_label = frame::Frame::new(lx, y2, lw, row_h, "Project Path:");
-    project_label.set_align(Align::Right | Align::Inside);
-    project_label.set_label_size(13);
-    let mut project_in = misc::InputChoice::new(ix, y2, iw, row_h, "");
-
-    // Project File Version を Project Path の直下に配置
-    let y3 = y2 + row_h + 14;
-    let mut proj_ver_label = frame::Frame::new(lx, y3, lw, row_h, "Project File Version:");
-    proj_ver_label.set_align(Align::Right | Align::Inside);
-    proj_ver_label.set_label_size(13);
-    let mut proj_ver_frame = frame::Frame::new(ix, y3, iw, row_h, "");
-    proj_ver_frame.set_label_size(13);
-
-    // QGIS Version はその下に置く
-    let y3b = y3 + row_h + 14;
-    let mut version_label = frame::Frame::new(lx, y3b, lw, row_h, "QGIS Version:");
-    version_label.set_align(Align::Right | Align::Inside);
-    version_label.set_label_size(13);
-    let mut version_in = misc::InputChoice::new(ix, y3b, iw, row_h, "");
-
-    let y4 = y3b + row_h + 14;
-    let mut role_label = frame::Frame::new(lx, y4, lw, row_h, "User Role:");
-    role_label.set_align(Align::Right | Align::Inside);
-    role_label.set_label_size(13);
-    let mut role_in = misc::InputChoice::new(ix, y4, iw, row_h, "");
-    role_in.add("Viewer");
-    role_in.add("Editor");
-    role_in.add("Administrator");
-
-    // --- 区切り線 ---
-    let sep_y = y4 + row_h + 14;
-    let mut sep = frame::Frame::new(20, sep_y, 460, 2, "");
-    sep.set_frame(enums::FrameType::ThinDownBox);
-
-    // --- ステータス ---
-    let status_y = sep_y + 8;
-    let mut status = frame::Frame::new(20, status_y, 460, 22, "");
-    status.set_align(Align::Center | Align::Inside);
-    status.set_label_size(12);
-    status.set_label_color(enums::Color::from_rgb(100, 100, 100));
-
-    // --- ボタン ---
-    let btn_y = status_y + 28;
-    let btn_w = 140;
-    let btn_h = 36;
-    let gap = 12;
-    let total_w = btn_w * 3 + gap * 2;
-    let left = (500 - total_w) / 2; // 中央配置の左端
-    let mut reset_btn = button::Button::new(left, btn_y, btn_w, btn_h, "Reset Profiles");
-    let mut update_btn = button::Button::new(left + btn_w + gap, btn_y, btn_w, btn_h, "Update");
-    let mut launch_btn = button::Button::new(left + (btn_w + gap) * 2, btn_y, btn_w, btn_h, "Launch QGIS");
-    // 起動処理が完了するまで Launch / Update を押せないようにする
-    launch_btn.deactivate();
-    update_btn.deactivate();
-
-    let mut settings_btn = button::Button::new(420, 10, 75, 24, "Settings");
-
-    wind.end();
-    wind.show();
-
-    // initial values
-    let settings_dir = get_default_settings_dir();
-    let settings = get_current_settings(&settings_dir);
-    // resolved settings dir (same logic as main)
-    let resolved_settings_dir = {
-        let p = get_settings_path(&settings_dir);
-        p.parent().map(|d| d.to_string_lossy().to_string()).unwrap_or_else(|| settings_dir.clone())
-    };
-
-    // 設定内の project_root があればそれを優先して使用
-    let project_root_dir = compute_project_root(&settings, &resolved_settings_dir);
-    // 起動時: ドライブ割当てやプロファイル配布をバックグラウンドで実行し、
-    // GUI で進捗モーダルを表示する。既定の初期表示は即時に行い、完了時に再読み込みする。
-    let (s_start, r_start) = std::sync::mpsc::channel::<String>();
-    let mut pwin = window::Window::new(220, 180, 360, 120, "Initializing...");
-    let mut pframe = frame::Frame::new(12, 12, 336, 24, "Preparing startup tasks...");
-    let mut pbar = Progress::new(12, 44, 336, 20, "");
-    pbar.set_maximum(100.0);
-    pbar.set_minimum(0.0);
-    pbar.set_value(0.0);
-    pwin.show();
-
-    // クローンして UI スレッドで更新できるようにする
-    let mut profile_in_for_startup = profile_in.clone();
-    let mut project_in_for_startup = project_in.clone();
-    let mut status_for_startup = status.clone();
-    let mut launch_btn_for_startup = launch_btn.clone();
-    let mut update_btn_for_startup = update_btn.clone();
-    // クローンして move に備える（クロージャが settings を動かさないようにする）
-    let settings_profile_clone = settings.profile.clone();
-    let settings_project_path_clone = settings.project_path.clone();
-    let project_root_for_closure = project_root_dir.clone();
-
-    // バックグラウンドで mount/copy を実行
-    let sd = project_root_dir.clone();
-    let settings_for_thread = settings.clone();
-    let sync_config_dir = resolved_settings_dir.clone();
-    std::thread::spawn(move || {
-        let _ = s_start.send("MSG:Start".to_string());
-        // KASUGAI/yr-qgis-launcher 方式のローカル同期要否を判定し通知
-        let update_needed = local_sync_needed(&settings_for_thread, &sync_config_dir);
-        let _ = s_start.send(format!("UPDATE_AVAILABLE:{}", if update_needed { "true" } else { "false" }));
-        // SUBST / robocopy
-        mount_drive_mappings(&settings_for_thread.drive_mappings, &settings_for_thread, Some(&s_start));
-        // プロファイル配布
-        copy_profiles_at_startup(&sd, Some(&s_start));
-        let _ = s_start.send("DONE".to_string());
-    });
-
-    // 初期表示: まず既存情報で選択肢を埋める
-    let project_map = update_choices(&mut profile_in, &mut project_in, &project_root_dir, &settings_profile_clone, &settings_project_path_clone);
-    // クロージャ用にクローンを用意（move しても元を保持するため）
-    let settings_profile_for_closure = settings_profile_clone.clone();
-    let settings_project_path_for_closure = settings_project_path_clone.clone();
-    let mut update_available = false;
-    // UI スレッドでチャネルをポーリングして進捗と完了を処理
-    app::add_idle3(move |_| {
-        while let Ok(msg) = r_start.try_recv() {
-            if msg == "DONE" {
-                pframe.set_label("Initialization complete.");
-                pframe.redraw();
-                pbar.set_value(100.0);
-                pbar.redraw();
-                pwin.hide();
-                // 初期化完了: Launch ボタンを有効化
-                launch_btn_for_startup.activate();
-                // Update ボタンはアップデート有無に応じたまま
-                // 完了時に選択肢を再読み込み
-                let _ = update_choices(&mut profile_in_for_startup, &mut project_in_for_startup, &project_root_for_closure, &settings_profile_for_closure, &settings_project_path_for_closure);
-                let status_text = if update_available {
-                    "Initialization complete. Update available."
-                } else {
-                    "Initialization complete. Up to date."
-                };
-                status_for_startup.set_label(status_text);
-                status_for_startup.redraw();
-            } else if msg.starts_with("UPDATE_AVAILABLE:") {
-                let flag = msg.trim_start_matches("UPDATE_AVAILABLE:");
-                update_available = flag == "true";
-                if update_available {
-                    pframe.set_label("Update available.");
-                    update_btn_for_startup.activate();
-                } else {
-                    pframe.set_label("Up to date.");
-                    update_btn_for_startup.deactivate();
-                }
-                pframe.redraw();
-                update_btn_for_startup.redraw();
-            } else if msg.starts_with("ERR:") {
-                let e = msg.trim_start_matches("ERR:");
-                pframe.set_label(&format!("Init failed: {}", e));
-                pframe.redraw();
-                pwin.hide();
-                status_for_startup.set_label(&format!("Init failed: {}", e));
-                status_for_startup.redraw();
-            } else if msg.starts_with("PROG:") {
-                if let Ok(v) = msg[5..].parse::<f64>() { pbar.set_value(v); pbar.redraw(); }
-            } else if msg.starts_with("MSG:") {
-                let m = &msg[4..];
-                pframe.set_label(m);
-                pframe.redraw();
-            }
-        }
-    });
-    role_in.set_value(settings.userrole.as_deref().unwrap_or("Viewer"));
-
-    // Settings ボタン：2番目の画面で qgis_settings.json を編集
-    let settings_dir_for_settings = settings_dir.clone();
-    let status_for_settings = status.clone();
-    settings_btn.set_callback(move |_| {
-        let settings_path = get_settings_path(&settings_dir_for_settings);
-        let initial_text = if settings_path.exists() {
-            fs::read_to_string(&settings_path).unwrap_or_else(|_| "{}".to_string())
-        } else {
-            serde_json::to_string_pretty(&QgisSettings::default()).unwrap_or_else(|_| "{}".to_string())
-        };
-
-        let mut s_win = window::Window::new(150, 100, 780, 720, "QGIS Settings");
-        let _s_title = frame::Frame::new(15, 15, 750, 36, "qgis_settings.json 編集");
-        let clean_text = initial_text.replace("\r\n", "\n").replace('\r', "\n");
-        let mut s_buf = text::TextBuffer::default();
-        s_buf.set_text(&clean_text);
-        let mut editor = text::TextEditor::new(15, 60, 750, 600, "");
-        editor.set_buffer(s_buf.clone());
-        let mut s_status = frame::Frame::new(15, 670, 400, 30, "");
-        s_status.set_align(Align::Left | Align::Inside);
-        let mut save_btn = button::Button::new(510, 670, 120, 30, "Save");
-        let mut cancel_btn = button::Button::new(645, 670, 120, 30, "Cancel");
-        s_win.end();
-        s_win.show();
-
-        // Save
-        let settings_dir_for_save = settings_dir_for_settings.clone();
-        let mut s_status_save = s_status.clone();
-        let mut status_main = status_for_settings.clone();
-        save_btn.set_callback(move |_| {
-            let text = s_buf.text();
-            let fixed = fix_backslashes_in_json(&text);
-            match serde_json::from_str::<serde_json::Value>(&fixed) {
-                Ok(_) => {
-                    let path = get_settings_path(&settings_dir_for_save);
-                    match fs::write(&path, fixed) {
-                        Ok(_) => {
-                            s_status_save.set_label("保存しました。再起動で反映されます。");
-                            status_main.set_label("Settings saved. Restart to apply.");
-                        }
-                        Err(e) => {
-                            s_status_save.set_label(&format!("書き込みエラー: {}", e));
-                        }
-                    }
-                }
-                Err(e) => {
-                    s_status_save.set_label(&format!("JSONエラー: {}", e));
-                }
-            }
-            s_status_save.redraw();
-            status_main.redraw();
-        });
-
-        // Cancel
-        let mut s_win_for_cancel = s_win;
-        cancel_btn.set_callback(move |_| {
-            s_win_for_cancel.hide();
-        });
-    });
-
-    profile_in.set_value(&settings_profile_clone);
-    // 初期表示: current_project（前回選択）を優先し、なければ project_path[0] を使用
-    {
-        let init_raw = settings.current_project.as_deref()
-            .filter(|s| !s.is_empty())
-            .or_else(|| settings.project_path.first().map(|s| s.as_str()));
-        if let Some(first_raw) = init_raw {
-            let first_pb = PathBuf::from(first_raw);
-            let first_effective = if first_pb.is_absolute() {
-                first_pb.to_string_lossy().to_string()
-            } else {
-                PathBuf::from(&project_root_dir).join(first_raw).to_string_lossy().to_string()
-            };
-            let display = project_map.iter()
-                .find(|(_, actual)| *actual == first_effective)
-                .or_else(|| {
-                    let prefix_s = format!("{}/",  first_effective.trim_end_matches(['/', '\\']));
-                    let prefix_b = format!("{}\\", first_effective.trim_end_matches(['/', '\\']));
-                    project_map.iter().find(|(_, actual)| {
-                        actual.starts_with(&prefix_s) || actual.starts_with(&prefix_b)
-                    })
-                })
-                .map(|(d, _)| d.clone())
-                .unwrap_or_else(|| display_name_for(&first_effective));
-            project_in.set_value(&display);
-        } else {
-            project_in.set_value("");
-        }
-    }
-
-    // バージョン解析キャッシュを先に作成し、プロジェクトのバージョンを取得してから
-    // QGIS 実行ファイル候補を列挙することで、初期選択に反映できるようにする。
-    let version_cache: VersionCache = Arc::new(Mutex::new(std::collections::HashMap::new()));
-    // 初期表示用の選択中プロジェクトを解決して、バージョンを先に取得しておく
-    let initial_display = project_in.value().unwrap_or_default();
-    let initial_actual = project_map.iter()
-        .find(|(d, _)| d == &initial_display)
-        .map(|(_, a)| a.clone())
-        .unwrap_or(initial_display.clone());
-    let initial_project_version = if !initial_actual.is_empty() {
-        let v = get_project_version_cached(&initial_actual, &version_cache);
-        v
-    } else { None };
-
-    let available_versions = get_available_qgis_versions();
-    for (name, _) in &available_versions {
-        version_in.add(name);
-    }
-
-    
-
-    // 優先ルール:
-    // 1) settings.qgis_executable が指定されていればそれを表示
-    // 2) それ以外でプロジェクトバージョンが取得でき、マッチする候補があればそれを初期選択
-    // 3) どれもなければ最初の候補
-    // まず設定値／候補のいずれかを表示
-    if let Some(exe) = &settings.qgis_executable {
-        let exe_pb = PathBuf::from(exe);
-        if exe_pb.exists() {
-            if let Some((name, _)) = available_versions.iter().find(|(_, path)| path == exe) {
-                version_in.set_value(name);
-            } else {
-                version_in.set_value(exe);
-            }
-        } else {
-            // 設定に残っている実行ファイルのパスが存在しない場合は無視する
-            if let Some((name, _)) = available_versions.first() {
-                version_in.set_value(name);
-            }
-        }
-    } else if let Some((name, _)) = available_versions.first() {
-        version_in.set_value(name);
-    }
-
-    // プロジェクトバージョンが得られている場合、保存済み選択がプロジェクトの major を含まない
-    // 場合は自動選択で上書きする
-    if let Some(ver) = &initial_project_version {
-        if let Some((match_name, _)) = find_matching_available_for_project(ver, &available_versions) {
-            let proj_major = ver.split('.').next().unwrap_or("").to_lowercase();
-            let current_sel = version_in.value().unwrap_or_default();
-            let current_sel_major = extract_major(&current_sel.to_lowercase()).unwrap_or_default();
-            if current_sel.is_empty() || current_sel_major != proj_major {
-                version_in.set_value(&match_name);
-            }
-        }
-    }
-
-    // プロジェクト選択が変わったとき、選択された1つだけを解析してバージョン表示を更新する。
-    // 解析は最小限: 選択されたプロジェクトファイル1つのみを対象にする。
-    {
-        let project_map_for_closure = project_map.clone();
-        let _project_map_for_init = project_map.clone();
-        let mut project_in_for_closure = project_in.clone();
-        let mut proj_ver_for_closure = proj_ver_frame.clone();
-        let mut proj_ver_for_init = proj_ver_frame.clone();
-        let cache_for_closure = version_cache.clone();
-
-        let available_versions_for_closure = available_versions.clone();
-        let mut version_in_for_closure = version_in.clone();
-        project_in_for_closure.set_callback(move |w| {
-            let display = w.value().unwrap_or_default();
-            let actual = project_map_for_closure.iter()
-                .find(|(d, _)| d == &display)
-                .map(|(_, a)| a.clone())
-                .unwrap_or(display.clone());
-
-            if actual.to_lowercase().ends_with(".qgz") || actual.to_lowercase().ends_with(".qgs") {
-                        if let Some(ver) = get_project_version_cached(&actual, &cache_for_closure) {
-                        proj_ver_for_closure.set_label(&ver);
-                        if let Some((name, _)) = find_matching_available_for_project(&ver, &available_versions_for_closure) {
-                            let proj_major = ver.split('.').next().unwrap_or("").to_lowercase();
-                            let current_sel = version_in_for_closure.value().unwrap_or_default();
-                            let current_sel_major = extract_major(&current_sel.to_lowercase()).unwrap_or_default();
-                            if current_sel_major != proj_major {
-                                version_in_for_closure.set_value(&name);
-                            }
-                        }
-                    } else {
-                        proj_ver_for_closure.set_label("");
-                    }
-            } else {
-                proj_ver_for_closure.set_label("");
-            }
-        });
-
-        // 初期表示用に一度ラベルをセットしておく（先に取得済みの initial_project_version を使用）
-        if let Some(ver) = &initial_project_version {
-            proj_ver_for_init.set_label(ver);
-        }
-    }
-
-    // Reset
-    {
-        let _profile_in = profile_in.clone();
-        let _project_in = project_in.clone();
-        let status = status.clone();
-        // project_root_dir を優先して使用する。未指定時は resolved_settings_dir にフォールバック。
-        // これにより起動時の copy_profiles_at_startup と同じパスから配布プロファイルを参照できる。
-        let reset_profiles_dir = project_root_dir.clone();
-        reset_btn.set_callback(move |_| {
-            // FLTK チャネルでバックグラウンドの処理からメッセージを受け取り UI を更新する
-            let (s, r) = std::sync::mpsc::channel::<String>();
-
-            // 進捗ウィンドウ
-            let mut pwin = window::Window::new(220, 180, 360, 120, "Reset Profiles");
-            let mut pframe = frame::Frame::new(12, 12, 336, 24, "Preparing...");
-            let mut pbar = Progress::new(12, 44, 336, 20, "");
-            pbar.set_maximum(100.0);
-            pbar.set_minimum(0.0);
-            pbar.set_value(0.0);
-            pwin.show();
-
-            // バックグラウンドで削除・再構築を実行
-            let sd = reset_profiles_dir.clone();
-            std::thread::spawn(move || {
-                // 送信用ユーティリティ
-                let _ = s.send("MSG:Start".to_string());
-                let res = reset_profiles_with_report(&sd, &s);
-                match res {
-                    Ok(_) => { let _ = s.send("DONE".to_string()); }
-                    Err(e) => { let _ = s.send(format!("ERR:{}", e)); }
-                }
-            });
-
-            // UI スレッドでチャネルをポーリングして表示を更新
-            let mut status_for_idle = status.clone();
-            app::add_idle3(move |_| {
-                while let Ok(msg) = r.try_recv() {
-                    if msg == "DONE" {
-                        pframe.set_label("Profiles reset and rebuilt.");
-                        pframe.redraw();
-                        pbar.set_value(100.0);
-                        pbar.redraw();
-                        pwin.hide();
-                        // メインウィンドウのステータス表示を更新
-                        status_for_idle.set_label("Profiles reset and rebuilt.");
-                        status_for_idle.redraw();
-                    } else if msg.starts_with("ERR:") {
-                        let e = msg.trim_start_matches("ERR:");
-                        pframe.set_label(&format!("Reset failed: {}", e));
-                        pframe.redraw();
-                        pwin.hide();
-                        status_for_idle.set_label(&format!("Reset failed: {}", e));
-                        status_for_idle.redraw();
-                    } else if msg.starts_with("PROG:") {
-                        if let Ok(v) = msg[5..].parse::<f64>() { pbar.set_value(v); pbar.redraw(); }
-                    } else if msg.starts_with("MSG:") {
-                        let m = &msg[4..];
-                        pframe.set_label(m);
-                        pframe.redraw();
-                    }
-                }
-            });
-        });
-    }
-
-    // Update
-    {
-        let settings = settings.clone();
-        let sync_config_dir = resolved_settings_dir.clone();
-        let status = status.clone();
-        let mut reset_btn_outer = reset_btn.clone();
-        let mut launch_btn_outer = launch_btn.clone();
-        update_btn.set_callback(move |update_btn_self| {
-            let (s, r) = std::sync::mpsc::channel::<String>();
-
-            // 進捗ウィンドウ
-            let mut pwin = window::Window::new(220, 180, 360, 120, "Update");
-            let mut pframe = frame::Frame::new(12, 12, 336, 24, "Updating local files...");
-            let mut pbar = Progress::new(12, 44, 336, 20, "");
-            pbar.set_maximum(100.0);
-            pbar.set_minimum(0.0);
-            pbar.set_value(0.0);
-            pwin.show();
-
-            // 操作重複防止のためボタンを無効化
-            let reset_was_active = reset_btn_outer.active();
-            let launch_was_active = launch_btn_outer.active();
-            let update_was_active = update_btn_self.active();
-            reset_btn_outer.deactivate();
-            update_btn_self.deactivate();
-            launch_btn_outer.deactivate();
-
-            // idle ハンドラ用にクローンを作成
-            let mut reset_btn_for_idle = reset_btn_outer.clone();
-            let mut update_btn_for_idle = update_btn_self.clone();
-            let mut launch_btn_for_idle = launch_btn_outer.clone();
-            let mut status_for_idle = status.clone();
-
-            // バックグラウンドでローカル同期を実行
-            let settings = settings.clone();
-            let sync_config_dir = sync_config_dir.clone();
-            std::thread::spawn(move || {
-                let _ = s.send("MSG:Start".to_string());
-                let did_sync = run_local_sync(&settings, &sync_config_dir, Some(&s));
-                let _ = s.send(if did_sync { "DONE:SYNCED".to_string() } else { "DONE:NOSYNC".to_string() });
-            });
-
-            // UI スレッドでチャネルをポーリングして進捗と完了を処理
-            app::add_idle3(move |_| {
-                while let Ok(msg) = r.try_recv() {
-                    if msg == "DONE:SYNCED" {
-                        pframe.set_label("Update complete.");
-                        pframe.redraw();
-                        pbar.set_value(100.0);
-                        pbar.redraw();
-                        pwin.hide();
-                        if reset_was_active { reset_btn_for_idle.activate(); }
-                        if launch_was_active { launch_btn_for_idle.activate(); }
-                        update_btn_for_idle.deactivate();
-                        status_for_idle.set_label("Update complete. Up to date.");
-                        status_for_idle.redraw();
-                    } else if msg == "DONE:NOSYNC" {
-                        pframe.set_label("No update available.");
-                        pframe.redraw();
-                        pbar.set_value(100.0);
-                        pbar.redraw();
-                        pwin.hide();
-                        if reset_was_active { reset_btn_for_idle.activate(); }
-                        if launch_was_active { launch_btn_for_idle.activate(); }
-                        update_btn_for_idle.deactivate();
-                        status_for_idle.set_label("No update available.");
-                        status_for_idle.redraw();
-                    } else if msg.starts_with("ERR:") {
-                        let e = msg.trim_start_matches("ERR:");
-                        pframe.set_label(&format!("Update failed: {}", e));
-                        pframe.redraw();
-                        pwin.hide();
-                        if reset_was_active { reset_btn_for_idle.activate(); }
-                        if launch_was_active { launch_btn_for_idle.activate(); }
-                        if update_was_active { update_btn_for_idle.activate(); }
-                        status_for_idle.set_label(&format!("Update failed: {}", e));
-                        status_for_idle.redraw();
-                    } else if msg.starts_with("PROG:") {
-                        if let Ok(v) = msg[5..].parse::<f64>() { pbar.set_value(v); pbar.redraw(); }
-                    } else if msg.starts_with("MSG:") {
-                        let m = &msg[4..];
-                        pframe.set_label(m);
-                        pframe.redraw();
-                    }
-                }
-            });
-        });
-    }
-
-    // Launch
-    {
-        let profile_in = profile_in.clone();
-        let project_in = project_in.clone();
-        let version_in = version_in.clone();
-        let role_in = role_in.clone();
-        let _status = status.clone();
-        let available_versions = available_versions.clone();
-        // 表示名→実パスのマッピングをクロージャにムーブ
-        let project_map = project_map.clone();
-        launch_btn.set_callback(move |_| {
-            let project_display = project_in.value().unwrap_or_default();
-            let profile_val = profile_in.value().unwrap_or_default();
-            let version_val = version_in.value().unwrap_or_default();
-            let role_val = role_in.value().unwrap_or_else(|| "Viewer".to_string());
-            
-            let exe_path = available_versions.iter()
-                .find(|(name, _)| name == &version_val)
-                .map(|(_, path)| path.clone())
-                .unwrap_or(version_val.clone());
-
-            // 表示名から実パスを解決（手入力の場合はそのまま使用）
-            let project_actual = project_map.iter()
-                .find(|(display, _)| display == &project_display)
-                .map(|(_, actual)| actual.clone())
-                .unwrap_or_else(|| project_display.clone());
-
-            // 設定の保存（project_path は JSON を変更しない — 選択プロジェクトは current_project に保存）
-            let mut current = get_current_settings(&settings_dir);
-            current.profile = profile_val.clone();
-            // current.project_path はそのまま維持（JSONのプロジェクト一覧を上書きしない）
-            current.qgis_executable = Some(exe_path.clone());
-            current.userrole = Some(role_val.clone());
-            current.current_project = Some(project_actual.clone());
-            let _ = save_settings(&settings_dir, &current);
-
-            // 今回選択されたプロジェクトのみを QGIS に渡す
-            let selected_project = vec![project_actual.clone()];
-            launch_qgis(&profile_val, &selected_project, &project_root_dir, &exe_path, &role_val);
-            // QGIS 起動後にランチャーを終了
-            std::process::exit(0);
-        });
-    }
-
-    app.run().unwrap();
-}
 
 /// NSIS インストーラー方式の更新情報。
 /// url は通常更新用（EXE のみの kasugai_qgis-update.exe）、
@@ -1693,55 +931,10 @@ fn check_nsis_update(settings: &QgisSettings) -> Result<Option<NsisUpdateInfo>, 
     }))
 }
 
-#[cfg(feature = "gui")]
-struct ProgressWriter<W: Write> {
-    inner: W,
-    progress: Rc<RefCell<Progress>>,
-    label: Rc<RefCell<frame::Frame>>,
-    current: usize,
-    total: Option<u64>,
-}
 
-#[cfg(feature = "gui")]
-impl<W: Write> Write for ProgressWriter<W> {
-    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        let n = self.inner.write(buf)?;
-        if n > 0 {
-            self.current += n;
-            let pct = if let Some(t) = self.total.filter(|&t| t > 0) {
-                ((self.current as f64 / t as f64) * 100.0).min(100.0)
-            } else {
-                0.0
-            };
-            self.progress.borrow_mut().set_value(pct);
-            self.label.borrow_mut().set_label(&format!("ダウンロード中... {:.0}%", pct));
-            self.progress.borrow_mut().redraw();
-            self.label.borrow_mut().redraw();
-            app::flush();
-        }
-        Ok(n)
-    }
 
-    fn flush(&mut self) -> std::io::Result<()> {
-        self.inner.flush()
-    }
-}
-
-#[cfg(feature = "gui")]
-fn create_update_progress_window() -> (Rc<RefCell<Progress>>, Rc<RefCell<frame::Frame>>, window::Window) {
-    let mut win = window::Window::new(220, 180, 360, 120, "更新ダウンロード");
-    let label = frame::Frame::new(12, 12, 336, 24, "更新ファイルをダウンロード中...");
-    let mut progress = Progress::new(12, 44, 336, 20, "");
-    progress.set_minimum(0.0);
-    progress.set_maximum(100.0);
-    progress.set_value(0.0);
-    win.end();
-    win.show();
-    (Rc::new(RefCell::new(progress)), Rc::new(RefCell::new(label)), win)
-}
 
 /// ファイルを一時フォルダにダウンロードする。
-#[cfg(not(feature = "gui"))]
 fn download_installer(url: &str, dest: &std::path::Path) -> Result<(), String> {
     let client = update_http_client()?;
     let bytes = client.get(url)
@@ -1754,37 +947,6 @@ fn download_installer(url: &str, dest: &std::path::Path) -> Result<(), String> {
     Ok(())
 }
 
-#[cfg(feature = "gui")]
-fn download_installer(
-    url: &str,
-    dest: &std::path::Path,
-    progress: Rc<RefCell<Progress>>,
-    label: Rc<RefCell<frame::Frame>>,
-) -> Result<(), String> {
-    let client = update_http_client()?;
-    let mut resp = client.get(url)
-        .send()
-        .map_err(|e| format!("インストーラー取得失敗 ({}): {}", url, e))?;
-    let total = resp.content_length();
-
-    let file = std::fs::OpenOptions::new()
-        .write(true)
-        .create(true)
-        .truncate(true)
-        .open(dest)
-        .map_err(|e| format!("インストーラー書き込み失敗 ({}): {}", dest.display(), e))?;
-
-    let mut writer = ProgressWriter {
-        inner: file,
-        progress,
-        label,
-        current: 0,
-        total,
-    };
-    resp.copy_to(&mut writer)
-        .map_err(|e| format!("インストーラー読み込み失敗: {}", e))?;
-    Ok(())
-}
 
 /// NSIS インストーラーを起動し、本体を終了する。
 fn run_nsis_installer_and_exit(installer: &std::path::Path, install_dir: &str) {
@@ -1837,16 +999,7 @@ fn maybe_run_nsis_update(settings: &QgisSettings) {
 
     let temp = std::env::temp_dir().join("kasugai_qgis_setup.exe");
 
-    #[cfg(feature = "gui")]
-    {
-        let (progress, label, _win) = create_update_progress_window();
-        if let Err(e) = download_installer(download_url, &temp, progress, label) {
-            eprintln!("{}", e);
-            return;
-        }
-    }
 
-    #[cfg(not(feature = "gui"))]
     {
         if let Err(e) = download_installer(download_url, &temp) {
             eprintln!("{}", e);
@@ -1915,11 +1068,14 @@ fn main() {
         "default".to_string()
     };
 
-    #[cfg(feature = "gui")]
-    if !args.cli {
-        run_gui();
+    if args.server {
+        mount_drive_mappings(&settings.drive_mappings, &settings, None);
+        copy_profiles_at_startup(&resolved_settings_dir, None);
+        run_local_sync(&settings, &resolved_settings_dir, None);
+        run_api_server_sync(args.port, &resolved_settings_dir, &project_root_dir);
         return;
     }
+
 
     // KASUGAI/yr-qgis-launcher 方式のローカル自動同期（CLI モード）
     run_local_sync(&settings, &resolved_settings_dir, None);
@@ -2511,62 +1667,6 @@ fn reset_profiles(settings_dir: &str) -> Result<(), String> {
 }
 
 /// reset_profiles の処理を行いながら `sender` に進捗・メッセージを送る。
-fn reset_profiles_with_report(settings_dir: &str, sender: &std::sync::mpsc::Sender<String>) -> Result<(), String> {
-    let base_profiles = PathBuf::from(settings_dir).join("profiles");
-    if !base_profiles.exists() {
-        let _ = sender.send("MSG:distribution profiles not found".to_string());
-        return Err("distribution profiles not found".to_string());
-    }
-
-    let all_profile_paths = qgis_launcher::get_qgis_profile_paths();
-    // 事前に削除対象の数を数えて進捗を出す
-    let mut targets = Vec::new();
-    for p in &all_profile_paths {
-        let probe = p.join("profiles");
-        if probe.exists() {
-            if let Ok(entries) = fs::read_dir(&probe) {
-                for entry in entries.flatten() {
-                    if entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
-                        targets.push(entry.path());
-                    }
-                }
-            }
-        } else {
-            if let Ok(entries) = fs::read_dir(&p) {
-                for entry in entries.flatten() {
-                    if entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
-                        if let Ok(name) = entry.file_name().into_string() {
-                            if name.eq_ignore_ascii_case("profiles") { continue; }
-                        }
-                        targets.push(entry.path());
-                    }
-                }
-            }
-        }
-    }
-
-    let total = targets.len().max(1) as f64;
-    for (i, path) in targets.into_iter().enumerate() {
-        let label = format!("Deleting {:?}", path.file_name().unwrap_or_default());
-        let _ = sender.send(format!("MSG:{}", label));
-        if let Err(e) = fs::remove_dir_all(&path) {
-            let _ = sender.send(format!("MSG:failed to remove {:?}: {}", path, e));
-        }
-        let perc = ((i + 1) as f64) / total * 50.0; // 削除フェーズは0-50%
-        let _ = sender.send(format!("PROG:{}", perc));
-    }
-
-    // コピー（再構築）開始
-    let _ = sender.send("MSG:Rebuilding profiles...".to_string());
-    // copy_profiles_at_startup は sender を受け取れるので、ここでは報告用 sender を渡す
-    copy_profiles_at_startup(settings_dir, Some(sender));
-    let _ = sender.send(format!("PROG:{}", 90.0));
-
-    // 最終処理
-    let _ = sender.send("MSG:Finalizing...".to_string());
-    let _ = sender.send(format!("PROG:{}", 98.0));
-    Ok(())
-}
 
 /// 実行フォルダ/ini/<role>.ini のパスを返す。存在しない場合は None。
 #[allow(dead_code)]
@@ -3031,32 +2131,286 @@ fn find_matching_available_for_project(project_ver: &str, available: &Vec<(Strin
     None
 }
 
-type VersionCache = Arc<Mutex<std::collections::HashMap<String, (SystemTime, String)>>>;
 
-fn get_project_version_cached(path: &str, cache: &VersionCache) -> Option<String> {
-    let key = path.to_string();
-    let mtime = std::fs::metadata(path).and_then(|m| m.modified()).ok();
 
-    // check cache
-    {
-        let lock = cache.lock().unwrap();
-        if let Some((cached_mtime, ver)) = lock.get(&key) {
-            if let Some(m) = mtime {
-                if &m == cached_mtime {
-                    return Some(ver.clone());
+#[derive(Clone)]
+struct AppState {
+    settings_dir: String,
+    project_root_dir: String,
+}
+
+const UI_HTML: &str = include_str!("../public/index.html");
+
+async fn ui_handler() -> Html<&'static str> {
+    Html(UI_HTML)
+}
+
+fn run_api_server_sync(port: u16, settings_dir: &str, project_root_dir: &str) {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(run_api_server(port, settings_dir, project_root_dir));
+}
+
+async fn run_api_server(port: u16, settings_dir: &str, project_root_dir: &str) {
+    let state = AppState {
+        settings_dir: settings_dir.to_string(),
+        project_root_dir: project_root_dir.to_string(),
+    };
+    let app = Router::new()
+        .route("/", get(ui_handler))
+        .route("/health", get(health))
+        .route("/settings", get(get_settings_handler).post(post_settings_handler))
+        .route("/qgis", get(list_qgis_handler))
+        .route("/profiles", get(list_profiles_handler))
+        .route("/projects", get(list_projects_handler))
+        .route("/launch", post(launch_handler))
+        .route("/reset", post(reset_profiles_handler))
+        .route("/project-version", get(project_version_handler))
+        .route("/update", get(update_check_handler))
+        .route("/update/apply", post(update_apply_handler))
+        .layer(CorsLayer::permissive())
+        .with_state(state);
+
+    let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", port)).await.unwrap();
+    let local_addr = listener.local_addr().unwrap();
+    println!("{}", serde_json::json!({ "port": local_addr.port() }));
+    axum::serve(listener, app).await.unwrap();
+}
+
+async fn health() -> &'static str {
+    "ok"
+}
+
+async fn get_settings_handler(State(state): State<AppState>) -> Result<Json<QgisSettings>, StatusCode> {
+    let settings_dir = state.settings_dir;
+    let settings = tokio::task::spawn_blocking(move || get_current_settings(&settings_dir))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(Json(settings))
+}
+
+#[derive(Deserialize)]
+struct LaunchRequest {
+    profile: String,
+    project_paths: Vec<String>,
+    executable: String,
+    role: String,
+}
+
+async fn launch_handler(State(state): State<AppState>, Json(req): Json<LaunchRequest>) -> Result<Json<serde_json::Value>, StatusCode> {
+    let project_root_dir = state.project_root_dir;
+    let profile = req.profile;
+    let project_paths = req.project_paths;
+    let executable = req.executable;
+    let role = req.role;
+    tokio::task::spawn_blocking(move || {
+        launch_qgis(&profile, &project_paths, &project_root_dir, &executable, &role);
+    })
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(Json(serde_json::json!({ "ok": true })))
+}
+
+#[derive(Serialize)]
+struct QgisVersion {
+    name: String,
+    path: String,
+}
+
+async fn list_qgis_handler() -> Result<Json<Vec<QgisVersion>>, StatusCode> {
+    let versions = tokio::task::spawn_blocking(get_available_qgis_versions)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(Json(versions.into_iter().map(|(n, p)| QgisVersion { name: n, path: p }).collect()))
+}
+
+async fn post_settings_handler(State(state): State<AppState>, Json(req): Json<QgisSettings>) -> Result<Json<serde_json::Value>, StatusCode> {
+    let settings_dir = state.settings_dir;
+    tokio::task::spawn_blocking(move || save_settings(&settings_dir, &req))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .map_err(|e| {
+            eprintln!("settings save error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+    Ok(Json(serde_json::json!({ "ok": true })))
+}
+
+async fn reset_profiles_handler(State(state): State<AppState>) -> Result<Json<serde_json::Value>, StatusCode> {
+    let settings_dir = state.settings_dir;
+    tokio::task::spawn_blocking(move || reset_profiles(&settings_dir))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .map_err(|e| {
+            eprintln!("reset profiles error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+    Ok(Json(serde_json::json!({ "ok": true })))
+}
+
+#[derive(Deserialize)]
+struct VersionQuery {
+    path: String,
+}
+
+async fn project_version_handler(State(state): State<AppState>, Query(q): Query<VersionQuery>) -> Result<Json<serde_json::Value>, StatusCode> {
+    let project_root_dir = state.project_root_dir;
+    let path = q.path;
+    let version = tokio::task::spawn_blocking(move || {
+        resolve_project_to_file(&path, &project_root_dir)
+            .and_then(|p| get_project_file_version(p.to_str().unwrap_or("")))
+    })
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(Json(serde_json::json!({ "version": version })))
+}
+
+async fn update_check_handler(State(state): State<AppState>) -> Result<Json<serde_json::Value>, StatusCode> {
+    let settings_dir = state.settings_dir;
+    let settings = tokio::task::spawn_blocking(move || get_current_settings(&settings_dir))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    match check_nsis_update(&settings) {
+        Ok(None) => Ok(Json(serde_json::json!({ "available": false }))),
+        Ok(Some(info)) => Ok(Json(serde_json::json!({
+            "available": true,
+            "version": info.version,
+            "url": info.url,
+            "full_url": info.full_url,
+            "full": info.full,
+            "notes": info.notes
+        }))),
+        Err(e) => {
+            eprintln!("update check error: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+async fn update_apply_handler(State(state): State<AppState>) -> Json<serde_json::Value> {
+    let settings_dir = state.settings_dir;
+    tokio::task::spawn_blocking(move || {
+        std::thread::sleep(std::time::Duration::from_secs(1));
+        let settings = get_current_settings(&settings_dir);
+        maybe_run_nsis_update(&settings);
+    });
+    Json(serde_json::json!({ "ok": true, "message": "更新処理を開始しました" }))
+}
+
+#[derive(Serialize)]
+struct ProfileItem {
+    name: String,
+    path: String,
+}
+
+#[derive(Serialize)]
+struct ProjectItem {
+    display: String,
+    path: String,
+}
+
+fn is_qgis_project(path: &std::path::Path) -> bool {
+    let n = path.file_name().map(|s| s.to_string_lossy().to_lowercase()).unwrap_or_default();
+    n.ends_with(".qgs") || n.ends_with(".qgz")
+}
+
+fn get_available_profiles(settings_dir: &str) -> Vec<ProfileItem> {
+    let mut result = Vec::new();
+    let mut names = HashSet::new();
+
+    // 配布プロファイル
+    let dist = PathBuf::from(settings_dir).join("profiles");
+    if dist.exists() {
+        if let Ok(entries) = fs::read_dir(&dist) {
+            for e in entries.flatten() {
+                if e.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
+                    if let Some(n) = e.file_name().to_str() {
+                        if names.insert(n.to_string()) {
+                            result.push(ProfileItem { name: n.to_string(), path: e.path().to_string_lossy().to_string() });
+                        }
+                    }
                 }
-            } else {
-                return Some(ver.clone());
             }
         }
     }
 
-    // compute
-    if let Some(ver) = get_project_file_version(path) {
-        let mut lock = cache.lock().unwrap();
-        lock.insert(key, (mtime.unwrap_or(SystemTime::UNIX_EPOCH), ver.clone()));
-        Some(ver)
-    } else {
-        None
+    // システム上の QGIS プロファイル
+    for base in qgis_launcher::get_qgis_profile_paths() {
+        let probe = base.join("profiles");
+        let dir = if probe.exists() { probe } else { base };
+        if let Ok(entries) = fs::read_dir(&dir) {
+            for e in entries.flatten() {
+                if e.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
+                    if let Some(n) = e.file_name().to_str() {
+                        if names.insert(n.to_string()) {
+                            result.push(ProfileItem { name: n.to_string(), path: e.path().to_string_lossy().to_string() });
+                        }
+                    }
+                }
+            }
+        }
     }
+
+    result.sort_by(|a, b| a.name.cmp(&b.name));
+    result
+}
+
+fn get_available_projects(settings: &QgisSettings, project_root: &str) -> Vec<ProjectItem> {
+    let mut result = Vec::new();
+    let mut seen = HashSet::new();
+
+    for src in &settings.project_path {
+        let src = src.trim();
+        if src.is_empty() { continue; }
+        let expanded = expand_env_vars(&resolve_path(src, &settings.path_aliases));
+        let pb = if PathBuf::from(&expanded).is_absolute() {
+            PathBuf::from(&expanded)
+        } else {
+            PathBuf::from(project_root).join(&expanded)
+        };
+
+        if pb.is_file() && is_qgis_project(&pb) {
+            if seen.insert(pb.clone()) {
+                let display = pb.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_else(|| pb.to_string_lossy().to_string());
+                result.push(ProjectItem { display, path: pb.to_string_lossy().to_string() });
+            }
+        } else if pb.is_dir() {
+            if let Ok(entries) = fs::read_dir(&pb) {
+                let mut files: Vec<_> = entries
+                    .flatten()
+                    .filter(|e| e.file_type().map(|ft| ft.is_file()).unwrap_or(false))
+                    .filter(|e| is_qgis_project(&e.path()))
+                    .collect();
+                files.sort_by_key(|e| e.file_name());
+                for f in files {
+                    let path = pb.join(f.file_name());
+                    if seen.insert(path.clone()) {
+                        let display = format!("{}\\{}", pb.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default(), f.file_name().to_string_lossy());
+                        result.push(ProjectItem { display, path: path.to_string_lossy().to_string() });
+                    }
+                }
+            }
+        }
+    }
+
+    result
+}
+
+async fn list_profiles_handler(State(state): State<AppState>) -> Result<Json<Vec<ProfileItem>>, StatusCode> {
+    let settings_dir = state.settings_dir;
+    let profiles = tokio::task::spawn_blocking(move || get_available_profiles(&settings_dir))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(Json(profiles))
+}
+
+async fn list_projects_handler(State(state): State<AppState>) -> Result<Json<Vec<ProjectItem>>, StatusCode> {
+    let settings_dir = state.settings_dir.clone();
+    let project_root_dir = state.project_root_dir;
+    let projects = tokio::task::spawn_blocking(move || {
+        let settings = get_current_settings(&settings_dir);
+        get_available_projects(&settings, &project_root_dir)
+    })
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(Json(projects))
 }

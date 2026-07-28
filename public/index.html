@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Kasugai QGIS ランチャー</title>
+  <style>
+    body { font-family: sans-serif; margin: 24px; max-width: 720px; }
+    label { display: block; margin-top: 12px; font-weight: bold; }
+    input, select, textarea { width: 100%; padding: 6px; box-sizing: border-box; }
+    textarea { height: 120px; }
+    #raw-settings { height: 320px; font-family: monospace; }
+    .row { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+    button { padding: 8px 16px; cursor: pointer; }
+    #status { margin: 16px 0; padding: 8px; background: #f0f0f0; border-radius: 4px; white-space: pre-wrap; }
+    .ok { color: green; }
+    .err { color: red; }
+    .tabs { display: flex; border-bottom: 2px solid #ccc; }
+    .tab-button { padding: 10px 20px; border: none; background: #e0e0e0; cursor: pointer; border-top-left-radius: 4px; border-top-right-radius: 4px; }
+    .tab-button.active { background: #fff; font-weight: bold; border: 2px solid #ccc; border-bottom: 2px solid #fff; }
+    .tab-content { display: none; border: 2px solid #ccc; border-top: none; padding: 16px; }
+    .tab-content.active { display: block; }
+    .readonly { background: #f9f9f9; }
+  </style>
+</head>
+<body>
+  <h1>Kasugai QGIS ランチャー</h1>
+  <p>サイドカー API に接続して QGIS を起動します。</p>
+
+  <div id="status"></div>
+
+  <div class="tabs">
+    <button class="tab-button active" data-tab="tab-launch">起動</button>
+    <button class="tab-button" data-tab="tab-paths">探索パス</button>
+    <button class="tab-button" data-tab="tab-raw">詳細設定</button>
+    <button class="tab-button" data-tab="tab-maint">メンテナンス</button>
+  </div>
+
+  <div id="tab-launch" class="tab-content active">
+    <label>プロファイル</label>
+    <select id="profile"></select>
+
+    <label>ユーザーロール</label>
+    <select id="role">
+      <option value="Viewer">Viewer</option>
+      <option value="Editor">Editor</option>
+      <option value="Administrator">Administrator</option>
+    </select>
+
+    <label>QGIS バージョン</label>
+    <select id="qgis"></select>
+
+    <label>プロジェクト</label>
+    <select id="project-select"></select>
+
+    <label>プロジェクトファイルバージョン</label>
+    <input id="project-version" type="text" class="readonly" readonly>
+
+    <div class="row">
+      <button id="save-launch">起動設定を保存</button>
+      <button id="launch">QGIS を起動</button>
+    </div>
+  </div>
+
+  <div id="tab-paths" class="tab-content">
+    <label>プロジェクト探索パス（改行区切り）</label>
+    <textarea id="project-sources" placeholder="C:\\Box\\projects&#10;またはフォルダパス"></textarea>
+    <div class="row">
+      <button id="save-paths">探索パスを保存</button>
+      <button id="reload-all">設定と一覧を再読み込み</button>
+    </div>
+  </div>
+
+  <div id="tab-raw" class="tab-content">
+    <label>qgis_settings.json（生 JSON）</label>
+    <textarea id="raw-settings" placeholder='{&#10;  "profile": "geo_custom",&#10;  "project_path": [],&#10;  ...&#10;}'></textarea>
+    <div class="row">
+      <button id="save-raw">JSON 設定を保存</button>
+      <button id="reload-raw">再読み込み</button>
+    </div>
+  </div>
+
+  <div id="tab-maint" class="tab-content">
+    <div class="row">
+      <button id="reset">プロファイルを初期化</button>
+      <button id="check-update">更新を確認</button>
+    </div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const status = (msg, cls) => {
+      $('status').textContent = msg;
+      $('status').className = cls || '';
+    };
+
+    function showTab(id) {
+      document.querySelectorAll('.tab-button').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === id));
+    }
+
+    document.querySelectorAll('.tab-button').forEach(b => {
+      b.addEventListener('click', () => showTab(b.dataset.tab));
+    });
+
+    async function api(method, path, body) {
+      const opts = { method };
+      if (body !== undefined) {
+        opts.headers = { 'Content-Type': 'application/json' };
+        opts.body = JSON.stringify(body);
+      }
+      const res = await fetch(path, opts);
+      if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
+      if (res.headers.get('content-type')?.includes('application/json')) {
+        return await res.json();
+      }
+      return await res.text();
+    }
+
+    let currentSettings = {};
+
+    async function loadSettings() {
+      currentSettings = await api('GET', '/settings');
+      $('project-sources').value = (currentSettings.project_path || []).join('\n');
+      $('profile').value = currentSettings.profile || '';
+      $('role').value = currentSettings.userrole || 'Viewer';
+      $('qgis').value = currentSettings.qgis_executable || '';
+      loadRawSettings();
+    }
+
+    function loadRawSettings() {
+      $('raw-settings').value = JSON.stringify(currentSettings, null, 2);
+    }
+
+    async function loadProfiles() {
+      const list = await api('GET', '/profiles');
+      const sel = $('profile');
+      sel.innerHTML = '';
+      list.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v.name;
+        opt.textContent = v.name;
+        sel.appendChild(opt);
+      });
+      if (currentSettings.profile) sel.value = currentSettings.profile;
+    }
+
+    async function loadProjects() {
+      const list = await api('GET', '/projects');
+      const sel = $('project-select');
+      sel.innerHTML = '';
+      list.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v.path;
+        opt.textContent = v.display;
+        sel.appendChild(opt);
+      });
+      if (currentSettings.current_project) {
+        sel.value = currentSettings.current_project;
+      } else if (list.length > 0) {
+        sel.selectedIndex = 0;
+      }
+      checkProjectVersion();
+    }
+
+    async function loadQgis() {
+      const list = await api('GET', '/qgis');
+      const sel = $('qgis');
+      sel.innerHTML = '';
+      list.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v.path;
+        opt.textContent = v.name;
+        sel.appendChild(opt);
+      });
+      if (currentSettings.qgis_executable) {
+        sel.value = currentSettings.qgis_executable;
+      } else if (list.length > 0) {
+        sel.selectedIndex = 0;
+      }
+    }
+
+    async function checkProjectVersion() {
+      const path = $('project-select').value;
+      if (!path) {
+        $('project-version').value = '';
+        return;
+      }
+      try {
+        const res = await api('GET', '/project-version?path=' + encodeURIComponent(path));
+        $('project-version').value = res.version || '取得できません';
+      } catch (e) {
+        $('project-version').value = '取得失敗';
+      }
+    }
+
+    async function saveLaunchSettings() {
+      try {
+        const s = { ...currentSettings };
+        s.profile = $('profile').value;
+        s.userrole = $('role').value;
+        s.current_project = $('project-select').value || null;
+        s.qgis_executable = $('qgis').value || null;
+        await api('POST', '/settings', s);
+        status('起動設定を保存しました', 'ok');
+      } catch (e) {
+        status('起動設定保存失敗: ' + e.message, 'err');
+      }
+    }
+
+    async function saveProjectPaths() {
+      try {
+        const s = { ...currentSettings };
+        s.project_path = $('project-sources').value.split('\n').map(x => x.trim()).filter(x => x);
+        await api('POST', '/settings', s);
+        status('探索パスを保存しました', 'ok');
+        await loadProjects();
+      } catch (e) {
+        status('探索パス保存失敗: ' + e.message, 'err');
+      }
+    }
+
+    async function saveRawSettings() {
+      try {
+        const text = $('raw-settings').value;
+        const parsed = JSON.parse(text);
+        await api('POST', '/settings', parsed);
+        currentSettings = parsed;
+        status('JSON 設定を保存しました', 'ok');
+        await loadProjects();
+        await loadProfiles();
+        await loadQgis();
+        loadRawSettings();
+      } catch (e) {
+        status('JSON 設定保存失敗: ' + e.message, 'err');
+      }
+    }
+
+    async function launchQgis() {
+      try {
+        const body = {
+          profile: $('profile').value,
+          project_paths: [$('project-select').value].filter(x => x),
+          executable: $('qgis').value,
+          role: $('role').value
+        };
+        const res = await api('POST', '/launch', body);
+        status('QGIS 起動リクエスト: ' + JSON.stringify(res), 'ok');
+      } catch (e) {
+        status('QGIS 起動失敗: ' + e.message, 'err');
+      }
+    }
+
+    async function resetProfiles() {
+      if (!confirm('既存の QGIS プロファイルを削除して、配布プロファイルを再コピーします。よろしいですか？')) return;
+      try {
+        const res = await api('POST', '/reset');
+        status('プロファイルを初期化しました: ' + JSON.stringify(res), 'ok');
+      } catch (e) {
+        status('プロファイル初期化失敗: ' + e.message, 'err');
+      }
+    }
+
+    async function checkUpdate() {
+      try {
+        const res = await api('GET', '/update');
+        if (!res.available) {
+          status('更新はありません', 'ok');
+          return;
+        }
+        const msg = '新しいバージョン ' + res.version + ' があります。\n更新しますか？';
+        if (confirm(msg)) {
+          status('更新処理を開始しました。インストーラー終了後、サーバーを再起動してください。', 'ok');
+          try { await api('POST', '/update/apply'); } catch (e) { /* サーバーが終了するため無視 */ }
+        }
+      } catch (e) {
+        status('更新確認失敗: ' + e.message, 'err');
+      }
+    }
+
+    async function reloadAll() {
+      await loadSettings();
+      await Promise.all([loadProfiles(), loadProjects(), loadQgis()]);
+      status('再読み込みしました', 'ok');
+    }
+
+    $('save-launch').addEventListener('click', saveLaunchSettings);
+    $('launch').addEventListener('click', launchQgis);
+    $('save-paths').addEventListener('click', saveProjectPaths);
+    $('reload-all').addEventListener('click', reloadAll);
+    $('save-raw').addEventListener('click', saveRawSettings);
+    $('reload-raw').addEventListener('click', loadRawSettings);
+    $('reset').addEventListener('click', resetProfiles);
+    $('check-update').addEventListener('click', checkUpdate);
+    $('project-select').addEventListener('change', checkProjectVersion);
+
+    (async () => {
+      await reloadAll();
+    })();
+  </script>
+</body>
+</html>
