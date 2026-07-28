@@ -5,6 +5,8 @@
 ![alt text](https://yamamoto-ryuzo.github.io/kasugai_qgis/images/qgis_launcher.png)
 ![alt text](https://yamamoto-ryuzo.github.io/kasugai_qgis/images/qgis_launcher_info.png)
 
+> **v2.0.0 以降**: FLTK GUI は削除され、Web UI（ブラウザ）+ AXUM HTTP API に移行しました。本ドキュメントの画面イメージは旧 FLTK 版のものです。
+
 ## 目次
 
 - [画面構成](#画面構成)
@@ -22,7 +24,7 @@
 
 以下はランチャーの実際のメイン画面構成を要素単位で整理したものです（左上から順に操作を行い、下部で状態確認や操作を行うレイアウトを想定しています）。
 
-- 概要: 起動設定（プロファイル / プロジェクトパス / QGIS Version）に基づいて QGIS / QField を起動するデスクトップランチャーです。設定は `qgis_settings.json`（構造は `QgisSettings`）に保存され、GUI（FLTK）または CLI モードで操作できます。
+- 概要: 起動設定（プロファイル / プロジェクトパス / QGIS Version）に基づいて QGIS / QField を起動するデスクトップランチャーです。設定は `qgis_settings.json`（構造は `QgisSettings`）に保存され、Web UIまたは CLI モードで操作できます。
 
 ### メイン要素
 
@@ -39,7 +41,7 @@
 
 - QGIS Version（ドロップダウン）
   - 説明: システム上で検出した QGIS 実行ファイルを一覧表示します。複数バージョンがある場合は起動時に選択可能です。
-  - 補足: 選択したプロジェクトファイルの `version` 属性に基づき、同バージョンの QGIS 実行ファイルを自動で初期選択します（GUI のドロップダウンでいつでも手動変更可能）。
+  - 補足: 選択したプロジェクトファイルの `version` 属性に基づき、同バージョンの QGIS 実行ファイルを自動で初期選択します（Web UI のドロップダウンでいつでも手動変更可能）。
 
 - ユーザーロール（ドロップダウン）
   - 説明: `Viewer` / `Editor` / `Administrator` のいずれかを選択します。選択したロールは QGIS 起動時に `--customizationfile` / `--globalsettingsfile` / `--code` で渡され、QGIS 内の UI 表示やレイヤーの編集可否に反映されます。
@@ -55,22 +57,22 @@
 
 ### 動作方針（重要）
 
-- `project_path` は設定上の候補一覧です。GUI 上でプロジェクトを選択しても `project_path` 自体は書き換わりません。選択は `current_project` に保存され、次回起動時の初期選択に使われます。
+- `project_path` は設定上の候補一覧です。Web UI 上でプロジェクトを選択しても `project_path` 自体は書き換わりません。選択は `current_project` に保存され、次回起動時の初期選択に使われます。
 - `Project File Version` は **選択されたファイルのみ** を解析して表示します（範囲を限定することで最小限の負荷を確保）。
 - `.qgz` の取り扱い: ランチャーは `.qgz` を一時展開せずに ZIP を読み取り、最初に見つかった `.qgs` を解析してバージョン情報を抽出します。
 - 解析結果キャッシュ: 取得したバージョン文字列は内部キャッシュに保存し、ファイルの最終更新時刻が変わらない限り再解析しません（表示の高速化）。
-- CLI モード（`--cli`）: GUI を起動せず設定に基づいて直接 QGIS を起動します。
+- CLI モード（`--cli`）: Web UI を起動せず設定に基づいて直接 QGIS を起動します。
 
 これにより、ユーザーは画面上で起動に必要な項目を左上から順に設定し、下部で状態確認・起動操作を行えるようになります。
 
-- GUI: デフォルトでは簡易 GUI（FLTK）を起動します。GUI はプルダウンでプロファイル、プロジェクト、QGIS バージョンを選択して「Launch QGIS」で起動します。プロファイル候補は `%APPDATA%` 下の QGIS プロファイルパス（`get_qgis_profile_paths()`）と、設定基準フォルダ配下の `profiles` フォルダを参照します。プロジェクト候補は `project_path` に指定されたファイル／フォルダを上記ルールで解決して列挙します。QGIS / QField の実行ファイル候補はシステム上の標準インストール箇所やポータブル配布を探索して自動検出します。
+- Web UI: デフォルトでは簡易 Web UIを起動します。Web UI はプルダウンでプロファイル、プロジェクト、QGIS バージョンを選択して「Launch QGIS」で起動します。プロファイル候補は `%APPDATA%` 下の QGIS プロファイルパス（`get_qgis_profile_paths()`）と、設定基準フォルダ配下の `profiles` フォルダを参照します。プロジェクト候補は `project_path` に指定されたファイル／フォルダを上記ルールで解決して列挙します。QGIS / QField の実行ファイル候補はシステム上の標準インストール箇所やポータブル配布を探索して自動検出します。
 
 ### QGIS バージョン別プロファイル配信
 
 設定基準フォルダ配下の `profiles` フォルダに `QGIS3\` / `QGIS4\` サブフォルダを作成することで、インストール済みの QGIS バージョンごとに専用プロファイルを自動配信できます。
 
 - **コピーのタイミング**: EXE 起動時に自動実行されます（「Launch QGIS」ボタン押下前）。コピー先にファイルが既に存在する場合はスキップされるため、複数回起動しても無駄なコピーは発生しません。
-- **GUI の挙動**: GUI で起動した場合、起動処理（`SUBST` によるドライブ割当てやプロファイルの配布コピー）はバックグラウンドで実行され、モーダルの進捗ウィンドウ（メッセージ + プログレスバー）で進捗を確認できます。CLI 起動では従来どおりコンソールログのみが出力されます。
+- **Web UI の挙動**: Web UI で起動した場合、起動処理（`SUBST` によるドライブ割当てやプロファイルの配布コピー）はバックグラウンドで実行され、モーダルの進捗ウィンドウ（メッセージ + プログレスバー）で進捗を確認できます。CLI 起動では従来どおりコンソールログのみが出力されます。
 - **備考**: プロファイルの初期化（配布コピー）は設定で `project_root` が指定されている場合はそのディレクトリを基準に行われます。未指定時は設定ファイル所在フォルダ（通常は EXE の親フォルダ）を使用します。
 - **バージョン自動検出**: システムにインストールされている全 QGIS を自動検出し（`ProgramFiles`、`C:\OSGeo4W`、レジストリ等を探索）、検出したメジャーバージョンごとにコピーを行います。QGIS 3 と QGIS 4 が両方インストールされている場合は両方に同時にコピーされます。
 - バージョンの判定はインストールフォルダ名から行います（例: `QGIS 3.44.8` → バージョン 3）。
@@ -90,12 +92,12 @@
 
 > **注意**: コピー先に既存ファイルがある場合は上書きしません（ユーザーの設定変更を保護）。配信ファイルを更新してユーザー側に反映させたい場合は、コピー先の該当ファイルを削除してから再起動してください。
 >
-> ランチャーの GUI には「Reset Profiles」ボタンがあり、配布プロファイルの再コピーと既存プロファイルの強制削除を一括で実行できます。実行中はメッセージとプログレスバーを備えたモーダル風ウィンドウで進捗を確認でき、完了すると自動で閉じてメインウィンドウに結果が表示されます。大量のファイル削除／コピーを伴う処理のため、完了まで時間がかかる場合があります。
+> ランチャーの Web UI には「Reset Profiles」ボタンがあり、配布プロファイルの再コピーと既存プロファイルの強制削除を一括で実行できます。実行中はメッセージとプログレスバーを備えたモーダル風ウィンドウで進捗を確認でき、完了すると自動で閉じてメインウィンドウに結果が表示されます。大量のファイル削除／コピーを伴う処理のため、完了まで時間がかかる場合があります。
 
 ### CLI モード
 
-- `--cli` を指定すると GUI を起動せずに CLI モードで動作します。
-- 現状、`Reset Profiles` は GUI 操作用の機能として提供しています（GUI 起動時に利用可能）。
+- `--cli` を指定すると Web UI を起動せずに CLI モードで動作します。
+- 現状、`Reset Profiles` は Web UI 操作用の機能として提供しています（Web UI 起動時に利用可能）。
 
 ## qgis_settings.json 制御
 ### 適用順序は次のとおりです：
@@ -235,7 +237,7 @@ C:\qgis_launcher\
 ---
 ## ユーザーロール制御
 
-GUI の「User Role」ドロップダウンで `Viewer` / `Editor` / `Administrator` を選択すると、QGIS の UI がロールに応じて制限されます。
+Web UI の「User Role」ドロップダウンで `Viewer` / `Editor` / `Administrator` を選択すると、QGIS の UI がロールに応じて制限されます。
 
 ### 仕組み
 
@@ -311,13 +313,13 @@ qgis_launcher.exe と同階層/
 ```powershell
 cd qgis_launcher
 cargo build --release
-# ランチャー（デフォルトは GUI を起動）
+# ランチャー（デフォルトは Web UI を起動）
 cargo run --release
 # CLI モードで即座に起動
 cargo run --release -- --cli
 ``` 
 
-- 備考: `Cargo.toml` は `fltk-bundled` を feature として利用する設定（`gui` feature）になっており、FLTK をソースからバンドルビルドします。初回ビルドは時間がかかる点に注意してください。
+- 備考: `Cargo.toml` は `axum`、`tokio`、`tower-http` を利用したヘッドレス API サーバー構成になっており、FLTK や `gui` feature は削除されています。Web UI は `public/index.html` に同梱されています。
 
 ---
 ## クラウドドライブ自動割り当て（drive_mappings）
@@ -428,7 +430,7 @@ QGIS プロジェクトファイル（.qgs）のデータソースパスを `Q:\
 
 ## ローカル自動同期（KASUGAI/yr-qgis-launcher 方式）
 
-`qgis_launcher.exe` と同じフォルダに `qgislocalsync.config` を配置すると、起動時に自動でローカル同期を行います。これは KASUGAI（yr-qgis-launcher）の `local-launcher.bat` と同等の機能です。GUI 下部の **Update** ボタンから手動で再実行することもできます。
+`qgis_launcher.exe` と同じフォルダに `qgislocalsync.config` を配置すると、起動時に自動でローカル同期を行います。これは KASUGAI（yr-qgis-launcher）の `local-launcher.bat` と同等の機能です。Web UI 下部の **Update** ボタンから手動で再実行することもできます。
 
 ### 仕組み
 
@@ -498,7 +500,9 @@ GNU General Public License v3.0 (GPL-3.0-only) — 詳細は [LICENSE](LICENSE) 
 
 | ソフトウェア | ライセンス | 配布 | 備考 |
 |---|---|---|---|
-| **FLTK** (fltk-rs) | LGPL v2 + 例外条項 | 同梱可 | スタティックリンク時も再配布可 |
+| **Web UI / HTTP サーバー** (Axum / Tokio / tower-http) | MIT / Apache-2.0 | 依存 | `Cargo.toml` で指定 |
+| **Axum** | MIT | 依存 | HTTP ルーティング・ハンドラ |
+| **Tower/Tower-HTTP** | MIT | 依存 | CORS ミドルウェア等 |
 | **QGIS** | GPL v2 以降 | 別途インストール | qgis_launcher とは独立したソフトウェア |
 | **StreetView (QGIS plugin)** | GPL v2 以降 | 同梱あり | `download/profiles/.../plugins/StreetView` に含まれる |
 
@@ -524,7 +528,7 @@ NSIS インストーラー `kasugai_qgis-setup.exe` を使って、`C:\Kasugai\k
    - [kasugai_qgis-setup.exe](https://yamamoto-ryuzo.github.io/kasugai_qgis/public/kasugai_qgis-setup.exe)
 2. ダウンロードした `kasugai_qgis-setup.exe` を実行
    - インストール先はデフォルトで `C:\Kasugai\kasugai_qgis\` です
-   - インストール先フォルダは GUI インストール時に変更できます
+   - インストール先フォルダはインストール時に変更できます
    - `C:\Kasugai` フォルダが存在し、ユーザーが書き込み可能であれば管理者権限は不要です
    - スタートメニューにショートカットが作成されます
 3. インストールフォルダ内の `qgis_launcher.exe` をダブルクリックで起動
@@ -560,7 +564,7 @@ C:\Kasugai\kasugai_qgis\
 
 ### 起動方法
 
-- **GUI 起動**: `qgis_launcher.exe` を実行
+- **Web UI 起動**: `qgis_launcher.exe` を実行
 - **CLI 起動**: `qgis_launcher.exe --cli`
 - **設定ファイルの所在**: `qgis_launcher.exe` と同じフォルダの `qgis_settings.json` を読み込みます
 
