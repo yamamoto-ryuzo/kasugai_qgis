@@ -51,6 +51,3 @@ coverage/
 # Ignore generated files often produced by build tools
 build/
 
-# Temporary / local build helper
-run.py
-
