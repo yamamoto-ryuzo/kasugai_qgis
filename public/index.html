@@ -20,13 +20,29 @@
     .tab-content { display: none; border: 2px solid #ccc; border-top: none; padding: 16px; }
     .tab-content.active { display: block; }
     .readonly { background: #f9f9f9; }
+    .sub-tabs { display: flex; border-bottom: 1px solid #ccc; margin-bottom: 12px; }
+    .sub-tab-button { padding: 6px 14px; border: 1px solid transparent; border-bottom: none; background: #f0f0f0; cursor: pointer; margin-right: 2px; border-top-left-radius: 4px; border-top-right-radius: 4px; }
+    .sub-tab-button.active { background: #fff; font-weight: bold; border-color: #ccc; }
+    .sub-tab-content { display: none; }
+    .sub-tab-content.active { display: block; }
+    .sub-section { margin-bottom: 12px; }
+    .sub-section label { font-size: 0.9em; color: #555; }
+    .sub-array-item { border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; background: #fafafa; border-radius: 4px; }
+    .inline { width: auto; display: inline-block; }
+    .drive-tabs { display: flex; border-bottom: 1px solid #ccc; margin-bottom: 12px; }
+    .drive-tab-button { padding: 6px 14px; border: 1px solid transparent; border-bottom: none; background: #f0f0f0; cursor: pointer; margin-right: 2px; border-top-left-radius: 4px; border-top-right-radius: 4px; }
+    .drive-tab-button.active { background: #fff; font-weight: bold; border-color: #ccc; }
+    .drive-tab-panel { display: none; }
+    .drive-tab-panel.active { display: block; }
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+    .modal-overlay.active { display: flex; }
+    .modal { background: #fff; padding: 20px; border-radius: 8px; width: 80%; max-width: 600px; }
+    #progress-bar { width: 100%; }
+    #progress-messages { max-height: 200px; overflow-y: auto; font-size: 0.85em; color: #555; margin-top: 10px; }
   </style>
 </head>
 <body>
   <h1>Kasugai QGIS ランチャー</h1>
-  <p>サイドカー API に接続して QGIS を起動します。</p>
-
-  <div id="status"></div>
 
   <div class="tabs">
     <button class="tab-button active" data-tab="tab-launch">起動</button>
@@ -56,6 +72,7 @@
     <input id="project-version" type="text" class="readonly" readonly>
 
     <div class="row">
+      <button id="reset">プロファイルを初期化</button>
       <button id="save-launch">起動設定を保存</button>
       <button id="launch">QGIS を起動</button>
     </div>
@@ -71,8 +88,43 @@
   </div>
 
   <div id="tab-raw" class="tab-content">
-    <label>qgis_settings.json（生 JSON）</label>
-    <textarea id="raw-settings" placeholder='{&#10;  "profile": "geo_custom",&#10;  "project_path": [],&#10;  ...&#10;}'></textarea>
+    <div class="sub-tabs">
+      <button class="sub-tab-button active" data-tab="sub-localsync">local_sync</button>
+      <button class="sub-tab-button" data-tab="sub-drives">drive_mappings</button>
+      <button class="sub-tab-button" data-tab="sub-aliases">path_aliases</button>
+      <button class="sub-tab-button" data-tab="sub-raw">生 JSON</button>
+    </div>
+
+    <div id="sub-localsync" class="sub-tab-content active">
+      <div class="sub-section">
+        <label>sync_src</label><input type="text" id="raw-sync_src">
+        <label>sync_dst</label><input type="text" id="raw-sync_dst">
+        <label>qfield_version</label><input type="text" id="raw-qfield_version">
+        <label>qgis_version</label><input type="text" id="raw-qgis_version">
+        <label>exclude_dirs（改行区切り）</label><textarea id="raw-exclude_dirs"></textarea>
+        <label>portable_profile_version</label><input type="text" id="raw-portable_profile_version">
+      </div>
+    </div>
+
+    <div id="sub-drives" class="sub-tab-content">
+      <div class="drive-tabs">
+        <button type="button" class="drive-tab-button active" data-drive="raw-drive-0">ドライブ1</button>
+        <button type="button" class="drive-tab-button" data-drive="raw-drive-1">ドライブ2</button>
+      </div>
+      <div id="raw-drive-0" class="drive-tab-panel active"></div>
+      <div id="raw-drive-1" class="drive-tab-panel"></div>
+    </div>
+
+    <div id="sub-aliases" class="sub-tab-content">
+      <div id="raw-aliases-list"></div>
+      <button type="button" id="raw-add-alias">エイリアスを追加</button>
+    </div>
+
+    <div id="sub-raw" class="sub-tab-content">
+      <label>qgis_settings.json（生 JSON）</label>
+      <textarea id="raw-settings" placeholder='{&#10;  "profile": "geo_custom",&#10;  "project_path": [],&#10;  ...&#10;}'></textarea>
+    </div>
+
     <div class="row">
       <button id="save-raw">JSON 設定を保存</button>
       <button id="reload-raw">再読み込み</button>
@@ -96,8 +148,17 @@
     </div>
 
     <div class="row">
-      <button id="reset">プロファイルを初期化</button>
       <button id="check-update">更新を確認</button>
+    </div>
+  </div>
+
+  <div id="status"></div>
+
+  <div id="progress-modal" class="modal-overlay">
+    <div class="modal">
+      <h3>プロファイルを初期化中...</h3>
+      <progress id="progress-bar" value="0" max="100"></progress>
+      <div id="progress-messages"></div>
     </div>
   </div>
 
@@ -146,7 +207,196 @@
 
     function loadRawSettings() {
       $('raw-settings').value = JSON.stringify(currentSettings, null, 2);
+      renderRawForm();
     }
+
+    function showSubTab(id) {
+      document.querySelectorAll('.sub-tab-button').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
+      document.querySelectorAll('.sub-tab-content').forEach(c => c.classList.toggle('active', c.id === id));
+    }
+
+    document.querySelectorAll('.sub-tab-button').forEach(b => {
+      b.addEventListener('click', () => showSubTab(b.dataset.tab));
+    });
+
+    function showDriveTab(id) {
+      document.querySelectorAll('.drive-tab-button').forEach(b => b.classList.toggle('active', b.dataset.drive === id));
+      document.querySelectorAll('.drive-tab-panel').forEach(c => c.classList.toggle('active', c.id === id));
+    }
+
+    document.querySelectorAll('.drive-tab-button').forEach(b => {
+      b.addEventListener('click', () => showDriveTab(b.dataset.drive));
+    });
+
+    function esc(s) {
+      return s == null ? '' : String(s).replace(/"/g, '&quot;');
+    }
+
+    function joinArr(arr) {
+      return (arr || []).join('\n');
+    }
+
+    function splitArr(text) {
+      return text.split('\n').map(x => x.trim()).filter(x => x);
+    }
+
+    function renderLocalSync() {
+      const s = currentSettings.local_sync || {};
+      const root = currentSettings.project_root || '';
+      $('raw-sync_src').value = s.sync_src || root;
+      $('raw-sync_dst').value = s.sync_dst || root;
+      $('raw-qfield_version').value = s.qfield_version || '';
+      $('raw-qgis_version').value = s.qgis_version || '';
+      $('raw-exclude_dirs').value = joinArr(s.exclude_dirs);
+      $('raw-portable_profile_version').value = s.portable_profile_version || '';
+    }
+
+    function renderDrivePanel(idx) {
+      const d = (currentSettings.drive_mappings || [])[idx] || {
+        drive: '', local_cache: '', mode: 'subst', read_only: false, remote: null,
+        robocopy_exclude: [], robocopy_src: null,
+        vfs_cache_max_age: null, vfs_cache_max_size: null, vfs_cache_mode: null,
+        vfs_cache_poll_interval: null, vfs_write_back: null
+      };
+      const c = document.getElementById(`raw-drive-${idx}`);
+      c.innerHTML = `
+        <div class="sub-array-item">
+          <label>drive</label><input type="text" id="raw-drive-${idx}-drive" value="${esc(d.drive)}">
+          <label>local_cache</label><input type="text" id="raw-drive-${idx}-local_cache" value="${esc(d.local_cache)}">
+          <label>mode</label><input type="text" id="raw-drive-${idx}-mode" value="${esc(d.mode)}">
+          <label><input type="checkbox" id="raw-drive-${idx}-read_only" class="inline" ${d.read_only ? 'checked' : ''}> read_only</label>
+          <label>remote</label><input type="text" id="raw-drive-${idx}-remote" value="${d.remote == null ? '' : esc(d.remote)}">
+          <label>robocopy_src</label><input type="text" id="raw-drive-${idx}-robocopy_src" value="${d.robocopy_src == null ? '' : esc(d.robocopy_src)}">
+          <label>robocopy_exclude（改行区切り）</label><textarea id="raw-drive-${idx}-robocopy_exclude">${joinArr(d.robocopy_exclude)}</textarea>
+          <label>vfs_cache_mode</label><input type="text" id="raw-drive-${idx}-vfs_cache_mode" value="${d.vfs_cache_mode == null ? '' : esc(d.vfs_cache_mode)}">
+        </div>
+      `;
+    }
+
+    function renderDrives() {
+      renderDrivePanel(0);
+      renderDrivePanel(1);
+    }
+
+    function renderAliases() {
+      const c = $('raw-aliases-list');
+      c.innerHTML = '';
+      const aliases = currentSettings.path_aliases || {};
+      let i = 0;
+      for (const [k, v] of Object.entries(aliases)) {
+        const div = document.createElement('div');
+        div.className = 'sub-array-item';
+        div.innerHTML = `
+          <label>名前</label><input type="text" id="raw-alias-${i}-key" value="${esc(k)}">
+          <label>パス</label><input type="text" id="raw-alias-${i}-val" value="${esc(v)}">
+          <button type="button" class="raw-remove-alias" data-idx="${i}">削除</button>
+        `;
+        c.appendChild(div);
+        i++;
+      }
+      c.querySelectorAll('.raw-remove-alias').forEach(b => {
+        b.addEventListener('click', () => { removeAliasByIndex(b.dataset.idx); updateFromForm(); });
+      });
+    }
+
+    function removeAliasByIndex(idx) {
+      const keys = Object.keys(currentSettings.path_aliases || {});
+      if (keys[idx]) delete currentSettings.path_aliases[keys[idx]];
+    }
+
+    function renderRawForm() {
+      renderLocalSync();
+      renderDrives();
+      renderAliases();
+    }
+
+    function collectLocalSync() {
+      const root = currentSettings.project_root || '';
+      currentSettings.local_sync = {
+        sync_src: $('raw-sync_src').value.trim() || root,
+        sync_dst: $('raw-sync_dst').value.trim() || root,
+        qfield_version: $('raw-qfield_version').value || '',
+        qgis_version: $('raw-qgis_version').value || '',
+        exclude_dirs: splitArr($('raw-exclude_dirs').value),
+        portable_profile_version: $('raw-portable_profile_version').value || ''
+      };
+    }
+
+    function collectDrive(idx) {
+      const c = document.getElementById(`raw-drive-${idx}`);
+      const get = name => {
+        const input = c.querySelector(`#raw-drive-${idx}-${name}`);
+        if (!input) return null;
+        if (input.type === 'checkbox') return input.checked;
+        const v = input.value.trim();
+        return v === '' ? null : v;
+      };
+      const arr = name => {
+        const input = c.querySelector(`#raw-drive-${idx}-${name}`);
+        return input ? splitArr(input.value) : [];
+      };
+      return {
+        drive: get('drive') || '',
+        local_cache: get('local_cache') || '',
+        mode: get('mode') || 'subst',
+        read_only: !!get('read_only'),
+        remote: get('remote'),
+        robocopy_src: get('robocopy_src'),
+        robocopy_exclude: arr('robocopy_exclude'),
+        vfs_cache_max_age: null,
+        vfs_cache_max_size: null,
+        vfs_cache_mode: get('vfs_cache_mode'),
+        vfs_cache_poll_interval: null,
+        vfs_write_back: null
+      };
+    }
+
+    function collectDrives() {
+      const drives = [];
+      const d0 = collectDrive(0);
+      const d1 = collectDrive(1);
+      if (d0.drive) drives.push(d0);
+      if (d1.drive) drives.push(d1);
+      currentSettings.drive_mappings = drives;
+    }
+
+    function collectAliases() {
+      const aliases = {};
+      document.querySelectorAll('#raw-aliases-list .sub-array-item').forEach(el => {
+        const key = el.querySelector('[id$="-key"]').value.trim();
+        const val = el.querySelector('[id$="-val"]').value.trim();
+        if (key) aliases[key] = val;
+      });
+      currentSettings.path_aliases = aliases;
+    }
+
+    function collectRawForm() {
+      collectLocalSync();
+      collectDrives();
+      collectAliases();
+    }
+
+    function updateFromForm() {
+      collectRawForm();
+      $('raw-settings').value = JSON.stringify(currentSettings, null, 2);
+      renderRawForm();
+    }
+
+    function updateFromTextarea() {
+      try {
+        currentSettings = JSON.parse($('raw-settings').value);
+        renderRawForm();
+      } catch (e) { /* 入力中は無視 */ }
+    }
+
+    function addAliasItem() {
+      if (!currentSettings.path_aliases) currentSettings.path_aliases = {};
+      currentSettings.path_aliases[''] = '';
+      updateFromForm();
+    }
+
+    document.getElementById('raw-add-alias').addEventListener('click', addAliasItem);
+    document.getElementById('raw-settings').addEventListener('blur', updateFromTextarea);
 
     async function loadProfiles() {
       const list = await api('GET', '/profiles');
@@ -267,13 +517,60 @@
       }
     }
 
+    let progressTimer = null;
+
+    function openProgress() {
+      $('progress-modal').classList.add('active');
+      $('progress-bar').value = 0;
+      $('progress-messages').innerHTML = '';
+    }
+
+    function closeProgress() {
+      $('progress-modal').classList.remove('active');
+    }
+
+    function stopProgress() {
+      if (progressTimer) {
+        clearInterval(progressTimer);
+        progressTimer = null;
+      }
+      closeProgress();
+    }
+
+    async function pollProgress() {
+      try {
+        const res = await api('GET', '/progress');
+        const messages = res.messages || [];
+        const msgsDiv = $('progress-messages');
+        msgsDiv.innerHTML = messages.map(m => `<div>${esc(m)}</div>`).join('');
+        msgsDiv.scrollTop = msgsDiv.scrollHeight;
+        const prog = messages.find(m => m.startsWith('PROG:'));
+        if (prog) {
+          const v = parseInt(prog.replace('PROG:', ''), 10);
+          if (!isNaN(v)) $('progress-bar').value = v;
+        }
+        if (messages.some(m => m.startsWith('MSG:done'))) {
+          stopProgress();
+        }
+      } catch (e) { /* ignore */ }
+    }
+
+    function startProgress() {
+      openProgress();
+      pollProgress();
+      progressTimer = setInterval(pollProgress, 200);
+    }
+
     async function resetProfiles() {
       if (!confirm('既存の QGIS プロファイルを削除して、配布プロファイルを再コピーします。よろしいですか？')) return;
+      startProgress();
       try {
         const res = await api('POST', '/reset');
         status('プロファイルを初期化しました: ' + JSON.stringify(res), 'ok');
       } catch (e) {
         status('プロファイル初期化失敗: ' + e.message, 'err');
+      } finally {
+        stopProgress();
       }
     }
 
@@ -350,6 +647,7 @@
     $('save-project-root').addEventListener('click', saveProjectRoot);
     $('stop-server').addEventListener('click', stopServer);
     $('project-select').addEventListener('change', checkProjectVersion);
+    $('tab-raw').addEventListener('change', (e) => { if (e.target.id !== 'raw-settings') updateFromForm(); });
 
     (async () => {
       await reloadAll();

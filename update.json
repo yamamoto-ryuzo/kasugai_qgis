@@ -1,9 +1,9 @@
 {
-  "version": "2.0.0",
+  "version": "2.0.1",
   "url": "https://yamamoto-ryuzo.github.io/kasugai_qgis/public/kasugai_qgis-update.exe",
   "full_url": "https://yamamoto-ryuzo.github.io/kasugai_qgis/public/kasugai_qgis-setup.exe",
   "full": false,
   "signature": null,
   "sha256": null,
-  "notes": "Kasugai QGIS Launcher 2.0.0 (FLTK GUI から AXUM + Web UI へ移行、Tauri サイドカー対応)"
+  "notes": "Kasugai QGIS Launcher 2.0.1 (QGIS3 表記削除、UI 調整、プロファイル初期化の進捗表示対応)"
 }

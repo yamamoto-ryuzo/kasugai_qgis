@@ -5,6 +5,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::os::windows::process::CommandExt;
+use std::sync::{Arc, Mutex};
 use serde::{Deserialize, Serialize};
 use winreg::enums::*;
 
@@ -185,7 +186,7 @@ fn get_default_settings_dir() -> String {
 // debug logging to file removed
 
 /// 文字列から最初に現れる連続する数字列を抜き出してメジャーバージョンとする。
-/// 例: "QGIS 3.44.8" -> Some("3") , "qgis 4.0.0" -> Some("4")
+/// 例: "QGIS 4.0.0" -> Some("4")
 fn extract_major(s: &str) -> Option<String> {
     let bs = s.as_bytes();
     let mut i = 0usize;
@@ -1543,8 +1544,7 @@ fn mount_drive(m: &RcloneMount, rclone_path: &str, sender: Option<&std::sync::mp
     }
 }
 
-/// EXE 起動時: インストール済みQGISのバージョンを検出し、対応するプロファイルフォルダをコピーする
-/// profiles\QGIS3\ → APPDATA\QGIS\QGIS3\
+/// EXE 起動時: インストール済みQGIS4のプロファイルフォルダをコピーする
 /// profiles\QGIS4\ → APPDATA\QGIS\QGIS4\
 /// バージョン別フォルダが無い場合は profiles\ 直下を共通フォルダとして使用
 fn copy_profiles_at_startup(settings_dir: &str, sender: Option<&std::sync::mpsc::Sender<String>>) {
@@ -1556,22 +1556,22 @@ fn copy_profiles_at_startup(settings_dir: &str, sender: Option<&std::sync::mpsc:
         return;
     }
 
-    // インストール済みQGISのメジャーバージョンを収集
+    // インストール済みQGIS4の存在を確認
     let installed = get_available_qgis_versions();
     let mut major_versions: Vec<u32> = installed.iter()
         .filter_map(|(_, exe)| {
             let lower = exe.to_lowercase();
-            for major in [4u32, 3u32] {
-                let patterns = [
-                    format!("qgis {}", major),
-                    format!("qgis{}", major),
-                    format!("\\{}.", major),
-                ];
-                if patterns.iter().any(|p| lower.contains(p.as_str())) {
-                    return Some(major);
-                }
+            let major = 4u32;
+            let patterns = [
+                format!("qgis {}", major),
+                format!("qgis{}", major),
+                format!("\\{}.", major),
+            ];
+            if patterns.iter().any(|p| lower.contains(p.as_str())) {
+                Some(major)
+            } else {
+                None
             }
-            None
         })
         .collect();
     major_versions.sort();
@@ -1634,12 +1634,14 @@ fn copy_profiles_at_startup(settings_dir: &str, sender: Option<&std::sync::mpsc:
 
 /// 既存の QGIS プロファイルを強制削除してから配布プロファイルを再コピーする。
 /// 削除対象は `%APPDATA%/QGIS/QGISx/profiles/*` または `%APPDATA%/QGIS/QGISx/*` の直下ディレクトリ。
-#[allow(dead_code)]
-fn reset_profiles(settings_dir: &str) -> Result<(), String> {
+fn reset_profiles(settings_dir: &str, sender: Option<&std::sync::mpsc::Sender<String>>) -> Result<(), String> {
     let base_profiles = PathBuf::from(settings_dir).join("profiles");
     if !base_profiles.exists() {
         return Err("distribution profiles not found".to_string());
     }
+
+    if let Some(s) = sender { let _ = s.send("PROG:0".to_string()); }
+    if let Some(s) = sender { let _ = s.send("MSG:既存プロファイルを削除しています".to_string()); }
 
     let all_profile_paths = qgis_launcher::get_qgis_profile_paths();
     for p in &all_profile_paths {
@@ -1676,8 +1678,12 @@ fn reset_profiles(settings_dir: &str) -> Result<(), String> {
         }
     }
 
+    if let Some(s) = sender { let _ = s.send("PROG:40".to_string()); }
+    if let Some(s) = sender { let _ = s.send("MSG:配布プロファイルをコピーしています".to_string()); }
+
     // コピーして再構築
-    copy_profiles_at_startup(settings_dir, None);
+    copy_profiles_at_startup(settings_dir, sender);
+    if let Some(s) = sender { let _ = s.send("PROG:100".to_string()); }
     Ok(())
 }
 
@@ -1694,30 +1700,17 @@ fn get_role_ini_path(role: &str) -> Option<PathBuf> {
     }
 }
 
-/// QGIS 実行パスを元に、ロール用カスタマイズファイルを選択して返す。
-/// 挙動:
-/// - QGIS4 と推定される場合は `<role>.xml` を最優先で使用し、存在しなければ `<role>.ini` を使用します。
-/// - QGIS3（またはそれ以外）の場合は `<role>.ini` を最優先で使用し、存在しなければ `<role>.xml` を使用します。
-fn get_role_customization_path(role: &str, qgis_path: &str) -> Option<PathBuf> {
+/// QGIS4 用のロールカスタマイズファイル `<role>.xml` を選択して返す。
+/// QGIS4 以外はサポートしません。
+fn get_role_customization_path(role: &str, _qgis_path: &str) -> Option<PathBuf> {
     let exe_dir = env::current_exe().ok()?.parent().map(|d| d.to_path_buf())?;
     let ini_dir = exe_dir.join("ini");
 
-    // 判定: qgis_path による QGIS4 推定
-    let q = qgis_path.to_lowercase();
-    let looks_like_qgis4 = q.contains("qgis4") || q.contains("qgis 4") || q.contains("qgis-4") || q.contains("qgis40") || q.contains("qgis-qt6");
-    if looks_like_qgis4 {
-        // QGIS4: 必ず .xml を使用。存在しなければ None を返す（フォールバックなし）。
-        let p_xml = ini_dir.join(format!("{}.xml", role));
-        if p_xml.exists() { return Some(p_xml); }
-        println!("QGIS4 用ロールカスタマイズが見つかりません (期待: {}): dir={:?}", p_xml.display(), ini_dir);
-        return None;
-    } else {
-        // QGIS3: 必ず .ini を使用。存在しなければ None を返す（フォールバックなし）。
-        let p_ini = ini_dir.join(format!("{}.ini", role));
-        if p_ini.exists() { return Some(p_ini); }
-        println!("QGIS3 用ロールカスタマイズが見つかりません (期待: {}): dir={:?}", p_ini.display(), ini_dir);
-        return None;
-    }
+    // QGIS4: 必ず .xml を使用。存在しなければ None を返す（フォールバックなし）。
+    let p_xml = ini_dir.join(format!("{}.xml", role));
+    if p_xml.exists() { return Some(p_xml); }
+    println!("QGIS4 用ロールカスタマイズが見つかりません (期待: {}): dir={:?}", p_xml.display(), ini_dir);
+    None
 }
 
 /// qgis_global_settings.ini を一時生成し、パスを返す。
@@ -1799,7 +1792,7 @@ fn launch_qgis(profile_name: &str, project_paths: &[String], project_root: &str,
         exe_path.to_string()
     };
 
-    // --customizationfile: QGIS のバージョンに応じて XML/INI を選択して渡す
+    // --customizationfile: QGIS4 用のカスタマイズ XML を渡す
     let customization_ini: Option<PathBuf> = get_role_customization_path(role, &qgis_path);
 
     // --globalsettingsfile: userrole を QGIS グローバル変数として渡すための ini を生成
@@ -1809,10 +1802,6 @@ fn launch_qgis(profile_name: &str, project_paths: &[String], project_root: &str,
     let startup_script: Option<PathBuf> = env::current_exe().ok()
         .and_then(|p| p.parent().map(|d| d.join("ini").join("startup.py")))
         .filter(|p| p.exists());
-
-    // 判定: qgis_path による QGIS4 推定（再利用）
-    let q = qgis_path.to_lowercase();
-    let is_qgis4 = q.contains("qgis4") || q.contains("qgis 4") || q.contains("qgis-4") || q.contains("qgis40") || q.contains("qgis-qt6");
 
     // Helper to spawn one process with optional project
     let spawn_with_project = |maybe_project: Option<PathBuf>| {
@@ -1846,13 +1835,8 @@ fn launch_qgis(profile_name: &str, project_paths: &[String], project_root: &str,
         }
         if let Some(p) = maybe_project {
             if let Some(s) = p.to_str() {
-                // QGIS3 向けの互換性: 古い起動スクリプトでは `--project <path>` を使用していた。
-                // QGIS4 では位置引数でも可な場合が多いため、QGIS3 では `--project` を明示的に渡す。
-                if is_qgis4 {
-                    cmd.arg(s);
-                } else {
-                    cmd.arg("--project").arg(s);
-                }
+                // QGIS4 ではプロジェクトパスを位置引数で渡す
+                cmd.arg(s);
             }
         }
         match cmd.spawn() {
@@ -2152,6 +2136,7 @@ fn find_matching_available_for_project(project_ver: &str, available: &Vec<(Strin
 struct AppState {
     settings_dir: String,
     project_root_dir: String,
+    progress: Arc<Mutex<Vec<String>>>,
 }
 
 const UI_HTML: &str = include_str!("../public/index.html");
@@ -2169,6 +2154,7 @@ async fn run_api_server(port: u16, settings_dir: &str, project_root_dir: &str) {
     let state = AppState {
         settings_dir: settings_dir.to_string(),
         project_root_dir: project_root_dir.to_string(),
+        progress: Arc::new(Mutex::new(Vec::new())),
     };
     let app = Router::new()
         .route("/", get(ui_handler))
@@ -2179,6 +2165,7 @@ async fn run_api_server(port: u16, settings_dir: &str, project_root_dir: &str) {
         .route("/projects", get(list_projects_handler))
         .route("/launch", post(launch_handler))
         .route("/reset", post(reset_profiles_handler))
+        .route("/progress", get(progress_handler))
         .route("/project-version", get(project_version_handler))
         .route("/update", get(update_check_handler))
         .route("/update/apply", post(update_apply_handler))
@@ -2210,6 +2197,11 @@ async fn server_info(State(state): State<AppState>) -> Json<serde_json::Value> {
         "settings_dir": state.settings_dir,
         "project_root_dir": state.project_root_dir,
     }))
+}
+
+async fn progress_handler(State(state): State<AppState>) -> Json<serde_json::Value> {
+    let messages = state.progress.lock().unwrap().clone();
+    Json(serde_json::json!({ "messages": messages }))
 }
 
 async fn get_settings_handler(State(state): State<AppState>) -> Result<Json<QgisSettings>, StatusCode> {
@@ -2268,14 +2260,36 @@ async fn post_settings_handler(State(state): State<AppState>, Json(req): Json<Qg
 }
 
 async fn reset_profiles_handler(State(state): State<AppState>) -> Result<Json<serde_json::Value>, StatusCode> {
-    let project_root_dir = state.project_root_dir;
-    tokio::task::spawn_blocking(move || reset_profiles(&project_root_dir))
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-        .map_err(|e| {
-            eprintln!("reset profiles error: {}", e);
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+    // 既存の進捗メッセージをクリア
+    {
+        let mut p = state.progress.lock().unwrap();
+        p.clear();
+    }
+
+    let (tx, rx) = std::sync::mpsc::channel::<String>();
+    let state2 = state.clone();
+    let bridge = tokio::task::spawn_blocking(move || {
+        while let Ok(msg) = rx.recv() {
+            let mut p = state2.progress.lock().unwrap();
+            p.push(msg);
+        }
+    });
+
+    let project_root_dir = state.project_root_dir.clone();
+    let reset = tokio::task::spawn_blocking(move || reset_profiles(&project_root_dir, Some(&tx)));
+
+    let res = reset.await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let _ = bridge.await;
+
+    {
+        let mut p = state.progress.lock().unwrap();
+        p.push("MSG:done".to_string());
+    }
+
+    res.map_err(|e| {
+        eprintln!("reset profiles error: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
     Ok(Json(serde_json::json!({ "ok": true })))
 }
 

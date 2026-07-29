@@ -69,23 +69,21 @@
 
 ### QGIS バージョン別プロファイル配信
 
-設定基準フォルダ配下の `profiles` フォルダに `QGIS3\` / `QGIS4\` サブフォルダを作成することで、インストール済みの QGIS バージョンごとに専用プロファイルを自動配信できます。
+設定基準フォルダ配下の `profiles` フォルダに `QGIS4\` サブフォルダを作成することで、QGIS4 用のプロファイルを自動配信できます。
 
 - **コピーのタイミング**: EXE 起動時に自動実行されます（「Launch QGIS」ボタン押下前）。コピー先にファイルが既に存在する場合はスキップされるため、複数回起動しても無駄なコピーは発生しません。
 - **Web UI の挙動**: Web UI で起動した場合、起動処理（`SUBST` によるドライブ割当てやプロファイルの配布コピー）はバックグラウンドで実行され、モーダルの進捗ウィンドウ（メッセージ + プログレスバー）で進捗を確認できます。CLI 起動では従来どおりコンソールログのみが出力されます。
 - **備考**: プロファイルの初期化（配布コピー）は設定で `project_root` が指定されている場合はそのディレクトリを基準に行われます。未指定時は設定ファイル所在フォルダ（通常は EXE の親フォルダ）を使用します。
-- **バージョン自動検出**: システムにインストールされている全 QGIS を自動検出し（`ProgramFiles`、`C:\OSGeo4W`、レジストリ等を探索）、検出したメジャーバージョンごとにコピーを行います。QGIS 3 と QGIS 4 が両方インストールされている場合は両方に同時にコピーされます。
-- バージョンの判定はインストールフォルダ名から行います（例: `QGIS 3.44.8` → バージョン 3）。
-- `QGIS3\` / `QGIS4\` フォルダが存在しない場合は `profiles\` 直下（共通）を全バージョンに使用します。
-- バージョン検出の判定順位: パス中に `QGIS 4` / `QGIS4` → バージョン 4。`QGIS 3` / `QGIS3` → バージョン 3。検出不能な場合は `profiles\` 直下を使用。
+- **バージョン自動検出**: インストールされている QGIS4 を自動検出し（`ProgramFiles`、`C:\OSGeo4W`、レジストリ等を探索）、`QGIS4\` プロファイルをコピーします。
+- バージョンの判定はインストールフォルダ名から行います（例: `QGIS 4.0.0` → バージョン 4）。
+- `QGIS4\` フォルダが存在しない場合は `profiles\` 直下（共通）を使用します。
+- バージョン検出: パス中に `QGIS 4` / `QGIS4` の文字列が含まれる場合に `QGIS4\` プロファイルを使用します。検出不能な場合は `profiles\` 直下を使用。
 
 フォルダ構成例:
 
 ```
 (設定基準フォルダ)/
   profiles/
-    QGIS3/
-      geo_custom/    ← QGIS 3.x 用プロファイル → %APPDATA%\QGIS\QGIS3\ へコピー
     QGIS4/
       geo_custom/    ← QGIS 4.x 用プロファイル → %APPDATA%\QGIS\QGIS4\ へコピー
 ```
@@ -245,14 +243,13 @@ QGIS 起動時に以下の 3 つの引数が自動で設定されます：
 
 | 引数 | ファイル | 内容 |
 |---|---|---|
-| `--customizationfile` | `ini/<role>.xml`（QGIS4） または `ini/<role>.ini`（QGIS3） | ランチャーが QGIS 実行ファイルパスからメジャーバージョンを判定し、QGIS4 では `.xml`（Customization XML）を、QGIS3 では `.ini` をそれぞれ必ず渡します（フォールバックは行いません）。 |
+| `--customizationfile` | `ini/<role>.xml` | QGIS4 用の `.xml`（Customization XML）を渡します。QGIS4.0 未満はサポートしません。 |
 | `--globalsettingsfile` | `ini/qgis_global_settings.ini` | `userrole` を QGIS グローバル変数として設定（プロジェクト式 `@userrole` で参照可能）。ランチャーはこのファイルを生成して渡します。 |
 | `--code` | `ini/startup.py` | 起動後に動的制御（ツールバー表示・レイヤーのReadOnly設定）|
 
 ```
 qgis.exe --profile geo_custom
-         --customizationfile   ini/Viewer.xml  # QGIS4 の場合
-         --customizationfile   ini/Viewer.ini  # QGIS3 の場合
+         --customizationfile   ini/Viewer.xml
          --globalsettingsfile  ini/qgis_global_settings.ini
          --code                ini/startup.py
 ```
@@ -261,25 +258,22 @@ qgis.exe --profile geo_custom
 
 ### ロールごとの制御内容
 
-| ロール | カスタマイズファイル（QGIS4 / QGIS3） | UI 制御 | レイヤー |
+| ロール | カスタマイズファイル | UI 制御 | レイヤー |
 |---|---|---|---|
-| **Viewer** | `Viewer.xml`（QGIS4 / 推奨） / `Viewer.ini`（QGIS3） | 編集メニュー・編集ツールバーを非表示 | プロジェクト読み込み時に全ベクターレイヤーを ReadOnly に設定 |
-| **Editor** | `Editor.xml`（QGIS4） / `Editor.ini`（QGIS3） | プロジェクト新規作成・保存メニューを非表示（編集操作は許可） | 制限なし |
-| **Administrator** | `Administrator.xml`（QGIS4） / `Administrator.ini`（QGIS3） | 制限なし | 制限なし |
+| **Viewer** | `Viewer.xml` | 編集メニュー・編集ツールバーを非表示 | プロジェクト読み込み時に全ベクターレイヤーを ReadOnly に設定 |
+| **Editor** | `Editor.xml` | プロジェクト新規作成・保存メニューを非表示（編集操作は許可） | 制限なし |
+| **Administrator** | `Administrator.xml` | 制限なし | 制限なし |
 
-基本は QGIS4 を想定しており、ランチャーは QGIS の実行ファイルパスからメジャーバージョンを判定して、可能な限り QGIS4 用の `*.xml`（Customization XML）を渡します。QGIS3 を使用する環境では `*.ini` を渡します。現在の実装ではメジャーバージョンに応じて必ず適切な拡張子を使用し、フォールバックは行いません。
+ランチャーは QGIS4 用の `*.xml`（Customization XML）を渡します。QGIS4.0 未満はサポートしません。
 
 ### ファイル構成
 
 ```
 qgis_launcher.exe と同階層/
   ini/
-    Viewer.xml                  ← QGIS4 用 Customization XML（推奨）
-    Viewer.ini                  ← QGIS3 用 INI フォーマット（互換）
+    Viewer.xml                  ← QGIS4 用 Customization XML
     Editor.xml
-    Editor.ini
     Administrator.xml
-    Administrator.ini
     qgis_global_settings.ini    ← 起動のたびに自動生成（userrole を記録）
     startup.py                  ← QGIS 起動後に自動実行されるスクリプト
 ```
@@ -567,7 +561,7 @@ C:\kasugai\kasugai_qgis\
 
 - `qgis_settings.json` や `ini/`、`profiles/`、`ProjectFiles/` は `qgis_launcher.exe` と同じ階層に置きます。
 - 設定ファイルの `project_root` 等が未指定、または相対パスの場合は上記フォルダを基準に解決されます。
-- 配布プロファイルは、インストール先の `profiles\QGIS3\` や `profiles\QGIS4\` から `%APPDATA%\QGIS\QGIS3\` 等へ起動時にコピーされます。
+- 配布プロファイルは、インストール先の `profiles\QGIS4\` から `%APPDATA%\QGIS\QGIS4\` へ起動時にコピーされます。
 
 ### 起動方法
 
