@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 use clap::Parser;
 use std::collections::{HashMap, HashSet};
 use std::env;
@@ -17,7 +19,7 @@ use quick_xml::events::Event;
 use quick_xml::name::QName;
 use zip::ZipArchive;
 use std::io::Read;
-use axum::{extract::{Query, State}, http::StatusCode, response::Html, routing::{get, post}, Json, Router};
+use axum::{extract::{Query, State}, http::{header, StatusCode}, response::{Html, IntoResponse}, routing::{get, post}, Json, Router};
 use tower_http::cors::CorsLayer;
 
 
@@ -272,6 +274,10 @@ struct Args {
     /// API サーバーが待ち受けるポート（未指定時は qgis_settings.json の api_server_port、それも未指定時は 8500）
     #[arg(long)]
     port: Option<u16>,
+
+    /// 起動後に既定のブラウザで UI を開く
+    #[arg(long, default_value_t = false)]
+    open_browser: bool,
 
     /// QGISの実行ファイルパス（指定がなければ自動検出）
     #[arg(long)]
@@ -1083,12 +1089,12 @@ fn main() {
         "default".to_string()
     };
 
-    if args.server {
+    if args.server || args.open_browser {
         let server_port = args.port.unwrap_or(settings.api_server_port.unwrap_or(8500));
         mount_drive_mappings(&settings.drive_mappings, &settings, None);
         copy_profiles_at_startup(&project_root_dir, None);
         run_local_sync(&settings, &project_root_dir, None);
-        run_api_server_sync(server_port, &resolved_settings_dir, &project_root_dir);
+        run_api_server_sync(server_port, &resolved_settings_dir, &project_root_dir, args.open_browser);
         return;
     }
 
@@ -2145,12 +2151,12 @@ async fn ui_handler() -> Html<&'static str> {
     Html(UI_HTML)
 }
 
-fn run_api_server_sync(port: u16, settings_dir: &str, project_root_dir: &str) {
+fn run_api_server_sync(port: u16, settings_dir: &str, project_root_dir: &str, open_browser: bool) {
     let rt = tokio::runtime::Runtime::new().unwrap();
-    rt.block_on(run_api_server(port, settings_dir, project_root_dir));
+    rt.block_on(run_api_server(port, settings_dir, project_root_dir, open_browser));
 }
 
-async fn run_api_server(port: u16, settings_dir: &str, project_root_dir: &str) {
+async fn run_api_server(port: u16, settings_dir: &str, project_root_dir: &str, open_browser: bool) {
     let state = AppState {
         settings_dir: settings_dir.to_string(),
         project_root_dir: project_root_dir.to_string(),
@@ -2158,6 +2164,7 @@ async fn run_api_server(port: u16, settings_dir: &str, project_root_dir: &str) {
     };
     let app = Router::new()
         .route("/", get(ui_handler))
+        .route("/favicon.ico", get(favicon_handler))
         .route("/health", get(health))
         .route("/settings", get(get_settings_handler).post(post_settings_handler))
         .route("/qgis", get(list_qgis_handler))
@@ -2174,10 +2181,61 @@ async fn run_api_server(port: u16, settings_dir: &str, project_root_dir: &str) {
         .layer(CorsLayer::permissive())
         .with_state(state);
 
-    let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", port)).await.unwrap();
+    let addr = std::net::SocketAddr::from((std::net::Ipv4Addr::LOCALHOST, port));
+    let listener: tokio::net::TcpListener = 'bind: loop {
+        match tokio::net::TcpListener::bind(addr).await {
+            Ok(l) => break 'bind l,
+            Err(e) => {
+                let health_url = format!("http://127.0.0.1:{}/health", port);
+                let existing = reqwest::get(&health_url)
+                    .await
+                    .map(|r| r.status().is_success())
+                    .unwrap_or(false);
+                if !existing {
+                    eprintln!("ポート {} で起動できません: {}", port, e);
+                    std::process::exit(1);
+                }
+                eprintln!("既にポート {} で起動しています。古いインスタンスを停止します。", port);
+                let stop_url = format!("http://127.0.0.1:{}/api/v1/server/stop", port);
+                let _ = reqwest::Client::new().post(&stop_url).send().await;
+                for _ in 1..=60 {
+                    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                    if let Ok(l) = tokio::net::TcpListener::bind(addr).await {
+                        eprintln!("ポート {} を確保しました。新しいインスタンスを起動します。", port);
+                        break 'bind l;
+                    }
+                }
+                eprintln!("ポート {} の解放を待ちましたが、起動できません: {}", port, e);
+                std::process::exit(1);
+            }
+        }
+    };
+
+    if open_browser {
+        let open_url = format!("http://127.0.0.1:{}/", port);
+        let health_url = format!("http://127.0.0.1:{}/health", port);
+        tokio::spawn(async move {
+            for _ in 0..60 {
+                if let Ok(resp) = reqwest::get(&health_url).await {
+                    if resp.status().is_success() {
+                        let _ = opener::open(&open_url);
+                        break;
+                    }
+                }
+                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+            }
+        });
+    }
+
     let local_addr = listener.local_addr().unwrap();
     println!("{}", serde_json::json!({ "port": local_addr.port() }));
     axum::serve(listener, app).await.unwrap();
+}
+
+const FAVICON_ICO: &[u8] = include_bytes!("../installer/app_icon.ico");
+
+async fn favicon_handler() -> impl IntoResponse {
+    ([(header::CONTENT_TYPE, "image/x-icon")], FAVICON_ICO)
 }
 
 async fn health() -> &'static str {

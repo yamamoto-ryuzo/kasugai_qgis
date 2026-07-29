@@ -11,7 +11,7 @@
 ;              通常のバージョンアップ(自動更新)用
 
 !define PRODUCT_NAME "kasugai_qgis"
-!define PRODUCT_VERSION "1.4.2"
+!define PRODUCT_VERSION "2.0.2"
 !define PRODUCT_PUBLISHER "yamamoto-ryuzo"
 !define PRODUCT_DIR "kasugai_qgis"
 
@@ -28,7 +28,7 @@ Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
 OutFile "..\public\kasugai_qgis-setup.exe"
 !endif
 InstallDir "C:\kasugai\${PRODUCT_DIR}"
-RequestExecutionLevel user
+RequestExecutionLevel admin
 
 ; 圧縮設定（プロファイル・プラグインを含めるため LZMA/SOLID）
 SetCompressor /SOLID lzma
@@ -48,6 +48,7 @@ SetCompressor /SOLID lzma
 !define MUI_FINISHPAGE_TEXT "kasugai は、このコンピュータにインストールされました。$\r$\n「完了」をクリックしてセットアップを閉じます。"
 !define MUI_FINISHPAGE_TEXT_LARGE
 !define MUI_FINISHPAGE_RUN "$INSTDIR\qgis_launcher.exe"
+!define MUI_FINISHPAGE_RUN_PARAMETERS "--open-browser"
 !define MUI_FINISHPAGE_RUN_TEXT "kasugai を実行(R)"
 !define MUI_FINISHPAGE_RUN_CHECKED
 !define MUI_FINISHPAGE_SHOWREADME
@@ -105,7 +106,7 @@ Section "MainSection" SecMain
 
   ; スタートメニューショートカット
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
-  CreateShortcut "$SMPROGRAMS\${PRODUCT_NAME}\kasugai_qgis.lnk" "$INSTDIR\qgis_launcher.exe" "" "$INSTDIR\app_icon.ico"
+  CreateShortcut "$SMPROGRAMS\${PRODUCT_NAME}\kasugai_qgis.lnk" "$INSTDIR\qgis_launcher.exe" "--open-browser" "$INSTDIR\qgis_launcher.exe" 0 SW_SHOWNORMAL "" "" "$INSTDIR"
 !endif
 
   ; 古いバックアップを削除
@@ -120,7 +121,7 @@ SectionEnd
 ; サイレントインストール完了後は本体を自動起動
 Function .onInstSuccess
   ${If} ${Silent}
-    Exec "$INSTDIR\qgis_launcher.exe"
+    Exec '"$INSTDIR\qgis_launcher.exe" --open-browser'
   ${EndIf}
 FunctionEnd
 
@@ -152,7 +153,7 @@ FunctionEnd
 
 ; 完了ページの「デスクトップショートカットを作成する」チェックボックスが選択されたときの処理
 Function CreateDesktopShortcut
-  CreateShortcut "$DESKTOP\kasugai_qgis.lnk" "$INSTDIR\qgis_launcher.exe" "" "$INSTDIR\app_icon.ico"
+  CreateShortcut "$DESKTOP\kasugai_qgis.lnk" "$INSTDIR\qgis_launcher.exe" "--open-browser" "$INSTDIR\qgis_launcher.exe" 0 SW_SHOWNORMAL "" "" "$INSTDIR"
 FunctionEnd
 
 ; アンインストール（全体版のみ）

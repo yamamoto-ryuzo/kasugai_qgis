@@ -2,8 +2,8 @@
   "box_url": null,
   "current_project": "Q: -  - ProjectFiles - ProjectFile.qgs",
   "local_sync": {
-    "sync_src": "C:\\github\\yr-qgis-launcher",
-    "sync_dst": "C:\\qgis-local-launcher",
+    "sync_src": "C:\\kasugai\\kasugai_qgis",
+    "sync_dst": "C:\\kasugai\\kasugai_qgis",
     "qfield_version": "3.4.2",
     "qgis_version": "3.42.0",
     "exclude_dirs": ["secret-folder", "private-data"],
@@ -49,8 +49,8 @@
   "project_path": [
     "ProjectFiles"
   ],
-  "project_root": "Q:\\",
-  "kasugai_qgis_version": null,
+  "project_root": "C:\\kasugai\\kasugai_qgis",
+  "kasugai_qgis_version": "2.0.2",
   "update_url": "https://yamamoto-ryuzo.github.io/kasugai_qgis/update.json",
   "update_check": true,
   "qgis_executable": "C:\\PROGRA~1\\QGIS 4.0.1\\bin\\qgis.bat",

@@ -1,9 +1,9 @@
 {
-  "version": "2.0.1",
+  "version": "2.0.2",
   "url": "https://yamamoto-ryuzo.github.io/kasugai_qgis/public/kasugai_qgis-update.exe",
   "full_url": "https://yamamoto-ryuzo.github.io/kasugai_qgis/public/kasugai_qgis-setup.exe",
   "full": false,
   "signature": null,
-  "sha256": null,
-  "notes": "Kasugai QGIS Launcher 2.0.1 (QGIS3 表記削除、UI 調整、プロファイル初期化の進捗表示対応)"
+  "sha256": "CF39FA5DB9DAA891C44A2C58CD9A109495CA6F6BCFAE57699072196904760F9E",
+  "notes": "Kasugai QGIS Launcher 2.0.2 (インストーラー・ショートカット作成の整備、多重起動防止・ブラウザ自動起動)"
 }
