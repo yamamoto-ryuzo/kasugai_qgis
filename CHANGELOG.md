@@ -12,15 +12,21 @@
   - `POST /reset` — プロファイル初期化
   - `GET /project-version` — プロジェクトファイルの QGIS バージョン取得
   - `GET /update` / `POST /update/apply` — 手動更新確認・適用
+  - `GET /api/v1/server/info` — サーバー情報取得
+  - `POST /api/v1/server/stop` — サーバー停止
 - ブラウザベースの操作 UI (`public/index.html`)
-  - タブ形式：起動 / 探索パス / 詳細設定 / メンテナンス
+  - タブ形式：起動 / 探索パス / 詳細設定 / 設定
   - プロファイル・QGIS バージョン・プロジェクトのドロップダウン選択
   - 生 JSON エディタによる `qgis_settings.json` 直接編集
+  - `project_root` と API 待ち受けポートの編集・保存
+  - サーバー停止ボタン
 - 新しい CLI 引数 `--server` / `--port`（Tauri サイドカー対応）
 
 ### Changed
-- デフォルト動作をヘッドレス API サーバーに変更
-- `--cli` 実行時のヘルプ文言を修正
+- API サーバーモードは `--server` オプションで有効化。未指定時は QGIS を通常起動する
+- 待ち受けポートのデフォルトを 8500 に統一し、`qgis_settings.json` の `api_server_port` も参照
+- `project_root` 解決時、対象フォルダ内に `qgis_settings.json` があれば再読み込み
+- `reset_profiles` およびローカル自動同期の対象ディレクトリを `project_root` に統一
 
 ### Removed
 - FLTK ベースの GUI を削除

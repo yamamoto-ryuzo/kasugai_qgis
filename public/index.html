@@ -32,7 +32,7 @@
     <button class="tab-button active" data-tab="tab-launch">起動</button>
     <button class="tab-button" data-tab="tab-paths">探索パス</button>
     <button class="tab-button" data-tab="tab-raw">詳細設定</button>
-    <button class="tab-button" data-tab="tab-maint">メンテナンス</button>
+    <button class="tab-button" data-tab="tab-maint">設定</button>
   </div>
 
   <div id="tab-launch" class="tab-content active">
@@ -80,6 +80,21 @@
   </div>
 
   <div id="tab-maint" class="tab-content">
+    <label>ファイル保存先（project_root）※空欄で qgis_settings.json と同じフォルダ</label>
+    <input id="project-root" type="text" placeholder="C:\\work\\qgis_data または相対パス">
+    <div class="row">
+      <button id="save-project-root">ファイル保存先を保存</button>
+    </div>
+
+    <label>待ち受けポート（qgis_settings.json に保存）</label>
+    <input id="port-setting" type="number" min="1024" max="65535" value="8500">
+    <p style="font-size: small; color: #666;">変更はサーバー再起動後に反映されます。</p>
+
+    <div class="row">
+      <button id="save-port">ポートを保存</button>
+      <button id="stop-server">Axum サーバーを停止</button>
+    </div>
+
     <div class="row">
       <button id="reset">プロファイルを初期化</button>
       <button id="check-update">更新を確認</button>
@@ -124,6 +139,8 @@
       $('profile').value = currentSettings.profile || '';
       $('role').value = currentSettings.userrole || 'Viewer';
       $('qgis').value = currentSettings.qgis_executable || '';
+      $('project-root').value = currentSettings.project_root || '';
+      $('port-setting').value = window.location.port || '8500';
       loadRawSettings();
     }
 
@@ -277,6 +294,44 @@
       }
     }
 
+    async function savePort() {
+      try {
+        const s = { ...currentSettings };
+        const port = parseInt($('port-setting').value, 10);
+        if (port < 1024 || port > 65535) throw new Error('1024〜65535 の範囲で指定してください');
+        s.api_server_port = port;
+        await api('POST', '/settings', s);
+        currentSettings = s;
+        status('起動ポートを保存しました。次回起動時から反映されます', 'ok');
+      } catch (e) {
+        status('ポート保存失敗: ' + e.message, 'err');
+      }
+    }
+
+    async function saveProjectRoot() {
+      try {
+        const s = { ...currentSettings };
+        const v = $('project-root').value.trim();
+        s.project_root = v ? v : null;
+        await api('POST', '/settings', s);
+        currentSettings = s;
+        await reloadAll();
+        status('ファイル保存先を保存しました。次回起動時から反映されます', 'ok');
+      } catch (e) {
+        status('ファイル保存先の保存失敗: ' + e.message, 'err');
+      }
+    }
+
+    async function stopServer() {
+      if (!confirm('Axum サーバーを停止します。よろしいですか？')) return;
+      try {
+        await api('POST', '/api/v1/server/stop');
+        status('サーバーを停止しました', 'ok');
+      } catch (e) {
+        status('サーバー停止リクエストを送信しました', 'ok');
+      }
+    }
+
     async function reloadAll() {
       await loadSettings();
       await Promise.all([loadProfiles(), loadProjects(), loadQgis()]);
@@ -291,6 +346,9 @@
     $('reload-raw').addEventListener('click', loadRawSettings);
     $('reset').addEventListener('click', resetProfiles);
     $('check-update').addEventListener('click', checkUpdate);
+    $('save-port').addEventListener('click', savePort);
+    $('save-project-root').addEventListener('click', saveProjectRoot);
+    $('stop-server').addEventListener('click', stopServer);
     $('project-select').addEventListener('change', checkProjectVersion);
 
     (async () => {

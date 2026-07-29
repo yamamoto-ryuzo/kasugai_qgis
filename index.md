@@ -522,14 +522,14 @@ GNU General Public License v3.0 (GPL-3.0-only) — 詳細は [LICENSE](LICENSE) 
 
 ### 初回導入（インストーラー版：推奨）
 
-NSIS インストーラー `kasugai_qgis-setup.exe` を使って、`C:\Kasugai\kasugai_qgis\` へ自動的にインストールできます。
+NSIS インストーラー `kasugai_qgis-setup.exe` を使って、`C:\kasugai\kasugai_qgis\` へ自動的にインストールできます。
 
 1. インストーラーをダウンロード
    - [kasugai_qgis-setup.exe](https://yamamoto-ryuzo.github.io/kasugai_qgis/public/kasugai_qgis-setup.exe)
 2. ダウンロードした `kasugai_qgis-setup.exe` を実行
-   - インストール先はデフォルトで `C:\Kasugai\kasugai_qgis\` です
+   - インストール先はデフォルトで `C:\kasugai\kasugai_qgis\` です
    - インストール先フォルダはインストール時に変更できます
-   - `C:\Kasugai` フォルダが存在し、ユーザーが書き込み可能であれば管理者権限は不要です
+   - `C:\kasugai` フォルダが存在し、ユーザーが書き込み可能であれば管理者権限は不要です
    - スタートメニューにショートカットが作成されます
 3. インストールフォルダ内の `qgis_launcher.exe` をダブルクリックで起動
 
@@ -538,7 +538,7 @@ NSIS インストーラー `kasugai_qgis-setup.exe` を使って、`C:\Kasugai\k
 コマンドラインから以下のように実行すると、画面を表示せずにインストールできます。
 
 ```batch
-kasugai_qgis-setup.exe /S /D=C:\Kasugai\kasugai_qgis
+kasugai_qgis-setup.exe /S /D=C:\kasugai\kasugai_qgis
 ```
 
 ### ZIP 版（インストール権限がない場合）
@@ -554,18 +554,29 @@ kasugai_qgis-setup.exe /S /D=C:\Kasugai\kasugai_qgis
 
 ### 推奨フォルダ構成
 
+すべての設定、配布プロファイル、ユーザーロール、サンプルプロジェクトは、**インストール先（`qgis_launcher.exe` と同じフォルダ）を起点**として配置・解決されます。
+
 ```
-C:\Kasugai\kasugai_qgis\
+C:\kasugai\kasugai_qgis\
   qgis_launcher.exe
-  qgis_settings.json
-  ini\                 # ユーザーロール制御用（必要に応じて）
-  profiles\            # 配布プロファイル（必要に応じて）
+  qgis_settings.json      # 全設定の起点
+  ini\                    # ユーザーロール制御用（`ini/<role>.ini/xml` 等）
+  profiles\               # 配布プロファイル（`%APPDATA%\QGIS\` へコピー元）
+  ProjectFiles\           # サンプルプロジェクト（任意）
 ```
+
+- `qgis_settings.json` や `ini/`、`profiles/`、`ProjectFiles/` は `qgis_launcher.exe` と同じ階層に置きます。
+- 設定ファイルの `project_root` 等が未指定、または相対パスの場合は上記フォルダを基準に解決されます。
+- 配布プロファイルは、インストール先の `profiles\QGIS3\` や `profiles\QGIS4\` から `%APPDATA%\QGIS\QGIS3\` 等へ起動時にコピーされます。
 
 ### 起動方法
 
 - **Web UI 起動**: `qgis_launcher.exe` を実行
+  - 既定ポートは `8500`。起動後は `http://127.0.0.1:8500/` にアクセス
+  - ポートを変更する場合: `qgis_launcher.exe --port <ポート番号>`
 - **CLI 起動**: `qgis_launcher.exe --cli`
+- **開発起動**: `python run.py` または `python run.py --release`
+  - ポートを変更する場合: `python run.py --release --port <ポート番号>`
 - **設定ファイルの所在**: `qgis_launcher.exe` と同じフォルダの `qgis_settings.json` を読み込みます
 
 ---

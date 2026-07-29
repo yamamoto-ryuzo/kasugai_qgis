@@ -106,6 +106,9 @@ pub struct QgisSettings {
     /// 自動更新チェックを有効にするか。省略時は update_url が設定されていれば有効。
     #[serde(default)]
     pub update_check: Option<bool>,
+    /// API サーバー待ち受けポート。省略時は 8500。
+    #[serde(default)]
+    pub api_server_port: Option<u16>,
     /// KASUGAI/yr-qgis-launcher 方式のローカル自動同期設定。
     /// qgislocalsync.config が存在する場合はそちらを優先して読み込む。
     #[serde(default)]
@@ -128,6 +131,7 @@ impl Default for QgisSettings {
             kasugai_qgis_version: None,
             update_url: None,
             update_check: None,
+            api_server_port: None,
             local_sync: None,
         }
     }
@@ -264,9 +268,9 @@ struct Args {
     #[arg(long, default_value_t = false)]
     server: bool,
 
-    /// API サーバーが待ち受けるポート（0 の場合は自動割り当て）
-    #[arg(long, default_value_t = 0)]
-    port: u16,
+    /// API サーバーが待ち受けるポート（未指定時は qgis_settings.json の api_server_port、それも未指定時は 8500）
+    #[arg(long)]
+    port: Option<u16>,
 
     /// QGISの実行ファイルパス（指定がなければ自動検出）
     #[arg(long)]
@@ -1046,19 +1050,29 @@ fn main() {
     }
 
     let settings_dir = get_default_settings_dir();
-    let settings = get_current_settings(&settings_dir);
-
-    // NSIS インストーラー方式の自動更新チェック（update_url が設定されていれば）
-    maybe_run_nsis_update(&settings);
+    let mut settings = get_current_settings(&settings_dir);
 
     // get_settings_path と同じフォールバックロジックで実際の settings_dir を解決する
-    let resolved_settings_dir = {
+    let mut resolved_settings_dir = {
         let p = get_settings_path(&settings_dir);
         p.parent().map(|d| d.to_string_lossy().to_string()).unwrap_or_else(|| settings_dir.clone())
     };
 
     // 設定内の project_root があればそれを解決して使用
-    let project_root_dir = compute_project_root(&settings, &resolved_settings_dir);
+    let mut project_root_dir = compute_project_root(&settings, &resolved_settings_dir);
+
+    // project_root 内にも qgis_settings.json がある場合はそちらを優先して読み込む
+    let project_settings_json = PathBuf::from(&project_root_dir).join("qgis_settings.json");
+    if project_root_dir.to_lowercase() != resolved_settings_dir.to_lowercase()
+        && project_settings_json.exists()
+    {
+        settings = get_current_settings(&project_root_dir);
+        resolved_settings_dir = project_root_dir.clone();
+        project_root_dir = compute_project_root(&settings, &resolved_settings_dir);
+    }
+
+    // NSIS インストーラー方式の自動更新チェック（update_url が設定されていれば）
+    maybe_run_nsis_update(&settings);
 
     let profile_to_use = if !settings.profile.trim().is_empty() {
         settings.profile.clone()
@@ -1069,16 +1083,17 @@ fn main() {
     };
 
     if args.server {
+        let server_port = args.port.unwrap_or(settings.api_server_port.unwrap_or(8500));
         mount_drive_mappings(&settings.drive_mappings, &settings, None);
-        copy_profiles_at_startup(&resolved_settings_dir, None);
-        run_local_sync(&settings, &resolved_settings_dir, None);
-        run_api_server_sync(args.port, &resolved_settings_dir, &project_root_dir);
+        copy_profiles_at_startup(&project_root_dir, None);
+        run_local_sync(&settings, &project_root_dir, None);
+        run_api_server_sync(server_port, &resolved_settings_dir, &project_root_dir);
         return;
     }
 
 
     // KASUGAI/yr-qgis-launcher 方式のローカル自動同期（CLI モード）
-    run_local_sync(&settings, &resolved_settings_dir, None);
+    run_local_sync(&settings, &project_root_dir, None);
 
     // CLI 起動
     let mut qgis_exe = if let Some(exe) = &args.qgis_executable {
@@ -2167,6 +2182,8 @@ async fn run_api_server(port: u16, settings_dir: &str, project_root_dir: &str) {
         .route("/project-version", get(project_version_handler))
         .route("/update", get(update_check_handler))
         .route("/update/apply", post(update_apply_handler))
+        .route("/api/v1/server/stop", post(stop_server))
+        .route("/api/v1/server/info", get(server_info))
         .layer(CorsLayer::permissive())
         .with_state(state);
 
@@ -2178,6 +2195,21 @@ async fn run_api_server(port: u16, settings_dir: &str, project_root_dir: &str) {
 
 async fn health() -> &'static str {
     "ok"
+}
+
+async fn stop_server() -> &'static str {
+    tokio::spawn(async {
+        tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+        std::process::exit(0);
+    });
+    "ok"
+}
+
+async fn server_info(State(state): State<AppState>) -> Json<serde_json::Value> {
+    Json(serde_json::json!({
+        "settings_dir": state.settings_dir,
+        "project_root_dir": state.project_root_dir,
+    }))
 }
 
 async fn get_settings_handler(State(state): State<AppState>) -> Result<Json<QgisSettings>, StatusCode> {
@@ -2236,8 +2268,8 @@ async fn post_settings_handler(State(state): State<AppState>, Json(req): Json<Qg
 }
 
 async fn reset_profiles_handler(State(state): State<AppState>) -> Result<Json<serde_json::Value>, StatusCode> {
-    let settings_dir = state.settings_dir;
-    tokio::task::spawn_blocking(move || reset_profiles(&settings_dir))
+    let project_root_dir = state.project_root_dir;
+    tokio::task::spawn_blocking(move || reset_profiles(&project_root_dir))
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .map_err(|e| {
