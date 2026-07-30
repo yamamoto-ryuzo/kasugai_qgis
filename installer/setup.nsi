@@ -27,7 +27,7 @@ OutFile "..\public\kasugai_qgis-update.exe"
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
 OutFile "..\public\kasugai_qgis-setup.exe"
 !endif
-InstallDir "$PROFILE\kasugai\${PRODUCT_DIR}"
+InstallDir "C:\kasugai\${PRODUCT_DIR}"
 RequestExecutionLevel user
 
 ; 圧縮設定（プロファイル・プラグインを含めるため LZMA/SOLID）
@@ -131,7 +131,7 @@ FunctionEnd
 ; サイレントインストール時の /D 対応
 Function .onInit
   ${If} $INSTDIR == ""
-    StrCpy $INSTDIR "$PROFILE\kasugai\${PRODUCT_DIR}"
+    StrCpy $INSTDIR "C:\kasugai\${PRODUCT_DIR}"
   ${EndIf}
 
   ; 既に管理者権限で実行されている場合は権限チェック不要
