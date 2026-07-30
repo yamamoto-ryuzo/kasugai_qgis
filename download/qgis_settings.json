@@ -50,7 +50,7 @@
     "ProjectFiles"
   ],
   "project_root": "C:\\kasugai\\kasugai_qgis",
-  "kasugai_qgis_version": "2.0.2",
+  "kasugai_qgis_version": "2.0.3",
   "update_url": "https://yamamoto-ryuzo.github.io/kasugai_qgis/update.json",
   "update_check": true,
   "qgis_executable": "C:\\PROGRA~1\\QGIS 4.0.1\\bin\\qgis.bat",

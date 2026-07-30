@@ -1242,7 +1242,7 @@ fn main() {
         "default".to_string()
     };
 
-    if args.server || args.open_browser {
+    if !args.cli || args.open_browser || args.server {
         let server_port = args.port.unwrap_or(settings.api_server_port.unwrap_or(8500));
         mount_drive_mappings(&settings.drive_mappings, &settings, None);
         copy_profiles_at_startup(&project_root_dir, None);
