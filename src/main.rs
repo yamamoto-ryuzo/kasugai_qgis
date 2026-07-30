@@ -279,6 +279,10 @@ struct Args {
     #[arg(long, default_value_t = false)]
     open_browser: bool,
 
+    /// 更新チェックを完全に無効化する（更新直後の再起動時に使用し、更新ループを防ぐ）
+    #[arg(long, default_value_t = false)]
+    no_update_check: bool,
+
     /// QGISの実行ファイルパス（指定がなければ自動検出）
     #[arg(long)]
     qgis_executable: Option<String>,
@@ -869,7 +873,10 @@ struct NsisUpdateInfo {
     full_url: Option<String>,
     full: bool,
     signature: Option<String>,
+    /// 通常更新用 EXE の SHA-256（16進、大文字小文字は問わない）
     sha256: Option<String>,
+    /// 全体更新用 EXE の SHA-256
+    full_sha256: Option<String>,
     notes: Option<String>,
 }
 
@@ -886,6 +893,124 @@ fn version_is_newer(a: &str, b: &str) -> bool {
         }
     }
     false
+}
+
+/// 同一バージョンへの更新を試行できる最大回数。
+/// これを超えた場合は「更新しても実行中バージョンが変わらない」状態と判断し、
+/// 無限ループを避けるため更新を中断する。
+const MAX_UPDATE_ATTEMPTS: u32 = 1;
+/// 試行回数を使い切ったあと、再試行を許可するまでの待機秒数（24 時間）。
+const UPDATE_RETRY_COOLDOWN_SECS: u64 = 24 * 60 * 60;
+
+/// 更新試行の記録。無限ループ防止の要。
+/// 更新を適用すると新しい EXE が自動起動するため、記録なしでは
+/// 「更新 → 再起動 → また更新」が延々と繰り返される危険がある。
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+struct UpdateState {
+    /// 直近に更新を試行した対象バージョン
+    #[serde(default)]
+    last_attempt_version: Option<String>,
+    /// 直近の試行時刻（UNIX 秒）
+    #[serde(default)]
+    last_attempt_epoch: Option<u64>,
+    /// 同一バージョンへの連続試行回数
+    #[serde(default)]
+    attempt_count: u32,
+    /// 試行を開始した時点で実行していたバージョン
+    #[serde(default)]
+    attempt_from_version: Option<String>,
+}
+
+fn now_epoch_secs() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0)
+}
+
+/// 更新試行記録の保存先。
+/// インストーラーに削除・上書きされないよう、インストール先ではなく
+/// %LOCALAPPDATA%\kasugai_qgis\update_state.json に置く。
+fn update_state_path() -> Option<PathBuf> {
+    let base = env::var("LOCALAPPDATA").ok().filter(|s| !s.trim().is_empty())?;
+    Some(PathBuf::from(base).join("kasugai_qgis").join("update_state.json"))
+}
+
+fn load_update_state() -> UpdateState {
+    update_state_path()
+        .and_then(|p| fs::read_to_string(p).ok())
+        .and_then(|s| serde_json::from_str::<UpdateState>(&s).ok())
+        .unwrap_or_default()
+}
+
+fn save_update_state(state: &UpdateState) {
+    let Some(path) = update_state_path() else { return };
+    if let Some(parent) = path.parent() {
+        if let Err(e) = fs::create_dir_all(parent) {
+            eprintln!("更新状態フォルダ作成失敗: {}", e);
+            return;
+        }
+    }
+    match serde_json::to_string_pretty(state) {
+        Ok(s) => {
+            if let Err(e) = fs::write(&path, s) {
+                eprintln!("更新状態保存失敗 ({}): {}", path.display(), e);
+            }
+        }
+        Err(e) => eprintln!("更新状態シリアライズ失敗: {}", e),
+    }
+}
+
+/// 記録済みの更新試行が完了しているかを判定する。
+/// 実行中バージョンが対象バージョンに到達していれば更新成功とみなし、記録を消す。
+fn reconcile_update_state() -> UpdateState {
+    let state = load_update_state();
+    let current = env!("CARGO_PKG_VERSION");
+    if let Some(ref target) = state.last_attempt_version {
+        if !version_is_newer(target, current) {
+            println!("更新完了を確認しました (current={}, target={})", current, target);
+            let cleared = UpdateState::default();
+            save_update_state(&cleared);
+            return cleared;
+        }
+    }
+    state
+}
+
+/// 対象バージョンへの更新を試行してよいかを判定する。
+/// 試行不可の場合は理由メッセージを Err で返す。
+fn check_update_attempt_allowed(version: &str) -> Result<(), String> {
+    let state = reconcile_update_state();
+    if state.last_attempt_version.as_deref() != Some(version) {
+        return Ok(());
+    }
+    if state.attempt_count < MAX_UPDATE_ATTEMPTS {
+        return Ok(());
+    }
+    let elapsed = now_epoch_secs().saturating_sub(state.last_attempt_epoch.unwrap_or(0));
+    if elapsed >= UPDATE_RETRY_COOLDOWN_SECS {
+        return Ok(());
+    }
+    Err(format!(
+        "バージョン {} への更新は既に {} 回試行済みですが、実行中のバージョンは {} のままです。\
+         更新ループを避けるため中断しました。配布されている更新用インストーラーが古い可能性があります。\
+         （{} 秒後に再試行可能。強制実行も可能です）",
+        version,
+        state.attempt_count,
+        env!("CARGO_PKG_VERSION"),
+        UPDATE_RETRY_COOLDOWN_SECS.saturating_sub(elapsed)
+    ))
+}
+
+/// 更新試行を記録する。同一バージョンなら回数を加算し、別バージョンなら 1 から数え直す。
+fn record_update_attempt(version: &str) {
+    let mut state = load_update_state();
+    let same = state.last_attempt_version.as_deref() == Some(version);
+    state.attempt_count = if same { state.attempt_count.saturating_add(1) } else { 1 };
+    state.last_attempt_version = Some(version.to_string());
+    state.last_attempt_epoch = Some(now_epoch_secs());
+    state.attempt_from_version = Some(env!("CARGO_PKG_VERSION").to_string());
+    save_update_state(&state);
 }
 
 /// 更新チェック・ダウンロード用の HTTP クライアントを生成する（タイムアウト付き）。
@@ -938,6 +1063,7 @@ fn check_nsis_update(settings: &QgisSettings) -> Result<Option<NsisUpdateInfo>, 
         full,
         signature: resp.get("signature").and_then(|v| v.as_str()).map(|s| s.to_string()),
         sha256: resp.get("sha256").and_then(|v| v.as_str()).map(|s| s.to_string()),
+        full_sha256: resp.get("full_sha256").and_then(|v| v.as_str()).map(|s| s.to_string()),
         notes: resp.get("notes").and_then(|v| v.as_str()).map(|s| s.to_string()),
     }))
 }
@@ -958,6 +1084,14 @@ fn download_installer(url: &str, dest: &std::path::Path) -> Result<(), String> {
     Ok(())
 }
 
+
+/// インストール先フォルダ（現在の実行ファイルの親フォルダ）を返す。
+fn current_install_dir() -> PathBuf {
+    std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|p| p.to_path_buf()))
+        .unwrap_or_else(std::env::temp_dir)
+}
 
 /// NSIS インストーラーを起動し、本体を終了する。
 fn run_nsis_installer_and_exit(installer: &std::path::Path, install_dir: &str) {
@@ -982,51 +1116,62 @@ fn run_nsis_installer_and_exit(installer: &std::path::Path, install_dir: &str) {
     }
 }
 
-/// NSIS 更新が必要ならダウンロード・実行して終了する。
-/// エラー時はログを出力して通常起動を継続する。
-fn maybe_run_nsis_update(settings: &QgisSettings) {
-    let info = match check_nsis_update(settings) {
-        Ok(Some(i)) => i,
-        Ok(None) => return,
-        Err(e) => {
-            eprintln!("NSIS更新チェック失敗: {}", e);
-            return;
-        }
-    };
-
+/// 更新の適用準備（ガード確認・ダウンロード・SHA-256 検証）を行う。
+/// 成功時は (インストーラーのパス, 対象バージョン, 更新種別) を返す。
+/// 実際のインストーラー起動・プロセス終了は呼び出し側が行う。
+///
+/// 起動時に自動実行してはならない。更新後は新しい EXE が自動起動するため、
+/// 自動実行すると「更新 → 再起動 → 更新」のループになる。適用はユーザー操作起点のみ。
+fn prepare_nsis_update(settings: &QgisSettings, force: bool) -> Result<(PathBuf, String, &'static str), String> {
+    let info = check_nsis_update(settings)?.ok_or_else(|| "更新はありません".to_string())?;
     let current = env!("CARGO_PKG_VERSION");
+
+    // 無限ループガード: 同一バージョンへの更新を繰り返していないか確認する
+    if force {
+        println!("NSIS更新: force 指定のためループガードを無視します");
+    } else {
+        check_update_attempt_allowed(&info.version)?;
+    }
 
     // full が true かつ full_url がある場合は全体更新（データ込み）、
     // それ以外は通常更新（EXE のみ）を行う。
-    let (download_url, kind) = match (info.full, info.full_url.as_ref()) {
-        (true, Some(full_url)) => (full_url.as_str(), "全体更新"),
+    let (download_url, expected_sha256, kind) = match (info.full, info.full_url.as_ref()) {
+        (true, Some(full_url)) => (full_url.as_str(), info.full_sha256.as_ref(), "全体更新"),
         (true, None) => {
             eprintln!("NSIS更新: full=true ですが full_url がありません。通常更新を行います。");
-            (info.url.as_str(), "通常更新")
+            (info.url.as_str(), info.sha256.as_ref(), "通常更新")
         }
-        _ => (info.url.as_str(), "通常更新"),
+        _ => (info.url.as_str(), info.sha256.as_ref(), "通常更新"),
     };
     println!("NSIS更新({}): {} → {}", kind, current, info.version);
 
     let temp = std::env::temp_dir().join("kasugai_qgis_setup.exe");
+    download_installer(download_url, &temp)?;
 
-
-    {
-        if let Err(e) = download_installer(download_url, &temp) {
-            eprintln!("{}", e);
-            return;
-        }
+    // 壊れたダウンロードをインストールすると更新が反映されずループの原因になるため検証する
+    if let Some(expected) = expected_sha256.map(|s| s.trim()).filter(|s| !s.is_empty()) {
+        verify_sha256(&temp, expected)?;
+        println!("NSIS更新: SHA-256 検証 OK");
+    } else {
+        eprintln!("NSIS更新: update.json に sha256 がないため検証を省略します");
     }
 
-    // 注: セキュリティのため sha256 / 電子署名検証を追加推奨（sha2 クレート等）
+    // ここまで来たら実際に適用するので試行を記録する（ループガードの根拠）
+    record_update_attempt(&info.version);
 
-    // インストール先は現在の実行ファイルの親フォルダ
-    let install_dir = std::env::current_exe()
-        .ok()
-        .and_then(|p| p.parent().map(|p| p.to_path_buf()))
-        .unwrap_or_else(|| std::env::temp_dir());
+    Ok((temp, info.version, kind))
+}
 
-    run_nsis_installer_and_exit(&temp, &install_dir.to_string_lossy());
+/// ダウンロードしたファイルの SHA-256 を検証する。
+fn verify_sha256(path: &std::path::Path, expected: &str) -> Result<(), String> {
+    use sha2::{Digest, Sha256};
+    let bytes = fs::read(path).map_err(|e| format!("検証用の読み込み失敗 ({}): {}", path.display(), e))?;
+    let actual = format!("{:x}", Sha256::digest(&bytes));
+    if actual.eq_ignore_ascii_case(expected) {
+        Ok(())
+    } else {
+        Err(format!("SHA-256 が一致しません (expected={}, actual={})", expected, actual))
+    }
 }
 
 fn main() {
@@ -1078,8 +1223,16 @@ fn main() {
         project_root_dir = compute_project_root(&settings, &resolved_settings_dir);
     }
 
-    // NSIS インストーラー方式の自動更新チェック（update_url が設定されていれば）
-    maybe_run_nsis_update(&settings);
+    // 更新は起動時に自動適用しない（適用直後の再起動で再び更新が走り、無限ループになるため）。
+    // 起動時は直近の更新試行が成功したかを照合するだけに留め、
+    // 実際の適用は UI からのユーザー操作（POST /update/apply）でのみ行う。
+    let update_check_enabled = !args.no_update_check
+        && settings.update_check.unwrap_or(true)
+        && settings.update_url.as_deref().map(|u| !u.trim().is_empty()).unwrap_or(false);
+    if args.no_update_check {
+        println!("更新チェック: --no-update-check が指定されたため無効です");
+    }
+    reconcile_update_state();
 
     let profile_to_use = if !settings.profile.trim().is_empty() {
         settings.profile.clone()
@@ -1094,7 +1247,7 @@ fn main() {
         mount_drive_mappings(&settings.drive_mappings, &settings, None);
         copy_profiles_at_startup(&project_root_dir, None);
         run_local_sync(&settings, &project_root_dir, None);
-        run_api_server_sync(server_port, &resolved_settings_dir, &project_root_dir, args.open_browser);
+        run_api_server_sync(server_port, &resolved_settings_dir, &project_root_dir, args.open_browser, update_check_enabled);
         return;
     }
 
@@ -2143,6 +2296,8 @@ struct AppState {
     settings_dir: String,
     project_root_dir: String,
     progress: Arc<Mutex<Vec<String>>>,
+    /// 更新チェックを行うか（--no-update-check や設定で無効化される）
+    update_check_enabled: bool,
 }
 
 const UI_HTML: &str = include_str!("../public/index.html");
@@ -2151,16 +2306,17 @@ async fn ui_handler() -> Html<&'static str> {
     Html(UI_HTML)
 }
 
-fn run_api_server_sync(port: u16, settings_dir: &str, project_root_dir: &str, open_browser: bool) {
+fn run_api_server_sync(port: u16, settings_dir: &str, project_root_dir: &str, open_browser: bool, update_check_enabled: bool) {
     let rt = tokio::runtime::Runtime::new().unwrap();
-    rt.block_on(run_api_server(port, settings_dir, project_root_dir, open_browser));
+    rt.block_on(run_api_server(port, settings_dir, project_root_dir, open_browser, update_check_enabled));
 }
 
-async fn run_api_server(port: u16, settings_dir: &str, project_root_dir: &str, open_browser: bool) {
+async fn run_api_server(port: u16, settings_dir: &str, project_root_dir: &str, open_browser: bool, update_check_enabled: bool) {
     let state = AppState {
         settings_dir: settings_dir.to_string(),
         project_root_dir: project_root_dir.to_string(),
         progress: Arc::new(Mutex::new(Vec::new())),
+        update_check_enabled,
     };
     let app = Router::new()
         .route("/", get(ui_handler))
@@ -2369,20 +2525,35 @@ async fn project_version_handler(State(state): State<AppState>, Query(q): Query<
 }
 
 async fn update_check_handler(State(state): State<AppState>) -> Result<Json<serde_json::Value>, StatusCode> {
+    if !state.update_check_enabled {
+        return Ok(Json(serde_json::json!({
+            "available": false,
+            "disabled": true,
+            "current": env!("CARGO_PKG_VERSION")
+        })));
+    }
     let settings_dir = state.settings_dir;
     let settings = tokio::task::spawn_blocking(move || get_current_settings(&settings_dir))
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let current = env!("CARGO_PKG_VERSION");
     match check_nsis_update(&settings) {
-        Ok(None) => Ok(Json(serde_json::json!({ "available": false }))),
-        Ok(Some(info)) => Ok(Json(serde_json::json!({
-            "available": true,
-            "version": info.version,
-            "url": info.url,
-            "full_url": info.full_url,
-            "full": info.full,
-            "notes": info.notes
-        }))),
+        Ok(None) => Ok(Json(serde_json::json!({ "available": false, "current": current }))),
+        Ok(Some(info)) => {
+            // 同一バージョンへの再試行が禁止されている場合は理由も返す（UI で警告表示）
+            let blocked_reason = check_update_attempt_allowed(&info.version).err();
+            Ok(Json(serde_json::json!({
+                "available": true,
+                "current": current,
+                "version": info.version,
+                "url": info.url,
+                "full_url": info.full_url,
+                "full": info.full,
+                "notes": info.notes,
+                "blocked": blocked_reason.is_some(),
+                "blocked_reason": blocked_reason
+            })))
+        }
         Err(e) => {
             eprintln!("update check error: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)
@@ -2390,14 +2561,56 @@ async fn update_check_handler(State(state): State<AppState>) -> Result<Json<serd
     }
 }
 
-async fn update_apply_handler(State(state): State<AppState>) -> Json<serde_json::Value> {
+#[derive(Deserialize, Default)]
+struct UpdateApplyRequest {
+    /// ループガードを無視して強制的に更新する
+    #[serde(default)]
+    force: bool,
+}
+
+async fn update_apply_handler(
+    State(state): State<AppState>,
+    body: Option<Json<UpdateApplyRequest>>,
+) -> Json<serde_json::Value> {
+    if !state.update_check_enabled {
+        return Json(serde_json::json!({
+            "ok": false,
+            "message": "更新チェックは無効化されています（--no-update-check または設定の update_check）"
+        }));
+    }
+    let force = body.map(|Json(b)| b.force).unwrap_or(false);
     let settings_dir = state.settings_dir;
-    tokio::task::spawn_blocking(move || {
-        std::thread::sleep(std::time::Duration::from_secs(1));
+
+    // ダウンロードと検証までは同期的に行い、失敗理由を UI に返す。
+    // インストーラー起動（＝プロセス終了）は応答を返した後に行う。
+    let prepared = tokio::task::spawn_blocking(move || {
         let settings = get_current_settings(&settings_dir);
-        maybe_run_nsis_update(&settings);
-    });
-    Json(serde_json::json!({ "ok": true, "message": "更新処理を開始しました" }))
+        prepare_nsis_update(&settings, force)
+    })
+    .await;
+
+    match prepared {
+        Ok(Ok((installer, version, kind))) => {
+            tokio::task::spawn_blocking(move || {
+                std::thread::sleep(std::time::Duration::from_secs(1));
+                run_nsis_installer_and_exit(&installer, &current_install_dir().to_string_lossy());
+            });
+            Json(serde_json::json!({
+                "ok": true,
+                "version": version,
+                "kind": kind,
+                "message": format!("{}（{}）を開始しました。インストール完了後に自動で再起動します。", kind, version)
+            }))
+        }
+        Ok(Err(e)) => {
+            eprintln!("update apply error: {}", e);
+            Json(serde_json::json!({ "ok": false, "message": e }))
+        }
+        Err(e) => {
+            eprintln!("update apply join error: {}", e);
+            Json(serde_json::json!({ "ok": false, "message": "更新処理の実行に失敗しました" }))
+        }
+    }
 }
 
 #[derive(Serialize)]

@@ -40,10 +40,23 @@
     .modal { background: #fff; padding: 20px; border-radius: 8px; width: 80%; max-width: 600px; }
     #progress-bar { width: 100%; }
     #progress-messages { max-height: 200px; overflow-y: auto; font-size: 0.85em; color: #555; margin-top: 10px; }
+    #update-banner { display: none; margin: 12px 0; padding: 12px; border: 1px solid #f0c36d; background: #fdf6e3; border-radius: 4px; }
+    #update-banner.active { display: block; }
+    #update-banner.blocked { border-color: #e0a0a0; background: #fdeeee; }
+    #update-banner .notes { font-size: 0.9em; color: #555; margin: 6px 0 0; white-space: pre-wrap; }
   </style>
 </head>
 <body>
   <h1>Kasugai QGIS ランチャー</h1>
+
+  <div id="update-banner">
+    <strong id="update-title"></strong>
+    <p id="update-notes" class="notes"></p>
+    <div class="row">
+      <button id="update-apply">今すぐ更新する</button>
+      <button id="update-dismiss">あとで</button>
+    </div>
+  </div>
 
   <div class="tabs">
     <button class="tab-button active" data-tab="tab-launch">起動</button>
@@ -575,20 +588,58 @@
       }
     }
 
-    async function checkUpdate() {
+    // 更新は「通知のみ」。適用は必ずユーザー操作で行う（自動適用は更新ループの原因になる）。
+    let latestUpdate = null;
+
+    function showUpdateBanner(res) {
+      latestUpdate = res;
+      const banner = $('update-banner');
+      $('update-title').textContent = res.blocked
+        ? '更新 ' + res.version + ' は保留中です'
+        : '新しいバージョン ' + res.version + ' があります（現在 ' + res.current + '）';
+      $('update-notes').textContent = res.blocked ? res.blocked_reason : (res.notes || '');
+      $('update-apply').textContent = res.blocked ? '強制的に更新する' : '今すぐ更新する';
+      banner.classList.toggle('blocked', !!res.blocked);
+      banner.classList.add('active');
+    }
+
+    function hideUpdateBanner() {
+      $('update-banner').classList.remove('active');
+    }
+
+    // auto=true: 起動直後の自動チェック。更新がない場合は何も表示しない。
+    async function checkUpdate(auto) {
       try {
         const res = await api('GET', '/update');
         if (!res.available) {
-          status('更新はありません', 'ok');
+          hideUpdateBanner();
+          if (!auto) status(res.disabled ? '更新チェックは無効化されています' : '更新はありません（現在 ' + res.current + '）', 'ok');
           return;
         }
-        const msg = '新しいバージョン ' + res.version + ' があります。\n更新しますか？';
-        if (confirm(msg)) {
-          status('更新処理を開始しました。インストーラー終了後、サーバーを再起動してください。', 'ok');
-          try { await api('POST', '/update/apply'); } catch (e) { /* サーバーが終了するため無視 */ }
-        }
+        showUpdateBanner(res);
+        if (!auto) status('新しいバージョン ' + res.version + ' があります', 'ok');
       } catch (e) {
-        status('更新確認失敗: ' + e.message, 'err');
+        if (!auto) status('更新確認失敗: ' + e.message, 'err');
+      }
+    }
+
+    async function applyUpdate() {
+      if (!latestUpdate) return;
+      const force = !!latestUpdate.blocked;
+      const msg = force
+        ? '同じバージョンへの更新を繰り返している可能性があります。\n' + latestUpdate.blocked_reason + '\n\nそれでも強制的に更新しますか？'
+        : 'バージョン ' + latestUpdate.version + ' に更新します。\nQGIS ランチャーは一度終了し、更新後に自動で起動します。よろしいですか？';
+      if (!confirm(msg)) return;
+      $('update-apply').disabled = true;
+      try {
+        const res = await api('POST', '/update/apply', { force });
+        status(res.message, res.ok ? 'ok' : 'err');
+        if (res.ok) hideUpdateBanner();
+      } catch (e) {
+        // 更新が始まるとサーバーが終了するため、通信エラーは想定内
+        status('更新処理を開始しました。完了後に自動で再起動します。', 'ok');
+      } finally {
+        $('update-apply').disabled = false;
       }
     }
 
@@ -643,7 +694,9 @@
     $('save-raw').addEventListener('click', saveRawSettings);
     $('reload-raw').addEventListener('click', loadRawSettings);
     $('reset').addEventListener('click', resetProfiles);
-    $('check-update').addEventListener('click', checkUpdate);
+    $('check-update').addEventListener('click', () => checkUpdate(false));
+    $('update-apply').addEventListener('click', applyUpdate);
+    $('update-dismiss').addEventListener('click', hideUpdateBanner);
     $('save-port').addEventListener('click', savePort);
     $('save-project-root').addEventListener('click', saveProjectRoot);
     $('stop-server').addEventListener('click', stopServer);
@@ -652,6 +705,8 @@
 
     (async () => {
       await reloadAll();
+      // 起動時は通知のみ。適用はユーザーが明示的に押したときだけ。
+      checkUpdate(true);
     })();
   </script>
 </body>

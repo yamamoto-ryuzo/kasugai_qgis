@@ -119,9 +119,12 @@ Section "MainSection" SecMain
 SectionEnd
 
 ; サイレントインストール完了後は本体を自動起動
+; サイレント実行＝本体の自動更新から呼ばれたケース。
+; 起動直後にまた更新チェックが走ると「更新→再起動→更新」の無限ループになりうるため、
+; --no-update-check を必ず付けて起動する。
 Function .onInstSuccess
   ${If} ${Silent}
-    Exec '"$INSTDIR\qgis_launcher.exe" --open-browser'
+    Exec '"$INSTDIR\qgis_launcher.exe" --open-browser --no-update-check'
   ${EndIf}
 FunctionEnd
 

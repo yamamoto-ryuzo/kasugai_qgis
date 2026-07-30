@@ -1,5 +1,32 @@
 # Changelog
 
+## [2.0.2] - 2026-07-29
+
+### Added
+- EXE アイコン埋め込み（`build.rs`）
+- ファビコン配信用エンドポイント
+- ブラウザ自動起動機能
+- 多重起動防止機能
+
+### Changed
+- Windows サブシステム化
+- インストーラー・ショートカットを AGENT.md 仕様に合わせて整備
+  - ショートカットに `--open-browser` オプションを付与
+  - `RequestExecutionLevel` を `admin` に修正
+- `update.json` を 2.0.2 に更新
+
+## [2.0.1] - 2026-07-29
+
+### Removed
+- QGIS3 プロファイルサポートを削除
+  - `download/profiles/QGIS4/profiles/geo_custom/QGIS/QGIS3.ini` を廃止
+
+### Changed
+- QGIS バージョン自動検出と QGIS4 プロファイル配信を一本化
+- Web UI (`public/index.html`) を QGIS4 仕様に更新
+- `index.md` ドキュメントを 2.0.1 仕様に更新
+- `update.json` のバージョンを 2.0.1 に更新
+
 ## [2.0.0] - 2026-07-29
 
 ### Added
