@@ -47,7 +47,7 @@
   </style>
 </head>
 <body>
-  <h1>Kasugai QGIS ランチャー</h1>
+  <h1>Kasugai QGIS ランチャー <span id="app-version" style="font-size: 0.5em; color: #666; margin-left: 12px; font-weight: normal; background: #fff; padding: 2px 8px; border-radius: 4px; vertical-align: middle;"></span></h1>
 
   <div id="update-banner">
     <strong id="update-title"></strong>
@@ -591,6 +591,11 @@
     // 更新は「通知のみ」。適用は必ずユーザー操作で行う（自動適用は更新ループの原因になる）。
     let latestUpdate = null;
 
+    function setVersion(v) {
+      const el = $('app-version');
+      if (el) el.textContent = v ? 'v' + v : '';
+    }
+
     function showUpdateBanner(res) {
       latestUpdate = res;
       const banner = $('update-banner');
@@ -611,6 +616,7 @@
     async function checkUpdate(auto) {
       try {
         const res = await api('GET', '/update');
+        setVersion(res.current);
         if (!res.available) {
           hideUpdateBanner();
           if (!auto) status(res.disabled ? '更新チェックは無効化されています' : '更新はありません（現在 ' + res.current + '）', 'ok');
@@ -705,6 +711,12 @@
 
     (async () => {
       await reloadAll();
+      try {
+        const v = await api('GET', '/version');
+        setVersion(v.version);
+      } catch (e) {
+        // フォールバック: /update からも取得する
+      }
       // 起動時は通知のみ。適用はユーザーが明示的に押したときだけ。
       checkUpdate(true);
     })();

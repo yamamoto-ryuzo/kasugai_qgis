@@ -2334,6 +2334,7 @@ async fn run_api_server(port: u16, settings_dir: &str, project_root_dir: &str, o
         .route("/update/apply", post(update_apply_handler))
         .route("/api/v1/server/stop", post(stop_server))
         .route("/api/v1/server/info", get(server_info))
+        .route("/version", get(version_handler))
         .layer(CorsLayer::permissive())
         .with_state(state);
 
@@ -2411,6 +2412,10 @@ async fn server_info(State(state): State<AppState>) -> Json<serde_json::Value> {
         "settings_dir": state.settings_dir,
         "project_root_dir": state.project_root_dir,
     }))
+}
+
+async fn version_handler() -> Json<serde_json::Value> {
+    Json(serde_json::json!({ "version": env!("CARGO_PKG_VERSION") }))
 }
 
 async fn progress_handler(State(state): State<AppState>) -> Json<serde_json::Value> {
