@@ -154,6 +154,20 @@ def verify_release_consistency(version):
     return 0
 
 
+def create_git_tag(version):
+    """現在の Cargo.toml バージョンで git tag vX.Y.Z を作成する。"""
+    tag = f"v{version}"
+    rc = subprocess.run(
+        ["git", "tag", "-a", tag, "-m", f"Release {tag}"],
+        cwd=ROOT,
+    ).returncode
+    if rc != 0:
+        print(f"ERROR: git tag {tag} の作成に失敗しました")
+        return rc
+    print(f"git tag {tag} を作成しました")
+    return 0
+
+
 def find_makensis():
     candidates = [
         os.environ.get("NSISDIR"),
@@ -344,6 +358,11 @@ def main():
                         help="バージョンを更新してリリース一式をビルドする（例: --bump 2.1.0）")
     parser.add_argument("--check-version", action="store_true",
                         help="バージョン整合性のみ確認する")
+    parser.add_argument("--tag", action="store_true",
+                        help="現在の Cargo.toml バージョンで git tag vX.Y.Z を作成する")
+    parser.add_argument("--version", action="version",
+                        version=read_cargo_version(),
+                        help="現在のバージョンを表示する")
     args, tail = parser.parse_known_args()
 
     if tail and tail[0] == "--":
@@ -366,6 +385,9 @@ def main():
         return build_release_bundle()
     if args.installer:
         return build_release_bundle(with_zip=False)
+
+    if args.tag:
+        return create_git_tag(read_cargo_version())
 
     return cargo_run(extra)
 
