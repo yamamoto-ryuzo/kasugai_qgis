@@ -5,49 +5,51 @@
   <title>Kasugai QGIS ランチャー</title>
   <link rel="icon" type="image/x-icon" href="/favicon.ico" />
   <style>
-    body { font-family: sans-serif; margin: 24px; max-width: 720px; }
-    label { display: block; margin-top: 12px; font-weight: bold; }
-    input, select, textarea { width: 100%; padding: 6px; box-sizing: border-box; }
+    body { font-family: sans-serif; margin: 24px; max-width: 720px; background-color: #ffffff; color: #000000; }
+    h1 { color: #15803d; }
+    label { display: block; margin-top: 12px; font-weight: bold; color: #15803d; }
+    input, select, textarea { width: 100%; padding: 6px; box-sizing: border-box; background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; }
     textarea { height: 120px; }
     #raw-settings { height: 320px; font-family: monospace; }
     .row { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
-    button { padding: 8px 16px; cursor: pointer; }
-    #status { margin: 16px 0; padding: 8px; background: #f0f0f0; border-radius: 4px; white-space: pre-wrap; }
-    .ok { color: green; }
-    .err { color: red; }
-    .tabs { display: flex; border-bottom: 2px solid #ccc; }
-    .tab-button { padding: 10px 20px; border: none; background: #e0e0e0; cursor: pointer; border-top-left-radius: 4px; border-top-right-radius: 4px; }
-    .tab-button.active { background: #fff; font-weight: bold; border: 2px solid #ccc; border-bottom: 2px solid #fff; }
-    .tab-content { display: none; border: 2px solid #ccc; border-top: none; padding: 16px; }
+    button { padding: 8px 16px; cursor: pointer; background-color: #22c55e; color: #ffffff; border: none; border-radius: 6px; transition: background-color 0.2s; }
+    button:hover { background-color: #16a34a; }
+    #status { margin: 16px 0; padding: 8px; background: #f1f5f9; border-radius: 4px; white-space: pre-wrap; }
+    .ok { color: #22c55e; }
+    .err { color: #ef4444; }
+    .tabs { display: flex; gap: 5px; padding: 10px; background: #ffffff; border-bottom: 1px solid #cbd5e1; }
+    .tab-button { padding: 6px 12px; border: none; background: #ffffff; color: #000000; cursor: pointer; border-radius: 6px; }
+    .tab-button.active { background: #22c55e; color: #ffffff; font-weight: bold; border-radius: 6px; }
+    .tab-content { display: none; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); padding: 16px; margin-top: 10px; }
     .tab-content.active { display: block; }
-    .readonly { background: #f9f9f9; }
-    .sub-tabs { display: flex; border-bottom: 1px solid #ccc; margin-bottom: 12px; }
-    .sub-tab-button { padding: 6px 14px; border: 1px solid transparent; border-bottom: none; background: #f0f0f0; cursor: pointer; margin-right: 2px; border-top-left-radius: 4px; border-top-right-radius: 4px; }
-    .sub-tab-button.active { background: #fff; font-weight: bold; border-color: #ccc; }
+    .readonly { background: #f8fafc; }
+    .sub-tabs { display: flex; gap: 5px; padding: 0 10px; background: #ffffff; border-bottom: 1px solid #cbd5e1; margin-bottom: 12px; }
+    .sub-tab-button { padding: 6px 12px; border: none; background: #ffffff; color: #000000; cursor: pointer; border-radius: 6px; }
+    .sub-tab-button.active { background: #22c55e; color: #ffffff; font-weight: bold; border-radius: 6px; }
     .sub-tab-content { display: none; }
     .sub-tab-content.active { display: block; }
     .sub-section { margin-bottom: 12px; }
-    .sub-section label { font-size: 0.9em; color: #555; }
-    .sub-array-item { border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; background: #fafafa; border-radius: 4px; }
+    .sub-section label { font-size: 0.9em; color: #15803d; }
+    .sub-array-item { border: 1px solid #cbd5e1; padding: 10px; margin-bottom: 10px; background: #ffffff; border-radius: 4px; }
     .inline { width: auto; display: inline-block; }
-    .drive-tabs { display: flex; border-bottom: 1px solid #ccc; margin-bottom: 12px; }
-    .drive-tab-button { padding: 6px 14px; border: 1px solid transparent; border-bottom: none; background: #f0f0f0; cursor: pointer; margin-right: 2px; border-top-left-radius: 4px; border-top-right-radius: 4px; }
-    .drive-tab-button.active { background: #fff; font-weight: bold; border-color: #ccc; }
+    .drive-tabs { display: flex; gap: 5px; padding: 0 10px; background: #ffffff; border-bottom: 1px solid #cbd5e1; margin-bottom: 12px; }
+    .drive-tab-button { padding: 6px 12px; border: none; background: #ffffff; color: #000000; cursor: pointer; border-radius: 6px; }
+    .drive-tab-button.active { background: #22c55e; color: #ffffff; font-weight: bold; border-radius: 6px; }
     .drive-tab-panel { display: none; }
     .drive-tab-panel.active { display: block; }
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
     .modal-overlay.active { display: flex; }
-    .modal { background: #fff; padding: 20px; border-radius: 8px; width: 80%; max-width: 600px; }
+    .modal { background: #ffffff; padding: 20px; border-radius: 8px; width: 80%; max-width: 600px; }
     #progress-bar { width: 100%; }
-    #progress-messages { max-height: 200px; overflow-y: auto; font-size: 0.85em; color: #555; margin-top: 10px; }
-    #update-banner { display: none; margin: 12px 0; padding: 12px; border: 1px solid #f0c36d; background: #fdf6e3; border-radius: 4px; }
+    #progress-messages { max-height: 200px; overflow-y: auto; font-size: 0.85em; color: #64748b; margin-top: 10px; }
+    #update-banner { display: none; margin: 12px 0; padding: 12px; border: 1px solid #f59e0b; background: #fef3c7; border-radius: 4px; }
     #update-banner.active { display: block; }
-    #update-banner.blocked { border-color: #e0a0a0; background: #fdeeee; }
-    #update-banner .notes { font-size: 0.9em; color: #555; margin: 6px 0 0; white-space: pre-wrap; }
+    #update-banner.blocked { border-color: #ef4444; background: #fee2e2; }
+    #update-banner .notes { font-size: 0.9em; color: #64748b; margin: 6px 0 0; white-space: pre-wrap; }
   </style>
 </head>
 <body>
-  <h1>Kasugai QGIS ランチャー <span id="app-version" style="font-size: 0.5em; color: #666; margin-left: 12px; font-weight: normal; background: #fff; padding: 2px 8px; border-radius: 4px; vertical-align: middle;"></span></h1>
+  <h1>Kasugai QGIS ランチャー <span id="app-version" style="font-size: 0.5em; color: #64748b; margin-left: 12px; font-weight: normal; background: #ffffff; padding: 2px 8px; border-radius: 4px; vertical-align: middle;"></span></h1>
 
   <div id="update-banner">
     <strong id="update-title"></strong>
@@ -154,7 +156,7 @@
 
     <label>待ち受けポート（qgis_settings.json に保存）</label>
     <input id="port-setting" type="number" min="1024" max="65535" value="8500">
-    <p style="font-size: small; color: #666;">変更はサーバー再起動後に反映されます。</p>
+    <p style="font-size: small; color: #64748b;">変更はサーバー再起動後に反映されます。</p>
 
     <div class="row">
       <button id="save-port">ポートを保存</button>
