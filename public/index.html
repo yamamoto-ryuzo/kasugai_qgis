@@ -527,7 +527,7 @@
           role: $('role').value
         };
         const res = await api('POST', '/launch', body);
-        status('QGIS 起動リクエスト: ' + JSON.stringify(res), 'ok');
+        status('QGIS を起動しました。サーバーは自動停止します。', 'ok');
       } catch (e) {
         status('QGIS 起動失敗: ' + e.message, 'err');
       }

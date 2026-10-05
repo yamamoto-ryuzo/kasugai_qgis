@@ -13,6 +13,8 @@ use winreg::enums::*;
 
 /// 子プロセスのコンソールウィンドウを非表示にする Windows フラグ
 const CREATE_NO_WINDOW: u32 = 0x08000000;
+/// デフォルトの自動更新 JSON エンドポイント URL
+const DEFAULT_UPDATE_URL: &str = "https://yamamoto-ryuzo.github.io/kasugai_qgis/update.json";
 use winreg::RegKey;
 use quick_xml::Reader;
 use quick_xml::events::Event;
@@ -1024,10 +1026,11 @@ fn update_http_client() -> Result<reqwest::blocking::Client, String> {
 
 /// NSIS 更新 JSON エンドポイントを確認し、新しい版があれば情報を返す。
 fn check_nsis_update(settings: &QgisSettings) -> Result<Option<NsisUpdateInfo>, String> {
-    let update_url = match settings.update_url.as_ref() {
-        Some(u) if !u.trim().is_empty() => u.trim(),
-        _ => return Ok(None),
-    };
+    let update_url = settings
+        .update_url
+        .as_deref()
+        .filter(|u| !u.trim().is_empty())
+        .unwrap_or(DEFAULT_UPDATE_URL);
 
     if !settings.update_check.unwrap_or(true) {
         return Ok(None);
@@ -1226,9 +1229,14 @@ fn main() {
     // 更新は起動時に自動適用しない（適用直後の再起動で再び更新が走り、無限ループになるため）。
     // 起動時は直近の更新試行が成功したかを照合するだけに留め、
     // 実際の適用は UI からのユーザー操作（POST /update/apply）でのみ行う。
+    let has_update_url = settings
+        .update_url
+        .as_deref()
+        .map(|u| !u.trim().is_empty())
+        .unwrap_or(true);
     let update_check_enabled = !args.no_update_check
         && settings.update_check.unwrap_or(true)
-        && settings.update_url.as_deref().map(|u| !u.trim().is_empty()).unwrap_or(false);
+        && has_update_url;
     if args.no_update_check {
         println!("更新チェック: --no-update-check が指定されたため無効です");
     }
@@ -2450,7 +2458,13 @@ async fn launch_handler(State(state): State<AppState>, Json(req): Json<LaunchReq
     })
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(serde_json::json!({ "ok": true })))
+    // QGIS 起動後はサーバーを自動停止する（レスポンス送信後に終了）
+    tokio::spawn(async {
+        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+        println!("QGIS を起動したため、サーバーを停止します。");
+        std::process::exit(0);
+    });
+    Ok(Json(serde_json::json!({ "ok": true, "server_stopping": true })))
 }
 
 #[derive(Serialize)]
