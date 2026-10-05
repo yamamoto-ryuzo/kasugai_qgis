@@ -1306,6 +1306,14 @@ fn main() {
                             qgis_exe = path;
                         }
                     }
+                } else {
+                    // プロジェクトのバージョンに一致する QGIS が見つからない場合は
+                    // メッセージを出してシステム既定（.qgs 関連付け）にフォールバックする
+                    println!(
+                        "プロジェクトファイルのバージョン {} に一致する QGIS が見つかりませんでした。システム既定の QGIS で起動します。",
+                        ver
+                    );
+                    qgis_exe = String::new();
                 }
             }
         }
@@ -1381,7 +1389,15 @@ fn find_qgis_path_from_registry() -> Option<String> {
         // 存在しない場合はシステム既定として扱わない。
         let pb = PathBuf::from(&exe_str);
         if pb.exists() {
-            Some(exe_str)
+            // レジストリには 8.3 短縮形式 (例: C:\PROGRA~1\...) で記録されている場合があるため、
+            // canonicalize で長い形式に正規化する（UI の選択肢とのパス比較を一致させるため）。
+            let normalized = std::fs::canonicalize(&pb)
+                .map(|p| {
+                    let s = p.to_string_lossy().to_string();
+                    s.strip_prefix(r"\\?\").map(|t| t.to_string()).unwrap_or(s)
+                })
+                .unwrap_or(exe_str);
+            Some(normalized)
         } else {
             eprintln!("レジストリで見つかったQGISパスが存在しません: {}", exe_str);
             None
@@ -1949,7 +1965,10 @@ fn launch_qgis(profile_name: &str, project_paths: &[String], project_root: &str,
     // QGISのパスを決定（プロファイルコピーは EXE 起動時に完了済み）
     let qgis_path = if exe_path.is_empty() {
         match find_qgis_path_from_registry() {
-            Some(p) => p,
+            Some(p) => {
+                println!("システム既定の QGIS を使用します: {}", p);
+                p
+            }
             None => {
                 eprintln!("QGISの実行ファイルが見つかりませんでした。レジストリの関連付けを確認してください。");
                 return;
@@ -2309,6 +2328,17 @@ struct AppState {
 }
 
 const UI_HTML: &str = include_str!("../public/index.html");
+const I18N_JS: &str = include_str!("../public/i18n.js");
+const I18N_EN_JSON: &str = include_str!("../public/i18n/en.json");
+const I18N_JA_JSON: &str = include_str!("../public/i18n/ja.json");
+const I18N_ZH_JSON: &str = include_str!("../public/i18n/zh.json");
+const I18N_ZH_TW_JSON: &str = include_str!("../public/i18n/zh-tw.json");
+const I18N_KO_JSON: &str = include_str!("../public/i18n/ko.json");
+const I18N_ES_JSON: &str = include_str!("../public/i18n/es.json");
+const I18N_FR_JSON: &str = include_str!("../public/i18n/fr.json");
+const I18N_DE_JSON: &str = include_str!("../public/i18n/de.json");
+const I18N_PT_JSON: &str = include_str!("../public/i18n/pt.json");
+const I18N_RU_JSON: &str = include_str!("../public/i18n/ru.json");
 
 async fn ui_handler() -> Html<&'static str> {
     Html(UI_HTML)
@@ -2329,6 +2359,9 @@ async fn run_api_server(port: u16, settings_dir: &str, project_root_dir: &str, o
     let app = Router::new()
         .route("/", get(ui_handler))
         .route("/favicon.ico", get(favicon_handler))
+        // i18n: 対応言語の追加は辞書ファイルの追加と i18n_dict_handler の match への登録で行う
+        .route("/i18n.js", get(i18n_js_handler))
+        .route("/i18n/*file", get(i18n_dict_handler))
         .route("/health", get(health))
         .route("/settings", get(get_settings_handler).post(post_settings_handler))
         .route("/qgis", get(list_qgis_handler))
@@ -2405,6 +2438,35 @@ async fn favicon_handler() -> impl IntoResponse {
 
 async fn health() -> &'static str {
     "ok"
+}
+
+async fn i18n_js_handler() -> impl IntoResponse {
+    (
+        [(header::CONTENT_TYPE, "application/javascript; charset=utf-8")],
+        I18N_JS,
+    )
+}
+
+async fn i18n_dict_handler(
+    axum::extract::Path(file): axum::extract::Path<String>,
+) -> Result<impl IntoResponse, StatusCode> {
+    let json = match file.as_str() {
+        "en.json" => I18N_EN_JSON,
+        "ja.json" => I18N_JA_JSON,
+        "zh.json" => I18N_ZH_JSON,
+        "zh-tw.json" => I18N_ZH_TW_JSON,
+        "ko.json" => I18N_KO_JSON,
+        "es.json" => I18N_ES_JSON,
+        "fr.json" => I18N_FR_JSON,
+        "de.json" => I18N_DE_JSON,
+        "pt.json" => I18N_PT_JSON,
+        "ru.json" => I18N_RU_JSON,
+        _ => return Err(StatusCode::NOT_FOUND),
+    };
+    Ok((
+        [(header::CONTENT_TYPE, "application/json; charset=utf-8")],
+        json,
+    ))
 }
 
 async fn stop_server() -> &'static str {
@@ -2552,11 +2614,17 @@ async fn update_check_handler(State(state): State<AppState>) -> Result<Json<serd
         })));
     }
     let settings_dir = state.settings_dir;
-    let settings = tokio::task::spawn_blocking(move || get_current_settings(&settings_dir))
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    // check_nsis_update は内部で reqwest::blocking を使うため、
+    // async コンテキストから直接呼ぶと tokio ランタイムの drop でパニックする。
+    // 必ず spawn_blocking 内で実行する。
+    let result = tokio::task::spawn_blocking(move || {
+        let settings = get_current_settings(&settings_dir);
+        check_nsis_update(&settings)
+    })
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let current = env!("CARGO_PKG_VERSION");
-    match check_nsis_update(&settings) {
+    match result {
         Ok(None) => Ok(Json(serde_json::json!({ "available": false, "current": current }))),
         Ok(Some(info)) => {
             // 同一バージョンへの再試行が禁止されている場合は理由も返す（UI で警告表示）

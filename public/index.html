@@ -46,69 +46,71 @@
     #update-banner.active { display: block; }
     #update-banner.blocked { border-color: #ef4444; background: #fee2e2; }
     #update-banner .notes { font-size: 0.9em; color: #64748b; margin: 6px 0 0; white-space: pre-wrap; }
+    #lang-select { margin-left: auto; width: auto; padding: 2px 8px; }
   </style>
 </head>
 <body>
-  <h1>Kasugai QGIS ランチャー <span id="app-version" style="font-size: 0.5em; color: #64748b; margin-left: 12px; font-weight: normal; background: #ffffff; padding: 2px 8px; border-radius: 4px; vertical-align: middle;"></span></h1>
+  <h1><span data-i18n="app_title">Kasugai QGIS ランチャー</span> <span id="app-version" style="font-size: 0.5em; color: #64748b; margin-left: 12px; font-weight: normal; background: #ffffff; padding: 2px 8px; border-radius: 4px; vertical-align: middle;"></span></h1>
 
   <div id="update-banner">
     <strong id="update-title"></strong>
     <p id="update-notes" class="notes"></p>
     <div class="row">
-      <button id="update-apply">今すぐ更新する</button>
-      <button id="update-dismiss">あとで</button>
+      <button id="update-apply" data-i18n="update_apply_now">今すぐ更新する</button>
+      <button id="update-dismiss" data-i18n="update_dismiss">あとで</button>
     </div>
   </div>
 
   <div class="tabs">
-    <button class="tab-button active" data-tab="tab-launch">起動</button>
-    <button class="tab-button" data-tab="tab-paths">探索パス</button>
-    <button class="tab-button" data-tab="tab-raw">詳細設定</button>
-    <button class="tab-button" data-tab="tab-maint">設定</button>
+    <button class="tab-button active" data-tab="tab-launch" data-i18n="tab_launch">起動</button>
+    <button class="tab-button" data-tab="tab-paths" data-i18n="tab_paths">探索パス</button>
+    <button class="tab-button" data-tab="tab-raw" data-i18n="tab_raw">詳細設定</button>
+    <button class="tab-button" data-tab="tab-maint" data-i18n="tab_maint">設定</button>
+    <select id="lang-select" title="Language / 言語"></select>
   </div>
 
   <div id="tab-launch" class="tab-content active">
-    <label>プロファイル</label>
+    <label data-i18n="label_profile">プロファイル</label>
     <select id="profile"></select>
 
-    <label>ユーザーロール</label>
+    <label data-i18n="label_userrole">ユーザーロール</label>
     <select id="role">
       <option value="Viewer">Viewer</option>
       <option value="Editor">Editor</option>
       <option value="Administrator">Administrator</option>
     </select>
 
-    <label>QGIS バージョン</label>
-    <select id="qgis"></select>
-
-    <label>プロジェクト</label>
+    <label data-i18n="label_project">プロジェクト</label>
     <select id="project-select"></select>
 
-    <label>プロジェクトファイルバージョン</label>
+    <label data-i18n="label_project_version">プロジェクトファイルバージョン</label>
     <input id="project-version" type="text" class="readonly" readonly>
 
+    <label data-i18n="label_qgis_version">QGIS バージョン</label>
+    <select id="qgis"></select>
+
     <div class="row">
-      <button id="reset">プロファイルを初期化</button>
-      <button id="save-launch">起動設定を保存</button>
-      <button id="launch">QGIS を起動</button>
+      <button id="reset" data-i18n="btn_reset_profile">プロファイルを初期化</button>
+      <button id="save-launch" data-i18n="btn_save_launch">起動設定を保存</button>
+      <button id="launch" data-i18n="btn_launch">QGIS を起動</button>
     </div>
   </div>
 
   <div id="tab-paths" class="tab-content">
-    <label>プロジェクト探索パス（改行区切り）</label>
-    <textarea id="project-sources" placeholder="C:\\Box\\projects&#10;またはフォルダパス"></textarea>
+    <label data-i18n="label_project_paths">プロジェクト探索パス（改行区切り）</label>
+    <textarea id="project-sources" placeholder="C:\\Box\\projects&#10;またはフォルダパス" data-i18n-ph="ph_project_sources"></textarea>
     <div class="row">
-      <button id="save-paths">探索パスを保存</button>
-      <button id="reload-all">設定と一覧を再読み込み</button>
+      <button id="save-paths" data-i18n="btn_save_paths">探索パスを保存</button>
+      <button id="reload-all" data-i18n="btn_reload_all">設定と一覧を再読み込み</button>
     </div>
   </div>
 
   <div id="tab-raw" class="tab-content">
     <div class="sub-tabs">
-      <button class="sub-tab-button active" data-tab="sub-localsync">local_sync</button>
-      <button class="sub-tab-button" data-tab="sub-drives">drive_mappings</button>
-      <button class="sub-tab-button" data-tab="sub-aliases">path_aliases</button>
-      <button class="sub-tab-button" data-tab="sub-raw">生 JSON</button>
+      <button class="sub-tab-button active" data-tab="sub-localsync" data-i18n="subtab_localsync">local_sync</button>
+      <button class="sub-tab-button" data-tab="sub-drives" data-i18n="subtab_drives">drive_mappings</button>
+      <button class="sub-tab-button" data-tab="sub-aliases" data-i18n="subtab_aliases">path_aliases</button>
+      <button class="sub-tab-button" data-tab="sub-raw" data-i18n="subtab_raw">生 JSON</button>
     </div>
 
     <div id="sub-localsync" class="sub-tab-content active">
@@ -117,15 +119,15 @@
         <label>sync_dst</label><input type="text" id="raw-sync_dst">
         <label>qfield_version</label><input type="text" id="raw-qfield_version">
         <label>qgis_version</label><input type="text" id="raw-qgis_version">
-        <label>exclude_dirs（改行区切り）</label><textarea id="raw-exclude_dirs"></textarea>
+        <label data-i18n="label_exclude_dirs">exclude_dirs（改行区切り）</label><textarea id="raw-exclude_dirs"></textarea>
         <label>portable_profile_version</label><input type="text" id="raw-portable_profile_version">
       </div>
     </div>
 
     <div id="sub-drives" class="sub-tab-content">
       <div class="drive-tabs">
-        <button type="button" class="drive-tab-button active" data-drive="raw-drive-0">ドライブ1</button>
-        <button type="button" class="drive-tab-button" data-drive="raw-drive-1">ドライブ2</button>
+        <button type="button" class="drive-tab-button active" data-drive="raw-drive-0" data-i18n="drive_tab" data-i18n-args='{"n":1}'>ドライブ1</button>
+        <button type="button" class="drive-tab-button" data-drive="raw-drive-1" data-i18n="drive_tab" data-i18n-args='{"n":2}'>ドライブ2</button>
       </div>
       <div id="raw-drive-0" class="drive-tab-panel active"></div>
       <div id="raw-drive-1" class="drive-tab-panel"></div>
@@ -133,38 +135,38 @@
 
     <div id="sub-aliases" class="sub-tab-content">
       <div id="raw-aliases-list"></div>
-      <button type="button" id="raw-add-alias">エイリアスを追加</button>
+      <button type="button" id="raw-add-alias" data-i18n="btn_add_alias">エイリアスを追加</button>
     </div>
 
     <div id="sub-raw" class="sub-tab-content">
-      <label>qgis_settings.json（生 JSON）</label>
+      <label data-i18n="label_raw_json">qgis_settings.json（生 JSON）</label>
       <textarea id="raw-settings" placeholder='{&#10;  "profile": "geo_custom",&#10;  "project_path": [],&#10;  ...&#10;}'></textarea>
     </div>
 
     <div class="row">
-      <button id="save-raw">JSON 設定を保存</button>
-      <button id="reload-raw">再読み込み</button>
+      <button id="save-raw" data-i18n="btn_save_json">JSON 設定を保存</button>
+      <button id="reload-raw" data-i18n="btn_reload">再読み込み</button>
     </div>
   </div>
 
   <div id="tab-maint" class="tab-content">
-    <label>ファイル保存先（project_root）※空欄で qgis_settings.json と同じフォルダ</label>
-    <input id="project-root" type="text" placeholder="C:\\work\\qgis_data または相対パス">
+    <label data-i18n="label_project_root">ファイル保存先（project_root）※空欄で qgis_settings.json と同じフォルダ</label>
+    <input id="project-root" type="text" placeholder="C:\\work\\qgis_data または相対パス" data-i18n-ph="ph_project_root">
     <div class="row">
-      <button id="save-project-root">ファイル保存先を保存</button>
+      <button id="save-project-root" data-i18n="btn_save_project_root">ファイル保存先を保存</button>
     </div>
 
-    <label>待ち受けポート（qgis_settings.json に保存）</label>
+    <label data-i18n="label_port">待ち受けポート（qgis_settings.json に保存）</label>
     <input id="port-setting" type="number" min="1024" max="65535" value="8500">
-    <p style="font-size: small; color: #64748b;">変更はサーバー再起動後に反映されます。</p>
+    <p style="font-size: small; color: #64748b;" data-i18n="note_port_restart">変更はサーバー再起動後に反映されます。</p>
 
     <div class="row">
-      <button id="save-port">ポートを保存</button>
-      <button id="stop-server">Axum サーバーを停止</button>
+      <button id="save-port" data-i18n="btn_save_port">ポートを保存</button>
+      <button id="stop-server" data-i18n="btn_stop_server">Axum サーバーを停止</button>
     </div>
 
     <div class="row">
-      <button id="check-update">更新を確認</button>
+      <button id="check-update" data-i18n="btn_check_update">更新を確認</button>
     </div>
   </div>
 
@@ -172,12 +174,13 @@
 
   <div id="progress-modal" class="modal-overlay">
     <div class="modal">
-      <h3>プロファイルを初期化中...</h3>
+      <h3 data-i18n="progress_resetting">プロファイルを初期化中...</h3>
       <progress id="progress-bar" value="0" max="100"></progress>
       <div id="progress-messages"></div>
     </div>
   </div>
 
+  <script src="/i18n.js"></script>
   <script>
     const $ = id => document.getElementById(id);
     const status = (msg, cls) => {
@@ -283,7 +286,7 @@
           <label><input type="checkbox" id="raw-drive-${idx}-read_only" class="inline" ${d.read_only ? 'checked' : ''}> read_only</label>
           <label>remote</label><input type="text" id="raw-drive-${idx}-remote" value="${d.remote == null ? '' : esc(d.remote)}">
           <label>robocopy_src</label><input type="text" id="raw-drive-${idx}-robocopy_src" value="${d.robocopy_src == null ? '' : esc(d.robocopy_src)}">
-          <label>robocopy_exclude（改行区切り）</label><textarea id="raw-drive-${idx}-robocopy_exclude">${joinArr(d.robocopy_exclude)}</textarea>
+          <label data-i18n="label_robocopy_exclude">robocopy_exclude（改行区切り）</label><textarea id="raw-drive-${idx}-robocopy_exclude">${joinArr(d.robocopy_exclude)}</textarea>
           <label>vfs_cache_mode</label><input type="text" id="raw-drive-${idx}-vfs_cache_mode" value="${d.vfs_cache_mode == null ? '' : esc(d.vfs_cache_mode)}">
         </div>
       `;
@@ -303,9 +306,9 @@
         const div = document.createElement('div');
         div.className = 'sub-array-item';
         div.innerHTML = `
-          <label>名前</label><input type="text" id="raw-alias-${i}-key" value="${esc(k)}">
-          <label>パス</label><input type="text" id="raw-alias-${i}-val" value="${esc(v)}">
-          <button type="button" class="raw-remove-alias" data-idx="${i}">削除</button>
+          <label data-i18n="alias_name">名前</label><input type="text" id="raw-alias-${i}-key" value="${esc(k)}">
+          <label data-i18n="alias_path">パス</label><input type="text" id="raw-alias-${i}-val" value="${esc(v)}">
+          <button type="button" class="raw-remove-alias" data-idx="${i}" data-i18n="btn_remove">削除</button>
         `;
         c.appendChild(div);
         i++;
@@ -324,6 +327,8 @@
       renderLocalSync();
       renderDrives();
       renderAliases();
+      // 動的に生成した要素の data-i18n を反映する
+      if (typeof applyI18n === 'function') applyI18n();
     }
 
     function collectLocalSync() {
@@ -457,7 +462,9 @@
       });
       if (currentSettings.qgis_executable) {
         sel.value = currentSettings.qgis_executable;
-      } else if (list.length > 0) {
+      }
+      // 設定値が選択肢に一致しない場合（8.3 短縮パスなど）や未設定の場合は先頭を選択する
+      if (sel.selectedIndex === -1 && list.length > 0) {
         sel.selectedIndex = 0;
       }
     }
@@ -470,9 +477,9 @@
       }
       try {
         const res = await api('GET', '/project-version?path=' + encodeURIComponent(path));
-        $('project-version').value = res.version || '取得できません';
+        $('project-version').value = res.version || t('version_unavailable');
       } catch (e) {
-        $('project-version').value = '取得失敗';
+        $('project-version').value = t('version_failed');
       }
     }
 
@@ -484,9 +491,9 @@
         s.current_project = $('project-select').value || null;
         s.qgis_executable = $('qgis').value || null;
         await api('POST', '/settings', s);
-        status('起動設定を保存しました', 'ok');
+        status(t('status_saved_launch'), 'ok');
       } catch (e) {
-        status('起動設定保存失敗: ' + e.message, 'err');
+        status(t('status_saved_launch_fail', { msg: e.message }), 'err');
       }
     }
 
@@ -495,10 +502,10 @@
         const s = { ...currentSettings };
         s.project_path = $('project-sources').value.split('\n').map(x => x.trim()).filter(x => x);
         await api('POST', '/settings', s);
-        status('探索パスを保存しました', 'ok');
+        status(t('status_saved_paths'), 'ok');
         await loadProjects();
       } catch (e) {
-        status('探索パス保存失敗: ' + e.message, 'err');
+        status(t('status_saved_paths_fail', { msg: e.message }), 'err');
       }
     }
 
@@ -508,13 +515,13 @@
         const parsed = JSON.parse(text);
         await api('POST', '/settings', parsed);
         currentSettings = parsed;
-        status('JSON 設定を保存しました', 'ok');
+        status(t('status_saved_json'), 'ok');
         await loadProjects();
         await loadProfiles();
         await loadQgis();
         loadRawSettings();
       } catch (e) {
-        status('JSON 設定保存失敗: ' + e.message, 'err');
+        status(t('status_saved_json_fail', { msg: e.message }), 'err');
       }
     }
 
@@ -527,9 +534,9 @@
           role: $('role').value
         };
         const res = await api('POST', '/launch', body);
-        status('QGIS を起動しました。サーバーは自動停止します。', 'ok');
+        status(t('status_launched'), 'ok');
       } catch (e) {
-        status('QGIS 起動失敗: ' + e.message, 'err');
+        status(t('status_launch_fail', { msg: e.message }), 'err');
       }
     }
 
@@ -578,13 +585,13 @@
     }
 
     async function resetProfiles() {
-      if (!confirm('既存の QGIS プロファイルを削除して、配布プロファイルを再コピーします。よろしいですか？')) return;
+      if (!confirm(t('confirm_reset'))) return;
       startProgress();
       try {
         const res = await api('POST', '/reset');
-        status('プロファイルを初期化しました: ' + JSON.stringify(res), 'ok');
+        status(t('status_reset_done', { msg: JSON.stringify(res) }), 'ok');
       } catch (e) {
-        status('プロファイル初期化失敗: ' + e.message, 'err');
+        status(t('status_reset_fail', { msg: e.message }), 'err');
       } finally {
         stopProgress();
       }
@@ -602,10 +609,10 @@
       latestUpdate = res;
       const banner = $('update-banner');
       $('update-title').textContent = res.blocked
-        ? '更新 ' + res.version + ' は保留中です'
-        : '新しいバージョン ' + res.version + ' があります（現在 ' + res.current + '）';
+        ? t('update_blocked_title', { version: res.version })
+        : t('update_available_title', { version: res.version, current: res.current });
       $('update-notes').textContent = res.blocked ? res.blocked_reason : (res.notes || '');
-      $('update-apply').textContent = res.blocked ? '強制的に更新する' : '今すぐ更新する';
+      $('update-apply').textContent = res.blocked ? t('update_apply_force') : t('update_apply_now');
       banner.classList.toggle('blocked', !!res.blocked);
       banner.classList.add('active');
     }
@@ -621,13 +628,13 @@
         setVersion(res.current);
         if (!res.available) {
           hideUpdateBanner();
-          if (!auto) status(res.disabled ? '更新チェックは無効化されています' : '更新はありません（現在 ' + res.current + '）', 'ok');
+          if (!auto) status(res.disabled ? t('update_disabled') : t('update_none', { current: res.current }), 'ok');
           return;
         }
         showUpdateBanner(res);
-        if (!auto) status('新しいバージョン ' + res.version + ' があります', 'ok');
+        if (!auto) status(t('update_available_msg', { version: res.version }), 'ok');
       } catch (e) {
-        if (!auto) status('更新確認失敗: ' + e.message, 'err');
+        if (!auto) status(t('update_check_failed', { msg: e.message }), 'err');
       }
     }
 
@@ -635,8 +642,8 @@
       if (!latestUpdate) return;
       const force = !!latestUpdate.blocked;
       const msg = force
-        ? '同じバージョンへの更新を繰り返している可能性があります。\n' + latestUpdate.blocked_reason + '\n\nそれでも強制的に更新しますか？'
-        : 'バージョン ' + latestUpdate.version + ' に更新します。\nQGIS ランチャーは一度終了し、更新後に自動で起動します。よろしいですか？';
+        ? t('update_confirm_force', { reason: latestUpdate.blocked_reason })
+        : t('update_confirm', { version: latestUpdate.version });
       if (!confirm(msg)) return;
       $('update-apply').disabled = true;
       try {
@@ -645,7 +652,7 @@
         if (res.ok) hideUpdateBanner();
       } catch (e) {
         // 更新が始まるとサーバーが終了するため、通信エラーは想定内
-        status('更新処理を開始しました。完了後に自動で再起動します。', 'ok');
+        status(t('update_started'), 'ok');
       } finally {
         $('update-apply').disabled = false;
       }
@@ -655,13 +662,13 @@
       try {
         const s = { ...currentSettings };
         const port = parseInt($('port-setting').value, 10);
-        if (port < 1024 || port > 65535) throw new Error('1024〜65535 の範囲で指定してください');
+        if (port < 1024 || port > 65535) throw new Error(t('err_port_range'));
         s.api_server_port = port;
         await api('POST', '/settings', s);
         currentSettings = s;
-        status('起動ポートを保存しました。次回起動時から反映されます', 'ok');
+        status(t('status_saved_port'), 'ok');
       } catch (e) {
-        status('ポート保存失敗: ' + e.message, 'err');
+        status(t('status_saved_port_fail', { msg: e.message }), 'err');
       }
     }
 
@@ -673,26 +680,26 @@
         await api('POST', '/settings', s);
         currentSettings = s;
         await reloadAll();
-        status('ファイル保存先を保存しました。次回起動時から反映されます', 'ok');
+        status(t('status_saved_root'), 'ok');
       } catch (e) {
-        status('ファイル保存先の保存失敗: ' + e.message, 'err');
+        status(t('status_saved_root_fail', { msg: e.message }), 'err');
       }
     }
 
     async function stopServer() {
-      if (!confirm('Axum サーバーを停止します。よろしいですか？')) return;
+      if (!confirm(t('confirm_stop'))) return;
       try {
         await api('POST', '/api/v1/server/stop');
-        status('サーバーを停止しました', 'ok');
+        status(t('status_stopped'), 'ok');
       } catch (e) {
-        status('サーバー停止リクエストを送信しました', 'ok');
+        status(t('status_stop_sent'), 'ok');
       }
     }
 
     async function reloadAll() {
       await loadSettings();
       await Promise.all([loadProfiles(), loadProjects(), loadQgis()]);
-      status('再読み込みしました', 'ok');
+      status(t('status_reloaded'), 'ok');
     }
 
     $('save-launch').addEventListener('click', saveLaunchSettings);
@@ -711,7 +718,27 @@
     $('project-select').addEventListener('change', checkProjectVersion);
     $('tab-raw').addEventListener('change', (e) => { if (e.target.id !== 'raw-settings') updateFromForm(); });
 
+    // 言語切替セレクタ（i18n.js で管理）
+    const langSel = $('lang-select');
+    SUPPORTED_LANGUAGES.forEach(l => {
+      const opt = document.createElement('option');
+      opt.value = l.code;
+      opt.textContent = l.label;
+      langSel.appendChild(opt);
+    });
+    langSel.addEventListener('change', () => setLanguage(langSel.value));
+
+    // 動的に生成される要素（data-i18n 付き）を再描画して翻訳を反映する
+    window.onLanguageChanged = () => {
+      renderRawForm();
+      if (latestUpdate && $('update-banner').classList.contains('active')) {
+        showUpdateBanner(latestUpdate);
+      }
+    };
+
     (async () => {
+      await initI18n();
+      langSel.value = currentLang;
       await reloadAll();
       try {
         const v = await api('GET', '/version');
