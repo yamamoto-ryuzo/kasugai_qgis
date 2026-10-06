@@ -36,7 +36,8 @@ AI エージェントがこのリポジトリで作業する際のルール。
 ## リリース手順
 
 1. `python run.py --bump X.Y.Z` でバージョン更新 + ビルド一式生成（整合性チェックまで自動実行）
-2. `CHANGELOG.md` に変更内容を追記
+   - 「リリース」はバージョンアップを必ず含む。git タグは必須ではない
+2. `CHANGELOG.md` に変更内容を追記。**`README.md` の機能一覧・バージョン記述なども変更があれば必ず更新する**
 3. コミット後、`python run.py --tag` でタグ作成 → `git push origin main --follow-tags` → GitHub Pages ビルドのトリガー → リモート `update.json` のバージョン確認まで自動実行する
    - push 済みでタグが不要な場合は `python run.py --publish` で push + Pages デプロイ確認のみ実行できる
    - Pages 反映に数分かかることがあるが、未反映のままではクライアント側の更新チェックが「更新なし」を返すため、確認が取れるまでこのコマンドを完了としない

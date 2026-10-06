@@ -15,5 +15,6 @@ QGIS / QField 起動用ランチャー（Rust + AXUM）。v2.0.0 からは Web U
 - ローカル自動同期（`local_sync`）
 - NSIS ベースの自動更新
 - Tauri サイドカーとして利用可能な AXUM HTTP API（`--server`）
+- サーバー停止後に残ったブラウザタブからのランチャー再起動（`kasugai-qgis:` カスタムプロトコル）
 
 詳細は [GitHub Pages](https://yamamoto-ryuzo.github.io/kasugai_qgis/) を参照してください。
