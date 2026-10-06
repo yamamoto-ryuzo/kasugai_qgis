@@ -73,5 +73,10 @@
   "confirm_stop": "Axum-Server stoppen?",
   "status_stopped": "Server gestoppt",
   "status_stop_sent": "Stoppanfrage an den Server gesendet",
-  "status_reloaded": "Neu geladen"
+  "status_reloaded": "Neu geladen",
+  "status_server_unreachable": "Verbindung zum Server fehlgeschlagen. Der Launcher wurde möglicherweise beendet. ({msg})",
+  "status_server_stopped_close": "Der Server wurde gestoppt. Sie können diesen Tab schließen.",
+  "btn_restart_launcher": "Launcher neu starten",
+  "status_restarting": "Launcher wird neu gestartet. Falls der Browser eine Bestätigung anzeigt, bitte erlauben…",
+  "status_restart_timeout": "Neustart konnte nicht bestätigt werden. Bitte starten Sie den Launcher manuell."
 }

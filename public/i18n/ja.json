@@ -73,5 +73,10 @@
   "confirm_stop": "Axum サーバーを停止します。よろしいですか？",
   "status_stopped": "サーバーを停止しました",
   "status_stop_sent": "サーバー停止リクエストを送信しました",
-  "status_reloaded": "再読み込みしました"
+  "status_reloaded": "再読み込みしました",
+  "status_server_unreachable": "サーバーに接続できません。ランチャーが終了している可能性があります。({msg})",
+  "status_server_stopped_close": "サーバーは停止しました。このタブは閉じて構いません。",
+  "btn_restart_launcher": "ランチャーを再起動",
+  "status_restarting": "ランチャーを再起動しています。ブラウザに確認ダイアログが表示されたら許可してください…",
+  "status_restart_timeout": "再起動を確認できませんでした。ランチャーを手動で起動してください。"
 }

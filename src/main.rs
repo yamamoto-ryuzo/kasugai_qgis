@@ -288,6 +288,11 @@ struct Args {
     /// QGISの実行ファイルパス（指定がなければ自動検出）
     #[arg(long)]
     qgis_executable: Option<String>,
+
+    /// カスタムプロトコル (kasugai-qgis://) から起動された場合に渡される URI。
+    /// サーバーモードで起動するためのトリガーとしてのみ使用し、内容は参照しない。
+    #[arg(value_name = "URI")]
+    uri: Option<String>,
 }
 
 fn get_settings_path(custom_dir: &str) -> PathBuf {
@@ -454,8 +459,9 @@ fn get_current_settings(custom_dir: &str) -> QgisSettings {
                         v["kasugai_qgis_version"] = serde_json::Value::String(s);
                     }
                 }
-                if let Ok(s) = serde_json::from_value::<QgisSettings>(v) {
-                    return s;
+                match serde_json::from_value::<QgisSettings>(v) {
+                    Ok(s) => return s,
+                    Err(e) => eprintln!("qgis_settings.json の項目変換に失敗 ({}): {}", path.display(), e),
                 }
             }
             Err(e) => {
@@ -1180,6 +1186,11 @@ fn verify_sha256(path: &std::path::Path, expected: &str) -> Result<(), String> {
 fn main() {
     let args = Args::parse();
 
+    // カスタムプロトコル経由の起動をログに残す（URI 自体はトリガーとしてのみ使用）
+    if let Some(uri) = &args.uri {
+        println!("プロトコル起動: {}", uri);
+    }
+
     // デバッグ: 検出される QGIS 一覧を出力して終了
     if args.list_qgis {
         if let Some(reg) = find_qgis_path_from_registry() {
@@ -1251,6 +1262,8 @@ fn main() {
     };
 
     if !args.cli || args.open_browser || args.server {
+        // 残ったブラウザタブからの再起動に備え、カスタムプロトコルを登録しておく
+        register_protocol_handler();
         let server_port = args.port.unwrap_or(settings.api_server_port.unwrap_or(8500));
         mount_drive_mappings(&settings.drive_mappings, &settings, None);
         copy_profiles_at_startup(&project_root_dir, None);
@@ -1343,6 +1356,46 @@ fn extract_first_command_token(s: &str) -> Option<&str> {
     } else {
         // 非クォート: 最初の空白まで
         s.split_whitespace().next()
+    }
+}
+
+/// カスタムプロトコル `kasugai-qgis:` を HKCU\Software\Classes に登録する。
+/// サーバー停止後に残ったブラウザタブから、URI 遷移でランチャーを再起動するために使用する。
+/// HKCU 配下のため管理者権限は不要。起動のたびに現在の EXE パスで上書きし、
+/// バージョンアップや移動にも追従する。失敗しても起動は継続する。
+fn register_protocol_handler() {
+    let exe = match env::current_exe() {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("プロトコル登録: exe パス取得失敗: {}", e);
+            return;
+        }
+    };
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    let base = match hkcu.create_subkey(r"Software\Classes\kasugai-qgis") {
+        Ok((k, _)) => k,
+        Err(e) => {
+            eprintln!("プロトコル登録失敗 (Software\\Classes\\kasugai-qgis): {}", e);
+            return;
+        }
+    };
+    if let Err(e) = base.set_value("", &"URL:Kasugai QGIS Launcher".to_string()) {
+        eprintln!("プロトコル登録失敗 (既定値): {}", e);
+        return;
+    }
+    if let Err(e) = base.set_value("URL Protocol", &"".to_string()) {
+        eprintln!("プロトコル登録失敗 (URL Protocol): {}", e);
+        return;
+    }
+    match base.create_subkey(r"shell\open\command") {
+        Ok((cmd, _)) => {
+            // URI は "%1" として渡す。Args の位置引数 uri が受け取る（内容は参照しない）。
+            let command = format!("\"{}\" \"%1\"", exe.display());
+            if let Err(e) = cmd.set_value("", &command) {
+                eprintln!("プロトコル登録失敗 (command): {}", e);
+            }
+        }
+        Err(e) => eprintln!("プロトコル登録失敗 (shell\\open\\command): {}", e),
     }
 }
 

@@ -73,5 +73,10 @@
   "confirm_stop": "停止 Axum 伺服器？",
   "status_stopped": "伺服器已停止",
   "status_stop_sent": "已向伺服器傳送停止請求",
-  "status_reloaded": "已重新載入"
+  "status_reloaded": "已重新載入",
+  "status_server_unreachable": "無法連線到伺服器。啟動器可能已結束。({msg})",
+  "status_server_stopped_close": "伺服器已停止。您可以關閉此分頁。",
+  "btn_restart_launcher": "重新啟動啟動器",
+  "status_restarting": "正在重新啟動啟動器。若瀏覽器顯示確認對話框，請允許…",
+  "status_restart_timeout": "無法確認重新啟動。請手動啟動啟動器。"
 }

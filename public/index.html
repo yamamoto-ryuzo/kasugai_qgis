@@ -171,6 +171,9 @@
   </div>
 
   <div id="status"></div>
+  <div id="restart-box" style="display:none; margin: 8px 0;">
+    <button id="restart-launcher" data-i18n="btn_restart_launcher">ランチャーを再起動</button>
+  </div>
 
   <div id="progress-modal" class="modal-overlay">
     <div class="modal">
@@ -203,7 +206,15 @@
         opts.headers = { 'Content-Type': 'application/json' };
         opts.body = JSON.stringify(body);
       }
-      const res = await fetch(path, opts);
+      let res;
+      try {
+        res = await fetch(path, opts);
+      } catch (e) {
+        // サーバー停止・接続拒否などネットワークレベルの失敗（Failed to fetch 等）
+        const box = $('restart-box');
+        if (box) box.style.display = 'block';
+        throw new Error(t('status_server_unreachable', { msg: e.message }));
+      }
       if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
       if (res.headers.get('content-type')?.includes('application/json')) {
         return await res.json();
@@ -525,6 +536,50 @@
       }
     }
 
+    // カスタムプロトコル kasugai-qgis: でランチャーの新しいインスタンスを起動する。
+    // サーバーが復旧したらこのタブをリロードして UI を復帰させる。
+    async function restartLauncher() {
+      const box = $('restart-box');
+      if (box) box.style.display = 'none';
+      window.location.href = 'kasugai-qgis://restart';
+      const st = $('status');
+      if (st) status(t('status_restarting'), 'ok');
+      for (let i = 0; i < 90; i++) {
+        await new Promise(r => setTimeout(r, 1000));
+        try {
+          const res = await fetch('/health', { cache: 'no-store' });
+          if (res.ok) { location.reload(); return; }
+        } catch (e) { /* まだ起動していない */ }
+      }
+      if (st) status(t('status_restart_timeout'), 'err');
+      if (box) box.style.display = 'block';
+    }
+
+    // サーバー停止後にタブを閉じる。OS から開かれたタブは window.close() が
+    // ブロックされることが多いため、閉じられなければ案内画面に置き換える。
+    function closeTabAfterServerStop() {
+      setTimeout(() => { try { window.close(); } catch (e) { /* ignore */ } }, 800);
+      setTimeout(() => {
+        const div = document.createElement('div');
+        div.style.cssText = 'font-family:sans-serif;padding:48px;';
+        const h = document.createElement('h2');
+        h.style.color = '#15803d';
+        h.textContent = t('status_server_stopped_close');
+        const btn = document.createElement('button');
+        btn.style.cssText = 'padding:8px 16px;cursor:pointer;background-color:#22c55e;color:#ffffff;border:none;border-radius:6px;margin-top:16px;';
+        btn.textContent = t('btn_restart_launcher');
+        btn.addEventListener('click', () => {
+          btn.disabled = true;
+          btn.textContent = t('status_restarting');
+          restartLauncher();
+        });
+        div.appendChild(h);
+        div.appendChild(btn);
+        document.body.innerHTML = '';
+        document.body.appendChild(div);
+      }, 1400);
+    }
+
     async function launchQgis() {
       try {
         const body = {
@@ -535,6 +590,7 @@
         };
         const res = await api('POST', '/launch', body);
         status(t('status_launched'), 'ok');
+        closeTabAfterServerStop();
       } catch (e) {
         status(t('status_launch_fail', { msg: e.message }), 'err');
       }
@@ -649,10 +705,14 @@
       try {
         const res = await api('POST', '/update/apply', { force });
         status(res.message, res.ok ? 'ok' : 'err');
-        if (res.ok) hideUpdateBanner();
+        if (res.ok) {
+          hideUpdateBanner();
+          closeTabAfterServerStop();
+        }
       } catch (e) {
         // 更新が始まるとサーバーが終了するため、通信エラーは想定内
         status(t('update_started'), 'ok');
+        closeTabAfterServerStop();
       } finally {
         $('update-apply').disabled = false;
       }
@@ -694,6 +754,7 @@
       } catch (e) {
         status(t('status_stop_sent'), 'ok');
       }
+      closeTabAfterServerStop();
     }
 
     async function reloadAll() {
@@ -715,6 +776,7 @@
     $('save-port').addEventListener('click', savePort);
     $('save-project-root').addEventListener('click', saveProjectRoot);
     $('stop-server').addEventListener('click', stopServer);
+    $('restart-launcher').addEventListener('click', restartLauncher);
     $('project-select').addEventListener('change', checkProjectVersion);
     $('tab-raw').addEventListener('change', (e) => { if (e.target.id !== 'raw-settings') updateFromForm(); });
 

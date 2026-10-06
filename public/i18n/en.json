@@ -73,5 +73,10 @@
   "confirm_stop": "Stop the Axum server?",
   "status_stopped": "Server stopped",
   "status_stop_sent": "Sent stop request to the server",
-  "status_reloaded": "Reloaded"
+  "status_reloaded": "Reloaded",
+  "status_server_unreachable": "Cannot connect to the server. The launcher may have exited. ({msg})",
+  "status_server_stopped_close": "The server has stopped. You can close this tab.",
+  "btn_restart_launcher": "Restart launcher",
+  "status_restarting": "Restarting the launcher. If the browser shows a confirmation dialog, please allow it...",
+  "status_restart_timeout": "Restart could not be confirmed. Please start the launcher manually."
 }

@@ -73,5 +73,10 @@
   "confirm_stop": "Parar o servidor Axum?",
   "status_stopped": "Servidor parado",
   "status_stop_sent": "Solicitação de parada enviada ao servidor",
-  "status_reloaded": "Recarregado"
+  "status_reloaded": "Recarregado",
+  "status_server_unreachable": "Não foi possível conectar ao servidor. O launcher pode ter sido encerrado. ({msg})",
+  "status_server_stopped_close": "O servidor foi parado. Você pode fechar esta aba.",
+  "btn_restart_launcher": "Reiniciar launcher",
+  "status_restarting": "Reiniciando o launcher. Se o navegador exibir uma confirmação, permita…",
+  "status_restart_timeout": "Não foi possível confirmar a reinicialização. Inicie o launcher manualmente."
 }
