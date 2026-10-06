@@ -37,4 +37,6 @@ AI エージェントがこのリポジトリで作業する際のルール。
 
 1. `python run.py --bump X.Y.Z` でバージョン更新 + ビルド一式生成（整合性チェックまで自動実行）
 2. `CHANGELOG.md` に変更内容を追記
-3. コミット後、`python run.py --tag` でタグ作成し、`git push origin main --follow-tags`
+3. コミット後、`python run.py --tag` でタグ作成 → `git push origin main --follow-tags` → GitHub Pages ビルドのトリガー → リモート `update.json` のバージョン確認まで自動実行する
+   - push 済みでタグが不要な場合は `python run.py --publish` で push + Pages デプロイ確認のみ実行できる
+   - Pages 反映に数分かかることがあるが、未反映のままではクライアント側の更新チェックが「更新なし」を返すため、確認が取れるまでこのコマンドを完了としない

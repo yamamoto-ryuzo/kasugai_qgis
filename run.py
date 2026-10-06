@@ -168,6 +168,85 @@ def create_git_tag(version):
     return 0
 
 
+# ---------------------------------------------------------------------------
+# 公開（push + GitHub Pages デプロイ確認）
+#
+# update.json と配布 EXE は GitHub Pages 経由で配信される。
+# push しても Pages のビルドが遅延・スキップされることがあり、その間は
+# 「更新はありません」と表示されてしまうため、--tag 実行時に push →
+# Pages ビルドのトリガー → リモート update.json のバージョン確認まで行う。
+# ---------------------------------------------------------------------------
+
+
+def get_origin_repo():
+    """origin リモートの URL から owner/repo を取得する。"""
+    try:
+        out = subprocess.run(
+            ["git", "remote", "get-url", "origin"],
+            cwd=ROOT, capture_output=True, text=True,
+        ).stdout.strip()
+        m = re.search(r"github\.com[:/]([^/\s]+)/([^/\s]+?)(?:\.git)?$", out)
+        if m:
+            return f"{m.group(1)}/{m.group(2)}"
+    except Exception:
+        pass
+    return None
+
+
+def get_update_url():
+    """配布元の update.json URL を qgis_settings.json から取得する。"""
+    if SETTINGS_JSON.exists():
+        try:
+            data = json.loads(SETTINGS_JSON.read_text(encoding="utf-8"))
+            if data.get("update_url"):
+                return data["update_url"]
+        except Exception:
+            pass
+    return f"https://yamamoto-ryuzo.github.io/{PROJECT_NAME}/update.json"
+
+
+def trigger_pages_build():
+    """gh CLI で GitHub Pages のビルドを手動トリガーする。"""
+    repo = get_origin_repo()
+    if not repo:
+        print("WARNING: origin から GitHub リポジトリを特定できません。Pages ビルドのトリガーを省略します。")
+        return
+    if not shutil.which("gh"):
+        print("WARNING: gh CLI が見つかりません。push 由来の自動デプロイを待ちます。")
+        return
+    rc = subprocess.run(
+        ["gh", "api", "-X", "POST", f"repos/{repo}/pages/builds"],
+        cwd=ROOT, capture_output=True, text=True,
+    ).returncode
+    if rc == 0:
+        print("GitHub Pages のビルドをリクエストしました")
+    else:
+        print("WARNING: Pages ビルドのリクエストに失敗しました（自動デプロイを待ちます）")
+
+
+def wait_for_pages_deploy(version, timeout=600, interval=15):
+    """リモートの update.json が指定バージョンになるまで待機する。"""
+    url = get_update_url()
+    deadline = time.time() + timeout
+    print(f"GitHub Pages の反映を待ちます: {url}")
+    while time.time() < deadline:
+        try:
+            req = f"{url}?nocache={int(time.time())}"
+            with urllib.request.urlopen(req, timeout=10) as r:
+                data = json.loads(r.read().decode("utf-8"))
+            remote = data.get("version")
+            if remote == version:
+                print(f"Pages デプロイ確認 OK: update.json version = {remote}")
+                return 0
+            print(f"  ... まだ {remote}（{version} を待機中）")
+        except Exception as e:
+            print(f"  ... update.json 取得失敗: {e}")
+        time.sleep(interval)
+    print("ERROR: タイムアウト。GitHub Pages に新バージョンが反映されませんでした。")
+    print("       GitHub リポジトリの Pages 設定（main ブランチ / ルート）を確認してください。")
+    return 1
+
+
 def find_makensis():
     candidates = [
         os.environ.get("NSISDIR"),
@@ -359,7 +438,9 @@ def main():
     parser.add_argument("--check-version", action="store_true",
                         help="バージョン整合性のみ確認する")
     parser.add_argument("--tag", action="store_true",
-                        help="現在の Cargo.toml バージョンで git tag vX.Y.Z を作成する")
+                        help="git tag vX.Y.Z 作成 → push --follow-tags → Pages デプロイ確認まで実行する")
+    parser.add_argument("--publish", action="store_true",
+                        help="push --follow-tags → Pages ビルドトリガー → デプロイ確認のみ実行する（タグは作らない）")
     parser.add_argument("--version", action="version",
                         version=read_cargo_version(),
                         help="現在のバージョンを表示する")
@@ -386,8 +467,21 @@ def main():
     if args.installer:
         return build_release_bundle(with_zip=False)
 
-    if args.tag:
-        return create_git_tag(read_cargo_version())
+    if args.tag or args.publish:
+        version = read_cargo_version()
+        if args.tag:
+            rc = create_git_tag(version)
+            if rc != 0:
+                return rc
+        rc = subprocess.run(
+            ["git", "push", "origin", "main", "--follow-tags"], cwd=ROOT
+        ).returncode
+        if rc != 0:
+            print("ERROR: git push に失敗しました")
+            return rc
+        # push だけでは Pages ビルドが走らない/遅れる場合があるため明示的にトリガーする
+        trigger_pages_build()
+        return wait_for_pages_deploy(version)
 
     return cargo_run(extra)
 
