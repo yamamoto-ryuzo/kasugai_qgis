@@ -2,24 +2,38 @@
 ## Required
 [general]
 name=geo_import
-qgisMinimumVersion=3.40
+qgisMinimumVersion=4.0
 qgisMaximumVersion=4.99
-version=V2.3.45
-author=Ryuzo Yamamoto
+version=2.10.6
+author=yamamoto-ryuzo
 email=ryu@yamakun.net
 description=さまざまなデータセットを検索・追加できるQGISプラグインです / A QGIS plugin to search and add various datasets.
 about=さまざまなデータセットを検索・追加できるQGISプラグインです / A QGIS plugin to search and add various datasets.
 category=Web;Data Management;Database
 icon=icon.png
-homepage=https://github.com/yamamoto-ryuzo/geo_import
-tracker=https://github.com/yamamoto-ryuzo/geo_import/issues
-repository=https://github.com/yamamoto-ryuzo/geo_import
+homepage=https://github.com/yamamoto-ryuzo/qgis_live_harness/tree/master/qgis-plugin/geo_import
+tracker=https://github.com/yamamoto-ryuzo/qgis_live_harness/issues
+repository=https://github.com/yamamoto-ryuzo/qgis_live_harness/tree/master/qgis-plugin/geo_import
 changelog=
+	2.10.6: vendored pyperclipのQtバックエンドをqgis.PyQtへ変更(PyQt5直接importはQGIS4/Qt6でブロック)、QGIS2時代・upstream由来の不要ファイル(scripts/, INSTALL_INSTRUCTIONS.md, future-plan.md, packages.json, groups.json, ckan_cache.db, icon64.png, zip_ckan_browser_dialog.py)を削除
+	2.10.5: XMLパースをvendored defusedxmlへ切替(B405指摘をコード側で解消。ElementTree facadeのみ同梱、defuse_stdlibはQGISとの相性問題のため除外)
+	2.10.4: サイトスキャン指摘対応(assert実修正、XML/subprocessの # nosec B314/B603/B606/B607)
+	2.10.3: try/except/pass|continue の # nosec 明示(B110/B112)
+	2.10.2: Qt6互換性チェック対応(非スコープ列挙型Qgis.*等59箇所をスコープ化)
+	2.10.1: plugins.qgis.orgセキュリティスキャン対応(shell=True除去、XML DOCTYPE/ENTITY拒否ガード、非セキュリティ用途ハッシュのusedforsecurity=False化、LOW指摘は同梱.banditで抑制)
+	2.10.0: 接続失敗したCKANサーバーを赤・取り消し線で明示し失敗を永続記録(横断検索で死んだサーバーが視認可能に)。GSJ「マップ情報（JSON）」/TileJSONリソースをXYZタイル+断面GeoJSONとして直接読み込み対応(Qt6のqAppクラッシュ修正も同梱)
+	2.9.0: 複数CKANサーバー同時選択による横断検索に対応
+	2.8.0: 翻訳方式をi18n/<lang>.jsonに移行。qgis_live_driverのlayer_orgサービス連携で追加レイヤのグループ整理・命名を標準化
+	2.7.0: カタログ取得のデフォルトをネットワーク直接参照に変更。ローカル一括ダウンロード(SQLiteキャッシュ)はサイトごと/全体で選択可能なオプション化
+	2.6.0: 国際化(i18n)対応 — UI・ログ文字列を英語ソースに統一、翻訳コンテキスト正規化
+	2.5.0: 対応バージョンをQGIS4以降に更新(qgisMinimumVersion=4.0)
+	2.4.0: AI/外部制御用ブリッジ(bridge.py)を追加 — bridge_call/describe_plugins対応
+	2.3.46: QGIS Live Harnessへ組み込み、プラグイン内文書を整備（機能変更なし）
 	1.0.0: Initial release
 tags=CKAN,OpenData,GeoNetwork,Data Catalog,Search,Integration
 supportsQt6=True
 
 ## Optional
 
-license=GPL-3.0-or-later
+license=MIT
 

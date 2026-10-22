@@ -24,11 +24,10 @@ from qgis.core import QgsWkbTypes
  ***************************************************************************/
 """
 
-#QMessageBox.information(self,'Message',type(layer).__name__,QMessageBox.Ok)
+# QMessageBox.information(self,'Message',type(layer).__name__,QMessageBox.StandardButton.Ok)
 
 import os
 import re
-from io import BytesIO
 
 # Import Qt compatibility module
 from .qt_compat import *
@@ -61,14 +60,14 @@ class LegendViewDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         # http://doc.qt.io/qt-5/designer-using-a-ui-file.html
         # #widgets-and-dialogs-with-auto-connect
         self.setupUi(self)
-        
+
         # Set window icon for dock widget - try multiple approaches
         try:
             # Method 1: Direct resource path
             icon_path = ':/plugins/legend_view/icon.png'
             icon = QIcon(icon_path)
             self.setWindowIcon(icon)
-            
+
             # Method 2: Alternative approach with file path
             if icon.isNull():
                 import os
@@ -76,22 +75,17 @@ class LegendViewDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
                 if os.path.exists(file_path):
                     icon = QIcon(file_path)
                     self.setWindowIcon(icon)
-        except Exception as e:
+        except Exception:  # nosec B110  # 設計上の許容
             # Fallback - continue without icon
             pass
-        
+
         self.iface = iface
         self.currentLayer = None
         self.root = QgsProject.instance().layerTreeRoot()
 
-        # Qt5/Qt6 compatible orientation usage
-        if is_qt5():
-            vheader = QHeaderView(Qt.Vertical)
-            hheader = QHeaderView(Qt.Horizontal)
-        else:
-            vheader = QHeaderView(QtOrientation.Vertical)
-            hheader = QHeaderView(QtOrientation.Horizontal)
-            
+        vheader = QHeaderView(QtOrientation.Vertical)
+        hheader = QHeaderView(QtOrientation.Horizontal)
+
         self.tableWidget.setVerticalHeader(vheader)
         self.tableWidget.setHorizontalHeader(hheader)
         self.tableWidget.setHorizontalHeaderLabels([self.tr("Symbol"), self.tr("Legend")])
@@ -102,32 +96,22 @@ class LegendViewDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         self.comboDataSet()
         self.comboBox.currentIndexChanged.connect(self.currentIndexChanged)
         self.mOpacityWidget.opacityChanged.connect(self.opacityChanged)
-        
+
         # Connect current layer button
         self.currentLayerButton.clicked.connect(self.selectCurrentLayer)
         # Connect register button to save current layer as project variable
         try:
             self.registerButton.clicked.connect(self.registerCurrentLayer)
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             # If UI doesn't have the button for any reason, ignore
             pass
         try:
             self.varsButton.clicked.connect(self.showLegendVariables)
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
-        
-        # Qt5/Qt6 compatible signal connection
-        try:
-            # Try Qt6 approach first
-            self.styleComboBox.currentTextChanged.connect(self.changeNamedStyle)
-        except AttributeError:
-            try:
-                # Qt5 approach with QString
-                self.styleComboBox.currentIndexChanged['QString'].connect(self.changeNamedStyle)
-            except (KeyError, TypeError):
-                # Fallback: use index changed and get text manually
-                self.styleComboBox.currentIndexChanged.connect(self._styleComboBoxIndexChanged)
-                
+
+        self.styleComboBox.currentTextChanged.connect(self.changeNamedStyle)
+
         self.comboBox.setCurrentIndex(-1)
         self.comboBox.setCurrentIndex(0)
         self.showLegend()
@@ -136,7 +120,7 @@ class LegendViewDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         """QGIS/Qt標準の翻訳APIに統一"""
         return QCoreApplication.translate('LegendView', message)
 
-    def closeEvent(self, event):        
+    def closeEvent(self, event):
         self.closingPlugin.emit()
         event.accept()
 
@@ -148,42 +132,38 @@ class LegendViewDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         # Create named style list
         self.initNamedStyleList(layer)
 
-        if isinstance(layer,QgsVectorLayer):
+        if isinstance(layer, QgsVectorLayer):
             symbols = layer.renderer().symbols(QgsRenderContext())
             legendItems = layer.renderer().legendSymbolItems()
-            self.mOpacityWidget.setOpacity( layer.opacity())
+            self.mOpacityWidget.setOpacity(layer.opacity())
             self.tableWidget.setVisible(True)
             self.tableWidget.horizontalHeader().setDefaultSectionSize(65)
-            
-            # Qt6 requires larger row height for better symbol display
-            if is_qt6():
-                self.tableWidget.verticalHeader().setDefaultSectionSize(30)  # Same as Qt5
-            else:
-                self.tableWidget.verticalHeader().setDefaultSectionSize(30)  # Standard for Qt5
-                
+
+            self.tableWidget.verticalHeader().setDefaultSectionSize(30)
+
             self.tableWidget.setRowCount(len(symbols))
             self.tableWidget.setColumnCount(2)
             self.tableWidget.horizontalHeader().setStretchLastSection(True)
 
             pm_icon_size = self.tableWidget.style().pixelMetric(PM_ListViewIconSize)
-            
-            # Use same size for both Qt5 and Qt6
+
+            # Symbol icon size based on list view metric
             icon_size = QSize(self.tableWidget.columnWidth(0) - 10, pm_icon_size)
 
             i = 0
             for symbol in symbols:
-                item1 = QTableWidgetItem()
+                _ = QTableWidgetItem()
                 label = QLabel()
                 # Use Qt version-specific alignment function
                 setLabelAlignment(label)
                 # Use Qt version-specific symbol preview function for better SVG support
                 pixmap = createSymbolPreview(symbol, icon_size)
                 label.setPixmap(pixmap)
-                self.tableWidget.setCellWidget(i,0,label)
-                i+=1
+                self.tableWidget.setCellWidget(i, 0, label)
+                i += 1
 
             j = 0
-            for legendItem in legendItems :
+            for legendItem in legendItems:
                 label = legendItem.label()
                 other_item = not bool(label)
                 item2 = QTableWidgetItem(self.tr("Other values") if other_item else legendItem.label())
@@ -192,34 +172,34 @@ class LegendViewDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
                     font.setItalic(True)
                     item2.setFont(font)
 
-                self.tableWidget.setItem(j,1,item2)
-                j+=1
-            
+                self.tableWidget.setItem(j, 1, item2)
+                j += 1
+
             self.listWidget.setVisible(False)
 
-        if isinstance(layer,QgsRasterLayer):
+        if isinstance(layer, QgsRasterLayer):
             self.tableWidget.setVisible(False)
             self.listWidget.setVisible(True)
-            self.mOpacityWidget.setOpacity( layer.renderer().opacity())
-        
-    def opacityChanged(self,opacity):
+            self.mOpacityWidget.setOpacity(layer.renderer().opacity())
+
+    def opacityChanged(self, opacity):
         layer = self.currentLayer
         if layer is None:
             return
 
-        if isinstance(layer,QgsVectorLayer):
+        if isinstance(layer, QgsVectorLayer):
             layer.setOpacity(opacity)
-        if isinstance(layer,QgsRasterLayer):
+        if isinstance(layer, QgsRasterLayer):
             layer.renderer().setOpacity(opacity)
         layer.triggerRepaint()
 
     def legendChanged(self):
         self.showLegend()
-    
-    def getLayer(self,groups):
+
+    def getLayer(self, groups):
         node = self.root
 
-        for group in groups[:len(groups)-1]:
+        for group in groups[:len(groups) - 1]:
             next_node = node.findGroup(group)
             if isinstance(next_node, QgsLayerTreeGroup):
                 node = next_node
@@ -228,7 +208,7 @@ class LegendViewDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
 
         for child in node.children():
             if isinstance(child, QgsLayerTreeLayer):
-                if child.name() == groups[len(groups)-1]:
+                if child.name() == groups[len(groups) - 1]:
                     return child.layer()
 
         return None
@@ -255,20 +235,20 @@ class LegendViewDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
 
         return None
 
-    def comboDataSet(self) :
+    def comboDataSet(self):
         ecs = QgsExpressionContextUtils.projectScope(QgsProject.instance())
         slist = ecs.variableNames()
         layerIdList = []
         layerIdList2 = []
-        
+
         # Process layers with legend_ variables
         for sstr in slist:
             if "legend_" not in sstr:
                 continue
-            layer_name = sstr.replace("legend_","")
+            layer_name = sstr.replace("legend_", "")
             # Try to resolve the layer even if group or layer names contain underscores
             layer = self.findLayerByVariableName(layer_name)
-            if isinstance(layer, QgsMapLayer) :
+            if isinstance(layer, QgsMapLayer):
                 # Get variable value and handle None safely
                 variable_value = ecs.variable(sstr)
                 self.distributeOrderList(layer.id(), layer_name, variable_value, layerIdList, layerIdList2)
@@ -291,30 +271,29 @@ class LegendViewDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         for layerid in layerIdList:
             layer = QgsProject.instance().mapLayer(layerid[0])
             icon = QIcon()
-            if isinstance(layer,QgsRasterLayer):
+            if isinstance(layer, QgsRasterLayer):
                 icon = QIcon()  # 代替: 空アイコンまたは適切なアイコンに置き換え
 
-            elif  isinstance(layer,QgsVectorLayer):
-                if ( layer.geometryType() == QgsWkbTypes.PointGeometry ) :
+            elif isinstance(layer, QgsVectorLayer):
+                if (layer.geometryType() == QgsWkbTypes.GeometryType.PointGeometry):
                     icon = QIcon()  # 代替: 空アイコンまたは適切なアイコンに置き換え
-                elif ( layer.geometryType() == QgsWkbTypes.LineGeometry ) :
+                elif (layer.geometryType() == QgsWkbTypes.GeometryType.LineGeometry):
                     icon = QIcon()
-                elif ( layer.geometryType() == QgsWkbTypes.PolygonGeometry ) :
+                elif (layer.geometryType() == QgsWkbTypes.GeometryType.PolygonGeometry):
                     icon = QIcon()
-            else :
+            else:
                 continue
 
             # Display name with current layer indicator
             display_name = layer.name()
             if isinstance(layerid[1], str) and layerid[1].startswith("current_"):
                 display_name = f"★ {layer.name()} (Current)"
-                
+
             self.comboBox.addItem(icon, display_name, layerid[0])
             # Detect and handle legend change signal for target layer
             layer.legendChanged.connect(self.legendChanged)
 
-    
-    def currentIndexChanged(self,index):
+    def currentIndexChanged(self, index):
         self.currentLayer = QgsProject.instance().mapLayer(self.comboBox.itemData(index))
         self.showLegend()
 
@@ -351,33 +330,27 @@ class LegendViewDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
             # Check for None or QVariant null values first
             if orderValue is None or isinstance(orderValue, QVariant):
                 break
-            
+
             # Convert to string if not already
             if not isinstance(orderValue, str):
                 try:
                     orderValue = str(orderValue)
-                except:
+                except Exception:
                     break
 
             m = re.fullmatch(r"\d+", orderValue)
-            if not m is None:
+            if m is not None:
                 numericList.append([layer_id, int(orderValue)])
                 return
 
             n = re.fullmatch(r"\d*\.\d+", orderValue)
-            if not n is None:
+            if n is not None:
                 numericList.append([layer_id, float(orderValue)])
                 return
-            
-            break
-        
-        nonNumericList.append([layer_id, layer_name])
 
-    def _styleComboBoxIndexChanged(self, index):
-        """Fallback method for Qt5/Qt6 compatibility when currentTextChanged is not available"""
-        if index >= 0:
-            styleName = self.styleComboBox.itemText(index)
-            self.changeNamedStyle(styleName)
+            break
+
+        nonNumericList.append([layer_id, layer_name])
 
     def selectCurrentLayer(self):
         """Select the currently active layer"""
@@ -388,7 +361,7 @@ class LegendViewDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
                 if self.comboBox.itemData(i) == current_layer.id():
                     self.comboBox.setCurrentIndex(i)
                     return
-            
+
             # コンボボックスにない場合は、リストを更新して再度検索
             self.comboBox.clear()
             self.comboDataSet()
@@ -469,15 +442,15 @@ class LegendViewDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         try:
             table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
             table.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
 
         for i, name in enumerate(sorted(vars_list)):
             value = ecs.variable(name)
             item_name = QTableWidgetItem(name)
             item_value = QTableWidgetItem('' if value is None else str(value))
-            item_name.setFlags(item_name.flags() & ~Qt.ItemIsEditable)
-            item_value.setFlags(item_value.flags() & ~Qt.ItemIsEditable)
+            item_name.setFlags(item_name.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            item_value.setFlags(item_value.flags() & ~Qt.ItemFlag.ItemIsEditable)
             table.setItem(i, 0, item_name)
             table.setItem(i, 1, item_value)
 
@@ -496,7 +469,7 @@ class LegendViewDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         btn_layout.addWidget(close_btn)
         layout.addLayout(btn_layout)
 
-        dlg.exec_()
+        dlg.exec()
 
     def editLegendVariable(self, table: QTableWidget):
         sel = table.selectionModel().selectedRows()
@@ -537,8 +510,8 @@ class LegendViewDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
             return
         name = name_item.text()
 
-        resp = QMessageBox.question(self, self.tr('Confirm delete'), self.tr('Delete variable %s?') % name, QMessageBox.Yes | QMessageBox.No)
-        if resp != QMessageBox.Yes:
+        resp = QMessageBox.question(self, self.tr('Confirm delete'), self.tr('Delete variable %s?') % name, QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        if resp != QMessageBox.StandardButton.Yes:
             return
 
         # attempt removal

@@ -1,0 +1,19 @@
+# bandit config bundled in the plugin ZIP for plugins.qgis.org
+# security scanning (https://plugins.qgis.org/docs/security-scanning).
+# Reviewed-and-accepted LOW findings are skipped here; HIGH/MEDIUM
+# were fixed in code (see CHANGELOG).
+#
+#   B101: assert used for constructor arg type-checking (incl. vendored pyperclip)
+#   B110: try/except/pass is an intentional idiom to keep the QGIS GUI thread alive
+#   B112: try/except/continue is an intentional idiom to keep the QGIS GUI thread alive
+#   B404: import subprocess is required by plugin functionality (audit notice)
+#   B405: import xml.etree - only inside vendored defusedxml (audit notice)
+#   B603: subprocess already invoked without shell (audit notice)
+#   B606: os.startfile/xdg-open style invocation is required (audit notice)
+#   B607: system commands (cmd/netsh/icacls/powershell/xclip etc.) resolved via PATH by design
+#
+[bandit]
+skips: B101,B110,B112,B404,B405,B603,B606,B607
+
+# defusedxml is vendored upstream code (its facades wrap stdlib xml.* by design)
+exclude = defusedxml

@@ -1,35 +1,77 @@
 # -*- coding: utf-8 -*-
 import socket
 import threading
+import time
 import urllib.parse
 import json
 import html
-import math
 import os
 import re
 import concurrent.futures
+from collections import deque
+from datetime import datetime
+from qgis.PyQt.QtCore import QCoreApplication
+from qgis.PyQt.QtGui import QColor
 from qgis.core import QgsProject, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsPointXY, QgsMessageLog, Qgis
+from .i18n_json import catalog, lang_code
 # lazy import http_server inside methods to avoid circular import during QGIS plugin init
+
+# 生成HTMLページのラベル(i18n/<lang>.json の "geo_webview.page" context
+# に翻訳を登録。未登録は英語にフォールバック)
+_PAGE_CONTEXT = 'geo_webview.page'
+_PAGE_EN = {
+    'title': 'QMap Permalink - Map View',
+    'subtitle': 'Integrated map view by the QGIS plugin - using WMS endpoint',
+    'map_info': '📍 Map Information',
+    'center_x': 'Center (X)',
+    'center_y': 'Center (Y)',
+    'scale': 'Scale',
+    'crs': 'CRS',
+    'rotation': 'Rotation',
+    'image_size': 'Image Size',
+    'controls': '🔧 Controls',
+    'wms_image': '📷 Show WMS Image',
+    'refresh': '🔄 Refresh Map',
+    'copy_link': '🔗 Copy Permalink',
+    'tip_rotate': 'Rotate with north up',
+    'tip_reset': 'Reset north',
+    'copied': 'Permalink copied to clipboard!',
+    'err_title': 'QMap Permalink - Error',
+    'err_failed': 'Failed to generate the permalink page',
+    'back': '🔙 Back',
+    'home': '🏠 Home',
+}
+
+
+def _page_strings():
+    """生成HTMLページのラベル辞書を返す。"""
+    lang = lang_code()
+    page = catalog(os.path.dirname(os.path.abspath(__file__)),
+                   lang).get(_PAGE_CONTEXT, {})
+    strings = {key: page.get(en) or en for key, en in _PAGE_EN.items()}
+    strings['lang'] = lang if page else 'en'
+    return strings
+
 
 class GeoWebViewServerManager:
     """geo_webview用HTTPサーバー管理クラス - WMS専用シンプル版
-    
+
     WMSサーバーの起動・停止・リクエスト処理を担当します。
     不要なエンドポイント（画像、マップ、タイル）は全て削除されています。
     """
-    
+
     @staticmethod
     def _calculate_optimal_workers():
         """PCのCPUコア数に基づいて最適なワーカー数を計算
-        
+
         Returns:
             int: 最適なワーカー数 (最小4、最大32)
-            
+
         計算式:
         - CPUコア数+4を基本とする（I/O待ちを考慮）
         - 最小4: 低スペックPCでも基本的な並列処理を確保
         - 最大32: メモリ使用量とコンテキストスイッチのオーバーヘッドを抑制
-        
+
         例:
         - 4コアPC: min(32, 4+4) = 8ワーカー
         - 8コアPC: min(32, 8+4) = 12ワーカー
@@ -41,28 +83,28 @@ class GeoWebViewServerManager:
             if cpu_count is None:
                 # cpu_count()がNoneを返す場合のフォールバック
                 return 6  # デフォルト値（ブラウザの典型的な並列リクエスト数）
-            
+
             # CPUコア数+4（I/O待ちを考慮）、最小4、最大32
             workers = min(32, max(4, cpu_count + 4))
-            
+
             from qgis.core import QgsMessageLog, Qgis
             QgsMessageLog.logMessage(
-                f"💻 検出: CPUコア数={cpu_count}, HTTP並列ワーカー数={workers}",
-                "geo_webview", Qgis.Info
+                f"💻 Detected: CPU cores={cpu_count}, HTTP parallel workers={workers}",
+                "geo_webview", Qgis.MessageLevel.Info
             )
-            
+
             return workers
         except Exception as e:
             from qgis.core import QgsMessageLog, Qgis
             QgsMessageLog.logMessage(
-                f"⚠️ ワーカー数自動計算失敗、デフォルト6を使用: {e}",
-                "geo_webview", Qgis.Warning
+                f"⚠️ Worker count auto-calculation failed, using default 6: {e}",
+                "geo_webview", Qgis.MessageLevel.Warning
             )
             return 6
-    
+
     def __init__(self, iface, navigation_signals, webmap_generator, main_plugin):
         """サーバーマネージャーを初期化
-        
+
         Args:
             iface: QGISインターフェース
             navigation_signals: ナビゲーション用シグナル
@@ -73,7 +115,7 @@ class GeoWebViewServerManager:
         self.navigation_signals = navigation_signals
         self.main_plugin = main_plugin
         self.webmap_generator = webmap_generator
-        
+
         # WMSサービスを初期化
         from .wms_service import GeoWebViewWMSService
         self.wms_service = GeoWebViewWMSService(iface, webmap_generator, 8089, False)
@@ -90,15 +132,16 @@ class GeoWebViewServerManager:
                 QgsMessageLog.logMessage(
                     f"WMTS service initialization failed: {traceback.format_exc()}",
                     "geo_webview",
-                    Qgis.Warning
+                    Qgis.MessageLevel.Warning
                 )
             except Exception:
                 # 最低限コンソールには表示
                 try:
-                    import sys, traceback
+                    import sys
+                    import traceback
                     sys.stderr.write('WMTS init failed:\n')
                     traceback.print_exc()
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
             self.wmts_service = None
         # Track last known WMTS identity to avoid unnecessary work
@@ -111,9 +154,9 @@ class GeoWebViewServerManager:
         # and will try multiple common signal names used in different QGIS versions.
         try:
             self._attach_layer_tree_hooks()
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
-        
+
         # WFSサービスを初期化
         try:
             from .wfs_service import GeoWebViewWFSService
@@ -121,7 +164,7 @@ class GeoWebViewServerManager:
         except Exception:
             # 初期化が失敗してもサーバは動作を続けられるように None を許容
             self.wfs_service = None
-        
+
         # HTTPサーバー関連の状態
         self.http_server = None
         self.server_thread = None
@@ -129,18 +172,29 @@ class GeoWebViewServerManager:
         self.preferred_port = 8089  # ユーザー指定の優先ポート
         self._http_running = False
         self._last_request_text = ""
-        
+
         # HTTP並列処理用スレッドプール（PCのCPU性能に応じて自動調整）
         optimal_workers = self._calculate_optimal_workers()
         self._http_executor = concurrent.futures.ThreadPoolExecutor(
             max_workers=optimal_workers,
             thread_name_prefix='HTTP-Handler'
         )
-        
+
         # プラグインバージョン情報
         self.plugin_version = self._get_plugin_version()
         # 任意のCRSを強制的にEPSG:3857として扱うオプション（デフォルト: False）
         self.force_epsg3857 = False
+
+        # クライアントから受領したパーマリンク履歴(最新10件)
+        # 要素: {'url','client','ua','time'}
+        self.received_history = deque(maxlen=10)
+        # MACアドレス解決キャッシュ {ip: (set_of_macs, epoch)}
+        self._mac_cache = {}
+        # 独立レンダラ(QgsMapRendererParallelJob)の同時実行はQGISクラッシュを
+        # 引き起こすため直列化する(WMSサービスと共有して全経路を一本化)
+        self._render_lock = getattr(self.wms_service, '_render_lock', None) or threading.Lock()
+        # KASUGAIエクスポートは同一出力先へ書き込むため同時実行を直列化する
+        self._kasugai_lock = threading.Lock()
 
     def _safe_int(self, value, default):
         """文字列から安全にintに変換する。NaNや不正値は default を返す。"""
@@ -158,11 +212,11 @@ class GeoWebViewServerManager:
         try:
             plugin_dir = os.path.dirname(__file__)
             metadata_path = os.path.join(plugin_dir, 'metadata.txt')
-            
+
             if os.path.exists(metadata_path):
                 with open(metadata_path, 'r', encoding='utf-8') as f:
                     lines = f.readlines()
-                    
+
                     # 各行をチェック（スペースを無視）
                     for line in lines:
                         # スペースを削除して "version=" で始まるかチェック
@@ -172,17 +226,17 @@ class GeoWebViewServerManager:
                             if '=' in line:
                                 version = line.split('=')[1].strip()
                                 return version
-                    
+
         except Exception as e:
             from qgis.core import QgsMessageLog, Qgis
-            QgsMessageLog.logMessage(f"❌ バージョン取得エラー: {e}", "geo_webview", Qgis.Warning)
-        
+            QgsMessageLog.logMessage(f"❌ Version detection error: {e}", "geo_webview", Qgis.MessageLevel.Warning)
+
         # デフォルトバージョン（metadata.txtから読み取れない場合）
         return "UNKNOWN"
 
     def start_http_server(self, preferred_port=None):
         """HTTPサーバーを起動
-        
+
         Args:
             preferred_port: 優先的に使用したいポート番号（指定がない場合は8089から検索）
         """
@@ -193,7 +247,7 @@ class GeoWebViewServerManager:
             # 優先ポートが指定されていればそれを使用
             if preferred_port is not None:
                 self.preferred_port = preferred_port
-            
+
             # 使用可能なポートを探す
             # 標準ポート(80, 443)の場合はそのまま使用、それ以外は指定ポートから+10の範囲で検索
             if self.preferred_port in (80, 443):
@@ -204,13 +258,13 @@ class GeoWebViewServerManager:
                 # その他のポートの場合は±10の範囲で検索（下限は80）
                 start_port = max(80, self.preferred_port)
                 end_port = min(65535, self.preferred_port + 10)
-            
+
             self.server_port = self.find_available_port(start_port, end_port)
 
             server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self._set_reuse_socketopt(server_socket)
             # bind to all interfaces so non-localhost access is possible
-            server_socket.bind(('0.0.0.0', self.server_port))
+            server_socket.bind(('0.0.0.0', self.server_port))  # nosec B104  # LAN共有は本機能の仕様
             server_socket.listen(5)
             server_socket.settimeout(1.0)
 
@@ -225,36 +279,36 @@ class GeoWebViewServerManager:
             self.server_thread.start()
 
             from qgis.core import QgsMessageLog, Qgis
-            QgsMessageLog.logMessage(f"🚀 QMap Permalink v{self.plugin_version} WMS HTTPサーバーが起動しました: http://localhost:{self.server_port}/wms", "geo_webview", Qgis.Info)
+            QgsMessageLog.logMessage(f"🚀 QMap Permalink v{self.plugin_version} WMS HTTP server started: http://localhost:{self.server_port}/wms", "geo_webview", Qgis.MessageLevel.Info)
             self.iface.messageBar().pushMessage(
                 "QMap Permalink",
-                f"WMS HTTPサーバーが起動しました (ポート: {self.server_port})",
+                QCoreApplication.translate("geo_webview", "WMS HTTP server started (port: {0})").format(self.server_port),
                 duration=3
             )
 
         except Exception as e:
             from qgis.core import QgsMessageLog, Qgis
-            QgsMessageLog.logMessage(f"HTTPサーバーの起動に失敗しました: {e}", "geo_webview", Qgis.Critical)
+            QgsMessageLog.logMessage(f"Failed to start HTTP server: {e}", "geo_webview", Qgis.MessageLevel.Critical)
             self.iface.messageBar().pushMessage(
-                "QMap Permalink エラー",
-                f"HTTPサーバーの起動に失敗しました: {str(e)}",
+                QCoreApplication.translate("geo_webview", "QMap Permalink Error"),
+                QCoreApplication.translate("geo_webview", "Failed to start HTTP server: {0}").format(e),
                 duration=5
             )
             self._http_running = False
             if self.http_server:
                 try:
                     self.http_server.close()
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 self.http_server = None
-    
+
     def run_server(self):
         """サーバーを安全に実行（並列処理版）"""
         try:
             while self._http_running and self.http_server:
                 try:
                     conn, addr = self.http_server.accept()
-                except socket.timeout:
+                except socket.timeout:  # nosec B112  # 設計上の許容
                     continue
                 except OSError:
                     break
@@ -268,14 +322,14 @@ class GeoWebViewServerManager:
                         # スレッドプールが使えない場合は接続を閉じる
                         try:
                             conn.close()
-                        except Exception:
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
                 except Exception as e:
                     from qgis.core import QgsMessageLog, Qgis
-                    QgsMessageLog.logMessage(f"HTTPリクエストのスレッド投入に失敗: {e}", "geo_webview", Qgis.Critical)
+                    QgsMessageLog.logMessage(f"Failed to dispatch HTTP request to thread pool: {e}", "geo_webview", Qgis.MessageLevel.Critical)
                     try:
                         conn.close()
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
 
         finally:
@@ -283,12 +337,12 @@ class GeoWebViewServerManager:
             if self.http_server:
                 try:
                     self.http_server.close()
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 self.http_server = None
             from qgis.core import QgsMessageLog, Qgis
-            QgsMessageLog.logMessage("HTTPサーバーが停止しました", "geo_webview", Qgis.Info)
-    
+            QgsMessageLog.logMessage("HTTP server stopped", "geo_webview", Qgis.MessageLevel.Info)
+
     def stop_http_server(self):
         """HTTPサーバーを停止"""
         try:
@@ -298,7 +352,7 @@ class GeoWebViewServerManager:
             if self.http_server:
                 try:
                     self.http_server.close()
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 self.http_server = None
 
@@ -306,7 +360,7 @@ class GeoWebViewServerManager:
             if self.server_thread and self.server_thread.is_alive():
                 try:
                     self.server_thread.join(timeout=3.0)
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 self.server_thread = None
 
@@ -317,7 +371,7 @@ class GeoWebViewServerManager:
                 except TypeError:
                     # Python 3.8以前はcancel_futures引数がない
                     self._http_executor.shutdown(wait=True)
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 # 新しいエグゼキュータを作成（次回起動用）
                 optimal_workers = self._calculate_optimal_workers()
@@ -327,11 +381,11 @@ class GeoWebViewServerManager:
                 )
 
             from qgis.core import QgsMessageLog, Qgis
-            QgsMessageLog.logMessage("QMap Permalink HTTPサーバーが停止しました", "geo_webview", Qgis.Info)
-            
+            QgsMessageLog.logMessage("QMap Permalink HTTP server stopped", "geo_webview", Qgis.MessageLevel.Info)
+
         except Exception as e:
             from qgis.core import QgsMessageLog, Qgis
-            QgsMessageLog.logMessage(f"HTTPサーバーの停止中にエラーが発生しました: {e}", "geo_webview", Qgis.Critical)
+            QgsMessageLog.logMessage(f"An error occurred while stopping the HTTP server: {e}", "geo_webview", Qgis.MessageLevel.Critical)
 
     def _handle_client_connection_safe(self, conn, addr):
         """HTTPリクエストを安全に処理（エラーハンドリング付き）"""
@@ -339,18 +393,18 @@ class GeoWebViewServerManager:
             self._handle_client_connection(conn, addr)
         except Exception as e:
             from qgis.core import QgsMessageLog, Qgis
-            QgsMessageLog.logMessage(f"HTTPリクエスト処理中にエラー: {e}", "geo_webview", Qgis.Warning)
+            QgsMessageLog.logMessage(f"Error while handling HTTP request: {e}", "geo_webview", Qgis.MessageLevel.Warning)
         finally:
             try:
                 conn.close()
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
-    
+
     def _handle_client_connection(self, conn, addr):
         """HTTPリクエストを解析してWMSリクエストを処理"""
         # 初期タイムアウト設定（リクエスト読み取り用）
         conn.settimeout(10.0)
-        
+
         with conn:
             from . import http_server
             request_bytes = http_server.read_http_request(conn)
@@ -381,8 +435,23 @@ class GeoWebViewServerManager:
                 http_server.send_http_response(conn, 405, "Method Not Allowed", "Only GET is supported.")
                 return
 
+            # MACアドレス認証モード(設定で有効時のみ): 未登録MACのクライアントは403
+            if not self._mac_auth_check(addr[0] if addr else ''):
+                from . import http_server
+                http_server.send_http_response(
+                    conn, 403, "Forbidden",
+                    "Access denied: client MAC address is not registered.",
+                    "text/plain; charset=utf-8")
+                return
+
             parsed_url = urllib.parse.urlparse(target)
             params = urllib.parse.parse_qs(parsed_url.query)
+            # OGCパラメータ名は大小区別なし(Cesium等は小写で送る)ため、
+            # 大写エイリアスを補完する。既存キーは上書きしない
+            for key in list(params):
+                key_up = key.upper()
+                if key_up != key and key_up not in params:
+                    params[key_up] = params[key]
             # Manually unquote parameter values to handle UTF-8 encoding issues
             for key in params:
                 params[key] = [urllib.parse.unquote_plus(val) for val in params[key]]
@@ -395,7 +464,10 @@ class GeoWebViewServerManager:
 
             # ブラウザで読み込まれるページURL（/qgis-map）を受け取ったときだけ
             # パネルのナビゲート欄に表示するためにemitする。
+            # ただしパネル側から生成した自前のページ遷移(internal=1付与)は
+            # ナビゲート欄の上書き・受領履歴の対象外とする。
             try:
+                is_internal = 'internal' in params
                 if parsed_url.path in ('/qgis-map', '/maplibre'):
                     server_port = None
                     try:
@@ -412,21 +484,38 @@ class GeoWebViewServerManager:
                     else:
                         full_url = f'http://{host}{target}'
 
-                    # Emit the full URL for UI if signal available
-                    if hasattr(self, 'navigation_signals') and self.navigation_signals:
+                    if not is_internal:
+                        # 受領履歴に記録(クライアントIP・User-Agent・時刻つき、最大10件)
                         try:
-                            if hasattr(self.navigation_signals, 'request_origin_changed'):
-                                self.navigation_signals.request_origin_changed.emit(full_url)
-                        except Exception:
+                            ua = ''
+                            for hline in request_text.splitlines():
+                                if hline.lower().startswith('user-agent:'):
+                                    ua = hline.split(':', 1)[1].strip()
+                                    break
+                            self.received_history.appendleft({
+                                'url': full_url,
+                                'client': addr[0] if addr else '',
+                                'ua': ua,
+                                'time': datetime.now().isoformat(timespec='seconds'),
+                            })
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
 
-                    # main_plugin にも保持（パネル未作成時のフォールバック）
-                    try:
-                        if hasattr(self, 'main_plugin'):
-                            setattr(self.main_plugin, '_last_request_origin', full_url)
-                    except Exception:
-                        pass
-            except Exception:
+                        # Emit the full URL for UI if signal available
+                        if hasattr(self, 'navigation_signals') and self.navigation_signals:
+                            try:
+                                if hasattr(self.navigation_signals, 'request_origin_changed'):
+                                    self.navigation_signals.request_origin_changed.emit(full_url)
+                            except Exception:  # nosec B110  # 設計上の許容
+                                pass
+
+                        # main_plugin にも保持（パネル未作成時のフォールバック）
+                        try:
+                            if hasattr(self, 'main_plugin'):
+                                setattr(self.main_plugin, '_last_request_origin', full_url)
+                        except Exception:  # nosec B110  # 設計上の許容
+                            pass
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
 
             # WMSエンドポイントの処理（直接PNG画像返却）
@@ -434,21 +523,21 @@ class GeoWebViewServerManager:
                 try:
                     self.wms_service.handle_wms_request(conn, params, host)
                 except Exception as e:
-                    QgsMessageLog.logMessage(f"❌ WMS handler error: {e}", "geo_webview", Qgis.Critical)
+                    QgsMessageLog.logMessage(f"❌ WMS handler error: {e}", "geo_webview", Qgis.MessageLevel.Critical)
                     import traceback
-                    QgsMessageLog.logMessage(f"❌ Error traceback: {traceback.format_exc()}", "geo_webview", Qgis.Critical)
+                    QgsMessageLog.logMessage(f"❌ Error traceback: {traceback.format_exc()}", "geo_webview", Qgis.MessageLevel.Critical)
                     from . import http_server
                     http_server.send_http_response(conn, 500, "Internal Server Error", f"WMS processing failed: {str(e)}")
                 return
-            
+
             # OpenLayersパーマリンクエンドポイントの処理（HTMLページ生成、内部で/wmsを参照）
             if parsed_url.path == '/qgis-map':
                 try:
                     self._handle_permalink_html_page(conn, params)
                 except Exception as e:
-                    QgsMessageLog.logMessage(f"❌ OpenLayers HTML page error: {e}", "geo_webview", Qgis.Critical)
+                    QgsMessageLog.logMessage(f"❌ OpenLayers HTML page error: {e}", "geo_webview", Qgis.MessageLevel.Critical)
                     import traceback
-                    QgsMessageLog.logMessage(f"❌ Error traceback: {traceback.format_exc()}", "geo_webview", Qgis.Critical)
+                    QgsMessageLog.logMessage(f"❌ Error traceback: {traceback.format_exc()}", "geo_webview", Qgis.MessageLevel.Critical)
                     from . import http_server
                     http_server.send_http_response(conn, 500, "Internal Server Error", f"OpenLayers HTML page generation failed: {str(e)}")
                 return
@@ -462,7 +551,7 @@ class GeoWebViewServerManager:
                         if k in params and params.get(k):
                             wfs_typename = params.get(k)[0]
                             break
-                    
+
                     # If no typename specified, return a base WMTS-only style (no WFS layers)
                     if not wfs_typename:
                         # Use the same IDs as the full style path to keep UI toggles consistent
@@ -517,7 +606,7 @@ class GeoWebViewServerManager:
                         for c in cands:
                             try:
                                 cand_ids.append(c.id())
-                            except Exception:
+                            except Exception:  # nosec B112  # 設計上の許容
                                 continue
                         body = {
                             'error': f"Layer '{wfs_typename}' not found",
@@ -545,8 +634,8 @@ class GeoWebViewServerManager:
                         mapbox_layers = qgis_layer_to_maplibre_style(raw_id, _wfs_source_id)
                         try:
                             from qgis.core import QgsMessageLog, Qgis
-                            QgsMessageLog.logMessage(f'🎨 Converted to {len(mapbox_layers)} Mapbox layers: {[ml.get("id") for ml in mapbox_layers if isinstance(ml, dict)]}', 'QMapPermalink', Qgis.Info)
-                        except Exception:
+                            QgsMessageLog.logMessage(f'🎨 Converted to {len(mapbox_layers)} Mapbox layers: {[ml.get("id") for ml in mapbox_layers if isinstance(ml, dict)]}', 'QMapPermalink', Qgis.MessageLevel.Info)
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
                     except Exception as e:
                         from . import http_server
@@ -559,7 +648,7 @@ class GeoWebViewServerManager:
                     # 動的ホスト名を使用（外部アクセス対応）
                     base_url = f"http://{host}" if host else f"http://localhost:{self.server_port}"
                     tile_template = f'{base_url}/wmts/{{z}}/{{x}}/{{y}}.png'
-                    
+
                     # Ensure all mapbox_layers have explicit visibility set to 'visible'
                     # so that client-side controls can toggle them properly
                     try:
@@ -569,9 +658,9 @@ class GeoWebViewServerManager:
                                     ml['layout'] = {}
                                 if 'visibility' not in ml.get('layout', {}):
                                     ml['layout']['visibility'] = 'visible'
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
-                    
+
                     style_dict = {
                         'version': 8,
                         # use canonical QGIS layer id for the style name (must match typename)
@@ -665,7 +754,7 @@ class GeoWebViewServerManager:
                                                 if math.isfinite(minx):
                                                     chosen = L
                                                     break
-                                            except Exception:
+                                            except Exception:  # nosec B112  # 設計上の許容
                                                 continue
                                         if not chosen:
                                             chosen = layers_list[0]
@@ -677,9 +766,9 @@ class GeoWebViewServerManager:
                                         wfs_typename = chosen.get('typename') or chosen.get('id') or chosen.get('name')
                                         try:
                                             from qgis.core import QgsMessageLog, Qgis
-                                        except Exception:
+                                        except Exception:  # nosec B110  # 設計上の許容
                                             pass
-                                except Exception:
+                                except Exception:  # nosec B110  # 設計上の許容
                                     # ignore and leave wfs_typename as None
                                     pass
 
@@ -705,16 +794,20 @@ class GeoWebViewServerManager:
                                         p += f"&zoom={zoom}"
                                     temp_path = maplibre_generator.open_maplibre_from_permalink(p, wfs_typename)
                                 else:
-                                    # Fallback: attempt to generate with empty permalink but pass typename
-                                    temp_path = maplibre_generator.open_maplibre_from_permalink('', wfs_typename)
+                                    # Fallback: 現在の地図キャンバスから合成パーマリンクを生成
+                                    # (空パーマリンクは _parse_permalink が必ず失敗させるため)
+                                    canvas_permalink = self._canvas_permalink()
+                                    temp_path = maplibre_generator.open_maplibre_from_permalink(
+                                        canvas_permalink or '', wfs_typename)
                             except Exception as e:
                                 # If generator failed (e.g. couldn't parse permalink), attempt a safe fallback
                                 try:
-                                    QgsMessageLog.logMessage(f"⚠️ MapLibre generator failed: {e} - retrying with empty permalink", "geo_webview", Qgis.Warning)
-                                except Exception:
+                                    QgsMessageLog.logMessage(f"⚠️ MapLibre generator failed: {e} - retrying with canvas permalink", "geo_webview", Qgis.MessageLevel.Warning)
+                                except Exception:  # nosec B110  # 設計上の許容
                                     pass
                                 try:
-                                    temp_path = maplibre_generator.open_maplibre_from_permalink('', None)
+                                    temp_path = maplibre_generator.open_maplibre_from_permalink(
+                                        self._canvas_permalink() or '', None)
                                 except Exception:
                                     # re-raise original to be handled by outer exception handler
                                     raise
@@ -727,7 +820,7 @@ class GeoWebViewServerManager:
                             # restore original webbrowser.open regardless of outcome
                             try:
                                 webbrowser.open = _orig_web_open
-                            except Exception:
+                            except Exception:  # nosec B110  # 設計上の許容
                                 pass
                     except Exception:
                         # Any failure here falls back to lightweight generator
@@ -746,23 +839,28 @@ class GeoWebViewServerManager:
                         http_server.send_http_response(conn, 500, "Internal Server Error", error_html, "text/html; charset=utf-8")
                         return
 
+                    # プレゼンテーション追従モード(follow/present指定時):
+                    # /present/state をポーリングしてQGIS側の表示に追従する
+                    if html_content and ('follow' in params or 'present' in params):
+                        html_content = self._inject_follow_script(html_content, 'maplibre')
+
                     from . import http_server
                     http_server.send_http_response(conn, 200, "OK", html_content, "text/html; charset=utf-8")
                 except Exception as e:
-                    QgsMessageLog.logMessage(f"❌ MapLibre HTML page error: {e}", "geo_webview", Qgis.Critical)
+                    QgsMessageLog.logMessage(f"❌ MapLibre HTML page error: {e}", "geo_webview", Qgis.MessageLevel.Critical)
                     import traceback
-                    QgsMessageLog.logMessage(f"❌ Error traceback: {traceback.format_exc()}", "geo_webview", Qgis.Critical)
+                    QgsMessageLog.logMessage(f"❌ Error traceback: {traceback.format_exc()}", "geo_webview", Qgis.MessageLevel.Critical)
                     from . import http_server
                     http_server.send_http_response(conn, 500, "Internal Server Error", f"MapLibre HTML page generation failed: {str(e)}")
                 return
-            
+
             # WMTS/XYZ endpoint: delegate to qmap_wmts_service for GetCapabilities and tiles
             if parsed_url.path.startswith('/wmts') or parsed_url.path.startswith('/xyz'):
                 try:
                     # lazily create service if missing
                     if not hasattr(self, 'wmts_service') or self.wmts_service is None:
                         try:
-                            from .qmap_wmts_service import GeoWebViewWMTSService
+                            from .wmts_service import GeoWebViewWMTSService
                             self.wmts_service = GeoWebViewWMTSService(self)
                         except Exception:
                             # Log import/instantiation failure so operator can diagnose
@@ -772,14 +870,15 @@ class GeoWebViewServerManager:
                                 QgsMessageLog.logMessage(
                                     f"Lazy WMTS service creation failed: {traceback.format_exc()}",
                                     "geo_webview",
-                                    Qgis.Warning
+                                    Qgis.MessageLevel.Warning
                                 )
                             except Exception:
                                 try:
-                                    import sys, traceback
+                                    import sys
+                                    import traceback
                                     sys.stderr.write('Lazy WMTS creation failed:\n')
                                     traceback.print_exc()
-                                except Exception:
+                                except Exception:  # nosec B110  # 設計上の許容
                                     pass
                             self.wmts_service = None
 
@@ -789,9 +888,9 @@ class GeoWebViewServerManager:
                         from . import http_server
                         http_server.send_http_response(conn, 501, 'Not Implemented', 'WMTS service not available')
                 except Exception as e:
-                    QgsMessageLog.logMessage(f"❌ WMTS delegation error: {e}", "geo_webview", Qgis.Critical)
+                    QgsMessageLog.logMessage(f"❌ WMTS delegation error: {e}", "geo_webview", Qgis.MessageLevel.Critical)
                     import traceback
-                    QgsMessageLog.logMessage(f"❌ Error traceback: {traceback.format_exc()}", "geo_webview", Qgis.Critical)
+                    QgsMessageLog.logMessage(f"❌ Error traceback: {traceback.format_exc()}", "geo_webview", Qgis.MessageLevel.Critical)
                     from . import http_server
                     http_server.send_http_response(conn, 500, "Internal Server Error", f"WMTS processing failed: {str(e)}")
                 return
@@ -801,20 +900,20 @@ class GeoWebViewServerManager:
                 try:
                     self._handle_wfs_layers(conn, params)
                 except Exception as e:
-                    QgsMessageLog.logMessage(f"❌ wfs-layers handler error: {e}", "geo_webview", Qgis.Critical)
+                    QgsMessageLog.logMessage(f"❌ wfs-layers handler error: {e}", "geo_webview", Qgis.MessageLevel.Critical)
                     import traceback
-                    QgsMessageLog.logMessage(f"❌ Error traceback: {traceback.format_exc()}", "geo_webview", Qgis.Critical)
+                    QgsMessageLog.logMessage(f"❌ Error traceback: {traceback.format_exc()}", "geo_webview", Qgis.MessageLevel.Critical)
                     from . import http_server
                     http_server.send_http_response(conn, 500, "Internal Server Error", f"wfs-layers failed: {str(e)}")
                 return
-            
+
             # WFS endpoint: delegate to qmap_wfs_service for GetCapabilities, GetFeature, DescribeFeatureType, and GetStyles
             if parsed_url.path.startswith('/wfs') or ('SERVICE' in params and params.get('SERVICE', [''])[0].upper() == 'WFS'):
                 try:
                     # lazily create service if missing
                     if not hasattr(self, 'wfs_service') or self.wfs_service is None:
                         try:
-                            from .qmap_wfs_service import GeoWebViewWFSService
+                            from .wfs_service import GeoWebViewWFSService
                             self.wfs_service = GeoWebViewWFSService(self.iface, self.server_port)
                         except Exception:
                             self.wfs_service = None
@@ -834,9 +933,9 @@ class GeoWebViewServerManager:
                         from . import http_server
                         http_server.send_http_response(conn, 501, 'Not Implemented', 'WFS service not available')
                 except Exception as e:
-                    QgsMessageLog.logMessage(f"❌ WFS delegation error: {e}", "geo_webview", Qgis.Critical)
+                    QgsMessageLog.logMessage(f"❌ WFS delegation error: {e}", "geo_webview", Qgis.MessageLevel.Critical)
                     import traceback
-                    QgsMessageLog.logMessage(f"❌ Error traceback: {traceback.format_exc()}", "geo_webview", Qgis.Critical)
+                    QgsMessageLog.logMessage(f"❌ Error traceback: {traceback.format_exc()}", "geo_webview", Qgis.MessageLevel.Critical)
                     from . import http_server
                     http_server.send_http_response(conn, 500, "Internal Server Error", f"WFS processing failed: {str(e)}")
                 return
@@ -849,13 +948,104 @@ class GeoWebViewServerManager:
                         from . import http_server
                         http_server.send_http_response(conn, 501, 'Not Implemented', 'debug-bookmarks handler not available')
                 except Exception as e:
-                    QgsMessageLog.logMessage(f"❌ debug-bookmarks handler error: {e}", "geo_webview", Qgis.Critical)
+                    QgsMessageLog.logMessage(f"❌ debug-bookmarks handler error: {e}", "geo_webview", Qgis.MessageLevel.Critical)
                     import traceback
-                    QgsMessageLog.logMessage(f"❌ Error traceback: {traceback.format_exc()}", "geo_webview", Qgis.Critical)
+                    QgsMessageLog.logMessage(f"❌ Error traceback: {traceback.format_exc()}", "geo_webview", Qgis.MessageLevel.Critical)
                     from . import http_server
                     http_server.send_http_response(conn, 500, "Internal Server Error", f"debug-bookmarks failed: {str(e)}")
                 return
-            
+
+            # クライアントから受領したパーマリンク履歴(JSON)
+            if parsed_url.path == '/received':
+                try:
+                    payload = json.dumps(
+                        {'received': list(self.received_history)},
+                        ensure_ascii=False)
+                    from . import http_server
+                    http_server.send_http_response(
+                        conn, 200, 'OK', payload,
+                        'application/json; charset=utf-8')
+                except Exception as e:
+                    from . import http_server
+                    http_server.send_http_response(
+                        conn, 500, 'Internal Server Error',
+                        f'received failed: {e}', 'text/plain; charset=utf-8')
+                return
+
+            # 現在のキャンバス状態(JSON)。プレゼンテーション追従用
+            if parsed_url.path == '/present/state':
+                try:
+                    payload = json.dumps(
+                        self._canvas_state_dict(), ensure_ascii=False)
+                    from . import http_server
+                    http_server.send_http_response(
+                        conn, 200, 'OK', payload,
+                        'application/json; charset=utf-8')
+                except Exception as e:
+                    from . import http_server
+                    http_server.send_http_response(
+                        conn, 500, 'Internal Server Error',
+                        f'present/state failed: {e}', 'text/plain; charset=utf-8')
+                return
+
+            # 現在のキャンバス表示と同等のPNG(プレゼンテーション共有用)
+            if parsed_url.path == '/screenshot':
+                try:
+                    self._handle_screenshot(conn, params)
+                except Exception as e:
+                    QgsMessageLog.logMessage(
+                        f'❌ screenshot handler error: {e}',
+                        'geo_webview', Qgis.MessageLevel.Critical)
+                    from . import http_server
+                    http_server.send_http_response(
+                        conn, 500, 'Internal Server Error',
+                        f'screenshot failed: {e}', 'text/plain; charset=utf-8')
+                return
+
+            # プレゼンテーションページ(地図キャンバスのウィンドウ共有表示)
+            if parsed_url.path == '/present':
+                try:
+                    self._handle_present_page(conn, params)
+                except Exception as e:
+                    QgsMessageLog.logMessage(
+                        f'❌ present handler error: {e}',
+                        'geo_webview', Qgis.MessageLevel.Critical)
+                    from . import http_server
+                    http_server.send_http_response(
+                        conn, 500, 'Internal Server Error',
+                        f'present failed: {e}', 'text/plain; charset=utf-8')
+                return
+
+            # KASUGAI Canvas 連携: 表示中レイヤを .kasc プロジェクトに出力し、
+            # 起動中のKASUGAIへ登録してプロジェクトURLをJSONで返す
+            # (生成ページ右上の KASUGAI ボタンから呼ばれる)
+            if parsed_url.path == '/kasugai':
+                try:
+                    self._handle_kasugai(conn)
+                except Exception as e:
+                    QgsMessageLog.logMessage(
+                        f'❌ kasugai handler error: {e}',
+                        'geo_webview', Qgis.MessageLevel.Critical)
+                    from . import http_server
+                    http_server.send_http_response(
+                        conn, 500, 'Internal Server Error',
+                        f'kasugai failed: {e}', 'text/plain; charset=utf-8')
+                return
+
+            # OpenLayers+Cesiumの2画面3Dページ
+            if parsed_url.path == '/map3d':
+                try:
+                    self._handle_map3d(conn, params, host)
+                except Exception as e:
+                    QgsMessageLog.logMessage(
+                        f'❌ map3d handler error: {e}',
+                        'geo_webview', Qgis.MessageLevel.Critical)
+                    from . import http_server
+                    http_server.send_http_response(
+                        conn, 500, 'Internal Server Error',
+                        f'map3d failed: {e}', 'text/plain; charset=utf-8')
+                return
+
             # --- 静的ファイル配信: favicon.ico, style.json, data.geojson など ---
             import os
             # Support a few well-known static assets. Also allow serving small
@@ -875,7 +1065,7 @@ class GeoWebViewServerManager:
                         if os.path.exists(fpath):
                             found = fpath
                             break
-                    except Exception:
+                    except Exception:  # nosec B112  # 設計上の許容
                         continue
 
                 if found:
@@ -899,285 +1089,430 @@ class GeoWebViewServerManager:
                     return
 
             # 未対応のエンドポイントは404エラー
-            QgsMessageLog.logMessage(f"❌ Unknown endpoint: {parsed_url.path}", "geo_webview", Qgis.Warning)
+            QgsMessageLog.logMessage(f"❌ Unknown endpoint: {parsed_url.path}", "geo_webview", Qgis.MessageLevel.Warning)
             from . import http_server
             # 明示的に利用可能なエンドポイント一覧に /wmts と /wfs を含める
             http_server.send_http_response(
                 conn,
                 404,
                 "Not Found",
-                "Available endpoints: /wms (PNG image), /qgis-map (OpenLayers HTML), /maplibre (MapLibre HTML), /wmts (WMTS tiles), /wfs (WFS service)"
+                "Available endpoints: /wms (PNG image), /qgis-map (OpenLayers HTML), /maplibre (MapLibre HTML), /map3d (OpenLayers+Cesium 3D), /present (shared canvas view), /present/state (canvas JSON), /screenshot (canvas PNG), /received (permalink history), /wmts (WMTS tiles), /wfs (WFS service)"
             )
             return
-    def _build_navigation_data_from_params(self, params):
-        """クエリパラメータからナビゲーション用辞書を構築する
 
-        params: urllib.parse.parse_qs の戻り値（辞書: key -> [values]）
+    # ---------- MACアドレス認証 ----------
 
-        戻り値の形式:
-            {'type': 'coordinates', 'x': float, 'y': float, 'scale': float, 'crs': str, ...}
-            または
-            {'type': 'location', 'location': '<encoded json string>'}
+    @staticmethod
+    def _norm_mac(value):
+        """MAC表記を 'AA:BB:CC:DD:EE:FF' 大文字に正規化。不正値はNone。"""
+        m = re.sub(r'[^0-9A-Fa-f]', '', str(value))
+        if len(m) != 12:
+            return None
+        return ':'.join(m[i:i + 2] for i in range(0, 12, 2)).upper()
+
+    def _local_macs(self):
+        """このマシンのMACアドレス集合を返す(best-effort)。"""
+        macs = set()
+        try:
+            import uuid
+            n = self._norm_mac(format(uuid.getnode(), '012x'))
+            if n:
+                macs.add(n)
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+        try:
+            import subprocess  # nosec B404  # 意図的なOSコマンド呼出し
+            if os.name == 'nt':
+                out = subprocess.check_output(  # nosec B603 B607
+                    ['getmac', '/fo', 'csv', '/nh'], timeout=5)
+                text = out.decode('mbcs', errors='replace')
+                for token in re.findall(
+                        r'(?:[0-9A-Fa-f]{2}[-:]){5}[0-9A-Fa-f]{2}', text):
+                    n = self._norm_mac(token)
+                    if n:
+                        macs.add(n)
+            else:
+                sysd = '/sys/class/net'
+                if os.path.isdir(sysd):
+                    for dev in os.listdir(sysd):
+                        try:
+                            with open(os.path.join(sysd, dev, 'address')) as fh:
+                                n = self._norm_mac(fh.read())
+                                if n:
+                                    macs.add(n)
+                        except Exception:  # nosec B112  # 設計上の許容
+                            continue
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+        return macs
+
+    def _arp_lookup(self, ip):
+        """ARPテーブルからリモートIPのMACアドレス集合を返す。"""
+        macs = set()
+        try:
+            import subprocess  # nosec B404  # 意図的なOSコマンド呼出し
+            if os.name == 'nt':
+                out = subprocess.check_output(['arp', '-a'], timeout=5)  # nosec B603 B607
+                text = out.decode('mbcs', errors='replace')
+            else:
+                try:
+                    out = subprocess.check_output(  # nosec B603 B607
+                        ['ip', 'neigh', 'show'], timeout=5)
+                    text = out.decode(errors='replace')
+                except Exception:
+                    out = subprocess.check_output(['arp', '-a'], timeout=5)  # nosec B603 B607
+                    text = out.decode(errors='replace')
+            for line in text.splitlines():
+                if ip in line:
+                    for token in re.findall(
+                            r'(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}', line):
+                        n = self._norm_mac(token)
+                        if n:
+                            macs.add(n)
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+        return macs
+
+    def _resolve_client_macs(self, ip):
+        """クライアントIPのMACアドレス集合(30秒キャッシュ)。"""
+        now = time.time()
+        ent = self._mac_cache.get(ip)
+        if ent and now - ent[1] < 30:
+            return ent[0]
+        macs = set()
+        try:
+            if ip in ('127.0.0.1', '::1') or ip.startswith('::ffff:127.'):
+                macs |= self._local_macs()
+            else:
+                macs |= self._arp_lookup(ip)
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+        self._mac_cache[ip] = (macs, now)
+        return macs
+
+    def _mac_auth_check(self, client_ip):
+        """MAC認証モードの判定。無効時は常にTrue。
+
+        有効時(QSettings geo_webview.mac_auth_enabled)は、クライアントの
+        MACアドレスが mac_auth_allowed(空白/カンマ区切り)に登録済みか判定。
         """
-        # location ベースのパラメータがあれば優先
-        if 'location' in params:
-            # location はエンコード済みJSON文字列を想定
-            loc_val = params.get('location', [''])[0]
-            if not loc_val:
-                raise ValueError('location パラメータが空です')
-            return {'type': 'location', 'location': loc_val}
-
-        # 個別座標パラメータをチェック
-        if 'x' in params and 'y' in params and ('scale' in params or 'zoom' in params or 'crs' in params):
-            try:
-                x = float(params.get('x', [None])[0])
-                y = float(params.get('y', [None])[0])
-            except Exception:
-                raise ValueError('x/y パラメータが数値ではありません')
-
-            scale = None
-            if 'scale' in params:
-                try:
-                    scale = float(params.get('scale', [None])[0])
-                except Exception:
-                    scale = None
-
-            zoom = None
-            if 'zoom' in params:
-                try:
-                    zoom = float(params.get('zoom', [None])[0])
-                except Exception:
-                    zoom = None
-
-            crs = params.get('crs', [None])[0]
-            rotation = None
-            if 'rotation' in params:
-                try:
-                    rotation = float(params.get('rotation', [None])[0])
-                except Exception:
-                    rotation = None
-
-            theme_info = None
-            if 'theme' in params:
-                theme_info = params.get('theme', [None])[0]
-
-            return {
-                'type': 'coordinates',
-                'x': x,
-                'y': y,
-                'scale': scale,
-                'zoom': zoom,
-                'crs': crs,
-                'rotation': rotation,
-                'theme_info': theme_info,
-            }
-
-        # 条件に合致しない場合はエラー
-        raise ValueError('ナビゲーションパラメータが見つかりません')
-
-    def _get_canvas_extent_info(self):
-        """キャンバスから現在の範囲情報を取得してWMS XMLに埋め込む"""
         try:
-            canvas = self.iface.mapCanvas()
-            if not canvas:
-                return "<EX_GeographicBoundingBox><westBoundLongitude>-180</westBoundLongitude><eastBoundLongitude>180</eastBoundLongitude><southBoundLatitude>-90</southBoundLatitude><northBoundLatitude>90</northBoundLatitude></EX_GeographicBoundingBox>"
-            
-            # 現在の表示範囲を取得
-            extent = canvas.extent()
-            crs = canvas.mapSettings().destinationCrs()
-            
-            # WGS84に変換
-            from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject
-            wgs84_crs = QgsCoordinateReferenceSystem("EPSG:4326")
-            
-            if crs.authid() != "EPSG:4326":
-                transform = QgsCoordinateTransform(crs, wgs84_crs, QgsProject.instance())
-                try:
-                    extent = transform.transformBoundingBox(extent)
-                except Exception:
-                    pass  # 変換失敗時はそのまま使用
-            
-            # XML形式で範囲情報を生成
-            extent_xml = f"""<EX_GeographicBoundingBox>
-        <westBoundLongitude>{extent.xMinimum():.6f}</westBoundLongitude>
-        <eastBoundLongitude>{extent.xMaximum():.6f}</eastBoundLongitude>
-        <southBoundLatitude>{extent.yMinimum():.6f}</southBoundLatitude>
-        <northBoundLatitude>{extent.yMaximum():.6f}</northBoundLatitude>
-      </EX_GeographicBoundingBox>
-      <BoundingBox CRS="{crs.authid()}" minx="{extent.xMinimum():.6f}" miny="{extent.yMinimum():.6f}" maxx="{extent.xMaximum():.6f}" maxy="{extent.yMaximum():.6f}"/>"""
-            
-            return extent_xml
-            
-        except Exception as e:
-            from qgis.core import QgsMessageLog, Qgis
-            QgsMessageLog.logMessage(f"⚠️ Error getting canvas extent info: {e}", "geo_webview", Qgis.Warning)
-            return "<EX_GeographicBoundingBox><westBoundLongitude>-180</westBoundLongitude><eastBoundLongitude>180</eastBoundLongitude><southBoundLatitude>-90</southBoundLatitude><northBoundLatitude>90</northBoundLatitude></EX_GeographicBoundingBox>"
+            from qgis.PyQt.QtCore import QSettings
+            s = QSettings('GeoWebView', 'geo_webview')
+            enabled = str(
+                s.value('mac_auth_enabled', 'false')).lower() in (
+                    '1', 'true', 'yes', 'on')
+            if not enabled:
+                return True
+            raw = s.value('mac_auth_allowed', '') or ''
+            allowed = {
+                self._norm_mac(m) for m in re.split(r'[\s,;]+', str(raw))
+                if self._norm_mac(m)}
+            if not allowed:
+                return False
+            client_macs = {
+                self._norm_mac(m) for m in self._resolve_client_macs(client_ip)
+                if self._norm_mac(m)}
+            return bool(allowed & client_macs)
+        except Exception:
+            # 認証判定で例外が出た場合は安全側(拒否)
+            return False
 
+    # ---------- キャンバス状態 / プレゼンテーション ----------
 
+    def _canvas_state_dict(self):
+        """現在の地図キャンバス状態をJSON化可能なdictで返す。
 
-
-            height = self._safe_int(params.get('HEIGHT', ['256'])[0], 256)
-            bbox = params.get('BBOX', [''])[0]
-            # WMS version and CRS/SRS handling: accept both CRS (1.3.0) and SRS (1.1.1)
-            wms_version = params.get('VERSION', params.get('version', ['1.3.0']))[0]
-            # Prefer CRS (WMS 1.3.0) but fall back to SRS if provided
-            original_crs = None
-            if 'CRS' in params and params.get('CRS'):
-                original_crs = params.get('CRS', [''])[0]
-            elif 'SRS' in params and params.get('SRS'):
-                original_crs = params.get('SRS', [''])[0]
-            if not original_crs:
-                original_crs = 'EPSG:3857'
-
-            # If WMS 1.3.0 and CRS is EPSG:4326, axis order in BBOX is lat,lon (y,x)
-            # so we need to swap coordinates when parsing. For other CRSs assume BBOX
-            # is minx,miny,maxx,maxy.
+        x/y/crs はキャンバスCRS、x3857/y3857 はEPSG:3857、lon/lat は
+        EPSG:4326 にそれぞれ変換した中心座標。zoom はscaleからの推定。
+        """
+        canvas = self.iface.mapCanvas()
+        ms = canvas.mapSettings()
+        c = canvas.center()
+        scale = canvas.scale()
+        crs_auth = ms.destinationCrs().authid()
+        rotation = 0.0
+        try:
+            rotation = float(canvas.rotation())
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+        zoom = None
+        try:
+            from .scale_zoom import estimate_zoom_from_scale_maplibre
+            zoom = estimate_zoom_from_scale_maplibre(scale)
+        except Exception:
             try:
-                bbox_coords = [float(v) for v in bbox.split(',')] if bbox else []
-                if bbox_coords and wms_version and str(wms_version).startswith('1.3') and original_crs and original_crs.upper().endswith('4326') and len(bbox_coords) == 4:
-                    # incoming BBOX: miny,minx,maxy,maxx -> reorder to minx,miny,maxx,maxy
-                    bbox = f"{bbox_coords[1]},{bbox_coords[0]},{bbox_coords[3]},{bbox_coords[2]}"
-                else:
-                    # keep as-is
-                    bbox = ','.join(str(v) for v in bbox_coords) if bbox_coords else ''
+                from .scale_zoom import estimate_zoom_from_scale
+                zoom = estimate_zoom_from_scale(scale)
             except Exception:
-                # if parsing fails, keep original string
+                zoom = None
+        lon = lat = x3857 = y3857 = None
+        try:
+            src = QgsCoordinateReferenceSystem(crs_auth)
+            if src.isValid():
+                proj = QgsProject.instance()
+                p4326 = QgsCoordinateTransform(
+                    src, QgsCoordinateReferenceSystem('EPSG:4326'), proj
+                ).transform(QgsPointXY(c.x(), c.y()))
+                lon, lat = p4326.x(), p4326.y()
+                p3857 = QgsCoordinateTransform(
+                    src, QgsCoordinateReferenceSystem('EPSG:3857'), proj
+                ).transform(QgsPointXY(c.x(), c.y()))
+                x3857, y3857 = p3857.x(), p3857.y()
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+        return {
+            'x': c.x(), 'y': c.y(), 'scale': scale, 'crs': crs_auth,
+            'rotation': rotation, 'zoom': zoom,
+            'lon': lon, 'lat': lat, 'x3857': x3857, 'y3857': y3857,
+            'time': datetime.now().isoformat(timespec='seconds'),
+        }
+
+    def _handle_screenshot(self, conn, params):
+        """現在の地図キャンバス表示と同等内容のPNGを返す(回転も反映)。
+
+        QgsMapRendererParallelJob でキャンバスのMapSettingsを複製描画するため
+        GUIスレッドをブロックしない。w/h(またはwidth/height)で出力サイズ指定可。
+        """
+        from . import http_server
+        canvas = self.iface.mapCanvas()
+        from qgis.core import QgsMapSettings
+        from qgis.PyQt.QtCore import QSize, QBuffer, QIODevice, QByteArray
+        ms = QgsMapSettings(canvas.mapSettings())
+        w = self._safe_int(
+            params.get('w', params.get('width', [0]))[0], 0)
+        h = self._safe_int(
+            params.get('h', params.get('height', [0]))[0], 0)
+        if w <= 0 or h <= 0:
+            try:
+                w = int(canvas.width())
+                h = int(canvas.height())
+            except Exception:
+                w, h = 0, 0
+        if w <= 0 or h <= 0:
+            w, h = 800, 600
+        w = min(w, 4096)
+        h = min(h, 4096)
+        ms.setOutputSize(QSize(w, h))
+        image = None
+        try:
+            if self.wms_service is not None:
+                image = self.wms_service._execute_parallel_rendering(ms)
+        except Exception:
+            image = None
+        if image is None or image.isNull():
+            http_server.send_http_response(
+                conn, 500, 'Internal Server Error', 'render failed',
+                'text/plain; charset=utf-8')
+            return
+        ba = QByteArray()
+        buf = QBuffer(ba)
+        buf.open(QIODevice.OpenModeFlag.WriteOnly)
+        try:
+            image.save(buf, 'PNG')
+        finally:
+            try:
+                buf.close()
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
-            # オプションで任意CRSを強制的にEPSG:3857として扱う
-            if getattr(self, 'force_epsg3857', False):
-                crs = 'EPSG:3857'
-            else:
-                crs = original_crs
-            
-            # リクエストで与えられたBBOXがある場合、必要なら元々のCRSからEPSG:3857に変換する
-            # BBOXを変換するのは force_epsg3857 が無効な場合のみ
-            if not getattr(self, 'force_epsg3857', False):
-                try:
-                    if bbox and original_crs and original_crs.upper() != 'EPSG:3857':
-                        from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject, QgsRectangle
-                        src_crs = QgsCoordinateReferenceSystem(original_crs)
-                        tgt_crs = QgsCoordinateReferenceSystem('EPSG:3857')
-                        if src_crs.isValid():
-                            try:
-                                coords = [float(x) for x in bbox.split(',')]
-                                if len(coords) == 4:
-                                            rect = QgsRectangle(coords[0], coords[1], coords[2], coords[3])
-                                            transform = QgsCoordinateTransform(src_crs, tgt_crs, QgsProject.instance())
-                                            rect = transform.transformBoundingBox(rect)
-                                            bbox = f"{rect.xMinimum()},{rect.yMinimum()},{rect.xMaximum()},{rect.yMaximum()}"
-                                            # Ensure the CRS variable matches the transformed BBOX coordinates
-                                            crs = 'EPSG:3857'
-                            except Exception as e:
-                                QgsMessageLog.logMessage(f"⚠️ Failed to transform BBOX to EPSG:3857: {e}", "geo_webview", Qgis.Warning)
-                        else:
-                            QgsMessageLog.logMessage(f"⚠️ Invalid source CRS '{original_crs}' - forcing to EPSG:3857", "geo_webview", Qgis.Warning)
-                except Exception:
-                    # non-fatal: continue with original crs/bbox
-                    pass
-            # Use the QGIS canvas-based rendering as the authoritative renderer.
-            # This ensures we rely on QGIS official rendering (layer symbology, styles
-            # and labeling) rather than any independent/custom renderer which may
-            # produce different visuals.
-            png_data = self._generate_qgis_map_png(width, height, bbox, crs)
-            if png_data and len(png_data) > 1000:
-                from . import http_server
-                http_server.send_binary_response(conn, 200, "OK", png_data, "image/png")
-                return
-            else:
-                QgsMessageLog.logMessage("❌ Canvas rendering failed", "geo_webview", Qgis.Warning)
-                # フォールバック: エラー画像を生成
-                error_image = self._generate_error_image(width, height, "QGIS Map Generation Failed")
-                from . import http_server
-                http_server.send_binary_response(conn, 200, "OK", error_image, "image/png")
-            
-        except Exception as e:
-            QgsMessageLog.logMessage(f"❌ WMS GetMap error: {e}", "geo_webview", Qgis.Critical)
-            import traceback
-            QgsMessageLog.logMessage(f"❌ Error traceback: {traceback.format_exc()}", "geo_webview", Qgis.Critical)
-            
-            # エラー時は最小限のテスト画像を返す
-            test_image = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x01\x00\x00\x00\x01\x00\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\tpHYs\x00\x00\x0b\x13\x00\x00\x0b\x13\x01\x00\x9a\x9c\x18\x00\x00\x00\x16tEXtSoftware\x00www.inkscape.org\x9b\xee<\x1a\x00\x00\x00\x1ftEXtTitle\x00Test Image\x87\x96\xf0\x8e\x00\x00\x00\x12IDATx\x9cc\xf8\x0f\x00\x00\x01\x00\x01\x00\x18\xdd\x8d\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
-            self._send_binary_response(conn, 200, "OK", test_image, "image/png")
+        data = bytes(ba)
+        http_server.send_binary_response(
+            conn, 200, 'OK', data, 'image/png')
 
-    def _handle_permalink_as_wms_getmap(self, conn, params):
-        """パーマリンクパラメータをWMS GetMapリクエストとして処理"""
-        from qgis.core import QgsMessageLog, Qgis
-        
+    def _handle_present_page(self, conn, params):
+        """地図キャンバスのウィンドウ共有ページ(/screenshot定期更新)を返す。"""
+        from . import http_server
+        interval = self._safe_int(params.get('interval', [1500])[0], 1500)
+        if interval < 250:
+            interval = 250
+        S = _page_strings()
+        html_page = u'''<!doctype html>
+<html lang="{lang}">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="initial-scale=1"/>
+<title>geo_webview - Presentation</title>
+<style>
+html,body{{margin:0;padding:0;height:100%;background:#111;color:#eee;font-family:sans-serif}}
+#wrap{{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden}}
+#shot{{max-width:100%;max-height:100%}}
+#info{{position:fixed;left:0;right:0;bottom:0;padding:4px 10px;background:rgba(0,0,0,.55);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
+</style>
+</head>
+<body>
+<div id="wrap"><img id="shot" alt="loading..."/></div>
+<div id="info">geo_webview presentation</div>
+<script>
+(function(){{
+  var img = document.getElementById('shot');
+  var info = document.getElementById('info');
+  var timer = {interval};
+  function reload(){{
+    var im = new Image();
+    im.onload = function(){{ img.src = im.src; }};
+    im.src = 'screenshot?ts=' + Date.now();
+  }}
+  async function state(){{
+    try{{
+      var r = await fetch('present/state'); var s = await r.json();
+      if(s) info.textContent =
+        'center: ' + (s.lon!=null? s.lon.toFixed(6)+','+s.lat.toFixed(6) : s.x.toFixed(1)+','+s.y.toFixed(1)) +
+        '  scale: 1:' + Math.round(s.scale) +
+        '  rotation: ' + (s.rotation||0).toFixed(1) + '°  crs: ' + s.crs +
+        '  (' + s.time + ')';
+    }}catch(e){{}}
+  }}
+  setInterval(reload, timer);
+  setInterval(state, timer);
+  reload(); state();
+}})();
+</script>
+</body>
+</html>'''.format(lang=S.get('lang', 'en'), interval=interval)
+        http_server.send_http_response(
+            conn, 200, 'OK', html_page, 'text/html; charset=utf-8')
+
+    def _handle_map3d(self, conn, params, host):
+        """OpenLayers+Cesiumの2画面3Dページを返す。"""
+        from . import http_server
+        nav = self._canvas_state_dict()
+        # 明示パラメータがあれば上書き(値はキャンバスCRS基準)
+        for k in ('x', 'y', 'scale', 'rotation'):
+            try:
+                if params.get(k):
+                    nav[k] = float(params[k][0])
+            except Exception:  # nosec B110  # 設計上の許容
+                pass
+        if params.get('crs'):
+            nav['crs'] = params['crs'][0]
+        # x/y がパラメータ指定された場合は各系へ変換し直す
         try:
-            
-            # パーマリンクパラメータを取得
-            x = float(params.get('x', ['0'])[0])
-            y = float(params.get('y', ['0'])[0])
-            scale = float(params.get('scale', ['10000'])[0])
-            crs = params.get('crs', ['EPSG:3857'])[0]
-            # パーマリンクでも内部処理はEPSG:3857を使用する（元CRSを保持）
-            original_permalink_crs = crs
-            crs = 'EPSG:3857'
-            rotation = float(params.get('rotation', ['0'])[0])
-            
-            # デフォルトの画像サイズ（パラメータで指定可能）
-            width = self._safe_int(params.get('width', ['512'])[0], 512)
-            height = self._safe_int(params.get('height', ['512'])[0], 512)
-            
-            
-            # スケールから表示範囲（BBOX）を計算（計算は元CRSで行う）
-            bbox = self._calculate_bbox_from_permalink(x, y, scale, width, height, original_permalink_crs)
-            
-            if bbox:
-                # If permalink requested CRS is not EPSG:3857, transform computed
-                # BBOX into EPSG:3857 and render in EPSG:3857.
-                try:
-                    # If computed bbox is in a CRS different from EPSG:3857, transform to 3857
-                    from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject, QgsRectangle
-                    src_crs = QgsCoordinateReferenceSystem(original_permalink_crs)
-                    tgt_crs = QgsCoordinateReferenceSystem('EPSG:3857')
-                    if src_crs.isValid():
-                        coords = [float(x) for x in bbox.split(',')]
-                        if len(coords) == 4:
-                            rect = QgsRectangle(coords[0], coords[1], coords[2], coords[3])
-                            transform = QgsCoordinateTransform(src_crs, tgt_crs, QgsProject.instance())
-                            rect = transform.transformBoundingBox(rect)
-                            bbox = f"{rect.xMinimum()},{rect.yMinimum()},{rect.xMaximum()},{rect.yMaximum()}"
-                    else:
-                        QgsMessageLog.logMessage(f"⚠️ Invalid permalink CRS '{original_permalink_crs}' - forcing to EPSG:3857", "geo_webview", Qgis.Warning)
-                        # leave bbox as-is; downstream code will force EPSG:3857 as needed
-                except Exception as ex:
-                    QgsMessageLog.logMessage(f"⚠️ Error transforming permalink BBOX: {ex}", "geo_webview", Qgis.Warning)
+            src = QgsCoordinateReferenceSystem(str(nav.get('crs')))
+            if src.isValid() and nav.get('x') is not None:
+                proj = QgsProject.instance()
+                p4326 = QgsCoordinateTransform(
+                    src, QgsCoordinateReferenceSystem('EPSG:4326'), proj
+                ).transform(QgsPointXY(float(nav['x']), float(nav['y'])))
+                nav['lon'], nav['lat'] = p4326.x(), p4326.y()
+                p3857 = QgsCoordinateTransform(
+                    src, QgsCoordinateReferenceSystem('EPSG:3857'), proj
+                ).transform(QgsPointXY(float(nav['x']), float(nav['y'])))
+                nav['x3857'], nav['y3857'] = p3857.x(), p3857.y()
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+        try:
+            from .scale_zoom import estimate_zoom_from_scale_maplibre
+            nav['zoom'] = estimate_zoom_from_scale_maplibre(nav.get('scale'))
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+        html_content = self.webmap_generator.generate_ol_cesium_page(
+            nav, host or f'localhost:{self.server_port}')
+        http_server.send_http_response(
+            conn, 200, 'OK', html_content, 'text/html; charset=utf-8')
 
-                # Use canvas-based rendering for permalink requests. Rotation, if
-                # needed, should be handled by the canvas adjustment routines.
-                png_data = self._generate_qgis_map_png(width, height, bbox, crs, rotation)
-                if png_data and len(png_data) > 1000:
-                    from . import http_server
-                    http_server.send_binary_response(conn, 200, "OK", png_data, "image/png")
-                    return
-                else:
-                    QgsMessageLog.logMessage("❌ Permalink canvas rendering failed", "geo_webview", Qgis.Warning)
-                    error_image = self._generate_error_image(width, height, "Permalink Rendering Failed")
-                    from . import http_server
-                    http_server.send_binary_response(conn, 200, "OK", error_image, "image/png")
-                    return
-            else:
-                QgsMessageLog.logMessage("❌ Failed to calculate BBOX from permalink parameters", "geo_webview", Qgis.Warning)
-                error_image = self._generate_error_image(width, height, "Invalid Permalink Parameters")
-                from . import http_server
-                http_server.send_binary_response(conn, 200, "OK", error_image, "image/png")
-                
-        except Exception as e:
-            QgsMessageLog.logMessage(f"❌ Permalink processing error: {e}", "geo_webview", Qgis.Critical)
-            import traceback
-            QgsMessageLog.logMessage(f"❌ Error traceback: {traceback.format_exc()}", "geo_webview", Qgis.Critical)
-            
-            # エラー時はエラー画像を返す
-            error_image = self._generate_error_image(512, 512, f"Permalink Error: {str(e)}")
-            self._send_binary_response(conn, 200, "OK", error_image, "image/png")
+    def _handle_kasugai(self, conn):
+        """表示中レイヤをKASUGAI Canvasプロジェクトとして出力し、
+        起動中のKASUGAIローカルサーバへ登録してプロジェクトURLを返す。
+
+        応答JSON:
+          成功 {ok:true, url:<KASUGAIプロジェクトURL|null>, dir, layers, tiles}
+          失敗 {ok:false, error}
+        url が null の場合はKASUGAI未起動(出力のみ成功)を意味する。
+        """
+        from . import http_server, kasugai_export
+        with self._kasugai_lock:
+            result = kasugai_export.export_kasugai_project(self.iface)
+            n_layers = len(result.get('layers') or [])
+            n_tiles = len(result.get('tiles') or [])
+            if not n_layers and not n_tiles:
+                http_server.send_http_response(
+                    conn, 200, 'OK',
+                    json.dumps(
+                        {'ok': False, 'error': 'no visible vector/tile layers'},
+                        ensure_ascii=False),
+                    'application/json; charset=utf-8')
+                return
+            url = None
+            try:
+                if kasugai_export.detect_kasugai():
+                    reg = kasugai_export.register_kasugai_project(
+                        result['kasc'])
+                    if reg.get('ok'):
+                        kasugai_export.kasugai_command(
+                            'switchProject', {'projectId': reg['id']})
+                        url = reg.get('url')
+            except Exception as e:
+                QgsMessageLog.logMessage(
+                    f'⚠️ KASUGAI registration failed: {e}',
+                    'geo_webview', Qgis.MessageLevel.Warning)
+            http_server.send_http_response(
+                conn, 200, 'OK',
+                json.dumps(
+                    {'ok': True, 'url': url, 'dir': result.get('dir'),
+                     'layers': n_layers, 'tiles': n_tiles},
+                    ensure_ascii=False),
+                'application/json; charset=utf-8')
+
+    def _inject_follow_script(self, html_content, kind):
+        """生成HTMLにプレゼンテーション追従スクリプトを差し込む。
+
+        kind: 'maplibre' または 'openlayers'。/present/state を定期ポーリングし
+        QGIS側の表示位置・ズーム・回転をクライアント側地図へ強制反映する。
+        """
+        if kind == 'maplibre':
+            js = u'''
+<script>
+(function(){
+  function apply(s){
+    try{
+      var m = window.qmap_map || window.map;
+      if(!m || !s) return;
+      var opt = {};
+      if(typeof s.lon === 'number' && typeof s.lat === 'number') opt.center = [s.lon, s.lat];
+      if(typeof s.zoom === 'number') opt.zoom = s.zoom;
+      if(typeof s.rotation === 'number') opt.bearing = -s.rotation;
+      m.jumpTo(opt);
+    }catch(e){}
+  }
+  async function tick(){
+    try{ var r = await fetch('present/state'); apply(await r.json()); }catch(e){}
+  }
+  setInterval(tick, 1500); tick();
+})();
+</script>
+'''
+        else:
+            js = u'''
+<script>
+(function(){
+  function apply(s){
+    try{
+      var m = (typeof map !== 'undefined') ? map : (window.qmap_ol_map || window.map);
+      if(!m || !s) return;
+      var view = m.getView();
+      if(typeof s.x3857 === 'number' && typeof s.y3857 === 'number') view.setCenter([s.x3857, s.y3857]);
+      if(typeof s.zoom === 'number') view.setZoom(s.zoom);
+      if(typeof s.rotation === 'number') view.setRotation(-s.rotation * Math.PI / 180);
+    }catch(e){}
+  }
+  async function tick(){
+    try{ var r = await fetch('present/state'); apply(await r.json()); }catch(e){}
+  }
+  setInterval(tick, 1500); tick();
+})();
+</script>
+'''
+        idx = html_content.rfind('</body>')
+        if idx >= 0:
+            return html_content[:idx] + js + html_content[idx:]
+        return html_content + js
 
     def _handle_permalink_html_page(self, conn, params):
         """パーマリンクパラメータに基づいてWMSエンドポイントを使用するHTMLページを生成"""
         from qgis.core import QgsMessageLog, Qgis
-        
+
         try:
-            
+
             # パーマリンクパラメータを取得
             x = params.get('x', [None])[0]
             y = params.get('y', [None])[0]
@@ -1186,38 +1521,61 @@ class GeoWebViewServerManager:
             rotation = params.get('rotation', ['0.0'])[0]
             width = params.get('width', ['800'])[0]
             height = params.get('height', ['600'])[0]
-            
-            
+
+            # x/y 未指定時は現在の地図キャンバスへフォールバック
+            # (以前は暗黙に EPSG:3857 原点(0,0)へ飛んでいた)
+            if x is None or y is None:
+                try:
+                    canvas = self.iface.mapCanvas()
+                    if canvas is not None:
+                        c = canvas.center()
+                        x = str(c.x())
+                        y = str(c.y())
+                        if scale is None:
+                            scale = str(canvas.scale())
+                        crs = canvas.mapSettings().destinationCrs().authid()
+                        if 'rotation' not in params:
+                            rotation = str(canvas.rotation()) \
+                                if hasattr(canvas, 'rotation') else '0.0'
+                except Exception:  # nosec B110  # 設計上の許容
+                    pass
+
             # Convert incoming center coordinates to EPSG:3857 unconditionally
             try:
                 from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject, QgsPointXY
                 if x is None or y is None:
-                    raise ValueError('x/y パラメータがありません')
+                    raise ValueError('missing x/y parameters')
                 src = QgsCoordinateReferenceSystem(str(crs))
                 tgt = QgsCoordinateReferenceSystem('EPSG:3857')
-                fx = float(x); fy = float(y)
+                fx = float(x)
+                fy = float(y)
                 if src.isValid() and src.authid() != 'EPSG:3857':
                     transform = QgsCoordinateTransform(src, tgt, QgsProject.instance())
                     pt = transform.transform(QgsPointXY(fx, fy))
-                    x3857 = str(pt.x()); y3857 = str(pt.y())
+                    x3857 = str(pt.x())
+                    y3857 = str(pt.y())
                 else:
-                    x3857 = str(fx); y3857 = str(fy)
-            except Exception as ex:
+                    x3857 = str(fx)
+                    y3857 = str(fy)
+            except Exception:
                 # If transformation fails, fall back to treating the values as already EPSG:3857
                 x3857 = str(x if x is not None else 0)
                 y3857 = str(y if y is not None else 0)
 
             # Generate HTML page using converted EPSG:3857 center coordinates
             html_content = self._generate_wms_based_html_page(x3857, y3857, scale, 'EPSG:3857', rotation, width, height)
+            # プレゼンテーション追従モード(follow/present指定時)
+            if html_content and ('follow' in params or 'present' in params):
+                html_content = self._inject_follow_script(html_content, 'openlayers')
             # HTMLレスポンスを送信
             from . import http_server
             http_server.send_http_response(conn, 200, "OK", html_content, "text/html; charset=utf-8")
-            
+
         except Exception as e:
-            QgsMessageLog.logMessage(f"❌ Permalink HTML page generation error: {e}", "geo_webview", Qgis.Critical)
+            QgsMessageLog.logMessage(f"❌ Permalink HTML page generation error: {e}", "geo_webview", Qgis.MessageLevel.Critical)
             import traceback
-            QgsMessageLog.logMessage(f"❌ Error traceback: {traceback.format_exc()}", "geo_webview", Qgis.Critical)
-            
+            QgsMessageLog.logMessage(f"❌ Error traceback: {traceback.format_exc()}", "geo_webview", Qgis.MessageLevel.Critical)
+
             # エラー時はエラーページを返す
             error_html = self._generate_error_html_page(f"Error generating permalink page: {str(e)}")
             from . import http_server
@@ -1262,32 +1620,42 @@ class GeoWebViewServerManager:
                         except Exception:
                             name = ''
 
-                    bx = None; by = None
+                    bx = None
+                    by = None
                     try:
                         if hasattr(b, 'point'):
-                            p = b.point(); bx = p.x(); by = p.y()
+                            p = b.point()
+                            bx = p.x()
+                            by = p.y()
                     except Exception:
-                        bx = None; by = None
+                        bx = None
+                        by = None
 
                     if (bx is None or by is None) and hasattr(b, 'center'):
                         try:
-                            p = b.center(); bx = p.x(); by = p.y()
-                        except Exception:
+                            p = b.center()
+                            bx = p.x()
+                            by = p.y()
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
 
                     if (bx is None or by is None) and hasattr(b, 'extent'):
                         try:
-                            ext = b.extent(); bx = (ext.xMinimum() + ext.xMaximum()) / 2.0; by = (ext.yMinimum() + ext.yMaximum()) / 2.0
-                        except Exception:
+                            ext = b.extent()
+                            bx = (ext.xMinimum() + ext.xMaximum()) / 2.0
+                            by = (ext.yMinimum() + ext.yMaximum()) / 2.0
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
 
                     if (bx is None or by is None) and isinstance(b, dict):
                         try:
                             if 'x' in b and 'y' in b:
-                                bx = float(b.get('x')); by = float(b.get('y'))
+                                bx = float(b.get('x'))
+                                by = float(b.get('y'))
                             elif 'lon' in b and 'lat' in b:
-                                bx = float(b.get('lon')); by = float(b.get('lat'))
-                        except Exception:
+                                bx = float(b.get('lon'))
+                                by = float(b.get('lat'))
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
 
                     if bx is None or by is None:
@@ -1318,8 +1686,8 @@ class GeoWebViewServerManager:
         except Exception as e:
             try:
                 from qgis.core import QgsMessageLog, Qgis
-                QgsMessageLog.logMessage(f'❌ debug-bookmarks error: {e}', 'QMapPermalink', Qgis.Warning)
-            except Exception:
+                QgsMessageLog.logMessage(f'❌ debug-bookmarks error: {e}', 'QMapPermalink', Qgis.MessageLevel.Warning)
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
             from . import http_server
             http_server.send_http_response(conn, 500, 'Internal Server Error', f'{{"error": "{str(e)}"}}', 'application/json; charset=utf-8')
@@ -1355,9 +1723,9 @@ class GeoWebViewServerManager:
                         for lay in canvas.layers():
                             try:
                                 lnode = layer_tree_root.findLayer(lay.id())
-                                if lnode and lnode.isVisible():
+                                if lnode is not None and lnode.isVisible():
                                     visible_ids.add(lay.id())
-                            except Exception:
+                            except Exception:  # nosec B112  # 設計上の許容
                                 continue
                 except Exception:
                     visible_ids = None
@@ -1432,16 +1800,16 @@ class GeoWebViewServerManager:
                                 geom_type = layer.geometryType() if hasattr(layer, 'geometryType') else None
                                 # 0: Point, 1: Line, 2: Polygon
                                 if geom_type == 0:  # Point
-                                    color = symbol.color().name(QColor.HexArgb) if hasattr(symbol.color(), 'name') else symbol.color().name()
+                                    color = symbol.color().name(QColor.NameFormat.HexArgb) if hasattr(symbol.color(), 'name') else symbol.color().name()
                                 elif geom_type == 1:  # Line
-                                    color = symbol.color().name(QColor.HexArgb) if hasattr(symbol.color(), 'name') else symbol.color().name()
+                                    color = symbol.color().name(QColor.NameFormat.HexArgb) if hasattr(symbol.color(), 'name') else symbol.color().name()
                                 elif geom_type == 2:  # Polygon
                                     if hasattr(symbol, 'fillColor'):
-                                        color = symbol.fillColor().name(QColor.HexArgb) if hasattr(symbol.fillColor(), 'name') else symbol.fillColor().name()
+                                        color = symbol.fillColor().name(QColor.NameFormat.HexArgb) if hasattr(symbol.fillColor(), 'name') else symbol.fillColor().name()
                                     if hasattr(symbol, 'strokeColor'):
-                                        stroke_color = symbol.strokeColor().name(QColor.HexArgb) if hasattr(symbol.strokeColor(), 'name') else symbol.strokeColor().name()
+                                        stroke_color = symbol.strokeColor().name(QColor.NameFormat.HexArgb) if hasattr(symbol.strokeColor(), 'name') else symbol.strokeColor().name()
                                     else:
-                                        stroke_color = symbol.color().name(QColor.HexArgb) if hasattr(symbol.color(), 'name') else symbol.color().name()
+                                        stroke_color = symbol.color().name(QColor.NameFormat.HexArgb) if hasattr(symbol.color(), 'name') else symbol.color().name()
                     except Exception:
                         color = None
                         stroke_color = None
@@ -1476,7 +1844,7 @@ class GeoWebViewServerManager:
                     if stroke_color:
                         layer_entry['stroke_color'] = stroke_color
                     layers_list.append(layer_entry)
-                except Exception:
+                except Exception:  # nosec B112  # 設計上の許容
                     continue
 
             import json
@@ -1486,8 +1854,8 @@ class GeoWebViewServerManager:
         except Exception as e:
             try:
                 from qgis.core import QgsMessageLog, Qgis
-                QgsMessageLog.logMessage(f'❌ wfs-layers error: {e}', 'QMapPermalink', Qgis.Warning)
-            except Exception:
+                QgsMessageLog.logMessage(f'❌ wfs-layers error: {e}', 'QMapPermalink', Qgis.MessageLevel.Warning)
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
             from . import http_server
             http_server.send_http_response(conn, 500, 'Internal Server Error', f'{{"error": "{str(e)}"}}', 'application/json; charset=utf-8')
@@ -1511,9 +1879,9 @@ class GeoWebViewServerManager:
                         for lay in canvas.layers():
                             try:
                                 lnode = layer_tree_root.findLayer(lay.id())
-                                if lnode and lnode.isVisible():
+                                if lnode is not None and lnode.isVisible():
                                     visible_ids.add(lay.id())
-                            except Exception:
+                            except Exception:  # nosec B112  # 設計上の許容
                                 continue
                 except Exception:
                     visible_ids = None
@@ -1541,7 +1909,6 @@ class GeoWebViewServerManager:
                     name_norm = title.replace(' ', '_')
                     crs = layer.crs().authid() if layer.crs().isValid() else 'EPSG:4326'
 
-
                     def _sanitize_bbox_val(val):
                         import math
                         if val is None or not isinstance(val, (int, float)) or math.isnan(val) or math.isinf(val):
@@ -1563,7 +1930,6 @@ class GeoWebViewServerManager:
                         }
                     except Exception:
                         bbox = {'minx': None, 'miny': None, 'maxx': None, 'maxy': None}
-
 
                     # レイヤの主色・線色を取得（QGISバージョン差異に配慮）
                     color = None
@@ -1600,22 +1966,22 @@ class GeoWebViewServerManager:
                             if symbol_layer:
                                 if hasattr(symbol_layer, 'fillColor') and callable(symbol_layer.fillColor):
                                     fill_c = symbol_layer.fillColor()
-                                    color = fill_c.name(QColor.HexArgb) if hasattr(fill_c, 'name') else str(fill_c.name())
+                                    color = fill_c.name(QColor.NameFormat.HexArgb) if hasattr(fill_c, 'name') else str(fill_c.name())
                                 if hasattr(symbol_layer, 'strokeColor') and callable(symbol_layer.strokeColor):
                                     stroke_c = symbol_layer.strokeColor()
-                                    stroke_color = stroke_c.name(QColor.HexArgb) if hasattr(stroke_c, 'name') else str(stroke_c.name())
+                                    stroke_color = stroke_c.name(QColor.NameFormat.HexArgb) if hasattr(stroke_c, 'name') else str(stroke_c.name())
                                 if geom_type == 1 and not color and hasattr(symbol_layer, 'strokeColor') and callable(symbol_layer.strokeColor):
                                     stroke_c = symbol_layer.strokeColor()
-                                    color = stroke_c.name(QColor.HexArgb) if hasattr(stroke_c, 'name') else str(stroke_c.name())
+                                    color = stroke_c.name(QColor.NameFormat.HexArgb) if hasattr(stroke_c, 'name') else str(stroke_c.name())
                                 if geom_type == 0 and not color and hasattr(symbol_layer, 'fillColor') and callable(symbol_layer.fillColor):
                                     fill_c = symbol_layer.fillColor()
-                                    color = fill_c.name(QColor.HexArgb) if hasattr(fill_c, 'name') else str(fill_c.name())
+                                    color = fill_c.name(QColor.NameFormat.HexArgb) if hasattr(fill_c, 'name') else str(fill_c.name())
                             if not color and hasattr(symbol, 'color') and callable(symbol.color):
                                 c = symbol.color()
-                                color = c.name(QColor.HexArgb) if hasattr(c, 'name') else str(c.name())
+                                color = c.name(QColor.NameFormat.HexArgb) if hasattr(c, 'name') else str(c.name())
                             if not stroke_color and hasattr(symbol, 'color') and callable(symbol.color):
                                 c = symbol.color()
-                                stroke_color = c.name(QColor.HexArgb) if hasattr(c, 'name') else str(c.name())
+                                stroke_color = c.name(QColor.NameFormat.HexArgb) if hasattr(c, 'name') else str(c.name())
                         # symbol is None の場合は何もしない
                     except Exception:
                         color = None
@@ -1651,7 +2017,7 @@ class GeoWebViewServerManager:
                     if stroke_color:
                         layer_entry['stroke_color'] = stroke_color
                     layers_list.append(layer_entry)
-                except Exception:
+                except Exception:  # nosec B112  # 設計上の許容
                     continue
 
             return layers_list
@@ -1660,7 +2026,7 @@ class GeoWebViewServerManager:
 
     def _generate_wms_based_html_page(self, x, y, scale, crs, rotation, width, height):
         """WMSエンドポイントを使用するHTMLページを生成（WebMapGeneratorを使用）"""
-        
+
         try:
             # WebMapGeneratorを使用してWMSベースのHTMLページを生成
             navigation_data = {
@@ -1670,7 +2036,7 @@ class GeoWebViewServerManager:
                 'crs': str(crs),
                 'rotation': float(rotation)
             }
-            
+
             server_port = self.http_server.getsockname()[1] if self.http_server else 8089
             # Try to collect QGIS spatial bookmarks and inject into navigation_data
             bookmarks_list = []
@@ -1688,7 +2054,7 @@ class GeoWebViewServerManager:
                         mgr = None
 
                 if mgr is None:
-                    QgsMessageLog.logMessage('🔍 Bookmark manager not found (mgr is None)', 'QMapPermalink', Qgis.Warning)
+                    QgsMessageLog.logMessage('🔍 Bookmark manager not found (mgr is None)', 'QMapPermalink', Qgis.MessageLevel.Warning)
 
                 raw = None
                 if mgr is not None:
@@ -1704,9 +2070,9 @@ class GeoWebViewServerManager:
                     pass
                 else:
                     try:
-                        length = len(raw)
+                        _ = len(raw)
                     except Exception:
-                        length = 'unknown'
+                        _ = 'unknown'
 
                 if raw:
                     for b in raw:
@@ -1725,32 +2091,42 @@ class GeoWebViewServerManager:
                                 name = ''
 
                         # Extract point-like coordinates from common accessors
-                        bx = None; by = None
+                        bx = None
+                        by = None
                         try:
                             if hasattr(b, 'point'):
-                                p = b.point(); bx = p.x(); by = p.y()
+                                p = b.point()
+                                bx = p.x()
+                                by = p.y()
                         except Exception:
-                            bx = None; by = None
+                            bx = None
+                            by = None
 
                         if (bx is None or by is None) and hasattr(b, 'center'):
                             try:
-                                p = b.center(); bx = p.x(); by = p.y()
-                            except Exception:
+                                p = b.center()
+                                bx = p.x()
+                                by = p.y()
+                            except Exception:  # nosec B110  # 設計上の許容
                                 pass
 
                         if (bx is None or by is None) and hasattr(b, 'extent'):
                             try:
-                                ext = b.extent(); bx = (ext.xMinimum() + ext.xMaximum()) / 2.0; by = (ext.yMinimum() + ext.yMaximum()) / 2.0
-                            except Exception:
+                                ext = b.extent()
+                                bx = (ext.xMinimum() + ext.xMaximum()) / 2.0
+                                by = (ext.yMinimum() + ext.yMaximum()) / 2.0
+                            except Exception:  # nosec B110  # 設計上の許容
                                 pass
 
                         if (bx is None or by is None) and isinstance(b, dict):
                             try:
                                 if 'x' in b and 'y' in b:
-                                    bx = float(b.get('x')); by = float(b.get('y'))
+                                    bx = float(b.get('x'))
+                                    by = float(b.get('y'))
                                 elif 'lon' in b and 'lat' in b:
-                                    bx = float(b.get('lon')); by = float(b.get('lat'))
-                            except Exception:
+                                    bx = float(b.get('lon'))
+                                    by = float(b.get('lat'))
+                            except Exception:  # nosec B110  # 設計上の許容
                                 pass
 
                         if bx is None or by is None:
@@ -1776,9 +2152,11 @@ class GeoWebViewServerManager:
                             tgt_crs = QgsCoordinateReferenceSystem('EPSG:3857')
                             transform = QgsCoordinateTransform(src_crs, tgt_crs, QgsProject.instance())
                             pt = transform.transform(QgsPointXY(bx, by))
-                            lon = float(pt.x()); lat = float(pt.y())
+                            lon = float(pt.x())
+                            lat = float(pt.y())
                         except Exception:
-                            lon = float(bx); lat = float(by)
+                            lon = float(bx)
+                            lat = float(by)
 
                         # determine original source CRS id for potential proj4 registration
                         src_crs_id = None
@@ -1808,8 +2186,8 @@ class GeoWebViewServerManager:
                 # On any issue, don't block page generation; just omit bookmarks
                 try:
                     from qgis.core import QgsMessageLog, Qgis
-                    QgsMessageLog.logMessage('❌ Error while extracting bookmarks; skipping bookmarks', 'QMapPermalink', Qgis.Warning)
-                except Exception:
+                    QgsMessageLog.logMessage('❌ Error while extracting bookmarks; skipping bookmarks', 'QMapPermalink', Qgis.MessageLevel.Warning)
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
 
             if bookmarks_list:
@@ -1844,24 +2222,24 @@ class GeoWebViewServerManager:
 
             # WebMapGeneratorの新しいメソッドを使用
             html_content = self.webmap_generator.generate_wms_based_html_page(
-                navigation_data, 
-                int(width), 
-                int(height), 
+                navigation_data,
+                int(width),
+                int(height),
                 server_port
             )
-            
+
             return html_content
-            
-        except Exception as e:
+
+        except Exception:
             # フォールバック: シンプルなWMSベースHTMLページ
             server_port = self.http_server.getsockname()[1] if self.http_server else 8089
             # Use relative WMS URL so clients use the same origin as the HTML page
-            base_url = f"/"
+            _ = "/"
             wms_url = f"/wms?x={x}&y={y}&scale={scale}&crs={crs}&rotation={rotation}&width={width}&height={height}"
-        
+
         # Build head scripts for OpenLayers using shared utility
         try:
-            from qmap_permalink.proj_utils import build_ol_proj_head, crs_has_proj4
+            from qmap_permalink.proj_utils import build_ol_proj_head
             head_scripts = build_ol_proj_head(crs)
         except Exception:
             # fallback include
@@ -1875,12 +2253,13 @@ class GeoWebViewServerManager:
         # earlier in the request handling, so no additional special-case is necessary here.
 
         # OpenLayersを使用したHTMLページテンプレート
+        S = _page_strings()
         html_template = f"""<!DOCTYPE html>
-<html lang="ja">
+<html lang="{S['lang']}">
     <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QMap Permalink - 地図表示</title>
+    <title>{S['title']}</title>
 {head_scripts}
     <style>
         body {{
@@ -1969,49 +2348,49 @@ class GeoWebViewServerManager:
     <div class="container">
         <div class="header">
             <h1>🗺️ QMap Permalink</h1>
-            <p>QGISプラグインによる統合地図表示 - WMSエンドポイント使用</p>
+            <p>{S['subtitle']}</p>
         </div>
-        
+
         <div class="map-container">
             <div id="map"></div>
         </div>
-        
+
         <div class="info-panel">
-            <h3>📍 地図情報</h3>
+            <h3>{S['map_info']}</h3>
             <div class="info-grid">
                 <div class="info-item">
-                    <div class="info-label">中心座標 (X)</div>
+                    <div class="info-label">{S['center_x']}</div>
                     <div class="info-value">{x}</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">中心座標 (Y)</div>
+                    <div class="info-label">{S['center_y']}</div>
                     <div class="info-value">{y}</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">縮尺</div>
+                    <div class="info-label">{S['scale']}</div>
                     <div class="info-value">1:{scale}</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">座標系</div>
+                    <div class="info-label">{S['crs']}</div>
                     <div class="info-value">{crs}</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">回転角度</div>
+                    <div class="info-label">{S['rotation']}</div>
                     <div class="info-value">{rotation}°</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">画像サイズ</div>
+                    <div class="info-label">{S['image_size']}</div>
                     <div class="info-value">{width} × {height}</div>
                 </div>
             </div>
         </div>
-        
+
         <div class="controls">
-            <h3>🔧 コントロール</h3>
-            <a href="{wms_url}" target="_blank" class="btn">📷 WMS画像を表示</a>
+            <h3>{S['controls']}</h3>
+            <a href="{wms_url}" target="_blank" class="btn">{S['wms_image']}</a>
             <a href="/wms?SERVICE=WMS&REQUEST=GetCapabilities" target="_blank" class="btn btn-secondary">📋 WMS Capabilities</a>
-            <button onclick="refreshMap()" class="btn">🔄 地図を更新</button>
-            <button onclick="copyPermalink()" class="btn btn-secondary">🔗 パーマリンクをコピー</button>
+            <button onclick="refreshMap()" class="btn">{S['refresh']}</button>
+            <button onclick="copyPermalink()" class="btn btn-secondary">{S['copy_link']}</button>
         </div>
     </div>
 
@@ -2022,7 +2401,7 @@ class GeoWebViewServerManager:
         const mapScale = parseFloat('{scale}');
         const mapRotation = parseFloat('{rotation}') * Math.PI / 180; // ラジアンに変換
         const mapCrs = '{crs}';
-        
+
         // 地図の初期化
         const map = new ol.Map({{
             target: 'map',
@@ -2063,20 +2442,20 @@ class GeoWebViewServerManager:
                 try {{ _wmsSrc.refresh(); }} catch(e) {{}}
             }}
         }} catch(e) {{ /* fail silently */ }}
-        
+
         // 北向き矢印コントロールを追加
         map.addControl(new ol.control.Rotate({{
-            tipLabel: '北向きに回転',
-            resetNorthLabel: '北向きにリセット'
+            tipLabel: '{S['tip_rotate']}',
+            resetNorthLabel: '{S['tip_reset']}'
         }}));
-        
+
         // スケールからズームレベルを計算する関数
         function calculateZoomFromScale(scale) {{
             // 概算でのズームレベル計算
             const baseScale = 591657527.591555;
             return Math.log2(baseScale / scale);
         }}
-        
+
         // 地図の回転に合わせてWMSパラメータも更新
         map.getView().on('change:rotation', function() {{
             const rotation = map.getView().getRotation();
@@ -2087,7 +2466,7 @@ class GeoWebViewServerManager:
                 wmsSource.refresh();
             }}
         }});
-        
+
         // 地図を更新する関数
         function refreshMap() {{
             map.getView().setCenter([centerX, centerY]);
@@ -2095,12 +2474,12 @@ class GeoWebViewServerManager:
             // Do not force rotation to 0 here; preserve current view rotation.
             map.getLayers().getArray()[0].getSource().refresh();
         }}
-        
+
         // パーマリンクをコピーする関数
         function copyPermalink() {{
             const permalink = window.location.href;
             navigator.clipboard.writeText(permalink).then(() => {{
-                alert('パーマリンクをクリップボードにコピーしました！');
+                alert('{S['copied']}');
             }}).catch(() => {{
                 // フォールバック
                 const textArea = document.createElement('textarea');
@@ -2109,10 +2488,10 @@ class GeoWebViewServerManager:
                 textArea.select();
                 document.execCommand('copy');
                 document.body.removeChild(textArea);
-                alert('パーマリンクをクリップボードにコピーしました！');
+                alert('{S['copied']}');
             }});
         }}
-        
+
         // ページ読み込み完了時の処理
         document.addEventListener('DOMContentLoaded', function() {{
             console.log('🗺️ QMap Permalink page loaded');
@@ -2124,66 +2503,28 @@ class GeoWebViewServerManager:
     </script>
 </body>
 </html>"""
-        
+
         return html_template
 
-    def _get_ol_proj_head(self, crs):
-        """Return HTML head scripts for OpenLayers.
+    def _canvas_permalink(self):
+        """現在の地図キャンバスから /maplibre 用の合成パーマリンクを生成する。
 
-        If QGIS can provide a proj4 definition for the given CRS, include
-        proj4.js and register the definition so OpenLayers can use the CRS.
-        Otherwise return the minimal OpenLayers includes.
-
-        This is a single method to keep the projection-registration logic
-        simple and centralized.
-
-        Args:
-            crs (str): CRS identifier like 'EPSG:3857'
-
-        Returns:
-            str: HTML snippet to insert into the <head>
+        maplibre_generator.open_maplibre_from_permalink は空文字列を受理
+        しないため、パラメータ無しリクエスト時のフォールバックに使う。
+        キャンバスが読めない場合は None を返す。
         """
         try:
-            from qgis.core import QgsCoordinateReferenceSystem
-            crs_obj = QgsCoordinateReferenceSystem(str(crs))
-            if crs_obj.isValid():
-                try:
-                    proj4_def = crs_obj.toProj4()
-                except Exception:
-                    proj4_def = ''
-                if proj4_def:
-                    # Escape quotes/newlines for embedding
-                    proj4_def_escaped = proj4_def.replace('"', '\\"').replace('\n', ' ')
-                    return (
-                        '    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v8.2.0/ol.css" type="text/css">\n'
-                        '    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.8.0/proj4.js"></script>\n'
-                        '    <script src="https://cdn.jsdelivr.net/npm/ol@v8.2.0/dist/ol.js"></script>\n'
-                        f'    <script>try{{proj4.defs("{crs}", "{proj4_def_escaped}"); if (ol && ol.proj && ol.proj.proj4) {{ ol.proj.proj4.register(proj4); }} else {{ console.warn("ol.proj.proj4 not available - projection registration skipped"); }} }}catch(e){{console.warn("proj4 registration failed", e);}}</script>'
-                    )
+            canvas = self.iface.mapCanvas()
+            if canvas is None:
+                return None
+            center = canvas.center()
+            scale = canvas.scale()
+            crs = canvas.mapSettings().destinationCrs().authid()
+            rotation = canvas.rotation() if hasattr(canvas, 'rotation') else 0.0
+            return (f"http://localhost/?x={center.x()}&y={center.y()}"
+                    f"&crs={crs}&scale={scale}&rotation={rotation}")
         except Exception:
-            # any failure -> fallthrough to default head
-            pass
-
-        # default: only include OpenLayers
-        return (
-            '    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v8.2.0/ol.css" type="text/css">\n'
-            '    <script src="https://cdn.jsdelivr.net/npm/ol@v8.2.0/dist/ol.js"></script>\n'
-        )
-
-    def _crs_has_proj4(self, crs):
-        """Return True if QGIS can provide a proj4 definition for the CRS."""
-        try:
-            from qgis.core import QgsCoordinateReferenceSystem
-            crs_obj = QgsCoordinateReferenceSystem(str(crs))
-            if not crs_obj.isValid():
-                return False
-            try:
-                proj4_def = crs_obj.toProj4()
-            except Exception:
-                proj4_def = ''
-            return bool(proj4_def)
-        except Exception:
-            return False
+            return None
 
     def _build_navigation_data_from_params(self, params):
         """互換性用: HTTPパラメータ(dict of lists)から navigation_data を構築して返す
@@ -2237,17 +2578,18 @@ class GeoWebViewServerManager:
             raise ValueError('No navigation parameters found')
 
         except Exception as e:
-            QgsMessageLog.logMessage(f"Error building navigation_data from params: {e}", "geo_webview", Qgis.Warning)
+            QgsMessageLog.logMessage(f"Error building navigation_data from params: {e}", "geo_webview", Qgis.MessageLevel.Warning)
             raise
 
     def _generate_error_html_page(self, error_message):
         """エラーページのHTMLを生成"""
+        S = _page_strings()
         error_html = f"""<!DOCTYPE html>
-<html lang="ja">
+<html lang="{S['lang']}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QMap Permalink - エラー</title>
+    <title>{S['err_title']}</title>
     <style>
         body {{
             margin: 0;
@@ -2298,10 +2640,10 @@ class GeoWebViewServerManager:
 <body>
     <div class="error-container">
         <div class="error-icon">❌</div>
-        <h1 class="error-title">パーマリンクページの生成に失敗</h1>
+        <h1 class="error-title">{S['err_failed']}</h1>
         <p class="error-message">{html.escape(error_message)}</p>
-        <a href="javascript:history.back()" class="btn">🔙 戻る</a>
-        <a href="/" class="btn">🏠 ホーム</a>
+        <a href="javascript:history.back()" class="btn">{S['back']}</a>
+        <a href="/" class="btn">{S['home']}</a>
     </div>
 </body>
 </html>"""
@@ -2311,38 +2653,37 @@ class GeoWebViewServerManager:
         """パーマリンクパラメータからBBOXを計算"""
         try:
             from qgis.core import QgsMessageLog, Qgis
-            
+
             # 画面解像度（DPI）とピクセルあたりのサイズを計算
             dpi = 96  # 標準DPI
             meters_per_inch = 0.0254
             pixels_per_meter = dpi / meters_per_inch
-            
+
             # スケールから地図単位での表示範囲を計算
             map_width_m = (width / pixels_per_meter) * scale
             map_height_m = (height / pixels_per_meter) * scale
-            
+
             # 中心点から範囲を計算
             half_width = map_width_m / 2
             half_height = map_height_m / 2
-            
+
             minx = center_x - half_width
             miny = center_y - half_height
             maxx = center_x + half_width
             maxy = center_y + half_height
-            
+
             bbox = f"{minx},{miny},{maxx},{maxy}"
-            
-            
+
             return bbox
-            
+
         except Exception as e:
-            QgsMessageLog.logMessage(f"❌ BBOX calculation error: {e}", "geo_webview", Qgis.Warning)
+            QgsMessageLog.logMessage(f"❌ BBOX calculation error: {e}", "geo_webview", Qgis.MessageLevel.Warning)
             return None
 
     def _handle_wms_get_map_with_bbox(self, conn, bbox, crs, width, height, rotation=0.0):
         """計算されたBBOXでWMS GetMapを処理"""
         from qgis.core import QgsMessageLog, Qgis
-        
+
         try:
             # If requested CRS is not EPSG:3857, transform bbox to EPSG:3857
             try:
@@ -2359,9 +2700,9 @@ class GeoWebViewServerManager:
                             bbox = f"{rect.xMinimum()},{rect.yMinimum()},{rect.xMaximum()},{rect.yMaximum()}"
                             crs = 'EPSG:3857'
                     else:
-                        QgsMessageLog.logMessage(f"⚠️ Invalid CRS '{crs}' - forcing to EPSG:3857", "geo_webview", Qgis.Warning)
+                        QgsMessageLog.logMessage(f"⚠️ Invalid CRS '{crs}' - forcing to EPSG:3857", "geo_webview", Qgis.MessageLevel.Warning)
                         crs = 'EPSG:3857'
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
 
             # Use canvas-based rendering as the authoritative method for
@@ -2372,14 +2713,14 @@ class GeoWebViewServerManager:
                 from . import http_server
                 http_server.send_binary_response(conn, 200, "OK", png_data, "image/png")
                 return
-            
+
             # 最終フォールバック: エラー画像
             error_image = self._generate_error_image(width, height, "Permalink Rendering Failed")
             from . import http_server
             http_server.send_binary_response(conn, 200, "OK", error_image, "image/png")
-            
+
         except Exception as e:
-            QgsMessageLog.logMessage(f"❌ WMS GetMap with BBOX error: {e}", "geo_webview", Qgis.Critical)
+            QgsMessageLog.logMessage(f"❌ WMS GetMap with BBOX error: {e}", "geo_webview", Qgis.MessageLevel.Critical)
             error_image = self._generate_error_image(width, height, f"Error: {str(e)}")
             from . import http_server
             http_server.send_binary_response(conn, 200, "OK", error_image, "image/png")
@@ -2388,11 +2729,11 @@ class GeoWebViewServerManager:
         """WebMapGeneratorを使用してPNG画像を生成"""
         try:
             from qgis.core import QgsMessageLog, Qgis
-            
+
             if not self.webmap_generator:
-                QgsMessageLog.logMessage("❌ WebMapGenerator not available", "geo_webview", Qgis.Warning)
+                QgsMessageLog.logMessage("❌ WebMapGenerator not available", "geo_webview", Qgis.MessageLevel.Warning)
                 return None
-            
+
             # WebMapGeneratorにダミーのナビゲーションデータを渡す
             navigation_data = {
                 'type': 'coordinates',
@@ -2402,7 +2743,7 @@ class GeoWebViewServerManager:
                 'scale': 10000,
                 'zoom': 10
             }
-            
+
             # WMSパラメータからナビゲーションデータを更新
             if bbox and crs:
                 try:
@@ -2417,13 +2758,13 @@ class GeoWebViewServerManager:
                             'crs': crs
                         })
                 except Exception as e:
-                    QgsMessageLog.logMessage(f"⚠️ Failed to parse BBOX: {e}", "geo_webview", Qgis.Warning)
-            
+                    QgsMessageLog.logMessage(f"⚠️ Failed to parse BBOX: {e}", "geo_webview", Qgis.MessageLevel.Warning)
+
             # WebMapGeneratorを使って画像を生成
             try:
                 # generate_qgis_image_map メソッドを使用（HTML文字列を取得）
                 html_content = self.webmap_generator.generate_qgis_image_map(navigation_data, width, height)
-                
+
                 # HTMLコンテンツからbase64画像データを抽出
                 import re
                 base64_match = re.search(r'data:image/png;base64,([A-Za-z0-9+/=]+)', html_content)
@@ -2432,16 +2773,16 @@ class GeoWebViewServerManager:
                     png_data = base64.b64decode(base64_match.group(1))
                     return png_data
                 else:
-                    QgsMessageLog.logMessage("❌ No base64 image found in WebMapGenerator output", "geo_webview", Qgis.Warning)
+                    QgsMessageLog.logMessage("❌ No base64 image found in WebMapGenerator output", "geo_webview", Qgis.MessageLevel.Warning)
                     return None
-                    
+
             except Exception as e:
-                QgsMessageLog.logMessage(f"❌ WebMapGenerator generation failed: {e}", "geo_webview", Qgis.Warning)
+                QgsMessageLog.logMessage(f"❌ WebMapGenerator generation failed: {e}", "geo_webview", Qgis.MessageLevel.Warning)
                 return None
-                
+
         except Exception as e:
             from qgis.core import QgsMessageLog, Qgis
-            QgsMessageLog.logMessage(f"❌ Error in _generate_webmap_png: {e}", "geo_webview", Qgis.Critical)
+            QgsMessageLog.logMessage(f"❌ Error in _generate_webmap_png: {e}", "geo_webview", Qgis.MessageLevel.Critical)
             return None
 
     def _generate_qgis_map_png(self, width, height, bbox, crs, rotation=0.0):
@@ -2455,62 +2796,8 @@ class GeoWebViewServerManager:
         try:
             return self._render_map_image(width, height, bbox, crs, rotation)
         except Exception as e:
-            QgsMessageLog.logMessage(f"❌ Error in _generate_qgis_map_png (delegated): {e}", "geo_webview", Qgis.Critical)
+            QgsMessageLog.logMessage(f"❌ Error in _generate_qgis_map_png (delegated): {e}", "geo_webview", Qgis.MessageLevel.Critical)
             return None
-
-    def _set_canvas_extent_from_bbox(self, bbox, crs):
-        """WMS BBOXパラメータからキャンバスの表示範囲を設定"""
-        from qgis.core import QgsMessageLog, Qgis
-        
-        try:
-            # BBOXの解析 (minx,miny,maxx,maxy)
-            coords = [float(x) for x in bbox.split(',')]
-            if len(coords) != 4:
-                QgsMessageLog.logMessage(f"❌ Invalid BBOX format: {bbox}", "geo_webview", Qgis.Warning)
-                return False
-            
-            minx, miny, maxx, maxy = coords
-            
-            # QGISの座標系変換を設定
-            from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject, QgsRectangle
-            
-            # 入力CRS
-            source_crs = QgsCoordinateReferenceSystem(crs)
-            if not source_crs.isValid():
-                QgsMessageLog.logMessage(f"❌ Invalid CRS: {crs}", "geo_webview", Qgis.Warning)
-                return False
-            
-            # キャンバスのCRS取得
-            canvas = self.iface.mapCanvas()
-            if not canvas:
-                QgsMessageLog.logMessage("❌ No map canvas available", "geo_webview", Qgis.Warning)
-                return False
-            
-            dest_crs = canvas.mapSettings().destinationCrs()
-            
-            # 座標変換が必要かチェック
-            extent = QgsRectangle(minx, miny, maxx, maxy)
-            
-            if source_crs.authid() != dest_crs.authid():
-                # 座標変換実行
-                transform = QgsCoordinateTransform(source_crs, dest_crs, QgsProject.instance())
-                try:
-                    extent = transform.transformBoundingBox(extent)
-                except Exception as e:
-                    QgsMessageLog.logMessage(f"❌ Coordinate transformation failed: {e}", "geo_webview", Qgis.Warning)
-                    return False
-            
-            # キャンバスの表示範囲を設定
-            canvas.setExtent(extent)
-            canvas.refresh()
-            
-            return True
-            
-        except Exception as e:
-            QgsMessageLog.logMessage(f"❌ Error setting canvas extent: {e}", "geo_webview", Qgis.Critical)
-            import traceback
-            QgsMessageLog.logMessage(f"❌ Traceback: {traceback.format_exc()}", "geo_webview", Qgis.Critical)
-            return False
 
     def _capture_canvas_image(self, width, height):
         """キャンバスから直接画像をキャプチャ"""
@@ -2540,7 +2827,7 @@ class GeoWebViewServerManager:
                         try:
                             canvas = self.iface.mapCanvas()
                             if not canvas:
-                                QgsMessageLog.logMessage("❌ No map canvas available (helper)", "geo_webview", Qgis.Warning)
+                                QgsMessageLog.logMessage("❌ No map canvas available (helper)", "geo_webview", Qgis.MessageLevel.Warning)
                                 self.finished.emit(b'')
                                 return
 
@@ -2549,12 +2836,12 @@ class GeoWebViewServerManager:
                             try:
                                 from qgis.PyQt.QtWidgets import QApplication
                                 QApplication.processEvents()
-                            except Exception:
+                            except Exception:  # nosec B110  # 設計上の許容
                                 pass
 
                             pixmap = canvas.grab()
                             if pixmap.isNull():
-                                QgsMessageLog.logMessage("❌ Failed to grab canvas pixmap (helper)", "geo_webview", Qgis.Warning)
+                                QgsMessageLog.logMessage("❌ Failed to grab canvas pixmap (helper)", "geo_webview", Qgis.MessageLevel.Warning)
                                 self.finished.emit(b'')
                                 return
 
@@ -2563,20 +2850,20 @@ class GeoWebViewServerManager:
                                 from qgis.PyQt.QtCore import Qt
                                 # For WMS we should match the requested size exactly
                                 if w and h and (w != pixmap.width() or h != pixmap.height()):
-                                    pixmap = pixmap.scaled(w, h, Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
-                            except Exception:
+                                    pixmap = pixmap.scaled(w, h, Qt.AspectRatioMode.IgnoreAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                            except Exception:  # nosec B110  # 設計上の許容
                                 pass
 
                             image = pixmap.toImage()
                             if image.isNull():
-                                QgsMessageLog.logMessage("❌ Failed to convert pixmap to image (helper)", "geo_webview", Qgis.Warning)
+                                QgsMessageLog.logMessage("❌ Failed to convert pixmap to image (helper)", "geo_webview", Qgis.MessageLevel.Warning)
                                 self.finished.emit(b'')
                                 return
 
                             from qgis.PyQt.QtCore import QByteArray, QBuffer, QIODevice
                             byte_array = QByteArray()
                             buffer = QBuffer(byte_array)
-                            # QIODevice.WriteOnly may be namespaced differently in Qt6/PyQt6.
+                            # QIODevice.OpenModeFlag.WriteOnly may be namespaced differently in Qt6/PyQt6.
                             write_mode = getattr(QIODevice, 'WriteOnly', None)
                             if write_mode is None:
                                 om = getattr(QIODevice, 'OpenMode', None) or getattr(QIODevice, 'OpenModeFlag', None)
@@ -2590,7 +2877,7 @@ class GeoWebViewServerManager:
                             buffer.open(write_mode)
                             success = image.save(buffer, "PNG")
                             if not success:
-                                QgsMessageLog.logMessage("❌ Failed to save image as PNG (helper)", "geo_webview", Qgis.Warning)
+                                QgsMessageLog.logMessage("❌ Failed to save image as PNG (helper)", "geo_webview", Qgis.MessageLevel.Warning)
                                 self.finished.emit(b'')
                                 return
 
@@ -2598,10 +2885,10 @@ class GeoWebViewServerManager:
                             self.finished.emit(png_data)
 
                         except Exception as e:
-                            QgsMessageLog.logMessage(f"❌ Exception in helper capture: {e}", "geo_webview", Qgis.Warning)
+                            QgsMessageLog.logMessage(f"❌ Exception in helper capture: {e}", "geo_webview", Qgis.MessageLevel.Warning)
                             try:
                                 self.finished.emit(b'')
-                            except Exception:
+                            except Exception:  # nosec B110  # 設計上の許容
                                 pass
 
                 # Create helper and move it to the main (GUI) thread so its slot runs there.
@@ -2609,7 +2896,7 @@ class GeoWebViewServerManager:
                 try:
                     main_thread = QCoreApplication.instance().thread()
                     helper.moveToThread(main_thread)
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     # If moveToThread fails for any reason, keep helper in current thread
                     pass
                 self._capture_helper = helper
@@ -2624,7 +2911,7 @@ class GeoWebViewServerManager:
                 captured['data'] = data or b''
                 try:
                     loop.quit()
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
 
             helper.finished.connect(_on_finished)
@@ -2640,10 +2927,10 @@ class GeoWebViewServerManager:
             timer.timeout.connect(lambda: loop.quit())
             timer.start(5000)
 
-            loop.exec_()
+            loop.exec()
             try:
                 helper.finished.disconnect(_on_finished)
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
 
             png = captured.get('data')
@@ -2652,12 +2939,12 @@ class GeoWebViewServerManager:
 
             # If capture failed or timed out, fallback to None so caller can try
             # other rendering approaches.
-            QgsMessageLog.logMessage("⚠️ Canvas capture timed out or failed", "geo_webview", Qgis.Warning)
+            QgsMessageLog.logMessage("⚠️ Canvas capture timed out or failed", "geo_webview", Qgis.MessageLevel.Warning)
             return None
 
         except Exception as e:
             from qgis.core import QgsMessageLog, Qgis
-            QgsMessageLog.logMessage(f"❌ Error in _capture_canvas_image: {e}", "geo_webview", Qgis.Critical)
+            QgsMessageLog.logMessage(f"❌ Error in _capture_canvas_image: {e}", "geo_webview", Qgis.MessageLevel.Critical)
             return None
 
     def _render_map_image(self, width, height, bbox, crs, rotation=0.0):
@@ -2672,24 +2959,25 @@ class GeoWebViewServerManager:
         from qgis.core import QgsMessageLog, Qgis
 
         try:
-            # WMS独立レンダリング設定を作成
-            map_settings = self._create_wms_map_settings(width, height, bbox, crs, rotation=rotation)
-            if not map_settings:
-                QgsMessageLog.logMessage("❌ Failed to create WMS map settings", "geo_webview", Qgis.Warning)
-                return None
+            # WMS独立レンダリング設定を作成(同時レンダリング防止のため直列化)
+            with self._render_lock:
+                map_settings = self._create_wms_map_settings(width, height, bbox, crs, rotation=rotation)
+                if not map_settings:
+                    QgsMessageLog.logMessage("❌ Failed to create WMS map settings", "geo_webview", Qgis.MessageLevel.Warning)
+                    return None
 
-            # 独立したマップレンダラーでPNG画像を生成
-            png_data = self._execute_map_rendering(map_settings)
+                # 独立したマップレンダラーでPNG画像を生成
+                png_data = self._execute_map_rendering(map_settings)
             if png_data:
                 return png_data
             else:
-                QgsMessageLog.logMessage("❌ Professional WMS rendering failed", "geo_webview", Qgis.Warning)
+                QgsMessageLog.logMessage("❌ Professional WMS rendering failed", "geo_webview", Qgis.MessageLevel.Warning)
                 return None
 
         except Exception as e:
-            QgsMessageLog.logMessage(f"❌ Error in professional WMS rendering: {e}", "geo_webview", Qgis.Critical)
+            QgsMessageLog.logMessage(f"❌ Error in professional WMS rendering: {e}", "geo_webview", Qgis.MessageLevel.Critical)
             import traceback
-            QgsMessageLog.logMessage(f"❌ Traceback: {traceback.format_exc()}", "geo_webview", Qgis.Critical)
+            QgsMessageLog.logMessage(f"❌ Traceback: {traceback.format_exc()}", "geo_webview", Qgis.MessageLevel.Critical)
             return None
 
     def _create_wms_map_settings(self, width, height, bbox, crs, rotation=0.0):
@@ -2697,24 +2985,26 @@ class GeoWebViewServerManager:
 
         rotation: 回転角度（度） — map settings が回転をサポートする場合は適用します。
         """
-        from qgis.core import QgsMapSettings, QgsRectangle, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject, QgsMessageLog, Qgis
-        
+        from qgis.core import QgsMapSettings, QgsRectangle, QgsCoordinateReferenceSystem, QgsProject, QgsMessageLog, Qgis
+
         try:
             # 新しいマップ設定オブジェクトを作成
             map_settings = QgsMapSettings()
-            
+
             # 1. レイヤ設定 - QGISデスクトップの表示状態を踏襲
             canvas = self.iface.mapCanvas()
             if canvas:
                 # アクティブなレイヤのみを取得（表示状態を踏襲）
                 visible_layers = []
                 layer_tree_root = QgsProject.instance().layerTreeRoot()
-                
+
                 for layer in canvas.layers():
                     layer_tree_layer = layer_tree_root.findLayer(layer.id())
-                    if layer_tree_layer and layer_tree_layer.isVisible():
+                    # QgsLayerTreeNode implements __len__ (children count), so a leaf
+                    # layer node is falsy — compare with None, not truthiness.
+                    if layer_tree_layer is not None and layer_tree_layer.isVisible():
                         visible_layers.append(layer)
-                
+
                 map_settings.setLayers(visible_layers)
                 map_settings.setBackgroundColor(canvas.canvasColor())
             else:
@@ -2722,17 +3012,17 @@ class GeoWebViewServerManager:
                 from qgis.core import QgsProject
                 project = QgsProject.instance()
                 map_settings.setLayers(project.mapLayers().values())
-                QgsMessageLog.logMessage("⚠️ No canvas, using all project layers", "geo_webview", Qgis.Warning)
-            
+                QgsMessageLog.logMessage("⚠️ No canvas, using all project layers", "geo_webview", Qgis.MessageLevel.Warning)
+
             # 2. 出力サイズ設定
             from qgis.PyQt.QtCore import QSize
             map_settings.setOutputSize(QSize(width, height))
-            
+
             # 3. 座標系と範囲設定 - WMSパラメータに基づく
             if bbox and crs:
                 success = self._configure_wms_extent_and_crs(map_settings, bbox, crs)
                 if not success:
-                    QgsMessageLog.logMessage("❌ Failed to configure WMS extent/CRS", "geo_webview", Qgis.Warning)
+                    QgsMessageLog.logMessage("❌ Failed to configure WMS extent/CRS", "geo_webview", Qgis.MessageLevel.Warning)
                     return None
             else:
                 # デフォルト範囲設定
@@ -2745,13 +3035,13 @@ class GeoWebViewServerManager:
                     world_extent = QgsRectangle(-180, -90, 180, 90)
                     map_settings.setDestinationCrs(world_crs)
                     map_settings.setExtent(world_extent)
-            
+
             # 4. 品質設定
             map_settings.setFlag(QgsMapSettings.Antialiasing, True)
             map_settings.setFlag(QgsMapSettings.UseAdvancedEffects, True)
             map_settings.setFlag(QgsMapSettings.ForceVectorOutput, False)
             map_settings.setFlag(QgsMapSettings.DrawEditingInfo, False)
-            
+
             # 5. DPI設定
             map_settings.setOutputDpi(96)
 
@@ -2761,51 +3051,51 @@ class GeoWebViewServerManager:
                 # This ensures ANGLE=0 and ANGLE!=0 follow the same code path.
                 if rotation is not None and hasattr(map_settings, 'setRotation'):
                     map_settings.setRotation(float(rotation))
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
-            
+
             return map_settings
-            
+
         except Exception as e:
-            QgsMessageLog.logMessage(f"❌ Error creating WMS map settings: {e}", "geo_webview", Qgis.Critical)
+            QgsMessageLog.logMessage(f"❌ Error creating WMS map settings: {e}", "geo_webview", Qgis.MessageLevel.Critical)
             return None
 
     def _configure_wms_extent_and_crs(self, map_settings, bbox, crs):
         """WMSパラメータに基づいて範囲と座標系を設定"""
-        from qgis.core import QgsRectangle, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject, QgsMessageLog, Qgis
-        
+        from qgis.core import QgsRectangle, QgsCoordinateReferenceSystem, QgsMessageLog, Qgis
+
         try:
             # BBOXの解析 (minx,miny,maxx,maxy)
             coords = [float(x) for x in bbox.split(',')]
             if len(coords) != 4:
-                QgsMessageLog.logMessage(f"❌ Invalid BBOX format: {bbox}", "geo_webview", Qgis.Warning)  
+                QgsMessageLog.logMessage(f"❌ Invalid BBOX format: {bbox}", "geo_webview", Qgis.MessageLevel.Warning)
                 return False
-            
+
             minx, miny, maxx, maxy = coords
             extent = QgsRectangle(minx, miny, maxx, maxy)
-            
+
             # CRS設定
             target_crs = QgsCoordinateReferenceSystem(crs)
             if not target_crs.isValid():
-                QgsMessageLog.logMessage(f"❌ Invalid CRS: {crs}", "geo_webview", Qgis.Warning)
+                QgsMessageLog.logMessage(f"❌ Invalid CRS: {crs}", "geo_webview", Qgis.MessageLevel.Warning)
                 return False
-            
+
             map_settings.setDestinationCrs(target_crs)
             map_settings.setExtent(extent)
-            
+
             return True
-            
+
         except ValueError as e:
-            QgsMessageLog.logMessage(f"❌ Error parsing BBOX coordinates: {e}", "geo_webview", Qgis.Warning)
+            QgsMessageLog.logMessage(f"❌ Error parsing BBOX coordinates: {e}", "geo_webview", Qgis.MessageLevel.Warning)
             return False
         except Exception as e:
-            QgsMessageLog.logMessage(f"❌ Error configuring WMS extent/CRS: {e}", "geo_webview", Qgis.Critical)
+            QgsMessageLog.logMessage(f"❌ Error configuring WMS extent/CRS: {e}", "geo_webview", Qgis.MessageLevel.Critical)
             return False
 
     def _execute_map_rendering(self, map_settings):
         """独立したマップレンダラーでPNG画像を生成"""
         from qgis.core import QgsMapRendererParallelJob, QgsMessageLog, Qgis
-        
+
         try:
             # レンダリング最適化設定
             # キャッシュ有効化とパフォーマンスチューニング
@@ -2818,46 +3108,46 @@ class GeoWebViewServerManager:
                         flag = getattr(QgsMapSettings, 'UseRenderingOptimization', None)
                         if flag is not None:
                             map_settings.setFlag(flag, True)
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
-                    
+
                     # DrawEditingInfo を無効化(編集情報の描画をスキップ)
                     try:
                         flag = getattr(QgsMapSettings, 'DrawEditingInfo', None)
                         if flag is not None:
                             map_settings.setFlag(flag, False)
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
-                
+
                 # キャッシュヒントを有効化
                 if hasattr(map_settings, 'setPathResolver'):
                     # パスリゾルバを設定することでキャッシュが効率化される
                     try:
                         from qgis.core import QgsProject
                         map_settings.setPathResolver(QgsProject.instance().pathResolver())
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
-            
+
             # 並列レンダリングジョブを作成
             job = QgsMapRendererParallelJob(map_settings)
-            
+
             # レンダリング実行
             job.start()
             job.waitForFinished()
-            
+
             # レンダリング結果を取得
             image = job.renderedImage()
             if image.isNull():
-                QgsMessageLog.logMessage("❌ Rendered image is null", "geo_webview", Qgis.Warning)
+                QgsMessageLog.logMessage("❌ Rendered image is null", "geo_webview", Qgis.MessageLevel.Warning)
                 return None
-            
+
             # PNG形式でバイト配列に変換
             from qgis.PyQt.QtCore import QByteArray, QBuffer, QIODevice
             byte_array = QByteArray()
             buffer = QBuffer(byte_array)
-            # QIODevice.WriteOnly may be namespaced differently in Qt6/PyQt6.
+            # QIODevice.OpenModeFlag.WriteOnly may be namespaced differently in Qt6/PyQt6.
             write_mode = getattr(QIODevice, 'WriteOnly', None)
             if write_mode is None:
                 om = getattr(QIODevice, 'OpenMode', None) or getattr(QIODevice, 'OpenModeFlag', None)
@@ -2869,52 +3159,51 @@ class GeoWebViewServerManager:
                 except Exception:
                     write_mode = 1
             buffer.open(write_mode)
-            
+
             success = image.save(buffer, "PNG")
             if not success:
-                QgsMessageLog.logMessage("❌ Failed to save rendered image as PNG", "geo_webview", Qgis.Warning)
+                QgsMessageLog.logMessage("❌ Failed to save rendered image as PNG", "geo_webview", Qgis.MessageLevel.Warning)
                 return None
-            
+
             png_data = byte_array.data()
             return png_data
-            
+
         except Exception as e:
-            QgsMessageLog.logMessage(f"❌ Error executing map rendering: {e}", "geo_webview", Qgis.Critical)
+            QgsMessageLog.logMessage(f"❌ Error executing map rendering: {e}", "geo_webview", Qgis.MessageLevel.Critical)
             import traceback
-            QgsMessageLog.logMessage(f"❌ Traceback: {traceback.format_exc()}", "geo_webview", Qgis.Critical)
+            QgsMessageLog.logMessage(f"❌ Traceback: {traceback.format_exc()}", "geo_webview", Qgis.MessageLevel.Critical)
             return None
-            
+
             # マップレンダリング実行
             from qgis.core import QgsMapRendererParallelJob
-            from qgis.PyQt.QtGui import QImage
-            
+
             job = QgsMapRendererParallelJob(map_settings)
             job.start()
             job.waitForFinished()
-            
+
             image = job.renderedImage()
             if image.isNull():
-                QgsMessageLog.logMessage("❌ Rendered image is null", "geo_webview", Qgis.Warning)
+                QgsMessageLog.logMessage("❌ Rendered image is null", "geo_webview", Qgis.MessageLevel.Warning)
                 return None
-            
+
             # PNG形式でバイト配列に変換
             from qgis.PyQt.QtCore import QByteArray, QBuffer, QIODevice
             byte_array = QByteArray()
             buffer = QBuffer(byte_array)
-            buffer.open(QIODevice.WriteOnly)
-            
+            buffer.open(QIODevice.OpenModeFlag.WriteOnly)
+
             success = image.save(buffer, "PNG")
             if not success:
-                QgsMessageLog.logMessage("❌ Failed to save image as PNG", "geo_webview", Qgis.Warning)
+                QgsMessageLog.logMessage("❌ Failed to save image as PNG", "geo_webview", Qgis.MessageLevel.Warning)
                 return None
-            
+
             png_data = byte_array.data()
             return png_data
-            
+
         except Exception as e:
-            QgsMessageLog.logMessage(f"❌ Error generating QGIS map PNG: {e}", "geo_webview", Qgis.Critical)
+            QgsMessageLog.logMessage(f"❌ Error generating QGIS map PNG: {e}", "geo_webview", Qgis.MessageLevel.Critical)
             import traceback
-            QgsMessageLog.logMessage(f"❌ Traceback: {traceback.format_exc()}", "geo_webview", Qgis.Critical)
+            QgsMessageLog.logMessage(f"❌ Traceback: {traceback.format_exc()}", "geo_webview", Qgis.MessageLevel.Critical)
             return None
 
     def _generate_error_image(self, width, height, error_message):
@@ -2922,30 +3211,30 @@ class GeoWebViewServerManager:
         try:
             from qgis.PyQt.QtGui import QImage, QPainter, QFont, QColor
             from qgis.PyQt.QtCore import Qt, QByteArray, QBuffer, QIODevice
-            
+
             # 画像を作成
-            image = QImage(width, height, QImage.Format_ARGB32)
+            image = QImage(width, height, QImage.Format.Format_ARGB32)
             image.fill(QColor(240, 240, 240))  # 明るいグレー背景
-            
+
             # ペインターで描画
             painter = QPainter(image)
-            painter.setRenderHint(QPainter.Antialiasing)
-            
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
             # フォントとペンを設定
             font = QFont("Arial", 12)
             painter.setFont(font)
             painter.setPen(QColor(180, 0, 0))  # 赤色のテキスト
-            
+
             # エラーメッセージを描画
             rect = image.rect()
-            painter.drawText(rect, Qt.AlignCenter | Qt.TextWordWrap, f"Error:\n{error_message}")
-            
+            painter.drawText(rect, Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextWordWrap, f"Error:\n{error_message}")
+
             painter.end()
-            
+
             # PNG形式でバイト配列に変換
             byte_array = QByteArray()
             buffer = QBuffer(byte_array)
-            # QIODevice.WriteOnly may be namespaced differently in Qt6/PyQt6.
+            # QIODevice.OpenModeFlag.WriteOnly may be namespaced differently in Qt6/PyQt6.
             write_mode = getattr(QIODevice, 'WriteOnly', None)
             if write_mode is None:
                 om = getattr(QIODevice, 'OpenMode', None) or getattr(QIODevice, 'OpenModeFlag', None)
@@ -2958,10 +3247,10 @@ class GeoWebViewServerManager:
                     write_mode = 1
             buffer.open(write_mode)
             image.save(buffer, "PNG")
-            
+
             return byte_array.data()
-            
-        except Exception as e:
+
+        except Exception:
             # 最小限のPNG画像を返す
             return b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x01\x00\x00\x00\x01\x00\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\tpHYs\x00\x00\x0b\x13\x00\x00\x0b\x13\x01\x00\x9a\x9c\x18\x00\x00\x00\x16tEXtSoftware\x00www.inkscape.org\x9b\xee<\x1a\x00\x00\x00\x1ftEXtTitle\x00Error Image\x87\x96\xf0\x8e\x00\x00\x00\x12IDATx\x9cc\xf8\x0f\x00\x00\x01\x00\x01\x00\x18\xdd\x8d\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
 
@@ -2979,19 +3268,37 @@ class GeoWebViewServerManager:
             finally:
                 try:
                     s.close()
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
             return ip
         except Exception:
             return '127.0.0.1'
 
+    @staticmethod
+    def _set_reuse_socketopt(sock):
+        """WindowsではSO_EXCLUSIVEADDRUSEでポートの占有を排他化する。
+
+        SO_REUSEADDR はWindowsでは他プロセスによる同一ポートの多重
+        バインド(ポート横取り)を許してしまうため、複数QGISインスタンスが
+        同居する環境で接続が別プロセスへ分散し無応答になる。
+        UnixではSO_REUSEADDR(TIME_WAIT再利用)を維持する。
+        """
+        try:
+            excl = getattr(socket, 'SO_EXCLUSIVEADDRUSE', None)
+            if excl is not None:  # Windows
+                sock.setsockopt(socket.SOL_SOCKET, excl, 1)
+            else:
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        except OSError:  # nosec B110  # 設計上の許容
+            pass
+
     def find_available_port(self, start_port, end_port):
         """使用可能なポートを探す
-        
+
         Args:
             start_port: 開始ポート番号
             end_port: 終了ポート番号
-            
+
         Returns:
             使用可能なポート番号
         """
@@ -2999,19 +3306,19 @@ class GeoWebViewServerManager:
             try:
                 # test bind on all interfaces
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                    s.bind(('0.0.0.0', port))
+                    self._set_reuse_socketopt(s)
+                    s.bind(('0.0.0.0', port))  # nosec B104  # 実bind(上記)と同じIFで空き確認する必要がある
                     return port
             except OSError as e:
                 # ポート80, 443は管理者権限が必要な場合がある
                 if port in (80, 443):
                     from qgis.core import QgsMessageLog, Qgis
                     QgsMessageLog.logMessage(
-                        f"ポート {port} のバインドに失敗しました（管理者権限が必要な可能性があります）: {e}",
-                        "geo_webview", Qgis.Warning
+                        f"Failed to bind port {port} (administrator rights may be required): {e}",
+                        "geo_webview", Qgis.MessageLevel.Warning
                     )
                 continue
-        raise RuntimeError(f"ポート範囲 {start_port}-{end_port} で使用可能なポートが見つかりません")
+        raise RuntimeError(f"No available port found in range {start_port}-{end_port}")
 
     def is_server_running(self):
         """サーバーが稼働中かどうかを確認"""
@@ -3021,13 +3328,9 @@ class GeoWebViewServerManager:
         """現在のサーバーポートを取得"""
         return self.server_port if self.is_server_running() else None
 
-    def get_last_request(self):
-        """最後のHTTPリクエストテキストを取得"""
-        return self._last_request_text
-    
     def check_external_access(self):
         """外部からのアクセス可能性を診断
-        
+
         Returns:
             dict: 診断結果を含む辞書
                 {
@@ -3051,20 +3354,20 @@ class GeoWebViewServerManager:
             'firewall_warning': True,
             'message': ''
         }
-        
+
         try:
             # サーバー稼働状態チェック
             result['server_running'] = self.is_server_running()
             result['port'] = self.get_server_port()
-            
+
             if not result['server_running']:
-                result['message'] = 'HTTPサーバーが起動していません'
+                result['message'] = QCoreApplication.translate('geo_webview', 'The HTTP server is not running')
                 return result
-            
+
             # ローカルIPアドレスを取得
             import socket
             hostname = socket.gethostname()
-            
+
             # すべてのIPアドレスを取得
             try:
                 all_addresses = socket.getaddrinfo(hostname, None)
@@ -3075,44 +3378,46 @@ class GeoWebViewServerManager:
                         if ip not in ipv4_addresses and not ip.startswith('127.'):
                             ipv4_addresses.append(ip)
                 result['all_ips'] = ipv4_addresses
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
-            
+
             # プライマリローカルIP（外向き）を取得
             result['local_ip'] = self._guess_bind_ip()
-            
+
             # URLを生成
             result['localhost_url'] = f"http://localhost:{result['port']}"
             if result['local_ip'] != '127.0.0.1':
                 result['local_network_url'] = f"http://{result['local_ip']}:{result['port']}"
-            
+
             # ファイアウォール警告の判定（Windowsの場合）
             allowed_ports = []
             try:
                 import platform
                 if platform.system() == 'Windows':
                     # Windowsファイアウォールルールの確認を試みる
-                    import subprocess
+                    import subprocess  # nosec B404  # 意図的なOSコマンド呼出し
                     try:
                         # netshコマンドでファイアウォールルールを確認
-                        cmd = f'netsh advfirewall firewall show rule name=all | findstr /i "LocalPort.*{result["port"]}"'
-                        output = subprocess.run(
-                            cmd,
-                            shell=True,
+                        import re
+                        output = subprocess.run(  # nosec B603 B607
+                            ['netsh', 'advfirewall', 'firewall', 'show',
+                             'rule', 'name=all'],
                             capture_output=True,
                             text=True,
                             timeout=5
                         )
                         # ルールが見つかれば警告なし
-                        if output.returncode == 0 and output.stdout.strip():
+                        if output.returncode == 0 and re.search(
+                                r'LocalPort.*{0}'.format(result["port"]),
+                                output.stdout, re.IGNORECASE):
                             result['firewall_warning'] = False
                         else:
                             result['firewall_warning'] = True
-                        
+
                         # 許可されているポートを検出（範囲1024-65535で確認）
                         try:
                             allowed_ports = self._scan_firewall_allowed_ports()
-                        except Exception:
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
                     except Exception:
                         # コマンド実行失敗時は警告を表示
@@ -3122,79 +3427,78 @@ class GeoWebViewServerManager:
                     result['firewall_warning'] = False
             except Exception:
                 result['firewall_warning'] = True
-            
+
             # メッセージ生成
             messages = []
-            messages.append(f"✅ サーバーはポート {result['port']} で稼働中")
-            messages.append(f"🏠 ローカル: {result['localhost_url']}")
-            
+            messages.append(QCoreApplication.translate('geo_webview', "✅ Server is running on port {0}").format(result['port']))
+            messages.append(QCoreApplication.translate('geo_webview', "🏠 Local: {0}").format(result['localhost_url']))
+
             if result['local_network_url']:
-                messages.append(f"🌐 ネットワーク: {result['local_network_url']}")
-            
+                messages.append(QCoreApplication.translate('geo_webview', "🌐 Network: {0}").format(result['local_network_url']))
+
             if result['all_ips']:
-                messages.append(f"📡 利用可能なIP: {', '.join(result['all_ips'])}")
-            
+                messages.append(QCoreApplication.translate('geo_webview', "📡 Available IPs: {0}").format(', '.join(result['all_ips'])))
+
             if result['firewall_warning']:
-                messages.append(f"\n⚠️ ファイアウォールがポート {result['port']} をブロックしている可能性があります")
-                messages.append("   外部からアクセスするには、Windowsファイアウォールで")
-                messages.append(f"   ポート {result['port']} (TCP) を許可する必要があります")
-                
+                messages.append(QCoreApplication.translate('geo_webview', "\n⚠️ The firewall may be blocking port {0}").format(result['port']))
+                messages.append(QCoreApplication.translate('geo_webview', "   To allow external access, permit"))
+                messages.append(QCoreApplication.translate('geo_webview', "   port {0} (TCP) in Windows Firewall").format(result['port']))
+
                 # 許可されているポートがあれば表示
                 if allowed_ports:
-                    messages.append(f"\n🔓 ファイアウォールで許可されているポート: {', '.join(map(str, allowed_ports[:10]))}")
+                    messages.append(QCoreApplication.translate('geo_webview', "\n🔓 Ports allowed in the firewall: {0}").format(', '.join(map(str, allowed_ports[:10]))))
                     if len(allowed_ports) > 10:
-                        messages.append(f"   （他 {len(allowed_ports) - 10} 件）")
+                        messages.append(QCoreApplication.translate('geo_webview', "   ({0} more)").format(len(allowed_ports) - 10))
                 else:
-                    messages.append("\n❌ ファイアウォールで許可されているポートが見つかりませんでした")
-                    messages.append("   外部アクセスを有効にするには、Windowsファイアウォールで")
-                    messages.append("   新しいルールを作成してポートを許可してください")
+                    messages.append(QCoreApplication.translate('geo_webview', "\n❌ No ports allowed in the firewall were found"))
+                    messages.append(QCoreApplication.translate('geo_webview', "   To enable external access, create a new rule"))
+                    messages.append(QCoreApplication.translate('geo_webview', "   in Windows Firewall to allow the port"))
             else:
-                messages.append("\n✅ ファイアウォールルールが設定されています")
-            
+                messages.append(QCoreApplication.translate('geo_webview', "\n✅ A firewall rule is configured"))
+
             result['message'] = '\n'.join(messages)
-            
+
         except Exception as e:
-            result['message'] = f'診断中にエラーが発生しました: {str(e)}'
-        
+            result['message'] = QCoreApplication.translate('geo_webview', 'An error occurred during diagnostics: {0}').format(e)
+
         return result
-    
+
     def _scan_firewall_allowed_ports(self):
         """Windowsファイアウォールで許可されているポートをスキャン
-        
+
         Returns:
             list: 許可されているポート番号のリスト
         """
         allowed_ports = []
         try:
-            import subprocess
+            import subprocess  # nosec B404  # 意図的なOSコマンド呼出し
             import re
-            
+
             # netshコマンドでファイアウォールルールを取得
-            cmd = 'netsh advfirewall firewall show rule name=all'
-            output = subprocess.run(
-                cmd,
-                shell=True,
+            output = subprocess.run(  # nosec B603 B607
+                ['netsh', 'advfirewall', 'firewall', 'show',
+                 'rule', 'name=all'],
                 capture_output=True,
                 text=True,
                 timeout=10
             )
-            
+
             if output.returncode == 0:
                 lines = output.stdout.split('\n')
                 current_rule_enabled = False
                 current_rule_action = None
-                
+
                 for line in lines:
                     line_lower = line.lower().strip()
-                    
+
                     # ルールが有効かチェック
                     if 'enabled:' in line_lower:
                         current_rule_enabled = 'yes' in line_lower
-                    
+
                     # アクションがAllowかチェック
                     if 'action:' in line_lower:
                         current_rule_action = 'allow' in line_lower
-                    
+
                     # LocalPortを探す
                     if 'localport:' in line_lower and current_rule_enabled and current_rule_action:
                         # ポート番号を抽出
@@ -3213,7 +3517,7 @@ class GeoWebViewServerManager:
                                         for p in range(start_port, min(end_port + 1, start_port + 10)):
                                             if 1024 <= p <= 65535 and p not in allowed_ports:
                                                 allowed_ports.append(p)
-                                    except ValueError:
+                                    except ValueError:  # nosec B110  # 設計上の許容
                                         pass
                                 else:
                                     # 単一ポートの場合
@@ -3221,31 +3525,31 @@ class GeoWebViewServerManager:
                                         port = int(port_part.strip())
                                         if 1024 <= port <= 65535 and port not in allowed_ports:
                                             allowed_ports.append(port)
-                                    except ValueError:
+                                    except ValueError:  # nosec B110  # 設計上の許容
                                         pass
-                    
+
                     # 空行で次のルールに移行
                     if not line.strip():
                         current_rule_enabled = False
                         current_rule_action = None
-            
+
             # ソートして返す
             allowed_ports.sort()
             return allowed_ports
-            
+
         except Exception as e:
             from qgis.core import QgsMessageLog, Qgis
-            QgsMessageLog.logMessage(f"ファイアウォールポートスキャンエラー: {e}", "geo_webview", Qgis.Warning)
+            QgsMessageLog.logMessage(f"Firewall port scan error: {e}", "geo_webview", Qgis.MessageLevel.Warning)
             return []
-    
+
     def add_firewall_rule(self, port, rule_name=None, request_elevation=True):
         """Windowsファイアウォールにポートを許可するルールを追加
-        
+
         Args:
             port: 許可するポート番号
             rule_name: ルール名(省略時は自動生成)
             request_elevation: 管理者権限昇格を要求するか(デフォルトTrue)
-            
+
         Returns:
             dict: 結果を含む辞書
                 {
@@ -3261,19 +3565,19 @@ class GeoWebViewServerManager:
             'admin_required': False,
             'elevated': False
         }
-        
+
         try:
             import platform
-            import subprocess
-            
+            import subprocess  # nosec B404  # 意図的なOSコマンド呼出し
+
             if platform.system() != 'Windows':
-                result['message'] = 'この機能はWindowsでのみ利用可能です'
+                result['message'] = QCoreApplication.translate('geo_webview', 'This feature is only available on Windows')
                 return result
-            
+
             # ルール名の生成
             if not rule_name:
                 rule_name = f"QMapPermalink-Port-{port}"
-            
+
             # netshコマンドでファイアウォールルールを追加
             cmd = (
                 f'netsh advfirewall firewall add rule '
@@ -3284,41 +3588,43 @@ class GeoWebViewServerManager:
                 f'localport={port} '
                 f'enable=yes'
             )
-            
+
             try:
                 # まず通常権限で試す
-                output = subprocess.run(
-                    cmd,
-                    shell=True,
+                output = subprocess.run(  # nosec B603 B607
+                    ['netsh', 'advfirewall', 'firewall', 'add', 'rule',
+                     'name={0}'.format(rule_name), 'dir=in',
+                     'action=allow', 'protocol=TCP',
+                     'localport={0}'.format(port), 'enable=yes'],
                     capture_output=True,
                     text=True,
                     timeout=10
                 )
-                
+
                 if output.returncode == 0:
                     result['success'] = True
-                    result['message'] = f'ファイアウォールルール "{rule_name}" を追加しました'
+                    result['message'] = QCoreApplication.translate('geo_webview', 'Firewall rule "{0}" has been added').format(rule_name)
                     from qgis.core import QgsMessageLog, Qgis
-                    QgsMessageLog.logMessage(result['message'], "geo_webview", Qgis.Info)
+                    QgsMessageLog.logMessage(result['message'], "geo_webview", Qgis.MessageLevel.Info)
                 else:
                     # 通常権限で失敗した場合、管理者権限で再試行
                     if request_elevation:
                         result['elevated'] = True
-                        
+
                         try:
                             # PowerShellの完全パスを取得
                             import os
                             ps_path = os.path.join(os.environ.get('SYSTEMROOT', 'C:\\Windows'), 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
-                            
+
                             # PowerShellが見つからない場合は代替パスを試す
                             if not os.path.exists(ps_path):
                                 ps_path = 'powershell.exe'
-                            
+
                             # netshの完全パスを取得
                             netsh_path = os.path.join(os.environ.get('SYSTEMROOT', 'C:\\Windows'), 'System32', 'netsh.exe')
                             if not os.path.exists(netsh_path):
                                 netsh_path = 'netsh.exe'
-                            
+
                             # PowerShellのStart-Processで直接netshを管理者権限で実行
                             # ArgumentListを配列形式で構築
                             args = [
@@ -3333,75 +3639,79 @@ class GeoWebViewServerManager:
                                 f'localport={port}',
                                 'enable=yes'
                             ]
-                            
+
                             # ArgumentListを文字列として結合
                             args_str = ','.join([f"'{arg}'" for arg in args])
-                            
+
                             # PowerShellコマンドを構築
                             ps_cmd = f'Start-Process -FilePath "{netsh_path}" -ArgumentList {args_str} -Verb RunAs -Wait -WindowStyle Hidden'
-                            
-                            elevation_output = subprocess.run(
+
+                            _ = subprocess.run(  # nosec B603
                                 [ps_path, '-NoProfile', '-Command', ps_cmd],
                                 capture_output=True,
                                 text=True,
                                 timeout=60,  # UAC待ち時間を考慮
                                 creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0
                             )
-                            
+
                             # 少し待機してからルールを確認
                             import time
                             time.sleep(1)
-                            
+
                             # 結果を確認(成功の場合、元のnetshコマンドをもう一度チェック)
-                            verify_cmd = f'netsh advfirewall firewall show rule name="{rule_name}"'
-                            verify_output = subprocess.run(
-                                verify_cmd,
-                                shell=True,
+                            verify_output = subprocess.run(  # nosec B603 B607
+                                ['netsh', 'advfirewall', 'firewall', 'show',
+                                 'rule', 'name={0}'.format(rule_name)],
                                 capture_output=True,
                                 text=True,
                                 timeout=5
                             )
-                            
+
                             if verify_output.returncode == 0 and rule_name in verify_output.stdout:
                                 result['success'] = True
-                                result['message'] = f'ファイアウォールルール "{rule_name}" を管理者権限で追加しました'
+                                result['message'] = QCoreApplication.translate('geo_webview', 'Firewall rule "{0}" has been added with administrator rights').format(rule_name)
                                 from qgis.core import QgsMessageLog, Qgis
-                                QgsMessageLog.logMessage(result['message'], "geo_webview", Qgis.Info)
+                                QgsMessageLog.logMessage(result['message'], "geo_webview", Qgis.MessageLevel.Info)
                             else:
                                 # ユーザーがUACをキャンセルした可能性
                                 result['admin_required'] = True
-                                result['message'] = f'管理者権限の昇格がキャンセルされたか、ルールの追加に失敗しました。\n\n手動で実行する場合は以下のコマンドを管理者権限のコマンドプロンプトで実行してください:\n\n{cmd}'
+                                result['message'] = QCoreApplication.translate(
+                                    'geo_webview', 'Administrator elevation was cancelled or adding the rule failed.\n\nTo run manually, execute the following command in an administrator command prompt:\n\n{0}').format(cmd)
                                 result['command'] = cmd
                         except subprocess.TimeoutExpired:
-                            result['message'] = 'ファイアウォールルールの追加がタイムアウトしました(60秒)'
+                            result['message'] = QCoreApplication.translate('geo_webview', 'Adding the firewall rule timed out (60 seconds)')
                             result['command'] = cmd
                         except Exception as elev_e:
-                            result['message'] = f'管理者権限での実行に失敗しました: {str(elev_e)}\n\n手動で実行する場合は以下のコマンドを管理者権限のコマンドプロンプトで実行してください:\n\n{cmd}'
+                            result['message'] = QCoreApplication.translate(
+                                'geo_webview', 'Execution with administrator rights failed: {0}\n\nTo run manually, execute the following command in an administrator command prompt:\n\n{1}').format(elev_e, cmd)
                             result['command'] = cmd
                             result['admin_required'] = True
                     else:
                         result['admin_required'] = True
-                        result['message'] = f'管理者権限が必要です。\n\n次のコマンドを管理者権限のコマンドプロンプトで実行してください:\n\n{cmd}'
+                        result['message'] = QCoreApplication.translate(
+                            'geo_webview', 'Administrator rights are required.\n\nExecute the following command in an administrator command prompt:\n\n{0}').format(cmd)
                         result['command'] = cmd
                         from qgis.core import QgsMessageLog, Qgis
-                        QgsMessageLog.logMessage(f"ファイアウォールルール追加に管理者権限が必要: {output.stderr}", "geo_webview", Qgis.Warning)
-                    
+                        QgsMessageLog.logMessage(f"Administrator rights required to add firewall rule: {output.stderr}", "geo_webview", Qgis.MessageLevel.Warning)
+
             except subprocess.TimeoutExpired:
-                result['message'] = 'ファイアウォールルールの追加がタイムアウトしました'
+                result['message'] = QCoreApplication.translate('geo_webview', 'Adding the firewall rule timed out')
             except Exception as e:
                 if request_elevation:
-                    result['message'] = f'管理者権限での実行に失敗しました: {str(e)}\n\n手動で実行する場合は以下のコマンドを管理者権限のコマンドプロンプトで実行してください:\n\n{cmd}'
+                    result['message'] = QCoreApplication.translate(
+                        'geo_webview', 'Execution with administrator rights failed: {0}\n\nTo run manually, execute the following command in an administrator command prompt:\n\n{1}').format(e, cmd)
                     result['command'] = cmd
                 else:
                     result['admin_required'] = True
-                    result['message'] = f'管理者権限が必要です。\n\nエラー: {str(e)}\n\n次のコマンドを管理者権限のコマンドプロンプトで実行してください:\n\n{cmd}'
+                    result['message'] = QCoreApplication.translate(
+                        'geo_webview', 'Administrator rights are required.\n\nError: {0}\n\nExecute the following command in an administrator command prompt:\n\n{1}').format(e, cmd)
                     result['command'] = cmd
-            
+
         except Exception as e:
-            result['message'] = f'ファイアウォールルールの追加に失敗しました: {str(e)}'
+            result['message'] = QCoreApplication.translate('geo_webview', 'Failed to add the firewall rule: {0}').format(e)
             from qgis.core import QgsMessageLog, Qgis
-            QgsMessageLog.logMessage(result['message'], "geo_webview", Qgis.Critical)
-        
+            QgsMessageLog.logMessage(result['message'], "geo_webview", Qgis.MessageLevel.Critical)
+
         return result
 
     def _attach_layer_tree_hooks(self):
@@ -3428,9 +3738,9 @@ class GeoWebViewServerManager:
                     try:
                         sig.connect(self._on_layer_tree_changed)
                         hooked = True
-                    except Exception:
+                    except Exception:  # nosec B112  # 設計上の許容
                         continue
-            except Exception:
+            except Exception:  # nosec B112  # 設計上の許容
                 continue
 
         # Fallback: try project-level signals
@@ -3443,14 +3753,14 @@ class GeoWebViewServerManager:
                         try:
                             sig.connect(self._on_layer_tree_changed)
                             hooked = True
-                        except Exception:
+                        except Exception:  # nosec B112  # 設計上の許容
                             continue
-                except Exception:
+                except Exception:  # nosec B112  # 設計上の許容
                     continue
 
         try:
-            QgsMessageLog.logMessage(f"Layer-tree hooks attached: {hooked}", 'QMapPermalink', Qgis.Info)
-        except Exception:
+            QgsMessageLog.logMessage(f"Layer-tree hooks attached: {hooked}", 'QMapPermalink', Qgis.MessageLevel.Info)
+        except Exception:  # nosec B110  # 設計上の許容
             pass
 
     def _on_layer_tree_changed(self, *args, **kwargs):
@@ -3460,7 +3770,7 @@ class GeoWebViewServerManager:
             if getattr(self, '_layer_change_timer', None):
                 try:
                     self._layer_change_timer.cancel()
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
 
             # schedule a short delay to avoid thrashing during bulk operations
@@ -3468,7 +3778,7 @@ class GeoWebViewServerManager:
             t.daemon = True
             self._layer_change_timer = t
             t.start()
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
 
     def _handle_layers_changed(self):
@@ -3495,12 +3805,12 @@ class GeoWebViewServerManager:
             # Ensure identity folder/meta exists (idempotent, fast)
             try:
                 h, d = self.wmts_service.ensure_identity(identity_short, identity_raw)
-                QgsMessageLog.logMessage(f"WMTS identity updated/ensured: {identity_short} -> {h}", 'QMapPermalink', Qgis.Info)
+                QgsMessageLog.logMessage(f"WMTS identity updated/ensured: {identity_short} -> {h}", 'QMapPermalink', Qgis.MessageLevel.Info)
             except Exception as e:
                 try:
-                    QgsMessageLog.logMessage(f"WMTS ensure_identity failed: {e}", 'QMapPermalink', Qgis.Warning)
-                except Exception:
+                    QgsMessageLog.logMessage(f"WMTS ensure_identity failed: {e}", 'QMapPermalink', Qgis.MessageLevel.Warning)
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
 
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass

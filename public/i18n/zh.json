@@ -78,5 +78,8 @@
   "status_server_stopped_close": "服务器已停止。请重启启动器或关闭此标签页。",
   "btn_restart_launcher": "重启启动器",
   "status_restarting": "正在重启启动器。如果浏览器显示确认对话框，请允许…",
-  "status_restart_timeout": "无法确认重启。请手动启动启动器。"
+  "status_restart_timeout": "无法确认重启。请手动启动启动器。",
+  "label_dev_mode": "开发模式（QGIS Live Harness）",
+  "live_session_active": "开发会话运行中 (PID {pid})",
+  "live_session_none": "无开发会话"
 }

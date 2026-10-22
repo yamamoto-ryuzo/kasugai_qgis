@@ -226,6 +226,22 @@
         </property>
        </widget>
       </item>
+      <item>
+       <widget class="QCheckBox" name="IDC_chkLocalCacheAll">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="toolTip">
+         <string>Download catalog data to the local cache for every site. Takes precedence over the per-site setting on the main dialog.</string>
+        </property>
+        <property name="text">
+         <string>Use local download for all sites</string>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>

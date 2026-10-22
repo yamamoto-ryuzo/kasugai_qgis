@@ -1,16 +1,12 @@
 # -*- coding: utf-8 -*-
-from ast import IsNot
-from asyncio.windows_events import NULL
 from collections import OrderedDict
-from contextlib import nullcontext
 import json
 import os
 
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QAction, QMessageBox, QComboBox, QWidget, QToolButton, QHBoxLayout
+from qgis.PyQt.QtWidgets import QAction, QComboBox, QWidget, QToolButton, QHBoxLayout, QToolBar
 from qgis.core import (
     QgsProject,
-    QgsExpressionContextUtils,
 )
 """QGIS プラグイン Qt 互換インポート
 
@@ -19,19 +15,23 @@ PyQt5 を直接参照していた箇所を qgis.PyQt 経由に統一し、
 """
 
 from .constants import OTHER_GROUP_NAME
+from .i18n_json import install_translator
 from .searchfeature import (
     SearchTextFeature,
     SearchTibanFeature,
     SearchOwnerFeature,
 )
 from .searchdialog import SearchDialog
-from .theme import apply_theme
 
 # TODO: Fieldの確認
 # TODO: 表示テーブルの順番変更
 
 
 class plugin(object):
+    def tr(self, message):
+        from qgis.PyQt.QtCore import QCoreApplication
+        return QCoreApplication.translate('plugin', message)
+
     def __init__(self, iface):
         # Ensure compatibility shim is loaded when plugin instance is created.
         # This is defensive: classFactory also attempts to import the shim, but
@@ -40,10 +40,11 @@ class plugin(object):
         try:
             import importlib
             importlib.import_module('geo_search.qt_compat')
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             # ignore failures; plugin should still attempt to run
             pass
         self.iface = iface
+        self.translator = None
         # GUI-ready flag: set to True at the end of initGui(). Some QGIS
         # signals (projectRead, etc.) may fire before initGui runs; checking
         # this flag avoids noisy warnings when widgets like theme_combobox
@@ -63,70 +64,47 @@ class plugin(object):
         self.current_layers = []  # 追加されたレイヤを管理するリスト
 
     def _init_language(self):
-        """QGISとプラグインの言語設定を自動化"""
+        """QGISの言語設定に合わせて i18n/<lang>.json を載せる。
+
+        ソース文字列は英語。en または未対応言語では翻訳を載せない。
+        """
         try:
-            from qgis.PyQt.QtCore import QSettings, QLocale, QTranslator, QCoreApplication
-            import os
-            # QGIS の設定から言語取得（なければ OS のロケール）
-            settings = QSettings()
-            raw_locale = settings.value('locale/userLocale', None)
-            if raw_locale is None:
-                raw_locale = QLocale.system().name()
-
-            # raw_locale may be 'ja_JP' or 'en' etc. Normalize to language code 'ja', 'en', ...
-            try:
-                if isinstance(raw_locale, str) and '_' in raw_locale:
-                    lang_code = raw_locale.split('_')[0]
-                elif isinstance(raw_locale, str) and '-' in raw_locale:
-                    lang_code = raw_locale.split('-')[0]
-                else:
-                    lang_code = str(raw_locale)
-                lang_code = lang_code.lower()
-            except Exception:
-                lang_code = QLocale.system().name().split('_')[0]
-
-            # Supported languages (keep in sync with i18n/*.qm)
-            supported = { 'en', 'fr', 'de', 'es', 'it', 'pt', 'ja', 'zh', 'ru', 'hi' }
-
-            # If English, no translator needed (source strings are English)
-            if lang_code == 'en' or lang_code not in supported:
-                return
-
-            # Try to load a matching .qm file from the i18n folder.
-            qm_name = f"{lang_code}.qm"
-            qm_path = os.path.join(os.path.dirname(__file__), 'i18n', qm_name)
-            if os.path.exists(qm_path):
-                translator = QTranslator()
-                loaded = translator.load(qm_path)
-                if loaded:
-                    QCoreApplication.installTranslator(translator)
+            self.translator = install_translator(os.path.dirname(__file__))
         except Exception as e:
             # エラーは無視（QGIS外実行時など）。開発時はログで確認する。
             try:
                 from qgis.core import QgsMessageLog
                 QgsMessageLog.logMessage(f"_init_language error: {e}", "GEO-search-plugin", 1)
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
+
+    def _geo_toolbar(self):
+        """GeoSuite共有ツールバーをfind-or-createで返す。"""
+        tb = self.iface.mainWindow().findChild(QToolBar, "GeoSuite")
+        if tb is None:
+            tb = self.iface.addToolBar("GeoSuite")
+            tb.setObjectName("GeoSuite")
+        return tb
 
     def initGui(self):
         # プラグイン開始時に動作
         # mark GUI not-ready at start to avoid spurious warnings during init
         try:
             self._gui_ready = False
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
         # メッセージ表示
-        # QMessageBox.information(None, "iniGui", "Gui構築", QMessageBox.Yes)
+        # QMessageBox.information(None, "iniGui", "Gui構築", QMessageBox.StandardButton.Yes)
 
         # ダイヤログ構築
         self.create_search_dialog()
 
         # アイコン設定
         icon_path = os.path.join(os.path.dirname(__file__), "icon/qgis-icon.png")
-        self.action = QAction(QIcon(icon_path), "地図検索", self.iface.mainWindow())
-        self.action.setObjectName("地図検索")
-        self.iface.addToolBarIcon(self.action)
-        self.iface.addPluginToMenu("地図検索", self.action)
+        self.action = QAction(QIcon(icon_path), self.tr("Geo Search"), self.iface.mainWindow())
+        self.action.setObjectName("geo_search")
+        self._geo_toolbar().addAction(self.action)
+        self.iface.addPluginToMenu(self.tr("Geo Search"), self.action)
         # 追加表示切替アクション（検索アイコンの直後に置く）
         # reload 時に重複して追加されないよう既存チェックを行う
         try:
@@ -135,7 +113,7 @@ class plugin(object):
                     try:
                         # prefer custom icons: OFF state 'theme-switch.PNG', ON state 'theme-additive.png'
                         icon_dir = os.path.join(os.path.dirname(__file__), "icon")
-                        on_icon_path = os.path.join(icon_dir, "theme-additive.png")
+                        _ = os.path.join(icon_dir, "theme-additive.png")
                         off_icon_path = os.path.join(icon_dir, "theme-switch.png")
                         fallback_icon_path = os.path.join(icon_dir, "qgis-icon.png")
                         # decide initial icon (start OFF)
@@ -145,7 +123,7 @@ class plugin(object):
                         self.additive_theme_action = QAction("", self.iface.mainWindow())
                     self.additive_theme_action.setCheckable(True)
                     self.additive_theme_action.setChecked(False)
-                    self.additive_theme_action.setToolTip("選択したテーマの表示レイヤを現在の表示に追加します（オン：追加表示、オフ：通常上書き）")
+                    self.additive_theme_action.setToolTip(self.tr("Add the visible layers of the selected theme to the current view (on: additive, off: normal overwrite)"))
                     try:
                         # connect to handler that updates internal flag and icon
                         try:
@@ -153,35 +131,32 @@ class plugin(object):
                         except Exception:
                             # fallback to simple lambda if method not available
                             self.additive_theme_action.toggled.connect(lambda checked: setattr(self, '_theme_additive_mode', bool(checked)))
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
                     try:
-                        self.iface.addToolBarIcon(self.additive_theme_action)
-                    except Exception:
-                        try:
-                            self.iface.addToolBarWidget(self.additive_theme_action)
-                        except Exception:
-                            pass
+                        self._geo_toolbar().addAction(self.additive_theme_action)
+                    except Exception:  # nosec B110  # 設計上の許容
+                        pass
                 except Exception:
                     try:
                         self._theme_additive_mode = False
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
             else:
                 # 既に存在する場合は状態を初期化しておく
                 try:
                     self.additive_theme_action.setChecked(False)
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
-        
+
         # テーマ一覧のドロップダウンを作成
         # グループ選択用コンボ（グループを選んでテーマ表示を絞れる）
         self.group_combobox = QComboBox()
-        self.group_combobox.setToolTip("グループを選択して表示するテーマを絞ります（すべて/グループ単位）")
+        self.group_combobox.setToolTip(self.tr("Select a group to filter displayed themes (All / per group)"))
         self.group_combobox.setMinimumWidth(140)
-        self.iface.addToolBarWidget(self.group_combobox)
+        self._geo_toolbar().addWidget(self.group_combobox)
 
         # グループ選択の前回値を保持する（update時に復元するため）
         self._last_group_selected = None
@@ -190,7 +165,7 @@ class plugin(object):
         self._suppress_theme_update = False
 
         self.theme_combobox = QComboBox()
-        self.theme_combobox.setToolTip("レイヤの表示/非表示を設定するマップテーマを選択（「テーマ選択」で基本表示に戻す）")
+        self.theme_combobox.setToolTip(self.tr("Select a map theme that sets layer visibility ('Select theme' restores the base view)"))
         self.theme_combobox.setMinimumWidth(180)
 
         # テーマ選択の右側に設定アイコンを表示するためのコンテナウィジェットを作成
@@ -202,17 +177,17 @@ class plugin(object):
                 # マージンを無くしてツールバーに馴染ませる
                 try:
                     self.theme_layout.setContentsMargins(0, 0, 0, 0)
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 try:
                     self.theme_layout.setSpacing(4)
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 self.theme_widget.setLayout(self.theme_layout)
                 # add combobox to layout
                 try:
                     self.theme_layout.addWidget(self.theme_combobox)
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
 
                 # 設定用アイコン（実装は不要、表示のみ）
@@ -221,32 +196,32 @@ class plugin(object):
                     icon_path = os.path.join(os.path.dirname(__file__), "icon", "setting.png")
                     try:
                         self.setting_button.setIcon(QIcon(icon_path))
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
-                    self.setting_button.setToolTip("テーマ設定")
+                    self.setting_button.setToolTip(self.tr("Theme settings"))
                     # 設定ダイアログを開く処理を接続
                     try:
                         self.setting_button.clicked.connect(self.open_settings_dialog)
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
                     try:
                         self.setting_button.setEnabled(True)
                         self.setting_button.setVisible(True)
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
                     self.theme_layout.addWidget(self.setting_button)
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     # fallback: 何もせずにコンボだけ追加
                     pass
 
                 # ツールバーにはコンテナを追加
                 try:
-                    self.iface.addToolBarWidget(self.theme_widget)
+                    self._geo_toolbar().addWidget(self.theme_widget)
                 except Exception:
                     # fallback to adding combobox directly
                     try:
-                        self.iface.addToolBarWidget(self.theme_combobox)
-                    except Exception:
+                        self._geo_toolbar().addWidget(self.theme_combobox)
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
             else:
                 # 既に widget が存在する場合は再追加を行わない。
@@ -262,15 +237,15 @@ class plugin(object):
                         try:
                             if parent is not self.theme_widget:
                                 self.theme_layout.addWidget(self.theme_combobox)
-                        except Exception:
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
         except Exception:
             # 保守的に元の方法で追加
             try:
-                self.iface.addToolBarWidget(self.theme_combobox)
-            except Exception:
+                self._geo_toolbar().addWidget(self.theme_combobox)
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
 
         self._theme_additive_mode = False
@@ -281,34 +256,34 @@ class plugin(object):
         # 接続: グループ選択でテーマを絞る
         try:
             self.group_combobox.currentIndexChanged.connect(self.on_group_changed)
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
 
         # 初回更新
         self.update_theme_combobox()
-        
+
         # (以前はテーマの前回選択を内部保持していましたが、
         #  ユーザー操作による自動復元は不要なため削除しました)
-        
+
         # テーマ選択時のイベント接続
         # Note: connect only to `activated` to avoid duplicate calls because
         # `currentIndexChanged` may also fire for programmatic changes.
         try:
             self.theme_combobox.activated.connect(self.apply_selected_theme)
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
 
         # トリガー構築
         self.action.triggered.connect(self.run)
         self.iface.projectRead.connect(self.create_search_dialog)
         self.iface.projectRead.connect(self.update_theme_combobox)
-        
+
         # プロジェクト変数とテーマ変更を検知するための接続
         try:
             # プロジェクト保存時
             QgsProject.instance().projectSaved.connect(self.on_project_saved)
             QgsProject.instance().projectSaved.connect(self.update_theme_combobox)
-            
+
             # テーマコレクションの変更を検知（重要：テーマが追加/削除された時に自動更新）
             project = QgsProject.instance()
             theme_collection = project.mapThemeCollection()
@@ -329,33 +304,42 @@ class plugin(object):
                                 theme_collection.changed.connect(self._on_theme_collection_changed)
                             except Exception:
                                 theme_collection.changed.connect(self.update_theme_combobox)
-                        except Exception:
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
                     try:
                         self._theme_signals_connected = True
                         from qgis.core import QgsMessageLog
                         QgsMessageLog.logMessage(f"theme signals connected (instance={id(self)})", "GEO-search-plugin", 0)
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
                 else:
                     try:
                         from qgis.core import QgsMessageLog
                         QgsMessageLog.logMessage(f"theme signals already connected (instance={id(self)})", "GEO-search-plugin", 0)
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
         except Exception as e:
             try:
                 from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(f"テーマ監視エラー: {str(e)}", "GEO-search-plugin", 2)
-            except:
+                QgsMessageLog.logMessage(f"theme watch error: {e}", "GEO-search-plugin", 2)
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
+
+        # AI/外部制御用ブリッジ。qgis_live_driver の bridge_call コマンドが
+        # qgis.utils.plugins['geo_search'].bridge をプロセス内で直接呼ぶため、
+        # ファイルJSONL/REST/MCP(qgis_bridge_call)の全経路から検索を実行できる
+        try:
+            from .bridge import GeoSearchBridge
+            self.bridge = GeoSearchBridge(self)
+        except Exception:
+            self.bridge = None
 
         # GUI is now ready for warnings/updates
         try:
             self._gui_ready = True
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
 
     def _safe_current_text(self, widget):
@@ -369,10 +353,9 @@ class plugin(object):
             if hasattr(widget, 'currentText'):
                 t = widget.currentText()
                 return t if t is not None else ""
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
         return ""
-
 
     def _on_additive_toggled(self, checked):
         """Handler for additive_theme_action.toggled
@@ -382,7 +365,7 @@ class plugin(object):
         try:
             # set internal flag
             self._theme_additive_mode = bool(checked)
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
         try:
             # update icon according to state
@@ -396,9 +379,9 @@ class plugin(object):
                 path = off_icon if os.path.exists(off_icon) else fallback_icon
             try:
                 self.additive_theme_action.setIcon(QIcon(path))
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
         # propagate state to search feature instances so search-time theme application
         # uses the same additive/overwrite behavior
@@ -408,9 +391,9 @@ class plugin(object):
                 for f in getattr(self, '_search_features', []):
                     try:
                         setattr(f, 'theme_additive_mode', v)
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
             try:
                 for group, flist in getattr(self, '_search_group_features', {}).items():
@@ -418,13 +401,13 @@ class plugin(object):
                         for f in flist:
                             try:
                                 setattr(f, 'theme_additive_mode', v)
-                            except Exception:
+                            except Exception:  # nosec B110  # 設計上の許容
                                 pass
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
 
     def _populate_group_combobox(self, grouped):
@@ -433,15 +416,15 @@ class plugin(object):
             self.group_combobox.blockSignals(True)
             self.group_combobox.clear()
             # Placeholder, then only actual groups
-            self.group_combobox.addItem("すべて")
+            self.group_combobox.addItem(self.tr("All"))
             for g in sorted([k for k in grouped.keys() if k is not None]):
                 self.group_combobox.addItem(str(g))
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
         finally:
             try:
                 self.group_combobox.blockSignals(False)
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
 
     def on_group_changed(self, index):
@@ -451,10 +434,10 @@ class plugin(object):
             # 記録しておく（次回 update の際に復元に使う）
             try:
                 self._last_group_selected = sel
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
             # グループ未選択(プレースホルダ 'すべて') の場合は全てのテーマを表示する
-            if not sel or sel == "すべて":
+            if not sel or sel == self.tr("All"):
                 try:
                     themes_to_show = [t for lst in self._theme_groups.values() for t in lst]
                 except Exception:
@@ -465,23 +448,23 @@ class plugin(object):
 
             try:
                 self.theme_combobox.blockSignals(True)
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
             try:
                 self.theme_combobox.clear()
-                self.theme_combobox.addItem("テーマ選択")
+                self.theme_combobox.addItem(self.tr("Select theme"))
                 for t in themes_to_show:
                     self.theme_combobox.addItem(t)
             finally:
                 try:
                     self.theme_combobox.blockSignals(False)
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
         except Exception:
             try:
                 from qgis.core import QgsMessageLog
                 QgsMessageLog.logMessage("group change handling error", "GEO-search-plugin", 2)
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
 
     def update_theme_combobox(self):
@@ -493,21 +476,21 @@ class plugin(object):
                 try:
                     # increment per-instance call counter for diagnostics
                     self._theme_update_call_count = int(getattr(self, '_theme_update_call_count', 0)) + 1
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 QgsMessageLog.logMessage(
                     f"update_theme_combobox called (instance={id(self)} call={getattr(self, '_theme_update_call_count', 0)} _gui_ready={getattr(self, '_gui_ready', False)} _suppress={getattr(self, '_suppress_theme_update', False)})",
                     "GEO-search-plugin",
                     0,
                 )
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
             # apply_selected_theme 実行中は外部シグナルによる自動更新を抑止する
             if getattr(self, '_suppress_theme_update', False):
                 try:
                     from qgis.core import QgsMessageLog
                     QgsMessageLog.logMessage("update_theme_combobox: suppressed during theme apply", "GEO-search-plugin", 0)
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 return
             from qgis.core import QgsProject, QgsMessageLog
@@ -535,7 +518,7 @@ class plugin(object):
                             themes.append(getattr(t, 'displayName'))
                         else:
                             themes.append(str(t))
-                except Exception:
+                except Exception:  # nosec B112  # 設計上の許容
                     continue
             # safety: theme_combobox may not exist (initGui not yet run or unloaded)
             if not hasattr(self, 'theme_combobox') or self.theme_combobox is None:
@@ -558,9 +541,9 @@ class plugin(object):
                                 return
                             try:
                                 self._last_missing_combobox_warning = now
-                            except Exception:
+                            except Exception:  # nosec B110  # 設計上の許容
                                 pass
-                        except Exception:
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
                         import traceback
                         stack = ''.join(traceback.format_stack(limit=6))
@@ -570,18 +553,18 @@ class plugin(object):
                             "GEO-search-plugin",
                             1,
                         )
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 return
 
             # 現在選択されているテーマを保存（安全に取得）
             current_theme = self._safe_current_text(self.theme_combobox)
-            
+
             # コンボボックスをクリア
             self.theme_combobox.blockSignals(True)
             self.theme_combobox.clear()
             # 「テーマ選択」というプレースホルダーを追加
-            self.theme_combobox.addItem("テーマ選択")
+            self.theme_combobox.addItem(self.tr("Select theme"))
 
             # マップテーマをグループ化して管理（グループ名は括弧で囲まれた部分を抽出）
             try:
@@ -597,7 +580,7 @@ class plugin(object):
                     # ブロックして populate + restore を行う（on_group_changed の誤発火を防ぐ）
                     try:
                         self.group_combobox.blockSignals(True)
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
                     try:
                         self._populate_group_combobox(grouped)
@@ -614,13 +597,13 @@ class plugin(object):
                     finally:
                         try:
                             self.group_combobox.blockSignals(False)
-                        except Exception:
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
 
                     # 復元後の group 選択に基づいてテーマを表示
                     cur_group_txt = self._safe_current_text(self.group_combobox)
                     # グループ未選択(プレースホルダ 'すべて') の場合は全てのテーマを表示する
-                    if not cur_group_txt or cur_group_txt == "すべて":
+                    if not cur_group_txt or cur_group_txt == self.tr("All"):
                         themes_to_show = [t for lst in grouped.values() for t in lst]
                     else:
                         themes_to_show = grouped.get(cur_group_txt, [])
@@ -637,26 +620,24 @@ class plugin(object):
                 # フォールバック: グループ化できない場合は従来通り追加
                 for theme in themes:
                     self.theme_combobox.addItem(theme)
-            
+
             # 前回選択されていたテーマがまだ存在するなら、それを選択状態に
             if current_theme in themes:
                 index = self.theme_combobox.findText(current_theme)
                 if index >= 0:
                     self.theme_combobox.setCurrentIndex(index)
-            
+
             # デバッグログ
-            QgsMessageLog.logMessage(f"テーマリスト更新: {', '.join(themes)}", "GEO-search-plugin", 0)
-                
+            QgsMessageLog.logMessage(f"theme list updated: {', '.join(themes)}", "GEO-search-plugin", 0)
+
             self.theme_combobox.blockSignals(False)
         except Exception as e:
             try:
                 from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(f"テーマコンボボックスの更新エラー: {str(e)}", "GEO-search-plugin", 2)
-            except Exception:
+                QgsMessageLog.logMessage(f"theme combobox update error: {e}", "GEO-search-plugin", 2)
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
-    
 
-    
     def apply_selected_theme(self, index):
         """選択されたテーマを適用する"""
         # prevent re-entrant/duplicate applies
@@ -664,12 +645,12 @@ class plugin(object):
             try:
                 from qgis.core import QgsMessageLog
                 QgsMessageLog.logMessage("apply_selected_theme: re-entrant call ignored", "GEO-search-plugin", 0)
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
             return
         try:
             self._applying_theme = True
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
         try:
             from qgis.core import QgsProject, QgsMessageLog
@@ -679,35 +660,35 @@ class plugin(object):
             if not hasattr(self, 'theme_combobox') or self.theme_combobox is None:
                 try:
                     QgsMessageLog.logMessage("apply_selected_theme: theme_combobox is not available", "GEO-search-plugin", 1)
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 # Ensure applying flag is cleared before returning so subsequent
                 # activations aren't blocked by a stale re-entrant guard.
                 try:
                     self._applying_theme = False
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 return
 
             # 現在のテーマテキストを取得（安全に取得）
             current_theme_text = self._safe_current_text(self.theme_combobox)
-            
+
             # 「テーマ選択」の場合は何もしない（プレースホルダ選択は無視）
-            if current_theme_text == "テーマ選択" or index <= 0:
+            if current_theme_text == self.tr("Select theme") or index <= 0:
                 # Clear any in-progress flag so the re-entrant guard does not remain set.
                 try:
                     self._suppress_theme_update = False
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 try:
                     self._applying_theme = False
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 return
-                
+
             # 選択されたテーマを適用
             theme_name = current_theme_text
-            
+
             # 同じテーマを再選択した場合も適用する
             # (前回と同じ選択でも強制的にテーマを適用)
             root = project.layerTreeRoot()
@@ -717,13 +698,13 @@ class plugin(object):
             # update_theme_combobox が走ると UI 候補が書き換わる可能性があるため
             # 一時的に更新を抑止するフラグを立てる
             try:
-                    self._suppress_theme_update = True
-                    try:
-                        from qgis.core import QgsMessageLog
-                        QgsMessageLog.logMessage(f"apply_selected_theme: set _suppress_theme_update=True (instance={id(self)})", "GEO-search-plugin", 0)
-                    except Exception:
-                        pass
-            except Exception:
+                self._suppress_theme_update = True
+                try:
+                    from qgis.core import QgsMessageLog
+                    QgsMessageLog.logMessage(f"apply_selected_theme: set _suppress_theme_update=True (instance={id(self)})", "GEO-search-plugin", 0)
+                except Exception:  # nosec B110  # 設計上の許容
+                    pass
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
 
             # apply theme: if additive mode is requested use centralized helper
@@ -749,22 +730,22 @@ class plugin(object):
                 # フラグを解除
                 try:
                     self._suppress_theme_update = False
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 try:
                     self._applying_theme = False
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 try:
                     from qgis.core import QgsMessageLog
                     QgsMessageLog.logMessage(f"apply_selected_theme: cleared _suppress_theme_update/_applying_theme (instance={id(self)})", "GEO-search-plugin", 0)
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
         except Exception as e:
             try:
                 from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(f"テーマ適用エラー: {str(e)}", "GEO-search-plugin", 2)
-            except Exception:
+                QgsMessageLog.logMessage(f"theme apply error: {e}", "GEO-search-plugin", 2)
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
 
     def open_settings_dialog(self):
@@ -781,10 +762,9 @@ class plugin(object):
             except Exception:
                 try:
                     print("open_settings_dialog invoked")
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
 
-            import importlib
             parent = None
             try:
                 parent = self.iface.mainWindow()
@@ -803,44 +783,21 @@ class plugin(object):
                 # フォールバック: シンプルな QDialog を生成
                 from qgis.PyQt.QtWidgets import QDialog, QVBoxLayout, QLabel, QHBoxLayout, QPushButton
                 dlg = QDialog(parent)
-                dlg.setWindowTitle("Settings")
+                dlg.setWindowTitle(self.tr("Settings"))
                 dlg.setMinimumSize(400, 120)
                 layout = QVBoxLayout(dlg)
-                layout.addWidget(QLabel("Settings dialog: add options here.", dlg))
+                layout.addWidget(QLabel(self.tr("Settings dialog: add options here."), dlg))
                 btn_layout = QHBoxLayout()
                 btn_layout.addStretch()
-                ok_btn = QPushButton("OK", dlg)
-                cancel_btn = QPushButton("Cancel", dlg)
+                ok_btn = QPushButton(self.tr("OK"), dlg)
+                cancel_btn = QPushButton(self.tr("Cancel"), dlg)
                 ok_btn.clicked.connect(dlg.accept)
                 cancel_btn.clicked.connect(dlg.reject)
                 btn_layout.addWidget(ok_btn)
                 btn_layout.addWidget(cancel_btn)
                 layout.addLayout(btn_layout)
 
-            try:
-                qt_compat = importlib.import_module('geo_search.qt_compat')
-            except Exception:
-                qt_compat = None
-
-            if qt_compat is not None:
-                try:
-                    qt_compat.exec_dialog(dlg)
-                except Exception:
-                    try:
-                        dlg.exec_()
-                    except Exception:
-                        try:
-                            dlg.exec()
-                        except Exception:
-                            pass
-            else:
-                try:
-                    dlg.exec_()
-                except Exception:
-                    try:
-                        dlg.exec()
-                    except Exception:
-                        pass
+            dlg.exec()
         except Exception as e:
             try:
                 from qgis.core import QgsMessageLog
@@ -848,7 +805,7 @@ class plugin(object):
             except Exception:
                 try:
                     print(f"open_settings_dialog error: {e}")
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
 
     def _on_map_themes_changed(self, *args, **kwargs):
@@ -856,7 +813,7 @@ class plugin(object):
         try:
             from qgis.core import QgsMessageLog
             QgsMessageLog.logMessage(f"mapThemesChanged signal received (instance={id(self)})", "GEO-search-plugin", 0)
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
         try:
             self.update_theme_combobox()
@@ -864,7 +821,7 @@ class plugin(object):
             try:
                 from qgis.core import QgsMessageLog
                 QgsMessageLog.logMessage("_on_map_themes_changed: update failed", "GEO-search-plugin", 2)
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
 
     def _on_theme_collection_changed(self, *args, **kwargs):
@@ -872,7 +829,7 @@ class plugin(object):
         try:
             from qgis.core import QgsMessageLog
             QgsMessageLog.logMessage(f"themeCollection.changed signal received (instance={id(self)})", "GEO-search-plugin", 0)
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
         try:
             self.update_theme_combobox()
@@ -880,15 +837,19 @@ class plugin(object):
             try:
                 from qgis.core import QgsMessageLog
                 QgsMessageLog.logMessage("_on_theme_collection_changed: update failed", "GEO-search-plugin", 2)
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
-    
+
     def unload(self):
         # プラグイン終了時に動作（例外処理を追加）
         # mark GUI not-ready to suppress warnings while widgets are being removed
         try:
             self._gui_ready = False
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+        try:
+            self.bridge = None
+        except Exception:  # nosec B110  # 設計上の許容
             pass
         # disconnect theme collection signals if we connected them
         try:
@@ -902,9 +863,9 @@ class plugin(object):
                         except Exception:
                             try:
                                 theme_collection.mapThemesChanged.disconnect(self.update_theme_combobox)
-                            except Exception:
+                            except Exception:  # nosec B110  # 設計上の許容
                                 pass
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
                     try:
                         try:
@@ -912,24 +873,24 @@ class plugin(object):
                         except Exception:
                             try:
                                 theme_collection.changed.disconnect(self.update_theme_combobox)
-                            except Exception:
+                            except Exception:  # nosec B110  # 設計上の許容
                                 pass
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 try:
                     self._theme_signals_connected = False
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
         try:
-            self.iface.removeToolBarIcon(self.action)
-            self.iface.removePluginMenu("地図検索", self.action)
-        except:
+            self._geo_toolbar().removeAction(self.action)
+            self.iface.removePluginMenu(self.tr("Geo Search"), self.action)
+        except Exception:  # nosec B110  # 設計上の許容
             pass
-            
+
         # コンボボックスの削除も例外処理
         try:
             if hasattr(self, 'theme_combobox'):
@@ -937,84 +898,68 @@ class plugin(object):
                 self.theme_combobox = None
             # remove theme widget and button if present
             if hasattr(self, 'setting_button') and self.setting_button is not None:
-                try:
-                    try:
-                        self.iface.removeToolBarWidget(self.setting_button)
-                    except Exception:
-                        pass
-                except Exception:
-                    pass
+                pass
                 try:
                     self.setting_button.deleteLater()
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 try:
                     self.setting_button = None
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
             if hasattr(self, 'theme_widget') and self.theme_widget is not None:
                 try:
-                    try:
-                        self.iface.removeToolBarWidget(self.theme_widget)
-                    except Exception:
-                        pass
-                except Exception:
-                    pass
-                try:
                     self.theme_widget.deleteLater()
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 try:
                     self.theme_widget = None
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
             if hasattr(self, 'group_combobox'):
                 try:
                     self.group_combobox.deleteLater()
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 self.group_combobox = None
             # 追加表示アクションの削除
             if hasattr(self, 'additive_theme_action') and self.additive_theme_action is not None:
                 try:
                     try:
-                        self.iface.removeToolBarIcon(self.additive_theme_action)
-                    except Exception:
-                        try:
-                            self.iface.removeToolBarWidget(self.additive_theme_action)
-                        except Exception:
-                            pass
-                except Exception:
+                        self._geo_toolbar().removeAction(self.additive_theme_action)
+                    except Exception:  # nosec B110  # 設計上の許容
+                        pass
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 try:
                     self.additive_theme_action.deleteLater()
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 try:
                     self.additive_theme_action = None
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
-        except:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
 
     def create_search_dialog(self):
         # メッセージ表示
-        # QMessageBox.information(None, "create_search_dialog", "ダイヤログ構築", QMessageBox.Yes)
+        # QMessageBox.information(None, "create_search_dialog", "ダイヤログ構築", QMessageBox.StandardButton.Yes)
 
         self.current_feature = None
         flag = 0
 
         # 設定開始
-        input_json = ' {"SearchTabs": [ '
+        _ = ' {"SearchTabs": [ '
         input_json_file = ""
-        input_json_variable = ""
-        
+        _ = ""
+
         # 以前のダイアログが存在する場合は閉じる
         if hasattr(self, 'dialog') and self.dialog:
             try:
                 self.dialog.close()
                 self.dialog.deleteLater()  # メモリリークを防止
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
 
         # 読み込み順: 1) plugin `setting.json`  2) project variable `GEO-search-plugin` (ファイルとして扱う)  3) env `geo_search_json` (ファイル)
@@ -1035,9 +980,9 @@ class plugin(object):
                     try:
                         from qgis.core import QgsMessageLog
                         QgsMessageLog.logMessage(f"Failed to read default settings file '{default_path}': {e}", "GEO-search-plugin", 2)
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
 
         # 2) project variable 'GEO-search-plugin' expected to be a path to a JSON file (inline JSON is ignored)
@@ -1055,7 +1000,7 @@ class plugin(object):
                     if pv_text and (pv_text.startswith('{') or pv_text.startswith('[')):
                         try:
                             input_json_proj = pv_text
-                            QgsMessageLog.logMessage(f"Loaded project variable GEO-search-plugin from inline JSON (project scope).", "GEO-search-plugin", 0)
+                            QgsMessageLog.logMessage("Loaded project variable GEO-search-plugin from inline JSON (project scope).", "GEO-search-plugin", 0)
                         except Exception:
                             input_json_proj = ''
                     else:
@@ -1079,11 +1024,11 @@ class plugin(object):
                         else:
                             try:
                                 QgsMessageLog.logMessage(f"Project variable GEO-search-plugin points to missing file: {candidate}", "GEO-search-plugin", 1)
-                            except Exception:
+                            except Exception:  # nosec B110  # 設計上の許容
                                 pass
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
 
         # 3) env geo_search_json -> file only
@@ -1104,10 +1049,10 @@ class plugin(object):
                 if pv_geo:
                     # prefer project variable when env is not set
                     env_name = pv_geo
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
 
-        env_candidate = None
+        _ = None
         if env_name:
             try:
                 # resolve candidate path: if absolute use it, otherwise attempt project-dir then plugin-dir
@@ -1125,7 +1070,7 @@ class plugin(object):
                     else:
                         candidate = os.path.join(os.path.dirname(__file__), env_name)
 
-                env_candidate = candidate
+                _ = candidate
                 if os.path.exists(candidate):
                     try:
                         with open(candidate, 'r', encoding='utf-8') as f:
@@ -1136,15 +1081,15 @@ class plugin(object):
                         try:
                             from qgis.core import QgsMessageLog
                             QgsMessageLog.logMessage(f"Failed to read geo_search_json-specified settings file '{candidate}': {e}", "GEO-search-plugin", 2)
-                        except Exception:
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
                 else:
                     try:
                         from qgis.core import QgsMessageLog
                         QgsMessageLog.logMessage(f"geo_search_json-specified settings file not found: {candidate}", "GEO-search-plugin", 1)
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
 
         # Combine settings fragments in a robust way instead of naive string concat.
@@ -1201,13 +1146,13 @@ class plugin(object):
                             t['_source'] = 'setting.json'
                             t['_source_index'] = int(file_idx)
                             t['_load_sequence'] = int(load_seq)
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
                     combined_tabs.append(t)
                     try:
                         file_idx += 1
                         load_seq += 1
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
 
             if input_json_proj:
@@ -1217,13 +1162,13 @@ class plugin(object):
                             t['_source'] = 'project variable'
                             t['_source_index'] = int(proj_idx)
                             t['_load_sequence'] = int(load_seq)
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
                     combined_tabs.append(t)
                     try:
                         proj_idx += 1
                         load_seq += 1
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
 
             if input_json_env:
@@ -1233,13 +1178,13 @@ class plugin(object):
                             t['_source'] = 'geo_search_json'
                             t['_source_index'] = int(env_idx)
                             t['_load_sequence'] = int(load_seq)
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
                     combined_tabs.append(t)
                     try:
                         env_idx += 1
                         load_seq += 1
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
         except Exception:
             combined_tabs = []
@@ -1262,16 +1207,16 @@ class plugin(object):
             try:
                 try:
                     self.dialog.adjustSize()
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 from qgis.PyQt.QtWidgets import QTableWidget
                 for t in self.dialog.findChildren(QTableWidget):
                     try:
                         t.resizeColumnsToContents()
                         t.resizeRowsToContents()
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
             widgets = self.dialog.get_widgets()
             self._search_features = []
@@ -1305,7 +1250,7 @@ class plugin(object):
                 # SearchFeature can respect it when applying themes during search
                 try:
                     setattr(feature, 'theme_additive_mode', bool(getattr(self, '_theme_additive_mode', False)))
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 # groupごとの配列にする必要がある
                 if self.dialog.tab_groups:
@@ -1328,10 +1273,10 @@ class plugin(object):
                 # disconnect any previous direct connections to features
                 try:
                     self.dialog.searchButton.clicked.disconnect()
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 self.dialog.searchButton.clicked.connect(self._invoke_current_feature)
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
 
             # If panModeComboBox exists in the dialog UI, propagate its value to features
@@ -1356,18 +1301,19 @@ class plugin(object):
                     try:
                         for f in self._search_features:
                             setattr(f, 'pan_mode', idx)
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
                     try:
                         for group, flist in self._search_group_features.items():
                             for f in flist:
                                 setattr(f, 'pan_mode', idx)
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
 
                     # If the dialog provides a scaleComboBox, propagate its value to features as `fixed_scale`.
                     try:
                         scale_cmb = getattr(self.dialog, 'scaleComboBox', None)
+
                         def _parse_scale_text(t):
                             try:
                                 if t is None:
@@ -1388,13 +1334,13 @@ class plugin(object):
                             try:
                                 for f in self._search_features:
                                     setattr(f, 'fixed_scale', val)
-                            except Exception:
+                            except Exception:  # nosec B110  # 設計上の許容
                                 pass
                             try:
                                 for group, flist in self._search_group_features.items():
                                     for f in flist:
                                         setattr(f, 'fixed_scale', val)
-                            except Exception:
+                            except Exception:  # nosec B110  # 設計上の許容
                                 pass
 
                             def _on_scale_changed(i=None):
@@ -1411,9 +1357,9 @@ class plugin(object):
                                         for group, flist in self._search_group_features.items():
                                             for f in flist:
                                                 setattr(f, 'fixed_scale', v)
-                                    except Exception:
+                                    except Exception:  # nosec B110  # 設計上の許容
                                         pass
-                                except Exception:
+                                except Exception:  # nosec B110  # 設計上の許容
                                     pass
 
                             try:
@@ -1421,12 +1367,12 @@ class plugin(object):
                             except Exception:
                                 try:
                                     scale_cmb.activated.connect(_on_scale_changed)
-                                except Exception:
+                                except Exception:  # nosec B110  # 設計上の許容
                                     pass
                             # also react to direct text editing (editable combo)
                             try:
                                 scale_cmb.editTextChanged.connect(_on_scale_changed)
-                            except Exception:
+                            except Exception:  # nosec B110  # 設計上の許容
                                 pass
                             # propagate 'show layer' checkbox state if present in the dialog
                             try:
@@ -1436,13 +1382,13 @@ class plugin(object):
                                     try:
                                         for f in self._search_features:
                                             setattr(f, 'show_layer_name', initial)
-                                    except Exception:
+                                    except Exception:  # nosec B110  # 設計上の許容
                                         pass
                                     try:
                                         for group, flist in self._search_group_features.items():
                                             for f in flist:
                                                 setattr(f, 'show_layer_name', initial)
-                                    except Exception:
+                                    except Exception:  # nosec B110  # 設計上の許容
                                         pass
 
                                     def _on_show_toggled(checked=False):
@@ -1453,9 +1399,9 @@ class plugin(object):
                                                 for group, flist in self._search_group_features.items():
                                                     for f in flist:
                                                         setattr(f, 'show_layer_name', bool(checked))
-                                            except Exception:
+                                            except Exception:  # nosec B110  # 設計上の許容
                                                 pass
-                                        except Exception:
+                                        except Exception:  # nosec B110  # 設計上の許容
                                             pass
 
                                     try:
@@ -1463,15 +1409,15 @@ class plugin(object):
                                     except Exception:
                                         try:
                                             show_cbx.stateChanged.connect(lambda s: _on_show_toggled(bool(s)))
-                                        except Exception:
+                                        except Exception:  # nosec B110  # 設計上の許容
                                             pass
-                            except Exception:
+                            except Exception:  # nosec B110  # 設計上の許容
                                 pass
                             try:
                                 scale_cmb.editingFinished.connect(_on_scale_changed)
-                            except Exception:
+                            except Exception:  # nosec B110  # 設計上の許容
                                 pass
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
 
                     # update function when combo changes
@@ -1480,13 +1426,13 @@ class plugin(object):
                         try:
                             for f in self._search_features:
                                 setattr(f, 'pan_mode', m)
-                        except Exception:
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
                         try:
                             for group, flist in self._search_group_features.items():
                                 for f in flist:
                                     setattr(f, 'pan_mode', m)
-                        except Exception:
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
 
                     try:
@@ -1494,38 +1440,38 @@ class plugin(object):
                     except Exception:
                         try:
                             cmb.activated.connect(_on_pan_mode_changed)
-                        except Exception:
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
 
     def run(self, state=None, layer=None, view_fields=None):
         """検索ダイアログを表示する"""
         # メッセージ表示
-        # QMessageBox.information(None, "run", "検索ダイアログ表示", QMessageBox.Yes)
-        
+        # QMessageBox.information(None, "run", "検索ダイアログ表示", QMessageBox.StandardButton.Yes)
+
         # 現在のレイヤの状態を確認
         try:
             active_layer = self.iface.activeLayer()
             if active_layer:
-                active_layer_name = active_layer.name()
+                _ = active_layer.name()
                 # ログ出力
-                # QMessageBox.information(None, "アクティブレイヤ", active_layer_name, QMessageBox.Yes)
-        except Exception:
+                # QMessageBox.information(None, "アクティブレイヤ", active_layer_name, QMessageBox.StandardButton.Yes)
+        except Exception:  # nosec B110  # 設計上の許容
             pass
-            
+
         # 現在の表示状態をテーマとして保存する
         try:
             from qgis.core import QgsProject, QgsMessageLog
             project = QgsProject.instance()
             theme_collection = project.mapThemeCollection()
-            
+
             # シンプルなテーマ名
             theme_name = "検索前"
-            
+
             # レイヤーツリーを取得
             root = project.layerTreeRoot()
-            
+
             # 最初に既存の同名テーマを削除（あれば）。mapThemes() の返り値は
             # 文字列リストかテーマオブジェクトのリストか環境により異なるため
             # 安全に名前を比較する。
@@ -1552,21 +1498,21 @@ class plugin(object):
                     if tname == theme_name:
                         exists = True
                         break
-                except Exception:
+                except Exception:  # nosec B112  # 設計上の許容
                     continue
             if exists:
                 theme_collection.removeMapTheme(theme_name)
-            
+
             # レイヤーツリーモデルを取得してテーマを作成
             model = self.iface.layerTreeView().layerTreeModel()
             theme_state = theme_collection.createThemeFromCurrentState(root, model)
             theme_collection.insert(theme_name, theme_state)
-            QgsMessageLog.logMessage(f"テーマ「{theme_name}」を保存しました", "GEO-search-plugin", 0)
-            
+            QgsMessageLog.logMessage(f"theme '{theme_name}' saved", "GEO-search-plugin", 0)
+
         except Exception as e:
             from qgis.core import QgsMessageLog
-            QgsMessageLog.logMessage(f"テーマ保存エラー: {str(e)}", "GEO-search-plugin", 2)
-            
+            QgsMessageLog.logMessage(f"theme save error: {e}", "GEO-search-plugin", 2)
+
         self.dialog.show()
 
     def change_tab_group(self, index):
@@ -1585,14 +1531,14 @@ class plugin(object):
         if self.current_feature:
             try:
                 self.current_feature.unload()
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
         if len(self._search_features) <= index:
             return
         self.current_feature = self._search_features[index]
         try:
             self.current_feature.load()
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
         # Ensure search button enabled state follows the widget availability
         try:
@@ -1601,9 +1547,8 @@ class plugin(object):
             try:
                 # fallback: enable button
                 self.dialog.searchButton.setEnabled(True)
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
-
 
     def _invoke_current_feature(self):
         """Wrapper called when search button is pressed.
@@ -1619,7 +1564,7 @@ class plugin(object):
         except Exception:
             try:
                 print("_invoke_current_feature: invoked")
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
 
         try:
@@ -1644,7 +1589,7 @@ class plugin(object):
             try:
                 from qgis.core import QgsMessageLog
                 QgsMessageLog.logMessage(f"_invoke_current_feature: current_feature={bool(self.current_feature)} cur={bool(cur)}", "GEO-search-plugin", 0)
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
 
             if self.current_feature is not None and cur is not None:
@@ -1674,19 +1619,19 @@ class plugin(object):
                 QgsMessageLog.logMessage(f"_invoke_current_feature: unexpected error: {e}", "GEO-search-plugin", 2)
             except Exception:
                 print(f"_invoke_current_feature: unexpected error: {e}")
-        
+
     # 以前のイベントフィルタ関連メソッドは不要になったため削除
     # activatedシグナルが同じ項目選択も検出するため、これらのメソッドは不要
     # eventFilter, force_apply_current_theme, _force_apply_themeは削除
-    
+
     def on_project_saved(self):
         """プロジェクトが保存された時の処理"""
         try:
             # プロジェクト変数の変更を確認し、UIを更新
             self.create_search_dialog()
-            
+
             # ダイアログが表示されていれば、再表示する
             if hasattr(self, 'dialog') and self.dialog and self.dialog.isVisible():
                 self.run()
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass

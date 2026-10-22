@@ -1,0 +1,39 @@
+[general]
+name=geo_userfunc
+qgisMinimumVersion=4.0
+qgisMaximumVersion=4.99
+description=ユーザー定義Pythonコード(式関数/フック/マクロ)のライブラリ管理プラグイン
+about=QGIS_user_function (https://github.com/yamamoto-ryuzo/QGIS_user_function) 等のユーザー関数ファイルを <profile>/python/geo_userfunc/ で管理します。@qgsfunction式関数は式エンジンへ登録、openProject/saveProject/closeProject はプロジェクト信号へ配線、main(context) はマクロとして実行できます。他プラグイン(geo_excel等)のマクロも共有レジストリ経由で一元管理し、bridge経由でAIからの作成・実行・検証が可能です。
+version=1.0.4
+author=yamamoto-ryuzo
+icon=icon.png
+email=ryu@yamakun.net
+homepage=https://github.com/yamamoto-ryuzo/qgis_live_harness/tree/master/qgis-plugin/geo_userfunc
+tracker=https://github.com/yamamoto-ryuzo/qgis_live_harness/issues
+repository=https://github.com/yamamoto-ryuzo/qgis_live_harness/tree/master/qgis-plugin/geo_userfunc
+hasProcessingProvider=no
+changelog=
+    Version 1.0.4:
+    - GeoSuiteツールバーボタンをアイコン化(f(x)アイコン同梱)
+    Version 1.0.3:
+    - try/except/pass の # nosec 明示(B110)
+    Version 1.0.2:
+    - Qt6互換性チェック対応(非スコープ列挙型をスコープ化)
+    Version 1.0.1:
+    - plugins.qgis.org セキュリティスキャン対応
+      (URL取得/upstream更新にhttp/httpsスキーム検証を追加、
+      LOW指摘は同梱.banditで抑制)
+    Version 1.0.0:
+    - 初版。関数ライブラリ(<profile>/python/geo_userfunc/)を管理
+    - AST分類: @qgsfunction=式関数登録 / openProject等=信号配線 /
+      main(context)=マクロ化
+    - 共有レジストリ(registry)で他プラグインのマクロを集約
+    - bridge(GeoUserfuncBridge)でAI制御: listFunctions/run/
+      evalExpression/saveFunction/reload/updateFromUpstream 等
+    - 管理ダイアログ(一覧/有効化/編集/URL取得/upstream更新)
+license=GPL-3.0
+tags=python,expression,function,macro,user
+experimental=False
+deprecated=False
+server=False
+supportsQt6=True

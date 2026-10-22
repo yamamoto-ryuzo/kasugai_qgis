@@ -2,17 +2,11 @@
 
 # Resource object code
 #
-# Created by: The Resource Compiler for Qt5/Qt6
+# Created by: The Resource Compiler for Qt6
 #
 # WARNING! All changes made in this file will be lost!
 
-try:
-    from qgis.PyQt import QtCore
-except ImportError:
-    try:
-        from PyQt6 import QtCore
-    except ImportError:
-        from PyQt5 import QtCore
+from qgis.PyQt import QtCore
 
 qt_resource_data = b"\
 \x00\x00\x00\xfb\
@@ -65,15 +59,18 @@ try:
         qt_resource_struct = qt_resource_struct_v1
     else:
         qt_resource_struct = qt_resource_struct_v2
-except:
+except Exception:
     qt_resource_struct = qt_resource_struct_v2
 
 rcc_version = 2
 
+
 def qInitResources():
     QtCore.qRegisterResourceData(rcc_version, qt_resource_struct, qt_resource_name, qt_resource_data)
 
+
 def qCleanupResources():
     QtCore.qUnregisterResourceData(rcc_version, qt_resource_struct, qt_resource_name, qt_resource_data)
+
 
 qInitResources()

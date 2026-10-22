@@ -49,6 +49,10 @@
     #update-banner.blocked { border-color: #ef4444; background: #fee2e2; }
     #update-banner .notes { font-size: 0.9em; color: #64748b; margin: 6px 0 0; white-space: pre-wrap; }
     #lang-select { margin-left: auto; width: auto; padding: 2px 8px; }
+    .checkbox-label { display: flex; align-items: center; gap: 8px; font-weight: normal; }
+    .checkbox-label input[type="checkbox"] { width: auto; }
+    #live-status { font-size: 0.85em; color: #64748b; margin: 4px 0 0 0; }
+    #live-status.active { color: #15803d; }
   </style>
 </head>
 <body>
@@ -90,6 +94,9 @@
 
     <label data-i18n="label_qgis_version">QGIS バージョン</label>
     <select id="qgis"></select>
+
+    <label class="checkbox-label"><input type="checkbox" id="dev-mode"> <span data-i18n="label_dev_mode">開発モード（QGIS Live Harness）</span></label>
+    <div id="live-status"></div>
 
     <div class="row">
       <button id="reset" data-i18n="btn_reset_profile">プロファイルを初期化</button>
@@ -232,6 +239,7 @@
       $('profile').value = currentSettings.profile || '';
       $('role').value = currentSettings.userrole || 'Viewer';
       $('qgis').value = currentSettings.qgis_executable || '';
+      $('dev-mode').checked = !!currentSettings.dev_mode;
       $('project-root').value = currentSettings.project_root || '';
       $('port-setting').value = window.location.port || '8500';
       loadRawSettings();
@@ -503,6 +511,7 @@
         s.userrole = $('role').value;
         s.current_project = $('project-select').value || null;
         s.qgis_executable = $('qgis').value || null;
+        s.dev_mode = $('dev-mode').checked;
         await api('POST', '/settings', s);
         status(t('status_saved_launch'), 'ok');
       } catch (e) {
@@ -588,7 +597,8 @@
           profile: $('profile').value,
           project_paths: [$('project-select').value].filter(x => x),
           executable: $('qgis').value,
-          role: $('role').value
+          role: $('role').value,
+          dev_mode: $('dev-mode').checked
         };
         const res = await api('POST', '/launch', body);
         status(t('status_launched'), 'ok');
@@ -759,6 +769,27 @@
       closeTabAfterServerStop();
     }
 
+    // QGIS Live Driver の稼働セッションを表示する。
+    // ~/.qgis-live/<pid>-qgis_live_driver.json のレジストリをサーバー経由で読む。
+    async function refreshLiveStatus() {
+      const el = $('live-status');
+      if (!el) return;
+      try {
+        const sessions = await api('GET', '/live-sessions');
+        const alive = (sessions || []).filter(s => s.alive);
+        if (alive.length > 0) {
+          el.textContent = t('live_session_active', { pid: alive.map(s => s.pid).join(', ') });
+          el.className = 'active';
+        } else {
+          el.textContent = t('live_session_none');
+          el.className = '';
+        }
+      } catch (e) {
+        el.textContent = '';
+        el.className = '';
+      }
+    }
+
     async function reloadAll() {
       await loadSettings();
       await Promise.all([loadProfiles(), loadProjects(), loadQgis()]);
@@ -795,6 +826,7 @@
     // 動的に生成される要素（data-i18n 付き）を再描画して翻訳を反映する
     window.onLanguageChanged = () => {
       renderRawForm();
+      refreshLiveStatus();
       if (latestUpdate && $('update-banner').classList.contains('active')) {
         showUpdateBanner(latestUpdate);
       }
@@ -804,6 +836,8 @@
       await initI18n();
       langSel.value = currentLang;
       await reloadAll();
+      refreshLiveStatus();
+      setInterval(refreshLiveStatus, 15000);
       try {
         const v = await api('GET', '/version');
         setVersion(v.version);

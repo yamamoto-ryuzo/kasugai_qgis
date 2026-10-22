@@ -64,6 +64,22 @@
          </widget>
         </item>
         <item>
+         <widget class="QPushButton" name="angleResetButton">
+          <property name="text">
+           <string>0°</string>
+          </property>
+          <property name="toolTip">
+           <string>Reset angle to 0°</string>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>40</width>
+            <height>16777215</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QDoubleSpinBox" name="angleSpinBox">
           <property name="decimals">
            <number>2</number>

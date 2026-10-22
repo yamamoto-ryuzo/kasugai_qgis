@@ -37,31 +37,19 @@ class HttpCall:
 
     def __init__(self, settings, util):
         # 設定とユーティリティクラスのインスタンスを保持
-        assert isinstance(settings, Settings)
-        assert isinstance(util, Util)
+        if not isinstance(settings, Settings):
+            raise TypeError("settings must be a Settings instance")
+        if not isinstance(util, Util):
+            raise TypeError("util must be a Util instance")
         self.settings = settings
         self.util = util
         self.reply = None
 
-    # Qt5 / Qt6 の違いで QNetworkReply のエラー定数が名前空間化されている場合があるため
-    # ここで互換性用の定数を解決しておく（Qt5/Qt6対応）
-    try:
-        QNR_NO_ERROR = QNetworkReply.NoError
-        QNR_TIMEOUT_ERROR = QNetworkReply.TimeoutError
-        QNR_CONNECTION_REFUSED_ERROR = QNetworkReply.ConnectionRefusedError
-    except AttributeError:
-        # Qt6: QNetworkReply.NetworkError.<Name>
-        try:
-            QNR_NO_ERROR = QNetworkReply.NetworkError.NoError
-            QNR_TIMEOUT_ERROR = QNetworkReply.NetworkError.TimeoutError
-            QNR_CONNECTION_REFUSED_ERROR = QNetworkReply.NetworkError.ConnectionRefusedError
-        except Exception:
-            # 最終フォールバック: 既存属性に頼る（互換性のため）
-            QNR_NO_ERROR = getattr(QNetworkReply, 'NoError', 0)
-            QNR_TIMEOUT_ERROR = getattr(QNetworkReply, 'TimeoutError', 1)
-            QNR_CONNECTION_REFUSED_ERROR = getattr(QNetworkReply, 'ConnectionRefusedError', 2)
+    # Qt6: QNetworkReply.NetworkError.<Name>
+    QNR_NO_ERROR = QNetworkReply.NetworkError.NoError
+    QNR_TIMEOUT_ERROR = QNetworkReply.NetworkError.TimeoutError
+    QNR_CONNECTION_REFUSED_ERROR = QNetworkReply.NetworkError.ConnectionRefusedError
 
-    
     def execute_request(self, url, **kwargs):
         """
         Uses QgsNetworkAccessManager and QgsAuthManager.
@@ -105,26 +93,16 @@ class HttpCall:
         # ネットワークリクエストを作成
         req = QNetworkRequest()
         req.setUrl(QUrl(url))
-        # FollowRedirectsAttribute は Qt のバージョンで存在しない場合があるため
-        # 存在チェックしてから設定する（Qt5/Qt6互換性のため）
         try:
-            attr_ns = getattr(QNetworkRequest, 'Attribute', None)
-            if attr_ns is not None and hasattr(attr_ns, 'FollowRedirectsAttribute'):
-                req.setAttribute(attr_ns.FollowRedirectsAttribute, True)
-            elif hasattr(QNetworkRequest, 'FollowRedirectsAttribute'):
-                req.setAttribute(QNetworkRequest.FollowRedirectsAttribute, True)
-            else:
-                self.util.msg_log_debug('QNetworkRequest FollowRedirectsAttribute not available; skipping setAttribute')
+            req.setAttribute(QNetworkRequest.Attribute.FollowRedirectsAttribute, True)
         except Exception:
-            # 何らかの予期せぬ問題があればログに残して続行
-            self.util.msg_log_error('error setting FollowRedirectsAttribute on QNetworkRequest')
-            self.util.msg_log_last_exception()
+            self.util.msg_log_debug('QNetworkRequest FollowRedirectsAttribute not available; skipping setAttribute')
 
         for k, v in headers.items():
             self.util.msg_log_debug("%s: %s" % (k, v))
             try:
                 req.setRawHeader(k, v)
-            except:
+            except Exception:
                 self.util.msg_log_error(u'FAILED to set header: {} => {}'.format(k, v))
                 self.util.msg_log_last_exception()
         if self.settings.authcfg:
@@ -136,37 +114,32 @@ class HttpCall:
             self.reply.close()
 
         self.util.msg_log_debug(u'getting QgsNetworkAccessManager.instance()')
-        #func = getattr(QgsNetworkAccessManager.instance(), method)
-        #func = QgsNetworkAccessManager().get(req)
+        # func = getattr(QgsNetworkAccessManager.instance(), method)
+        # func = QgsNetworkAccessManager().get(req)
 
-
-
-
-        #manager = QNetworkAccessManager()
-        #event = QEventLoop()
-        #response = manager.get(QNetworkRequest(QUrl(url)))
-        #response.downloadProgress.connect(self.download_progress)
-        #response.finished.connect(event.quit)
-        #event.exec()
-        #response_msg = response.readAll()
-        ##response_msg = str(response_msg)
-        #response_msg = str(response_msg, encoding='utf-8')
-        ##response_msg = response_msg.decode('utf-8')
-        #response.deleteLater()
-        #self.util.msg_log_debug(u'response message:\n{} ...'.format(response_msg[:255]))
-        #self.http_call_result.text = response_msg  # in Python3 all strings are unicode, so QString is not defined
-        #return self.http_call_result
-
-
+        # manager = QNetworkAccessManager()
+        # event = QEventLoop()
+        # response = manager.get(QNetworkRequest(QUrl(url)))
+        # response.downloadProgress.connect(self.download_progress)
+        # response.finished.connect(event.quit)
+        # event.exec()
+        # response_msg = response.readAll()
+        # response_msg = str(response_msg)
+        # response_msg = str(response_msg, encoding='utf-8')
+        # response_msg = response_msg.decode('utf-8')
+        # response.deleteLater()
+        # self.util.msg_log_debug(u'response message:\n{} ...'.format(response_msg[:255]))
+        # self.http_call_result.text = response_msg  # in Python3 all strings are unicode, so QString is not defined
+        # return self.http_call_result
 
         # Calling the server ...
         self.util.msg_log_debug('before self.reply = func(req)')
-        #self.reply = func(req)
-        #self.reply = QgsNetworkAccessManager.instance().get(req)
+        # self.reply = func(req)
+        # self.reply = QgsNetworkAccessManager.instance().get(req)
         method_call = getattr(QgsNetworkAccessManager.instance(), method)
         self.reply = method_call(req)
-        #self.reply.setReadBufferSize(1024*1024*1024)
-        #self.reply.setReadBufferSize(1024 * 1024 * 1024 * 1024)
+        # self.reply.setReadBufferSize(1024*1024*1024)
+        # self.reply.setReadBufferSize(1024 * 1024 * 1024 * 1024)
         self.reply.setReadBufferSize(0)
         self.util.msg_log_debug('after self.reply = func(req)')
 
@@ -177,7 +150,7 @@ class HttpCall:
             for k, v in headers.items():
                 try:
                     self.util.msg_log_debug("%s: %s" % (k, v))
-                except:
+                except Exception:
                     self.util.msg_log_debug('error logging headers')
 
         if self.settings.authcfg:
@@ -189,16 +162,16 @@ class HttpCall:
         # connect downloadProgress event
         try:
             self.reply.downloadProgress.connect(self.download_progress)
-            #pass
-        except:
+            # pass
+        except Exception:
             self.util.msg_log_error('error connecting "downloadProgress" event')
             self.util.msg_log_last_exception()
 
         # connect reply finished event
         try:
             self.reply.finished.connect(self.reply_finished)
-            #pass
-        except:
+            # pass
+        except Exception:
             self.util.msg_log_error('error connecting reply "finished" progress event')
             self.util.msg_log_last_exception()
         self.util.msg_log_debug('after connecting to events')
@@ -207,7 +180,7 @@ class HttpCall:
         self.event_loop = QEventLoop()
         try:
             self.reply.finished.connect(self.event_loop.quit)
-        except:
+        except Exception:
             self.util.msg_log_error('error connecting reply "finished" progress event to event loop quit')
             self.util.msg_log_last_exception()
 
@@ -235,7 +208,7 @@ class HttpCall:
         self.util.msg_log_debug("Deleting reply ...")
         try:
             self.reply.deleteLater()
-        except:
+        except Exception:
             self.util.msg_log_error('unexpected error deleting QNetworkReply')
             self.util.msg_log_last_exception()
 
@@ -265,8 +238,8 @@ class HttpCall:
                 httpStatus = self.reply.attribute(QNetworkRequest.Attribute.HttpStatusCodeAttribute)
                 httpStatusMessage = self.reply.attribute(QNetworkRequest.Attribute.HttpReasonPhraseAttribute)
             except AttributeError:
-                httpStatus = self.reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
-                httpStatusMessage = self.reply.attribute(QNetworkRequest.HttpReasonPhraseAttribute)
+                httpStatus = self.reply.attribute(QNetworkRequest.Attribute.HttpStatusCodeAttribute)
+                httpStatusMessage = self.reply.attribute(QNetworkRequest.Attribute.HttpReasonPhraseAttribute)
             self.http_call_result.status_code = httpStatus
             self.http_call_result.status_message = httpStatusMessage
             for k, v in self.reply.rawHeaderPairs():
@@ -283,15 +256,15 @@ class HttpCall:
                     .format(
                         self.reply.error(),
                         self.reply.errorString()
-                )
+                    )
                 self.http_call_result.reason = msg
                 self.util.msg_log_error(msg)
-                if err == QNR_TIMEOUT_ERROR:
+                if err == self.QNR_TIMEOUT_ERROR:
                     self.http_call_result.exception = RequestsExceptionTimeout(msg)
                 if err == self.QNR_CONNECTION_REFUSED_ERROR:
                     self.http_call_result.exception = RequestsExceptionConnectionError(msg)
                 else:
                     self.http_call_result.exception = Exception(msg)
-        except:
+        except Exception:
             self.util.msg_log_error(u'unexpected error in {}'.format(inspect.stack()[0][3]))
             self.util.msg_log_last_exception()

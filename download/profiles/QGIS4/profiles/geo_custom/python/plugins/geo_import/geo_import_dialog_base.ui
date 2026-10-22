@@ -280,6 +280,16 @@
         </widget>
        </item>
        <item>
+        <widget class="QCheckBox" name="IDC_chkLocalCache">
+         <property name="toolTip">
+          <string>Download all datasets of the current site to a local SQLite cache and search locally. When unchecked, the server is queried over the network.</string>
+         </property>
+         <property name="text">
+          <string>Use local download for this site</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QPushButton" name="IDC_bRefreshSqlite">
          <property name="toolTip">
           <string>Refresh all datasets and recreate SQLite cache</string>
@@ -463,12 +473,15 @@
       </widget>
      </item>
      <item>
-      <widget class="QTextEdit" name="IDC_textDetails">
+      <widget class="QTextBrowser" name="IDC_textDetails">
        <property name="minimumSize">
         <size>
          <width>250</width>
          <height>160</height>
         </size>
+       </property>
+       <property name="openExternalLinks">
+        <bool>true</bool>
        </property>
       </widget>
      </item>
@@ -540,7 +553,7 @@
   <item>
    <widget class="QLabel" name="IDC_lblSelectedCount">
     <property name="text">
-     <string>選択中: 0件</string>
+     <string>Selected: 0</string>
     </property>
     <property name="alignment">
      <set>Qt::AlignRight|Qt::AlignVCenter</set>

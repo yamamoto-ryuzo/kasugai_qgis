@@ -23,10 +23,10 @@
 import json
 import os
 
-from qgis.PyQt import QtGui, uic
-from qgis.PyQt.QtCore import QTimer, Qt, QStringListModel, QModelIndex, QObject, pyqtSignal, QEvent, QCoreApplication
+from qgis.PyQt import uic
+from qgis.PyQt.QtCore import QTimer, Qt, QObject, pyqtSignal, QEvent, QCoreApplication
 from qgis.PyQt.QtGui import QStandardItemModel, QStandardItem, QColor
-from qgis.PyQt.QtWidgets import QDialog, QApplication, QListWidgetItem, QAction, QInputDialog, QLineEdit, QFileDialog
+from qgis.PyQt.QtWidgets import QDialog, QApplication, QAction, QInputDialog, QLineEdit, QFileDialog
 from .ckanconnector import CkanConnector
 from .httpcall import HttpCall
 from .serverinstance import ServerInstance
@@ -41,11 +41,6 @@ FORM_CLASS, _ = uic.loadUiType(
 
 
 class GeoImportDialogDataProviders(QDialog, FORM_CLASS):
-    @staticmethod
-    def tr(message):
-        """翻訳用のtr()メソッド"""
-        return QCoreApplication.translate('GeoImport', message)
-    
     def __init__(self, settings, parent=None):
         """Constructor."""
         super(GeoImportDialogDataProviders, self).__init__(parent)
@@ -63,7 +58,7 @@ class GeoImportDialogDataProviders(QDialog, FORM_CLASS):
         self.clickable(self.IDC_lbl_enter_dataprovider_url).connect(self.lbl_clicked_enter_data_provider_url)
         # add a browse action to the manual URL line edit for selecting local folders
         try:
-            browse_action = QAction(self.util.tr('Browse folder...'), self.IDC_leManualUrl)
+            browse_action = QAction(QCoreApplication.translate('GeoImport', 'Browse folder...'), self.IDC_leManualUrl)
             browse_action.triggered.connect(self.select_local_folder)
             # addAction places an action inside the QLineEdit (Qt 5+)
             try:
@@ -71,19 +66,19 @@ class GeoImportDialogDataProviders(QDialog, FORM_CLASS):
             except Exception:
                 # fallback: add to widget context menu
                 self.IDC_leManualUrl.addActions([browse_action])
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
         # connect the new browse button (visible next to test/add)
         try:
             self.IDC_bBrowseLocal.clicked.connect(self.select_local_folder)
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
         self.list_model = QStandardItemModel(self)
         self.list_model.itemChanged.connect(self.item_checked_changed)
         self.IDC_listProviders.activated.connect(self.server_in_list_activated)
         self.IDC_listProviders.clicked.connect(self.server_in_list_clicked)
         self.IDC_listProviders.setModel(self.list_model)
-        delete_custom_server_action = QAction('Delete', self.IDC_listProviders)
+        delete_custom_server_action = QAction(QCoreApplication.translate('GeoImport', 'Delete'), self.IDC_listProviders)
         delete_custom_server_action.triggered.connect(self.delete_custom_server)
         self.IDC_listProviders.addAction(delete_custom_server_action)
         # self.list_model.setHorizontalHeaderLabels(['CKAN Servers'])
@@ -92,7 +87,7 @@ class GeoImportDialogDataProviders(QDialog, FORM_CLASS):
         self.util.msg_log_debug('GeoImportDialogDataProviders constructor')
         # self.IDC_grpManualDataProvider.collapsed = True
         # self.IDC_grpManualDataProvider.setCollapsed(True)
-        #self.IDC_listProviders.setStyleSheet("QListWidget::item { border-bottom: 1px solid black; }");
+        # self.IDC_listProviders.setStyleSheet("QListWidget::item { border-bottom: 1px solid black; }");
         self.timer = QTimer()
         self.timer.setSingleShot(True)
         self.timer.timeout.connect(self.window_loaded)
@@ -111,14 +106,14 @@ class GeoImportDialogDataProviders(QDialog, FORM_CLASS):
                 self.timer.stop()
                 self.timer = None
             self.list_model.clear()
-            
+
             # 読み込むJSONファイル（複数）
             instances_urls = [
                 'https://raw.githubusercontent.com/ckan/ckan-instances/gh-pages/config/instances.json',
                 # raw.githubusercontent.com expects the branch name directly (not refs/heads/)
                 'https://raw.githubusercontent.com/yamamoto-ryuzo/geo_import/main/resources/instances/instances.json'
             ]
-            
+
             # ローカルのJSONファイルを追加（存在する場合）
             local_instances_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'resources', 'instances', 'instances.json')
             if os.path.exists(local_instances_path):
@@ -126,7 +121,7 @@ class GeoImportDialogDataProviders(QDialog, FORM_CLASS):
                 file_uri = f"file:///{local_instances_path.replace('\\', '/')}"
                 instances_urls.append(file_uri)
                 self.util.msg_log_debug('Found local instances.json: ' + file_uri)
-            
+
             # すべてのサーバーのリスト
             self.servers = []
             # 取得失敗時の情報を集めてダイアログ表示できるようにする
@@ -134,7 +129,7 @@ class GeoImportDialogDataProviders(QDialog, FORM_CLASS):
 
             for instances_url in instances_urls:
                 self.util.msg_log_debug('Getting instances from: ' + instances_url)
-                
+
                 # ローカルファイルの場合は直接読み込む
                 if instances_url.startswith('file:///'):
                     try:
@@ -145,17 +140,14 @@ class GeoImportDialogDataProviders(QDialog, FORM_CLASS):
                         continue
                     except Exception as e:
                         self.util.msg_log_error(f"Failed to read local file: {str(e)}")
-                
+
                 # リモートファイルの場合はHTTPリクエスト
                 http_call = HttpCall(self.settings, self.util)
                 response = http_call.execute_request(
-                    instances_url
-                    # , headers=self.ua_chrome
-                    , verify=False
-                    , stream=True
-                    # not needed anymore, as we use QgsNetworkAccessManager.instance() now
-                    #, proxies=self.settings.get_proxies()[1]
-                    , timeout=self.settings.request_timeout
+                    instances_url,                    # headers=self.ua_chrome
+                    verify=False, stream=True,                    # not needed anymore, as we use QgsNetworkAccessManager.instance() now
+                    # , proxies=self.settings.get_proxies()[1]
+                    timeout=self.settings.request_timeout
                 )
 
                 if not response.ok:
@@ -185,10 +177,10 @@ class GeoImportDialogDataProviders(QDialog, FORM_CLASS):
                     fetch_failures.append(msg)
                     self.util.msg_log_last_exception()
                     continue
-            
+
             # カスタムサーバーを追加
             self.add_custom_servers()
-            
+
             # サーバーがない場合は警告
             if not self.servers:
                 QApplication.restoreOverrideCursor()
@@ -196,7 +188,7 @@ class GeoImportDialogDataProviders(QDialog, FORM_CLASS):
                 detail = ''
                 if fetch_failures:
                     detail = '\n\n' + '\n'.join(fetch_failures)
-                self.util.dlg_warning(self.util.tr(u'Failed to load any CKAN instances.') + detail)
+                self.util.dlg_warning(QCoreApplication.translate('GeoImport', u'Failed to load any CKAN instances.') + detail)
                 return
 
             # サーバーリストの表示（両方のソース読み込み後に1回だけ行う）
@@ -204,11 +196,24 @@ class GeoImportDialogDataProviders(QDialog, FORM_CLASS):
                 for idx, server in enumerate(self.servers):
                     # サーバー名＋URLを表示
                     display_text = f"{server.short_title} ({server.url})"
+                    # ローカルダウンロード利用サイトはマーカーを付ける
+                    try:
+                        if server.api_url and self.settings.use_local_cache(server.api_url):
+                            display_text = QCoreApplication.translate(
+                                'GeoImport', '[local] ') + display_text
+                    except Exception:  # nosec B110  # 設計上の許容
+                        pass
                     i = QStandardItem(display_text)
                     i.setData(server)
                     if server.api_url is not None:
                         if server.is_custom:
                             i.setBackground(QColor(0, 0, 255, 50))
+                        # 前回接続失敗が記録されているサーバーは赤で明示
+                        err = self.settings.server_error(server.api_url)
+                        if err:
+                            i.setBackground(QColor(255, 0, 0, 40))
+                            i.setToolTip(QCoreApplication.translate(
+                                'GeoImport', 'Last connection failed: {0}').format(err))
                         i.setCheckable(True)
                         i.setCheckState(Qt.CheckState.Checked if server.selected else Qt.CheckState.Unchecked)
                         self.list_model.appendRow(i)
@@ -220,7 +225,7 @@ class GeoImportDialogDataProviders(QDialog, FORM_CLASS):
         """JSONから読み込んだインスタンス情報を処理"""
         self.settings.load()
         selected_servers = self.settings.selected_ckan_servers.split('|')
-        
+
         for entry in result:
             url_api = None
             if 'url-api' in entry:
@@ -233,22 +238,22 @@ class GeoImportDialogDataProviders(QDialog, FORM_CLASS):
             description = entry.get('description', '')
             si = ServerInstance(entry['title'], description, entry['url'], url_api)
             si.selected = True if si.settings_key in selected_servers else False
-            
+
             # 重複チェック（同じURLは追加しない）
             is_duplicate = False
             for existing in self.servers:
                 if existing.url == si.url:
                     is_duplicate = True
                     break
-            
+
             if not is_duplicate:
                 self.servers.append(si)
-    
+
     def add_custom_servers(self):
         """カスタムサーバーを追加"""
         self.settings.load()
         selected_servers = self.settings.selected_ckan_servers.split('|')
-        
+
         self.util.msg_log_debug(u'{} custom servers'.format(len(self.settings.custom_servers)))
         for cs_name, cs_info in self.settings.custom_servers.items():
             # cs_info: {url, type}
@@ -264,12 +269,12 @@ class GeoImportDialogDataProviders(QDialog, FORM_CLASS):
     def delete_custom_server(self):
         self.util.msg_log_debug('delete context menu clicked')
         if self.row_server_selected_in_list == -1:
-            self.util.dlg_information(self.util.tr('py_dlg_data_providers_no_server_selected'))
+            self.util.dlg_information(QCoreApplication.translate('GeoImport', 'py_dlg_data_providers_no_server_selected'))
             return
         server_to_remove_item = self.list_model.item(self.row_server_selected_in_list, 0)
         server_to_remove = server_to_remove_item.data()
         if not server_to_remove.is_custom:
-            self.util.dlg_information(self.util.tr('py_dlg_data_providers_cannot_delete_sever_from_official_list'))
+            self.util.dlg_information(QCoreApplication.translate('GeoImport', 'py_dlg_data_providers_cannot_delete_sever_from_official_list'))
             return
         if server_to_remove.short_title in self.settings.custom_servers:
             self.util.msg_log_debug(u'deleting custom server: {}'.format(server_to_remove))
@@ -291,7 +296,7 @@ class GeoImportDialogDataProviders(QDialog, FORM_CLASS):
         cache_dir = self.settings.cache_dir if hasattr(self.settings, 'cache_dir') else ''
         folder = QFileDialog.getExistingDirectory(
             self,
-            self.util.tr('Select LOCAL folder'),
+            QCoreApplication.translate('GeoImport', 'Select LOCAL folder'),
             cache_dir,
             QFileDialog.Option.ShowDirsOnly | QFileDialog.Option.DontResolveSymlinks
         )
@@ -319,6 +324,12 @@ class GeoImportDialogDataProviders(QDialog, FORM_CLASS):
             if result.api_url is not None:
                 if result.is_custom:
                     i.setBackground(QColor(0, 0, 255, 50))
+                # 前回接続失敗が記録されているサーバーは赤で明示
+                err = self.settings.server_error(result.api_url)
+                if err:
+                    i.setBackground(QColor(255, 0, 0, 40))
+                    i.setToolTip(QCoreApplication.translate(
+                        'GeoImport', 'Last connection failed: {0}').format(err))
                 i.setCheckable(True)
                 i.setCheckState(Qt.CheckState.Checked if result.selected else Qt.CheckState.Unchecked)
                 self.list_model.appendRow(i)
@@ -357,10 +368,10 @@ class GeoImportDialogDataProviders(QDialog, FORM_CLASS):
         if local_path:
             # If a local folder is provided, consider existence sufficient for connection test.
             if not os.path.isdir(local_path):
-                self.util.dlg_warning(self.util.tr('py_dlg_set_info_local_not_found').format(local_path))
+                self.util.dlg_warning(QCoreApplication.translate('GeoImport', 'py_dlg_set_info_local_not_found').format(local_path))
                 return
             # Treat existing folder as successful connection (do not require packages.json)
-            self.util.dlg_information(self.util.tr(u'py_dlg_set_info_conn_succs'))
+            self.util.dlg_information(QCoreApplication.translate('GeoImport', u'py_dlg_set_info_conn_succs'))
             return
 
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
@@ -371,7 +382,7 @@ class GeoImportDialogDataProviders(QDialog, FORM_CLASS):
             self.util.dlg_warning(result)
             return
         else:
-            self.util.dlg_information(self.util.tr(u'py_dlg_set_info_conn_succs'))
+            self.util.dlg_information(QCoreApplication.translate('GeoImport', u'py_dlg_set_info_conn_succs'))
 
     def btn_clicked_add_connection(self):
         self.util.msg_log_debug('btn_clicked_add_connection')
@@ -408,7 +419,7 @@ class GeoImportDialogDataProviders(QDialog, FORM_CLASS):
             # normalize
             api_url = os.path.abspath(local_path)
             server_type = 'LOCAL'
-        
+
         # If not local, test via CKAN API
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         if server_type == 'CKAN':
@@ -422,16 +433,16 @@ class GeoImportDialogDataProviders(QDialog, FORM_CLASS):
 
         server_name, ok_pressed = QInputDialog.getText(
             self,
-            self.util.tr('py_dlg_data_providers_custom_server'),
-            self.util.tr('py_dlg_data_providers_name_custom_server'),
-            QLineEdit.Normal,
+            QCoreApplication.translate('GeoImport', 'py_dlg_data_providers_custom_server'),
+            QCoreApplication.translate('GeoImport', 'py_dlg_data_providers_name_custom_server'),
+            QLineEdit.EchoMode.Normal,
             ""
         )
         if not ok_pressed or server_name is None or server_name.isspace() or server_name == '':
             return
 
         if server_name in self.settings.custom_servers:
-            self.util.dlg_warning(self.util.tr('py_dlg_data_providers_custom_server_name_exists').format(server_name))
+            self.util.dlg_warning(QCoreApplication.translate('GeoImport', 'py_dlg_data_providers_custom_server_name_exists').format(server_name))
             return
 
         self.settings.custom_servers[server_name] = {"url": api_url, "type": server_type}
@@ -462,35 +473,26 @@ class GeoImportDialogDataProviders(QDialog, FORM_CLASS):
                 item.data()
             )
         )
-        if item.checkState() == Qt.CheckState.Unchecked:
-            item.data().selected = False
-            return
-
-        # deselect all available servers.
-        # currently selected one might not be visible
-        # because of current search criteria
-        for server in self.servers:
-            server.selected = False
-
-        # now work on server visible in the list
-        for row in range(self.list_model.rowCount()):
-            i = self.list_model.item(row, 0)
-            if i != item and i.checkState() == Qt.CheckState.Checked:
-                i.setCheckState(Qt.CheckState.Unchecked)
-
+        # 複数サーバーの同時選択を許可する(横断検索用)。
+        # チェック状態をそのまま selected フラグに反映するのみ。
         item.data().selected = True if item.checkState() == Qt.CheckState.Checked else False
 
     def save_btn_clicked(self):
         self.util.msg_log_debug('save clicked')
-        selected_servers = [s.settings_key for s in self.servers if s.selected]
+        selected = [s for s in self.servers if s.selected]
+        selected_servers = [s.settings_key for s in selected]
         if len(selected_servers) < 1:
             self.settings.selected_ckan_servers = ''
-            self.util.dlg_warning(self.util.tr('py_dlg_data_providers_no_server_selected'))
+            self.settings.selected_ckan_urls = []
+            self.util.dlg_warning(QCoreApplication.translate('GeoImport', 'py_dlg_data_providers_no_server_selected'))
             return
         else:
             self.util.msg_log_debug(u'selected servers: {}'.format(selected_servers))
             self.settings.selected_ckan_servers = '|'.join(selected_servers)
-            self.settings.ckan_url = [s for s in self.servers if s.selected][0].api_url
+            # 複数選択時の横断検索用に選択サーバーのapi_url一覧を保存
+            self.settings.selected_ckan_urls = [s.api_url for s in selected]
+            # 後方互換: 従来の単一ckan_urlには先頭サーバーを設定
+            self.settings.ckan_url = selected[0].api_url
         self.settings.save()
         self.accept()
 

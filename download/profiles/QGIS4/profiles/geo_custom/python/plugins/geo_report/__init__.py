@@ -29,74 +29,24 @@ QGIS プラグイン初期化モジュール
 イタリア語、ポルトガル語、ロシア語、ヒンディー語）
 """
 
+from .i18n_json import install_translator
 import os
-from qgis.PyQt.QtCore import QCoreApplication, QTranslator, QLocale, QSettings
 from qgis.core import QgsMessageLog, Qgis
+
 
 # グローバルトランスレータ
 _translator = None
 
-def log_message(message, level=Qgis.Info):
+
+def log_message(message, level=Qgis.MessageLevel.Info):
     """QGIS のログメッセージタブに出力"""
     QgsMessageLog.logMessage(message, 'geo_report', level)
 
 
 def _setup_language():
-    """
-    QGIS の設定言語に基づいて翻訳ファイルをロード
-    """
+    """QGIS の設定言語に合わせて i18n/<lang>.json をロード"""
     global _translator
-    
-    plugin_dir = os.path.dirname(__file__)
-    i18n_dir = os.path.join(plugin_dir, 'i18n')
-    
-    log_message(f"言語セットアップ開始: {i18n_dir}")
-    
-    # QGIS の設定からユーザー言語を取得
-    settings = QSettings()
-    locale_str = settings.value("locale/userLocale", "")
-    
-    log_message(f"QGIS ロケール設定: {locale_str}")
-    
-    # 言語コードの決定（例：ja_JP -> ja）
-    if locale_str:
-        lang_code = locale_str.split('_')[0]
-    else:
-        system_locale = QLocale.system().name()
-        lang_code = system_locale.split('_')[0]
-        log_message(f"システムロケールを使用: {system_locale}")
-    
-    # 翻訳ファイルのロード候補（優先度順）
-    # 完全一致 > 言語コードのみ > 英語
-    lang_candidates = [locale_str, lang_code, 'en']
-    lang_candidates = [c for c in lang_candidates if c]  # 空文字列を除外
-    
-    log_message(f"言語候補: {lang_candidates}")
-    
-    for candidate in lang_candidates:
-        # 言語コードから翻訳ファイル名を生成
-        qm_file = f"geo_report_{candidate}.qm"
-        qm_path = os.path.join(i18n_dir, qm_file)
-        
-        log_message(f"確認中: {qm_path}")
-        
-        if os.path.exists(qm_path):
-            try:
-                _translator = QTranslator()
-                result = _translator.load(qm_path)
-                
-                if result:
-                    # 新しいトランスレータをインストール
-                    QCoreApplication.installTranslator(_translator)
-                    log_message(f"✓ 翻訳ファイルをロード成功: {qm_path} (言語: {candidate})", Qgis.Success)
-                    return
-                else:
-                    log_message(f"× 翻訳ファイルのロード失敗: {qm_path}", Qgis.Warning)
-            except Exception as e:
-                log_message(f"× 例外エラー: {qm_path}, エラー: {e}", Qgis.Critical)
-    
-    log_message(f"× 翻訳ファイルが見つかりません。候補: {lang_candidates}", Qgis.Warning)
-    log_message(f"i18n フォルダ内のファイル: {os.listdir(i18n_dir) if os.path.exists(i18n_dir) else '不在'}", Qgis.Warning)
+    _translator = install_translator(os.path.dirname(__file__))
 
 
 # プラグイン初期化時に言語セットアップを実行
@@ -110,7 +60,7 @@ def classFactory(iface):  # pylint: disable=invalid-name
 
     Args:
         iface: A QGIS interface instance.
-        
+
     Returns:
         GeoReport plugin instance
     """

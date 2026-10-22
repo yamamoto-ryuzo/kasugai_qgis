@@ -1,6 +1,6 @@
 [package]
 name = "qgis_launcher"
-version = "2.2.1"
+version = "2.3.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -19,6 +19,8 @@ zip = "0.6"
 reqwest = { version = "0.12", features = ["blocking", "json"] }
 opener = "0.7"
 sha2 = "0.10"
+wry = "0.57.0"
+tao = "0.37.1"
 
 [build-dependencies]
 winres = "0.1.12"

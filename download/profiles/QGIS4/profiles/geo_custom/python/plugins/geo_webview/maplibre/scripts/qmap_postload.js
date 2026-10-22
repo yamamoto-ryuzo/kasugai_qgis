@@ -530,8 +530,8 @@
         const pitchBtn = document.getElementById('pitchToggle');
         let pitchLocked = true;
         const _enforcePitch = function() { try { if (map.getPitch && Math.abs(map.getPitch()) > 0.0001) { map.setPitch(0); } } catch (e) { } };
-        function lockPitch() { try { map.setPitch(0); } catch(e) {} try { if (map.on) map.on('move', _enforcePitch); } catch(e) {} pitchLocked = true; pitchBtn.textContent = '斜め許可'; }
-        function unlockPitch() { try { if (map.off) map.off('move', _enforcePitch); } catch(e) {} pitchLocked = false; pitchBtn.textContent = '斜め禁止'; }
+        function lockPitch() { try { map.setPitch(0); } catch(e) {} try { if (map.on) map.on('move', _enforcePitch); } catch(e) {} pitchLocked = true; pitchBtn.textContent = (window.QMP_I18N && window.QMP_I18N.tiltAllowed) || 'Tilt allowed'; }
+        function unlockPitch() { try { if (map.off) map.off('move', _enforcePitch); } catch(e) {} pitchLocked = false; pitchBtn.textContent = (window.QMP_I18N && window.QMP_I18N.tiltLocked) || 'Tilt locked'; }
         pitchBtn.addEventListener('click', function() { if (!pitchLocked) lockPitch(); else unlockPitch(); });
         try { lockPitch(); } catch(e) {}
       } catch (e) { console.warn('pitch toggle setup failed', e); }
@@ -543,7 +543,7 @@
           // Add prompt option
           const promptOpt = document.createElement('option');
           promptOpt.value = '';
-          promptOpt.textContent = 'Select theme';
+          promptOpt.textContent = (window.QMP_I18N && window.QMP_I18N.selectTheme) || 'Select theme';
           promptOpt.selected = true;
           themeSelect.appendChild(promptOpt);
           
@@ -608,14 +608,14 @@
           // Add prompt option
           const promptOpt = document.createElement('option');
           promptOpt.value = '';
-          promptOpt.textContent = 'Select bookmark';
+          promptOpt.textContent = (window.QMP_I18N && window.QMP_I18N.selectBookmark) || 'Select bookmark';
           promptOpt.selected = true;
           bookmarkSelect.appendChild(promptOpt);
           
           // Add Home option (returns to initial position)
           const homeOpt = document.createElement('option');
           homeOpt.value = '__home';
-          homeOpt.textContent = 'Home';
+          homeOpt.textContent = (window.QMP_I18N && window.QMP_I18N.home) || 'Home';
           bookmarkSelect.appendChild(homeOpt);
           
           // Add bookmark options

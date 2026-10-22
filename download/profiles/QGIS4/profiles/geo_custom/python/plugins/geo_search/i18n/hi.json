@@ -1,0 +1,36 @@
+{
+  "Dialog": {
+    "Could not find corresponding entry to remove.": "हटाने के लिए संबंधित प्रविष्टि नहीं मिली।",
+    "Failed to read the JSON file: {0}": "JSON फ़ाइल पढ़ने में विफल: {0}",
+    "Failed to update JSON file: {0}": "JSON फ़ाइल अपडेट करने में विफल: {0}",
+    "JSON file has unsupported structure; expected {'SearchTabs': [...]} or an array.": "JSON फ़ाइल की संरचना असमर्थित है; {'SearchTabs': [...]} या ऐरे अपेक्षित है।",
+    "Not found": "नहीं मिला",
+    "Read error": "पठन त्रुटि",
+    "Unsupported format": "असमर्थित प्रारूप",
+    "Write error": "लेखन त्रुटि"
+  },
+  "SearchWidget": {
+    "Angle (deg):": "कोण (डिग्री):",
+    "Angle: Not specified": "कोण: निर्दिष्ट नहीं",
+    "Angle: {0}": "कोण: {0}",
+    "Angle: {0}°": "कोण: {0}°",
+    "Edit Tab Settings: {0}": "टैब सेटिंग संपादित करें: {0}",
+    "Exact Match": "सटीक मिलान",
+    "Forward Match": "उपसर्ग मिलान",
+    "Fuzzy Search": "अस्पष्ट खोज",
+    "Geo Search: ": "भू-खोज: ",
+    "OR search for multiple fields": "कई फ़ील्ड के लिए OR खोज",
+    "Owner Search": "मालिक खोज",
+    "Partial Match": "आंशिक मिलान",
+    "Results": "परिणाम",
+    "Scale:": "स्केल:",
+    "Scale: Not specified": "स्केल: निर्दिष्ट नहीं",
+    "Scale: {0}": "स्केल: {0}",
+    "Search Results: {0} items": "खोज परिणाम: {0} आइटम",
+    "Search all fields": "सभी फ़ील्ड खोजें",
+    "Set current value": "वर्तमान मान सेट करें"
+  },
+  "plugin": {
+    "Geo Search": "जियो खोज"
+  }
+}

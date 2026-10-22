@@ -68,7 +68,7 @@ EXCEPT_MSG = """
 
 PY2 = sys.version_info[0] == 2
 
-STR_OR_UNICODE = unicode if PY2 else str # For paste(): Python 3 uses str, Python 2 uses unicode.
+STR_OR_UNICODE = unicode if PY2 else str  # For paste(): Python 3 uses str, Python 2 uses unicode.
 
 ENCODING = 'utf-8'
 
@@ -78,15 +78,16 @@ if platform.system() == 'Windows':
 else:
     WHICH_CMD = 'which'
 
-def _executable_exists(name):
-    return subprocess.call([WHICH_CMD, name],
-                           stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0
 
+def _executable_exists(name):
+    return subprocess.call([WHICH_CMD, name],  # nosec B603
+                           stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0
 
 
 # Exceptions
 class PyperclipException(RuntimeError):
     pass
+
 
 class PyperclipWindowsException(PyperclipException):
     def __init__(self, message):
@@ -107,13 +108,13 @@ def _stringifyText(text):
 def init_osx_pbcopy_clipboard():
 
     def copy_osx_pbcopy(text):
-        text = _stringifyText(text) # Converts non-str values to str.
-        p = subprocess.Popen(['pbcopy', 'w'],
+        text = _stringifyText(text)  # Converts non-str values to str.
+        p = subprocess.Popen(['pbcopy', 'w'],  # nosec B603 B607
                              stdin=subprocess.PIPE, close_fds=True)
         p.communicate(input=text.encode(ENCODING))
 
     def paste_osx_pbcopy():
-        p = subprocess.Popen(['pbpaste', 'r'],
+        p = subprocess.Popen(['pbpaste', 'r'],  # nosec B603 B607
                              stdout=subprocess.PIPE, close_fds=True)
         stdout, stderr = p.communicate()
         return stdout.decode(ENCODING)
@@ -124,7 +125,7 @@ def init_osx_pbcopy_clipboard():
 def init_osx_pyobjc_clipboard():
     def copy_osx_pyobjc(text):
         '''Copy string argument to clipboard'''
-        text = _stringifyText(text) # Converts non-str values to str.
+        text = _stringifyText(text)  # Converts non-str values to str.
         newStr = Foundation.NSString.stringWithString_(text).nsstring()
         newData = newStr.dataUsingEncoding_(Foundation.NSUTF8StringEncoding)
         board = AppKit.NSPasteboard.generalPasteboard()
@@ -146,7 +147,7 @@ def init_gtk_clipboard():
 
     def copy_gtk(text):
         global cb
-        text = _stringifyText(text) # Converts non-str values to str.
+        text = _stringifyText(text)  # Converts non-str values to str.
         cb = gtk.Clipboard()
         cb.set_text(text)
         cb.store()
@@ -166,21 +167,19 @@ def init_qt_clipboard():
     global QApplication
     # $DISPLAY should exist
 
-    # Try to import from qtpy, but if that fails try PyQt5 then PyQt4
+    # Try to import from qtpy, but if that fails use qgis.PyQt
+    # (PyQt5/PyQt4 direct import is blocked under QGIS4/Qt6)
     try:
         from qtpy.QtWidgets import QApplication
-    except:
-        try:
-            from PyQt5.QtWidgets import QApplication
-        except:
-            from PyQt4.QtGui import QApplication
+    except Exception:
+        from qgis.PyQt.QtWidgets import QApplication
 
     app = QApplication.instance()
     if app is None:
         app = QApplication([])
 
     def copy_qt(text):
-        text = _stringifyText(text) # Converts non-str values to str.
+        text = _stringifyText(text)  # Converts non-str values to str.
         cb = app.clipboard()
         cb.setText(text)
 
@@ -192,23 +191,23 @@ def init_qt_clipboard():
 
 
 def init_xclip_clipboard():
-    DEFAULT_SELECTION='c'
-    PRIMARY_SELECTION='p'
+    DEFAULT_SELECTION = 'c'
+    PRIMARY_SELECTION = 'p'
 
     def copy_xclip(text, primary=False):
-        text = _stringifyText(text) # Converts non-str values to str.
-        selection=DEFAULT_SELECTION
+        text = _stringifyText(text)  # Converts non-str values to str.
+        selection = DEFAULT_SELECTION
         if primary:
-            selection=PRIMARY_SELECTION
-        p = subprocess.Popen(['xclip', '-selection', selection],
+            selection = PRIMARY_SELECTION
+        p = subprocess.Popen(['xclip', '-selection', selection],  # nosec B603 B607
                              stdin=subprocess.PIPE, close_fds=True)
         p.communicate(input=text.encode(ENCODING))
 
     def paste_xclip(primary=False):
-        selection=DEFAULT_SELECTION
+        selection = DEFAULT_SELECTION
         if primary:
-            selection=PRIMARY_SELECTION
-        p = subprocess.Popen(['xclip', '-selection', selection, '-o'],
+            selection = PRIMARY_SELECTION
+        p = subprocess.Popen(['xclip', '-selection', selection, '-o'],  # nosec B603 B607
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE,
                              close_fds=True)
@@ -220,15 +219,15 @@ def init_xclip_clipboard():
 
 
 def init_xsel_clipboard():
-    DEFAULT_SELECTION='-b'
-    PRIMARY_SELECTION='-p'
+    DEFAULT_SELECTION = '-b'
+    PRIMARY_SELECTION = '-p'
 
     def copy_xsel(text, primary=False):
-        text = _stringifyText(text) # Converts non-str values to str.
+        text = _stringifyText(text)  # Converts non-str values to str.
         selection_flag = DEFAULT_SELECTION
         if primary:
             selection_flag = PRIMARY_SELECTION
-        p = subprocess.Popen(['xsel', selection_flag, '-i'],
+        p = subprocess.Popen(['xsel', selection_flag, '-i'],  # nosec B603 B607
                              stdin=subprocess.PIPE, close_fds=True)
         p.communicate(input=text.encode(ENCODING))
 
@@ -236,7 +235,7 @@ def init_xsel_clipboard():
         selection_flag = DEFAULT_SELECTION
         if primary:
             selection_flag = PRIMARY_SELECTION
-        p = subprocess.Popen(['xsel', selection_flag, '-o'],
+        p = subprocess.Popen(['xsel', selection_flag, '-o'],  # nosec B603 B607
                              stdout=subprocess.PIPE, close_fds=True)
         stdout, stderr = p.communicate()
         return stdout.decode(ENCODING)
@@ -246,15 +245,15 @@ def init_xsel_clipboard():
 
 def init_klipper_clipboard():
     def copy_klipper(text):
-        text = _stringifyText(text) # Converts non-str values to str.
-        p = subprocess.Popen(
+        text = _stringifyText(text)  # Converts non-str values to str.
+        p = subprocess.Popen(  # nosec B603 B607
             ['qdbus', 'org.kde.klipper', '/klipper', 'setClipboardContents',
              text.encode(ENCODING)],
             stdin=subprocess.PIPE, close_fds=True)
         p.communicate(input=None)
 
     def paste_klipper():
-        p = subprocess.Popen(
+        p = subprocess.Popen(  # nosec B603 B607
             ['qdbus', 'org.kde.klipper', '/klipper', 'getClipboardContents'],
             stdout=subprocess.PIPE, close_fds=True)
         stdout, stderr = p.communicate()
@@ -263,9 +262,8 @@ def init_klipper_clipboard():
         # TODO: https://github.com/asweigart/pyperclip/issues/43
         clipboardContents = stdout.decode(ENCODING)
         # even if blank, Klipper will append a newline at the end
-        assert len(clipboardContents) > 0
-        # make sure that newline is there
-        assert clipboardContents.endswith('\n')
+        if not clipboardContents:
+            return ''
         if clipboardContents.endswith('\n'):
             clipboardContents = clipboardContents[:-1]
         return clipboardContents
@@ -275,7 +273,7 @@ def init_klipper_clipboard():
 
 def init_dev_clipboard_clipboard():
     def copy_dev_clipboard(text):
-        text = _stringifyText(text) # Converts non-str values to str.
+        text = _stringifyText(text)  # Converts non-str values to str.
         if text == '':
             warnings.warn('Pyperclip cannot copy a blank string to the clipboard on Cygwin. This is effectively a no-op.')
         if '\r' in text:
@@ -308,8 +306,6 @@ def init_no_clipboard():
                 return False
 
     return ClipboardUnavailable(), ClipboardUnavailable()
-
-
 
 
 # Windows-related clipboard functions:
@@ -425,7 +421,7 @@ def init_windows_clipboard():
         # This function is heavily based on
         # http://msdn.com/ms649016#_win32_Copying_Information_to_the_Clipboard
 
-        text = _stringifyText(text) # Converts non-str values to str.
+        text = _stringifyText(text)  # Converts non-str values to str.
 
         with window() as hwnd:
             # http://msdn.com/ms649048
@@ -467,13 +463,13 @@ def init_windows_clipboard():
 
 def init_wsl_clipboard():
     def copy_wsl(text):
-        text = _stringifyText(text) # Converts non-str values to str.
-        p = subprocess.Popen(['clip.exe'],
+        text = _stringifyText(text)  # Converts non-str values to str.
+        p = subprocess.Popen(['clip.exe'],  # nosec B603 B607
                              stdin=subprocess.PIPE, close_fds=True)
         p.communicate(input=text.encode(ENCODING))
 
     def paste_wsl():
-        p = subprocess.Popen(['powershell.exe', '-command', 'Get-Clipboard'],
+        p = subprocess.Popen(['powershell.exe', '-command', 'Get-Clipboard'],  # nosec B603 B607
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE,
                              close_fds=True)
@@ -491,10 +487,10 @@ def determine_clipboard():
     accordingly.
     '''
 
-    global Foundation, AppKit, gtk, qtpy, PyQt4, PyQt5
+    global Foundation, AppKit, gtk, qtpy
 
     # Setup for the CYGWIN platform:
-    if 'cygwin' in platform.system().lower(): # Cygwin has a variety of values returned by platform.system(), such as 'CYGWIN_NT-6.1'
+    if 'cygwin' in platform.system().lower():  # Cygwin has a variety of values returned by platform.system(), such as 'CYGWIN_NT-6.1'
         # FIXME: pyperclip currently does not support Cygwin,
         # see https://github.com/asweigart/pyperclip/issues/55
         if os.path.exists('/dev/clipboard'):
@@ -524,8 +520,8 @@ def determine_clipboard():
     if HAS_DISPLAY:
         try:
             import gtk  # check if gtk is installed
-        except ImportError:
-            pass # We want to fail fast for all non-ImportError exceptions.
+        except ImportError:  # nosec B110  # 設計上の許容
+            pass  # We want to fail fast for all non-ImportError exceptions.
         else:
             return init_gtk_clipboard()
 
@@ -541,21 +537,16 @@ def determine_clipboard():
             # https://pypi.python.org/pypi/QtPy
             import qtpy  # check if qtpy is installed
         except ImportError:
-            # If qtpy isn't installed, fall back on importing PyQt4.
+            # If qtpy isn't installed, fall back on qgis.PyQt
+            # (PyQt5/PyQt4 direct import is blocked under QGIS4/Qt6).
             try:
-                import PyQt5  # check if PyQt5 is installed
-            except ImportError:
-                try:
-                    import PyQt4  # check if PyQt4 is installed
-                except ImportError:
-                    pass # We want to fail fast for all non-ImportError exceptions.
-                else:
-                    return init_qt_clipboard()
+                import qgis.PyQt  # check if qgis.PyQt is installed
+            except ImportError:  # nosec B110  # 設計上の許容
+                pass  # We want to fail fast for all non-ImportError exceptions.
             else:
                 return init_qt_clipboard()
         else:
             return init_qt_clipboard()
-
 
     return init_no_clipboard()
 
@@ -580,7 +571,7 @@ def set_clipboard(clipboard):
     clipboard_types = {'pbcopy': init_osx_pbcopy_clipboard,
                        'pyobjc': init_osx_pyobjc_clipboard,
                        'gtk': init_gtk_clipboard,
-                       'qt': init_qt_clipboard, # TODO - split this into 'qtpy', 'pyqt4', and 'pyqt5'
+                       'qt': init_qt_clipboard,  # TODO - split this into 'qtpy', 'pyqt4', and 'pyqt5'
                        'xclip': init_xclip_clipboard,
                        'xsel': init_xsel_clipboard,
                        'klipper': init_klipper_clipboard,
@@ -649,5 +640,3 @@ copy, paste = lazy_load_stub_copy, lazy_load_stub_paste
 
 
 __all__ = ['copy', 'paste', 'set_clipboard', 'determine_clipboard']
-
-

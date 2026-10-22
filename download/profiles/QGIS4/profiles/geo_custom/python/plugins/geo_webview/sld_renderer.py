@@ -34,10 +34,10 @@ def _sld_header(layer_name: str) -> str:
 
 def _sld_footer() -> str:
     return (
-        f'      </FeatureTypeStyle>\n'
-        f'    </UserStyle>\n'
-        f'  </NamedLayer>\n'
-        f'</StyledLayerDescriptor>'
+        '      </FeatureTypeStyle>\n'
+        '    </UserStyle>\n'
+        '  </NamedLayer>\n'
+        '</StyledLayerDescriptor>'
     )
 
 
@@ -54,8 +54,8 @@ def _escape_xml(s: Optional[str]) -> str:
 
 def _extract_symbol_properties(symbol, geom_type: str):
     """Extract color, stroke, width, size, opacity from symbol or symbol layer.
-    
-    Returns: (color, stroke_color, stroke_width, stroke_opacity, size, opacity, has_brush, 
+
+    Returns: (color, stroke_color, stroke_width, stroke_opacity, size, opacity, has_brush,
               pen_join_style, pen_cap_style, pen_style, point_shape)
     """
     color = None
@@ -79,104 +79,104 @@ def _extract_symbol_properties(symbol, geom_type: str):
                 if hasattr(sl, 'color') and callable(sl.color):
                     try:
                         color = sl.color()
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
-                
+
                 # Stroke color
                 if hasattr(sl, 'strokeColor') and callable(sl.strokeColor):
                     try:
                         stroke_color = sl.strokeColor()
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
-                
+
                 # Stroke width
                 if hasattr(sl, 'strokeWidth') and callable(sl.strokeWidth):
                     try:
                         stroke_width = sl.strokeWidth()
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
-                
+
                 # Stroke opacity (from stroke color alpha)
                 if stroke_color is not None and hasattr(stroke_color, 'alpha') and callable(stroke_color.alpha):
                     try:
                         stroke_opacity = stroke_color.alpha() / 255.0
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
-                
+
                 # Size (for points)
                 if hasattr(sl, 'size') and callable(sl.size):
                     try:
                         size = sl.size()
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
-                
+
                 # Opacity from fill color alpha
                 if color is not None and hasattr(color, 'alpha') and callable(color.alpha):
                     try:
                         opacity = color.alpha() / 255.0
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
-                
+
                 # Pen join style (miter, round, bevel)
                 if hasattr(sl, 'penJoinStyle') and callable(sl.penJoinStyle):
                     try:
                         pen_join_style = sl.penJoinStyle()
                         try:
                             from qgis.core import QgsMessageLog, Qgis
-                            QgsMessageLog.logMessage(f'🔧 Extracted penJoinStyle: {pen_join_style} (type: {type(pen_join_style).__name__})', 'geo_webview', Qgis.Info)
-                        except Exception:
+                            QgsMessageLog.logMessage(f'🔧 Extracted penJoinStyle: {pen_join_style} (type: {type(pen_join_style).__name__})', 'geo_webview', Qgis.MessageLevel.Info)
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
-                
+
                 # Pen cap style (flat, round, square)
                 if hasattr(sl, 'penCapStyle') and callable(sl.penCapStyle):
                     try:
                         pen_cap_style = sl.penCapStyle()
                         try:
                             from qgis.core import QgsMessageLog, Qgis
-                            QgsMessageLog.logMessage(f'🔧 Extracted penCapStyle: {pen_cap_style}', 'geo_webview', Qgis.Info)
-                        except Exception:
+                            QgsMessageLog.logMessage(f'🔧 Extracted penCapStyle: {pen_cap_style}', 'geo_webview', Qgis.MessageLevel.Info)
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
-                
+
                 # Pen style (solid, dash, dot, etc.)
                 if hasattr(sl, 'penStyle') and callable(sl.penStyle):
                     try:
                         pen_style = sl.penStyle()
                         try:
                             from qgis.core import QgsMessageLog, Qgis
-                            QgsMessageLog.logMessage(f'🔧 Extracted penStyle: {pen_style}', 'geo_webview', Qgis.Info)
-                        except Exception:
+                            QgsMessageLog.logMessage(f'🔧 Extracted penStyle: {pen_style}', 'geo_webview', Qgis.MessageLevel.Info)
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
-                
+
                 # Point shape (for markers)
                 if geom_type == 'Point':
                     if hasattr(sl, 'shape') and callable(sl.shape):
                         try:
                             point_shape = sl.shape()
-                        except Exception:
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
                     # Also try name() for well-known names
                     if point_shape is None and hasattr(sl, 'name') and callable(sl.name):
                         try:
                             point_shape = sl.name()
-                        except Exception:
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
-                
+
                 # Brush style (for polygons - NoBrush detection)
                 if geom_type == 'Polygon':
                     if hasattr(sl, 'brushStyle') and callable(sl.brushStyle):
                         try:
                             from qgis.PyQt.QtCore import Qt
                             brush_style = sl.brushStyle()
-                            if brush_style == Qt.NoBrush:
+                            if brush_style == Qt.BrushStyle.NoBrush:
                                 has_brush = False
                                 color = None
-                        except Exception:
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
                 # If some properties are still missing, try additional symbol layers
                 try:
@@ -195,165 +195,165 @@ def _extract_symbol_properties(symbol, geom_type: str):
                                     c2 = slx.color()
                                     if c2 is not None:
                                         color = c2
-                                except Exception:
+                                except Exception:  # nosec B110  # 設計上の許容
                                     pass
                             # Stroke color/width fallback
                             if stroke_color is None and hasattr(slx, 'strokeColor') and callable(slx.strokeColor):
                                 try:
                                     stroke_color = slx.strokeColor()
-                                except Exception:
+                                except Exception:  # nosec B110  # 設計上の許容
                                     pass
                             if stroke_width is None and hasattr(slx, 'strokeWidth') and callable(slx.strokeWidth):
                                 try:
                                     stroke_width = slx.strokeWidth()
-                                except Exception:
+                                except Exception:  # nosec B110  # 設計上の許容
                                     pass
                             # Pen styles fallback
                             if pen_join_style is None and hasattr(slx, 'penJoinStyle') and callable(slx.penJoinStyle):
                                 try:
                                     pen_join_style = slx.penJoinStyle()
-                                except Exception:
+                                except Exception:  # nosec B110  # 設計上の許容
                                     pass
                             if pen_cap_style is None and hasattr(slx, 'penCapStyle') and callable(slx.penCapStyle):
                                 try:
                                     pen_cap_style = slx.penCapStyle()
-                                except Exception:
+                                except Exception:  # nosec B110  # 設計上の許容
                                     pass
                             if pen_style is None and hasattr(slx, 'penStyle') and callable(slx.penStyle):
                                 try:
                                     pen_style = slx.penStyle()
-                                except Exception:
+                                except Exception:  # nosec B110  # 設計上の許容
                                     pass
                             # Size fallback for points
                             if size is None and hasattr(slx, 'size') and callable(slx.size):
                                 try:
                                     size = slx.size()
-                                except Exception:
+                                except Exception:  # nosec B110  # 設計上の許容
                                     pass
                             # Brush style check on any layer
                             if geom_type == 'Polygon' and hasattr(slx, 'brushStyle') and callable(slx.brushStyle):
                                 try:
                                     from qgis.PyQt.QtCore import Qt
-                                    if slx.brushStyle() == Qt.NoBrush:
+                                    if slx.brushStyle() == Qt.BrushStyle.NoBrush:
                                         has_brush = False
-                                except Exception:
+                                except Exception:  # nosec B110  # 設計上の許容
                                     pass
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
     except Exception as e:
         try:
             from qgis.core import QgsMessageLog, Qgis
-            QgsMessageLog.logMessage(f"⚠️ sld_renderer: symbolLayer extraction failed: {e}", "geo_webview", Qgis.Warning)
-        except Exception:
+            QgsMessageLog.logMessage(f"⚠️ sld_renderer: symbolLayer extraction failed: {e}", "geo_webview", Qgis.MessageLevel.Warning)
+        except Exception:  # nosec B110  # 設計上の許容
             pass
 
     # Fallback: try methods directly on symbol
     if color is None:
         try:
             color = symbol.color()
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
-    
+
     if stroke_color is None:
         try:
             stroke_color = symbol.strokeColor()
         except Exception:
             try:
                 stroke_color = symbol.color()
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
-    
+
     if stroke_width is None:
         try:
             stroke_width = symbol.strokeWidth()
         except Exception:
             try:
                 stroke_width = symbol.width()
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
-    
+
     if size is None:
         try:
             size = symbol.size()
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
-    
+
     if opacity is None:
         try:
             opacity = symbol.opacity()
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
-    
+
     # Final check: color alpha = 0 means no fill
     if has_brush and color is not None:
         try:
             if hasattr(color, 'alpha') and callable(color.alpha) and color.alpha() == 0:
                 has_brush = False
                 color = None
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
-    
+
     return color, stroke_color, stroke_width, stroke_opacity, size, opacity, has_brush, pen_join_style, pen_cap_style, pen_style, point_shape
 
 
 def _build_stroke_params(stroke_color, stroke_width, stroke_opacity, pen_join_style, pen_cap_style, pen_style):
     """Build stroke CssParameter elements including advanced styling.
-    
+
     Returns: formatted string with CssParameter elements
     """
     sc = _escape_xml(stroke_color or '#000000')
     sw = stroke_width if stroke_width is not None else 1
     so = stroke_opacity if (stroke_opacity is not None) else 1.0
-    
+
     stroke_params = f'    <CssParameter name="stroke">{sc}</CssParameter>\n'
     stroke_params += f'    <CssParameter name="stroke-width">{sw}</CssParameter>\n'
     if so < 1.0:
         stroke_params += f'    <CssParameter name="stroke-opacity">{so}</CssParameter>\n'
-    
+
     # Add line join style (using integer values for compatibility)
     if pen_join_style is not None:
         try:
-            # Qt.MiterJoin=0, Qt.BevelJoin=64, Qt.RoundJoin=128
+            # Qt.PenJoinStyle.MiterJoin=0, Qt.PenJoinStyle.BevelJoin=64, Qt.PenJoinStyle.RoundJoin=128
             join_val = int(pen_join_style)
             if join_val == 64:  # BevelJoin
-                stroke_params += f'    <CssParameter name="stroke-linejoin">bevel</CssParameter>\n'
+                stroke_params += '    <CssParameter name="stroke-linejoin">bevel</CssParameter>\n'
             elif join_val == 128:  # RoundJoin
-                stroke_params += f'    <CssParameter name="stroke-linejoin">round</CssParameter>\n'
+                stroke_params += '    <CssParameter name="stroke-linejoin">round</CssParameter>\n'
             elif join_val == 0:  # MiterJoin
-                stroke_params += f'    <CssParameter name="stroke-linejoin">mitre</CssParameter>\n'
-        except Exception:
+                stroke_params += '    <CssParameter name="stroke-linejoin">mitre</CssParameter>\n'
+        except Exception:  # nosec B110  # 設計上の許容
             pass
-    
+
     # Add line cap style (using integer values for compatibility)
     if pen_cap_style is not None:
         try:
-            # Qt.FlatCap=0, Qt.SquareCap=16, Qt.RoundCap=32
+            # Qt.PenCapStyle.FlatCap=0, Qt.PenCapStyle.SquareCap=16, Qt.PenCapStyle.RoundCap=32
             cap_val = int(pen_cap_style)
             if cap_val == 0:  # FlatCap
-                stroke_params += f'    <CssParameter name="stroke-linecap">butt</CssParameter>\n'
+                stroke_params += '    <CssParameter name="stroke-linecap">butt</CssParameter>\n'
             elif cap_val == 16:  # SquareCap
-                stroke_params += f'    <CssParameter name="stroke-linecap">square</CssParameter>\n'
+                stroke_params += '    <CssParameter name="stroke-linecap">square</CssParameter>\n'
             elif cap_val == 32:  # RoundCap
-                stroke_params += f'    <CssParameter name="stroke-linecap">round</CssParameter>\n'
-        except Exception:
+                stroke_params += '    <CssParameter name="stroke-linecap">round</CssParameter>\n'
+        except Exception:  # nosec B110  # 設計上の許容
             pass
-    
+
     # Add dash pattern (using integer values for compatibility)
     if pen_style is not None:
         try:
-            # Qt.SolidLine=1, Qt.DashLine=2, Qt.DotLine=3, Qt.DashDotLine=4, Qt.DashDotDotLine=5
+            # Qt.PenStyle.SolidLine=1, Qt.PenStyle.DashLine=2, Qt.PenStyle.DotLine=3, Qt.PenStyle.DashDotLine=4, Qt.PenStyle.DashDotDotLine=5
             style_val = int(pen_style)
             if style_val == 2:  # DashLine
-                stroke_params += f'    <CssParameter name="stroke-dasharray">5 2</CssParameter>\n'
+                stroke_params += '    <CssParameter name="stroke-dasharray">5 2</CssParameter>\n'
             elif style_val == 3:  # DotLine
-                stroke_params += f'    <CssParameter name="stroke-dasharray">1 2</CssParameter>\n'
+                stroke_params += '    <CssParameter name="stroke-dasharray">1 2</CssParameter>\n'
             elif style_val == 4:  # DashDotLine
-                stroke_params += f'    <CssParameter name="stroke-dasharray">5 2 1 2</CssParameter>\n'
+                stroke_params += '    <CssParameter name="stroke-dasharray">5 2 1 2</CssParameter>\n'
             elif style_val == 5:  # DashDotDotLine
-                stroke_params += f'    <CssParameter name="stroke-dasharray">5 2 1 2 1 2</CssParameter>\n'
-        except Exception:
+                stroke_params += '    <CssParameter name="stroke-dasharray">5 2 1 2 1 2</CssParameter>\n'
+        except Exception:  # nosec B110  # 設計上の許容
             pass
-    
+
     return stroke_params
 
 
@@ -373,9 +373,9 @@ def _symbol_to_symbolizer(symbol, geom_type: str) -> str:
                 f'📋 Symbol properties for {geom_type}: '
                 f'stroke_color={stroke_color}, stroke_width={stroke_width}, '
                 f'pen_join_style={pen_join_style}, pen_cap_style={pen_cap_style}, pen_style={pen_style}',
-                'geo_webview', Qgis.Info
+                'geo_webview', Qgis.MessageLevel.Info
             )
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
 
         # convert QColor-like to hex if possible
@@ -397,7 +397,7 @@ def _symbol_to_symbolizer(symbol, geom_type: str) -> str:
                 size = 6
             fc = _escape_xml(fill_color or '#000000')
             sc = _escape_xml(stroke_color or '#000000')
-            
+
             # Determine WellKnownName from point_shape
             well_known_name = 'circle'  # default
             if point_shape is not None:
@@ -416,9 +416,9 @@ def _symbol_to_symbolizer(symbol, geom_type: str) -> str:
                     }
                     if point_shape in shape_map:
                         well_known_name = shape_map[point_shape]
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
-            
+
             return (
                 f'<PointSymbolizer>\n'
                 f'  <Graphic>\n'
@@ -450,7 +450,7 @@ def _symbol_to_symbolizer(symbol, geom_type: str) -> str:
 
         # Polygon
         fo = opacity if (opacity is not None) else 1.0
-        
+
         # Check if the fill should be included (ブラシなし detection)
         # has_brush was determined earlier by checking brushStyle and alpha
         has_fill = bool(has_brush) and (fill_color is not None) and (fo is None or float(fo) > 0)
@@ -459,24 +459,24 @@ def _symbol_to_symbolizer(symbol, geom_type: str) -> str:
             from qgis.core import QgsMessageLog, Qgis
             QgsMessageLog.logMessage(
                 f"🧪 Polygon fill decision: fill_color={fill_color}, opacity={opacity}, has_brush={has_brush}, has_fill={has_fill}",
-                "geo_webview", Qgis.Info
+                "geo_webview", Qgis.MessageLevel.Info
             )
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
         # fill-opacityが0ならhas_fill=False
         if has_fill and opacity is not None:
             try:
                 if float(opacity) == 0:
                     has_fill = False
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
 
         # Build stroke parameters using common function (always build for both branches)
         stroke_params = _build_stroke_params(
-            stroke_color, stroke_width or 1, stroke_opacity, 
+            stroke_color, stroke_width or 1, stroke_opacity,
             pen_join_style, pen_cap_style, pen_style
         )
-        
+
         # Build PolygonSymbolizer with conditional Fill
         if has_fill:
             fc = _escape_xml(fill_color)
@@ -565,7 +565,7 @@ def renderer_to_sld(layer, layer_name: Optional[str] = None) -> str:
     if renderer is None:
         # trivial default
         from qgis.core import QgsMessageLog, Qgis
-        QgsMessageLog.logMessage(f"No renderer for layer {ln}, returning default SLD", "geo_webview", Qgis.Warning)
+        QgsMessageLog.logMessage(f"No renderer for layer {ln}, returning default SLD", "geo_webview", Qgis.MessageLevel.Warning)
         return _sld_header(ln) + _rule_xml('default', None, _symbol_to_symbolizer(None, 'Polygon')) + _sld_footer()
 
     rules = []
@@ -574,7 +574,7 @@ def renderer_to_sld(layer, layer_name: Optional[str] = None) -> str:
         # Single symbol
         if isinstance(renderer, QgsSingleSymbolRenderer):
             sym = renderer.symbol()
-            geom = getattr(sym, 'geometryType', None)
+            _ = getattr(sym, 'geometryType', None)
             # fallback: try to guess from layer geometry
             gtype = 'Polygon'
             try:
@@ -584,7 +584,7 @@ def renderer_to_sld(layer, layer_name: Optional[str] = None) -> str:
                     gtype = 'LineString'
                 else:
                     gtype = 'Polygon'
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
             rules.append((_escape_xml('default'), None, _symbol_to_symbolizer(sym, gtype)))
 
@@ -611,11 +611,11 @@ def renderer_to_sld(layer, layer_name: Optional[str] = None) -> str:
                             gtype = 'Point'
                         elif layer.geometryType() == 1:
                             gtype = 'LineString'
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
                     filt = _filter_equal(field, val) if field else None
                     rules.append((label, filt, _symbol_to_symbolizer(sym, gtype)))
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
 
         # Graduated
@@ -639,7 +639,7 @@ def renderer_to_sld(layer, layer_name: Optional[str] = None) -> str:
                             gtype = 'Point'
                         elif layer.geometryType() == 1:
                             gtype = 'LineString'
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
                     filt = None
                     if field:
@@ -648,13 +648,14 @@ def renderer_to_sld(layer, layer_name: Optional[str] = None) -> str:
                         upper = r.upperValue()
                         filt = _filter_range(field, lower, upper)
                     rules.append((lab, filt, _symbol_to_symbolizer(sym, gtype)))
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
 
         # Rule based
         elif isinstance(renderer, QgsRuleBasedRenderer):
             try:
                 root = renderer.rootRule()
+
                 def walk(rule):
                     res = []
                     # rule may have a symbol
@@ -686,7 +687,7 @@ def renderer_to_sld(layer, layer_name: Optional[str] = None) -> str:
                             gtype = 'Point'
                         elif layer.geometryType() == 1:
                             gtype = 'LineString'
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
                     if sym is not None:
                         res.append((label, filt, _symbol_to_symbolizer(sym, gtype)))
@@ -694,13 +695,13 @@ def renderer_to_sld(layer, layer_name: Optional[str] = None) -> str:
                     try:
                         for child in rule.children():
                             res.extend(walk(child))
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
                     return res
 
                 for child in root.children():
                     rules.extend(walk(child))
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
 
         # Fallback: try symbolForFeature via renderer if nothing produced
@@ -719,10 +720,10 @@ def renderer_to_sld(layer, layer_name: Optional[str] = None) -> str:
                         gtype = 'Point'
                     elif layer.geometryType() == 1:
                         gtype = 'LineString'
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 rules.append(('default', None, _symbol_to_symbolizer(sym, gtype)))
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
 
     except Exception:

@@ -285,6 +285,31 @@
           </property>
          </widget>
         </item>
+        <item>
+         <widget class="QPushButton" name="pushButton_kasugai">
+          <property name="text">
+           <string>KASUGAI</string>
+          </property>
+          <property name="enabled">
+           <bool>true</bool>
+          </property>
+          <property name="toolTip">
+           <string>Export visible layers (GeoJSON + .qml styles) as a KASUGAI Canvas project and open it in KASUGAI</string>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>80</width>
+            <height>25</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>100</width>
+            <height>25</height>
+           </size>
+          </property>
+         </widget>
+        </item>
        </layout>
       </item>
      </layout>

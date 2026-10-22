@@ -1,0 +1,36 @@
+{
+  "Dialog": {
+    "Could not find corresponding entry to remove.": "Не удалось найти соответствующую запись для удаления.",
+    "Failed to read the JSON file: {0}": "Не удалось прочитать файл JSON: {0}",
+    "Failed to update JSON file: {0}": "Не удалось обновить файл JSON: {0}",
+    "JSON file has unsupported structure; expected {'SearchTabs': [...]} or an array.": "Файл JSON имеет неподдерживаемую структуру; ожидалось {'SearchTabs': [...]} или массив.",
+    "Not found": "Не найдено",
+    "Read error": "Ошибка чтения",
+    "Unsupported format": "Неподдерживаемый формат",
+    "Write error": "Ошибка записи"
+  },
+  "SearchWidget": {
+    "Angle (deg):": "Угол (град):",
+    "Angle: Not specified": "Угол: не указан",
+    "Angle: {0}": "Угол: {0}",
+    "Angle: {0}°": "Угол: {0}°",
+    "Edit Tab Settings: {0}": "Редактировать параметры вкладки: {0}",
+    "Exact Match": "Точное совпадение",
+    "Forward Match": "Совпадение по префиксу",
+    "Fuzzy Search": "Нечёткий поиск",
+    "Geo Search: ": "Гео-поиск: ",
+    "OR search for multiple fields": "OR-поиск по нескольким полям",
+    "Owner Search": "Поиск владельца",
+    "Partial Match": "Частичное совпадение",
+    "Results": "Результаты",
+    "Scale:": "Масштаб:",
+    "Scale: Not specified": "Масштаб: не указан",
+    "Scale: {0}": "Масштаб: {0}",
+    "Search Results: {0} items": "Результаты поиска: {0} элементов",
+    "Search all fields": "Искать по всем полям",
+    "Set current value": "Установить текущее значение"
+  },
+  "plugin": {
+    "Geo Search": "Гео поиск"
+  }
+}

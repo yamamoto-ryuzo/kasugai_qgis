@@ -7,7 +7,41 @@ is constructed with simple string concatenation to avoid brace-escaping
 issues when embedding JavaScript.
 """
 
+import math
+import os
 from typing import Any, Dict
+
+try:
+    from .i18n_json import translate_text as _translate_text, lang_code as _lang_code
+except Exception:  # QGIS外・直接import時のフォールバック
+    _translate_text = None
+    _lang_code = None
+
+
+def _pt(source: str) -> str:
+    """生成HTML用の文字列を geo_webview.page カタログから翻訳する。"""
+    if _translate_text is None:
+        return source
+    try:
+        return _translate_text(os.path.dirname(os.path.abspath(__file__)), 'geo_webview.page', source)
+    except Exception:
+        return source
+
+
+def _ptj(source: str) -> str:
+    """_pt の結果を JS 文字列リテラル(クォート込み)として返す。"""
+    try:
+        import json
+        return json.dumps(_pt(source), ensure_ascii=False)
+    except Exception:
+        return '""'
+
+
+def _page_lang() -> str:
+    try:
+        return _lang_code() if _lang_code is not None else 'en'
+    except Exception:
+        return 'en'
 
 
 # Safe logging: prefer QGIS message log when available, fallback to print
@@ -16,19 +50,19 @@ def _qmp_log(msg: str, level='INFO'):
         # QGIS 3.x: use QgsMessageLog or Qgis
         try:
             from qgis.core import QgsMessageLog, Qgis
-            sev = Qgis.Info
+            sev = Qgis.MessageLevel.Info
             if isinstance(level, str):
                 lvl = level.upper()
                 if lvl == 'WARN' or lvl == 'WARNING':
-                    sev = Qgis.Warning
+                    sev = Qgis.MessageLevel.Warning
                 elif lvl == 'ERROR':
-                    sev = Qgis.Critical
+                    sev = Qgis.MessageLevel.Critical
             try:
                 QgsMessageLog.logMessage(str(msg), 'QMapPermalink', sev)
                 return
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             # cannot import qgis.core here
             pass
         # fallback to QgsApplication.messageLog if present
@@ -37,14 +71,14 @@ def _qmp_log(msg: str, level='INFO'):
             if hasattr(qgis, 'utils'):
                 print(msg)
                 return
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
-    except Exception:
+    except Exception:  # nosec B110  # 設計上の許容
         pass
     # final fallback
     try:
         print(msg)
-    except Exception:
+    except Exception:  # nosec B110  # 設計上の許容
         pass
 
 
@@ -58,6 +92,249 @@ class QMapWebMapGenerator:
 
     def __init__(self, owner: Any = None):
         self.owner = owner
+
+    # ----------------------------------------------------------------------
+    # OpenLayers + Cesium 2画面3Dページ
+    # ----------------------------------------------------------------------
+    def generate_ol_cesium_page(self, navigation_data: Dict[str, Any], server_host: str = 'localhost:8089') -> str:
+        """左にOpenLayers(2D)・右にCesium(3D)を並べた同期ビューページを生成する。
+
+        OL側は /wms の ImageWMS ソース、Cesium側は OSM 背景 + /wms の
+        WebMapServiceImageryProvider オーバーレイ。どちらかのビューが動いた場合、
+        500ms周期で反対側へ位置/ズーム/回転を同期する。
+        navigation_data: x3857/y3857/lon/lat/scale/rotation/zoom を持つdict
+        """
+        try:
+            from .scale_zoom import estimate_zoom_from_scale_maplibre
+        except Exception:
+            estimate_zoom_from_scale_maplibre = None
+
+        # 中心座標(EPSG:3857 / EPSG:4326)
+        x3857 = navigation_data.get('x3857')
+        y3857 = navigation_data.get('y3857')
+        lon = navigation_data.get('lon')
+        lat = navigation_data.get('lat')
+        if x3857 is None or y3857 is None:
+            x3857 = float(navigation_data.get('x') or 0.0)
+            y3857 = float(navigation_data.get('y') or 0.0)
+        if lon is None or lat is None:
+            # EPSG:3857 -> EPSG:4326 の近似逆算
+            lon = math.degrees(float(x3857) / 6378137.0)
+            lat = math.degrees(
+                2.0 * math.atan(math.exp(float(y3857) / 6378137.0))
+                - math.pi / 2.0)
+        scale = navigation_data.get('scale') or 10000
+        zoom = navigation_data.get('zoom')
+        if zoom is None:
+            if estimate_zoom_from_scale_maplibre is not None:
+                zoom = estimate_zoom_from_scale_maplibre(scale)
+            else:
+                zoom = math.log(591657527.591555 / float(scale), 2) - 1
+        rotation_deg = float(navigation_data.get('rotation') or 0.0)
+        rotation_rad = -rotation_deg * math.pi / 180.0
+
+        # scale[m/px換算] -> Cesiumの概算カメラ高さ(FOV=60deg, viewport高600px想定)
+        res = float(scale) * 0.00028
+        height = res * 600.0 / (2.0 * math.tan(math.radians(30.0)))
+        height = max(50.0, min(height, 20000000.0))
+
+        wms_base = 'http://{0}/wms'.format(server_host)
+
+        html_page = u'''<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="initial-scale=1"/>
+<title>geo_webview - OpenLayers + Cesium 3D</title>
+<link rel="stylesheet" href="https://unpkg.com/ol@8.1.0/ol.css"/>
+<script>window.CESIUM_BASE_URL = 'https://unpkg.com/cesium@1.120.0/Build/Cesium/';</script>
+<script src="https://unpkg.com/cesium@1.120.0/Build/Cesium/Cesium.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/cesium@1.120.0/Build/Cesium/Widgets/widgets.css"/>
+<style>
+html,body{{margin:0;padding:0;height:100%;overflow:hidden}}
+#wrap{{display:flex;height:100%;width:100%}}
+#olmap{{flex:1 1 50%;position:relative}}
+#cesium{{flex:1 1 50%;position:relative}}
+#divider{{width:4px;background:#444}}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="olmap"></div>
+  <div id="divider"></div>
+  <div id="cesium"></div>
+</div>
+<script src="https://unpkg.com/ol@8.1.0/dist/ol.js"></script>
+<script>
+(function(){{
+  var X3857 = {x3857}, Y3857 = {y3857};
+  var LON = {lon}, LAT = {lat};
+  var ZOOM = {zoom}, ROT = {rot_rad};
+  var HEIGHT = {height};
+  var WMS = '{wms}';
+
+  // ---- OpenLayers (2D) ----
+  var wmsSource = new ol.source.ImageWMS({{
+    url: WMS,
+    params: {{LAYERS: ''}},
+    ratio: 1,
+    serverType: 'qgis'
+  }});
+  var map = new ol.Map({{
+    target: 'olmap',
+    layers: [new ol.layer.Image({{source: wmsSource}})],
+    view: new ol.View({{
+      center: [X3857, Y3857],
+      zoom: ZOOM,
+      rotation: ROT,
+      projection: 'EPSG:3857'
+    }})
+  }});
+  window.qmap_ol_map = map;
+
+  // ---- Cesium (3D) ----
+  var viewer = null;
+  try {{
+    viewer = new Cesium.Viewer('cesium', {{
+      baseLayer: new Cesium.ImageryLayer(
+        new Cesium.UrlTemplateImageryProvider({{
+          url: 'https://tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png'
+        }})),
+      baseLayerPicker: false, geocoder: false, timeline: false,
+      animation: false, sceneModePicker: false,
+      navigationHelpButton: false, homeButton: false,
+      fullscreenButton: false, infoBox: false
+    }});
+  }} catch (e) {{
+    try {{
+      viewer = new Cesium.Viewer('cesium', {{
+        imageryProvider: new Cesium.UrlTemplateImageryProvider({{
+          url: 'https://tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png'
+        }}),
+        baseLayerPicker: false, geocoder: false, timeline: false,
+        animation: false, sceneModePicker: false
+      }});
+    }} catch (e2) {{ viewer = null; }}
+  }}
+  window.qmap_cesium_viewer = viewer;
+
+  if (viewer) {{
+    // QGIS WMS を3D側へオーバーレイ
+    try {{
+      var provider = new Cesium.WebMapServiceImageryProvider({{
+        url: WMS,
+        layers: '',
+        parameters: {{TRANSPARENT: 'TRUE', FORMAT: 'image/png'}},
+        tileWidth: 512, tileHeight: 512
+      }});
+      viewer.imageryLayers.addImageryProvider(provider);
+    }} catch (e) {{}}
+    // 初期カメラ位置
+    try {{
+      viewer.camera.setView({{
+        destination: Cesium.Cartesian3.fromDegrees(LON, LAT, HEIGHT),
+        orientation: {{
+          heading: -ROT,
+          pitch: -Cesium.Math.PI_OVER_TWO,
+          roll: 0.0
+        }}
+      }});
+    }} catch (e) {{}}
+  }}
+
+  // ---- 双方向同期 (500ms周期、変更があった側を正とする) ----
+  var lastOl = {{c: null, z: null, r: null}};
+  var lastCe = {{lon: null, lat: null, h: null, heading: null}};
+  var applying = false;
+
+  function olSnapshot() {{
+    var v = map.getView();
+    var c = v.getCenter() || [X3857, Y3857];
+    return {{c: c, z: v.getZoom(), r: v.getRotation()}};
+  }}
+  function ceSnapshot() {{
+    if (!viewer) return null;
+    var p = viewer.camera.positionCartographic;
+    return {{
+      lon: Cesium.Math.toDegrees(p.longitude),
+      lat: Cesium.Math.toDegrees(p.latitude),
+      h: p.height,
+      heading: viewer.camera.heading
+    }};
+  }}
+  function eqOl(a, b) {{
+    return a && b && Math.abs(a.c[0]-b.c[0]) < 1e-6 &&
+           Math.abs(a.c[1]-b.c[1]) < 1e-6 &&
+           Math.abs(a.z-b.z) < 1e-6 && Math.abs(a.r-b.r) < 1e-9;
+  }}
+  function eqCe(a, b) {{
+    return a && b && Math.abs(a.lon-b.lon) < 1e-9 &&
+           Math.abs(a.lat-b.lat) < 1e-9 &&
+           Math.abs(a.h-b.h) < 1e-3 && Math.abs(a.heading-b.heading) < 1e-9;
+  }}
+
+  function pushToCesium(s) {{
+    if (!viewer) return;
+    applying = true;
+    try {{
+      var lon = s.c[0] / 20037508.34 * 180.0;
+      var lat = Math.atan(Math.exp(s.c[1] / 20037508.34 * Math.PI)) *
+                360.0 / Math.PI - 90.0;
+      var res = 156543.03392 / Math.pow(2, s.z);
+      var h = res * 600.0 / (2.0 * Math.tan(Math.PI / 6.0));
+      h = Math.max(50, Math.min(h, 20000000));
+      viewer.camera.setView({{
+        destination: Cesium.Cartesian3.fromDegrees(lon, lat, h),
+        orientation: {{
+          heading: -s.r,
+          pitch: -Cesium.Math.PI_OVER_TWO,
+          roll: 0.0
+        }}
+      }});
+      lastCe = ceSnapshot();
+    }} catch (e) {{}}
+    applying = false;
+  }}
+  function pushToOl(s) {{
+    applying = true;
+    try {{
+      var x = s.lon * 20037508.34 / 180.0;
+      var y = Math.log(Math.tan((90 + s.lat) * Math.PI / 360.0)) /
+              (Math.PI / 180.0);
+      y = y * 20037508.34 / 180.0;
+      var res = s.h * (2.0 * Math.tan(Math.PI / 6.0)) / 600.0;
+      var z = Math.log(156543.03392 / res) / Math.LN2;
+      z = Math.max(0, Math.min(z, 24));
+      var v = map.getView();
+      v.setCenter([x, y]);
+      v.setZoom(z);
+      v.setRotation(-s.heading);
+      lastOl = olSnapshot();
+    }} catch (e) {{}}
+    applying = false;
+  }}
+
+  setInterval(function() {{
+    if (applying) return;
+    var ol = olSnapshot();
+    var ce = ceSnapshot();
+    if (!eqOl(ol, lastOl) && lastOl.c !== null) {{
+      pushToCesium(ol); lastOl = olSnapshot();
+    }} else if (ce && lastCe.lon !== null && !eqCe(ce, lastCe)) {{
+      pushToOl(ce); lastCe = ceSnapshot();
+    }} else {{
+      lastOl = ol; if (ce) lastCe = ce;
+    }}
+  }}, 500);
+  lastOl = olSnapshot();
+  if (viewer) lastCe = ceSnapshot();
+}})();
+</script>
+</body>
+</html>'''.format(
+            x3857=x3857, y3857=y3857, lon=lon, lat=lat,
+            zoom=zoom, rot_rad=rotation_rad, height=height, wms=wms_base)
+        return html_page
 
     def generate_wms_based_html_page(self, navigation_data: Dict[str, Any], image_width: int = 800, image_height: int = 600, server_port: int = 8089) -> str:
         """Return a minimal OpenLayers HTML page assuming EPSG:3857.
@@ -87,31 +364,19 @@ class QMapWebMapGenerator:
             if hasattr(self, 'owner') and self.owner is not None and hasattr(self.owner, 'tr'):
                 try:
                     prompt_text = self.owner.tr(prompt_text)
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 try:
                     prompt_theme_text = self.owner.tr(prompt_theme_text)
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
             else:
-                # fallback to QCoreApplication translation if Qt is available
+                # fallback to QCoreApplication translation
                 try:
-                    import importlib
-                    qt_core = None
-                    try:
-                        qt_core = importlib.import_module('PyQt5.QtCore')
-                    except Exception:
-                        try:
-                            qt_core = importlib.import_module('PySide2.QtCore')
-                        except Exception:
-                            qt_core = None
-                    if qt_core is not None and hasattr(qt_core, 'QCoreApplication'):
-                        QCoreApplication = getattr(qt_core, 'QCoreApplication')
-                        try:
-                            prompt_text = QCoreApplication.translate('geo_webview', prompt_text)
-                        except Exception:
-                            pass
-                except Exception:
+                    from qgis.PyQt.QtCore import QCoreApplication
+                    prompt_text = QCoreApplication.translate('geo_webview', prompt_text)
+                    prompt_theme_text = QCoreApplication.translate('geo_webview', prompt_theme_text)
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
         except Exception:
             # best effort only
@@ -144,7 +409,7 @@ class QMapWebMapGenerator:
                 for t in themes:
                     try:
                         themes_options += f"<option value=\"{_html_mod.escape(str(t))}\">{_html_mod.escape(str(t))}</option>"
-                    except Exception:
+                    except Exception:  # nosec B112  # 設計上の許容
                         continue
 
             bookmarks_options = ''
@@ -164,7 +429,7 @@ class QMapWebMapGenerator:
                             except Exception:
                                 val = ''
                             bookmarks_options += f"<option value=\"{_html_mod.escape(val)}\">{_html_mod.escape(name)}</option>"
-                        except Exception:
+                        except Exception:  # nosec B112  # 設計上の許容
                             continue
             except Exception:
                 bookmarks_options = ''
@@ -220,6 +485,7 @@ class QMapWebMapGenerator:
                 _display_crs = navigation_data.get('display_crs') or navigation_data.get('displayCRS') or navigation_data.get('display_epsg') or None
             except Exception:
                 _display_crs = None
+
             def _norm_code(v):
                 if v is None:
                     return None
@@ -257,11 +523,12 @@ class QMapWebMapGenerator:
                                     ac = None
                                 if ac:
                                     codes_to_embed.add(ac)
-                        except Exception:
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 # function to get proj4 from QgsCoordinateReferenceSystem
+
                 def _crs_to_proj4(code):
                     try:
                         crs = qgc.QgsCoordinateReferenceSystem(code)
@@ -318,13 +585,13 @@ class QMapWebMapGenerator:
                                     if axis_order == 'unknown' and ('longlat' in s or '+proj=longlat' in s or 'GEOGCS' in s):
                                         # conservative fallback: assume latitude/longitude order (yx)
                                         axis_order = 'yx'
-                                except Exception:
+                                except Exception:  # nosec B110  # 設計上の許容
                                     pass
                                 server_proj_meta[code] = {'axis_order': axis_order}
                             except Exception:
                                 try:
                                     server_proj_meta[code] = {'axis_order': 'unknown'}
-                                except Exception:
+                                except Exception:  # nosec B110  # 設計上の許容
                                     pass
                             try:
                                 # classify whether this looks like a proj4 string or WKT
@@ -333,21 +600,21 @@ class QMapWebMapGenerator:
                                     _qmp_log(f"[QMapPermalink] Found proj4 for {code}: {s}")
                                 else:
                                     # fallback: print WKT
-                                    _qmp_log(f"[QMapPermalink] Found WKT for {code}: {s[:200]}{'...' if len(s)>200 else ''}")
+                                    _qmp_log(f"[QMapPermalink] Found WKT for {code}: {s[:200]}{'...' if len(s) > 200 else ''}")
                             except Exception:
                                 try:
                                     _qmp_log(f"[QMapPermalink] Found definition for {code}")
-                                except Exception:
+                                except Exception:  # nosec B110  # 設計上の許容
                                     pass
                         else:
                             try:
                                 _qmp_log(f"[QMapPermalink] No proj4/WKT available for {code}")
-                            except Exception:
+                            except Exception:  # nosec B110  # 設計上の許容
                                 pass
                     except Exception:
                         try:
                             _qmp_log(f"[QMapPermalink] Error obtaining definition for {code}", level='ERROR')
-                        except Exception:
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
                         continue
                 # additionally log the request's crs if present
@@ -365,14 +632,14 @@ class QMapWebMapGenerator:
                                         p2 = _crs_to_proj4(rc)
                                         if p2:
                                             s2 = str(p2).strip()
-                                            _qmp_log(f"[QMapPermalink] Requested CRS {rc} resolved ad-hoc: {s2[:200]}{'...' if len(s2)>200 else ''}")
+                                            _qmp_log(f"[QMapPermalink] Requested CRS {rc} resolved ad-hoc: {s2[:200]}{'...' if len(s2) > 200 else ''}")
                                         else:
                                             _qmp_log(f"[QMapPermalink] Requested CRS {rc} could not be resolved via PyQGIS")
                                     except Exception:
                                         _qmp_log(f"[QMapPermalink] Requested CRS {rc} resolution attempt failed", level='WARN')
-                        except Exception:
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 # Log project CRS authid (EPSG) for debugging (no UI impact)
                 try:
@@ -392,11 +659,11 @@ class QMapWebMapGenerator:
                                 if auth:
                                     try:
                                         _qmp_log(f'[QMapPermalink] Project CRS authid: {auth}')
-                                    except Exception:
+                                    except Exception:  # nosec B110  # 設計上の許容
                                         pass
-                        except Exception:
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
             except Exception:
                 # no qgis available; leave server_proj_defs empty
@@ -623,7 +890,7 @@ class QMapWebMapGenerator:
         # replace localhost port marker with actual port number
         try:
             js = js.replace('__QMP_LOCALHOST_PORT__', str(port))
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
 
         # Add a small rotate-cycle button under the OL rotate control that
@@ -639,7 +906,8 @@ class QMapWebMapGenerator:
             "    function findNearestIdx(deg){ var min=1e9; var idx=0; for(var i=0;i<angles.length;i++){ var a=angles[i]; var d1=Math.abs(a-deg); var d2=Math.abs(a-deg+360); var d3=Math.abs(a-deg-360); var dd=Math.min(d1,d2,d3); if(dd<min){ min=dd; idx=i; } } return {idx:idx, diff:min}; }\n"
             "    function applyAngle(a){ try{ var rad = a * Math.PI / 180; try{ map.getView().animate({ rotation: rad, duration: 200 }); }catch(e){ try{ map.getView().setRotation(rad); }catch(e){} } if(window.wmsSource && typeof window.wmsSource.updateParams === 'function'){ window.wmsSource.updateParams({ 'ANGLE': a }); window.wmsSource.refresh(); } try{ window._getSendAngle = function(){ return a; }; }catch(e){} }catch(e){} }\n"
             "    function ensureButton(){\n"
-            "      try{ var container = document.querySelector('.ol-rotate'); if(!container) return false; var btn = document.getElementById('qmp-rotate-cycle'); if(!btn){ btn = document.createElement('button'); btn.id = 'qmp-rotate-cycle'; btn.className = 'qmp-control'; btn.title = 'Rotate 0/90/180/270'; btn.textContent = '\u27f3'; btn.style.marginTop = '6px'; btn.style.padding = '4px 6px'; btn.style.fontSize = '12px'; btn.style.cursor = 'pointer'; container.parentNode.insertBefore(btn, container.nextSibling); } if(!btn._qmpAttached){ btn._qmpState = btn._qmpState || { lastIdx: null }; btn.addEventListener('click', function(){ try{ var view = map.getView(); var rad = 0; try{ rad = (typeof view.getRotation === 'function') ? view.getRotation() : (view.getRotation ? view.getRotation() : 0); }catch(e){ try{ rad = view.getRotation(); }catch(e){ rad = 0; } } var deg = normDeg(toDeg(rad)); var nearest = findNearestIdx(deg); var nearestIdx = nearest.idx; var nearestDiff = nearest.diff; var tol = 0.0001; if(nearestDiff <= tol){ // already at grid angle -> advance to next\n var next = (nearestIdx + 1) % angles.length; applyAngle(angles[next]); btn._qmpState.lastIdx = next; } else { // not on-grid -> snap to nearest unless last click already snapped to same nearest\n if(btn._qmpState.lastIdx === nearestIdx){ var next2 = (nearestIdx + 1) % angles.length; applyAngle(angles[next2]); btn._qmpState.lastIdx = next2; } else { applyAngle(angles[nearestIdx]); btn._qmpState.lastIdx = nearestIdx; } } }catch(e){} }); btn._qmpAttached = true; } return true; }catch(e){ return false; }\n"
+            "      try{ var container = document.querySelector('.ol-rotate'); if(!container) return false; var btn = document.getElementById('qmp-rotate-cycle'); if(!btn){ btn = document.createElement('button'); btn.id = 'qmp-rotate-cycle'; btn.className = 'qmp-control'; btn.title = " + _ptj(
+                'Rotate 0/90/180/270') + "; btn.textContent = '\u27f3'; btn.style.marginTop = '6px'; btn.style.padding = '4px 6px'; btn.style.fontSize = '12px'; btn.style.cursor = 'pointer'; container.parentNode.insertBefore(btn, container.nextSibling); } if(!btn._qmpAttached){ btn._qmpState = btn._qmpState || { lastIdx: null }; btn.addEventListener('click', function(){ try{ var view = map.getView(); var rad = 0; try{ rad = (typeof view.getRotation === 'function') ? view.getRotation() : (view.getRotation ? view.getRotation() : 0); }catch(e){ try{ rad = view.getRotation(); }catch(e){ rad = 0; } } var deg = normDeg(toDeg(rad)); var nearest = findNearestIdx(deg); var nearestIdx = nearest.idx; var nearestDiff = nearest.diff; var tol = 0.0001; if(nearestDiff <= tol){ // already at grid angle -> advance to next\n var next = (nearestIdx + 1) % angles.length; applyAngle(angles[next]); btn._qmpState.lastIdx = next; } else { // not on-grid -> snap to nearest unless last click already snapped to same nearest\n if(btn._qmpState.lastIdx === nearestIdx){ var next2 = (nearestIdx + 1) % angles.length; applyAngle(angles[next2]); btn._qmpState.lastIdx = next2; } else { applyAngle(angles[nearestIdx]); btn._qmpState.lastIdx = nearestIdx; } } }catch(e){} }); btn._qmpAttached = true; } return true; }catch(e){ return false; }\n"
             "    }\n"
             "    if(!ensureButton()){ try{ document.addEventListener('DOMContentLoaded', function(){ try{ ensureButton(); }catch(e){} }); }catch(e){} }\n"
             "  }catch(e){}\n"
@@ -648,57 +916,57 @@ class QMapWebMapGenerator:
 
         # Append bookmark population and interaction script
         js += (
-                "(function(){\n"
-                "  try{\n"
-                "    var themeSel = document.getElementById('qmp-themes');\n"
-                "    try{ var urlParams = (typeof URLSearchParams !== 'undefined') ? new URLSearchParams(window.location.search) : null; }catch(e){ urlParams = null; }\n"
-                "    if(themeSel && Array.isArray(themes) && themes.length){\n"
-                "      try{\n"
-                "        // Avoid duplicating options when server-side already rendered them.\n"
-                "        // If only the prompt option exists (or none), append client-side; otherwise skip.\n"
-                "        if(typeof themeSel.options === 'undefined' || themeSel.options.length <= 1){\n"
-                "          themes.forEach(function(t){ try{ var opt = document.createElement('option'); opt.value = t; opt.text = t; themeSel.appendChild(opt);}catch(e){} });\n"
-                "        }\n"
-                "      }catch(e){}\n"
-                "      try{ var initialTheme = urlParams ? urlParams.get('theme') : null; if(initialTheme && Array.isArray(themes) && themes.indexOf(initialTheme) !== -1){ themeSel.value = initialTheme; if(window.wmsSource && typeof window.wmsSource.updateParams === 'function'){ window.wmsSource.updateParams({ 'theme': initialTheme, 'ANGLE': (typeof _getSendAngle === 'function' ? _getSendAngle() : (typeof rotationDeg !== 'undefined' ? rotationDeg : 0)) }); } } }catch(e){}\n"
-                "      themeSel.addEventListener('change', function(){\n"
-                "        try{\n"
-                "          var sel = this.value;\n"
-                "          if(window.wmsSource && typeof window.wmsSource.updateParams === 'function'){\n"
-                "            if(sel && sel !== '__prompt'){\n"
-                "              window.wmsSource.updateParams({ 'theme': sel, 'ANGLE': (typeof _getSendAngle === 'function' ? _getSendAngle() : (typeof rotationDeg !== 'undefined' ? rotationDeg : 0)) });\n"
-                "            } else {\n"
-                "              window.wmsSource.updateParams({ 'ANGLE': (typeof _getSendAngle === 'function' ? _getSendAngle() : (typeof rotationDeg !== 'undefined' ? rotationDeg : 0)) });\n"
-                "            }\n"
-                "            window.wmsSource.refresh();\n"
-                "          }\n"
-                "          try{\n"
-                "            if(urlParams){\n"
-                "              if(sel && sel !== '__prompt') urlParams.set('theme', sel);\n"
-                "              else urlParams.delete('theme');\n"
-                "              var search = urlParams.toString();\n"
-                "              var newUrl = window.location.origin + window.location.pathname + (search ? ('?' + search) : '') + window.location.hash;\n"
-                "              if(window.history && typeof window.history.replaceState === 'function'){\n"
-                "                window.history.replaceState(null, '', newUrl);\n"
-                "              }\n"
-                "            }\n"
-                "          }catch(e){}\n"
-                "        }catch(e){}\n"
-                "      });\n"
-                "    }\n"
-                "    var sel = document.getElementById('qmp-bookmarks');\n"
-                "    if(sel && Array.isArray(bookmarks) && bookmarks.length){\n"
-                "      try{\n"
-                "        // If server-side already rendered bookmark options (prompt + Home etc.), avoid adding duplicates.\n"
-                "        if(typeof sel.options === 'undefined' || sel.options.length <= 2){\n"
-                "          bookmarks.forEach(function(b,i){ try{ var opt = document.createElement('option'); opt.value = i; opt.text = b.name || ('Bookmark ' + (i+1)); sel.appendChild(opt);}catch(e){} });\n"
-                "        }\n"
-                "      }catch(e){}\n"
-                "      sel.addEventListener('change', function(){ try{ if(this.value === '__home' || this.value === '__prompt'){ map.getView().animate({ center: [inputX, inputY], duration: 600 }); } else { var idx = parseInt(this.value); var b = bookmarks[idx]; if(b){ var bx = parseFloat(b.x || b.orig_x || b.lon || b.lng || 0); var by = parseFloat(b.y || b.orig_y || b.lat || 0); if(isFinite(bx) && isFinite(by)){ map.getView().animate({ center: [bx, by], duration: 600 }); try{ if(window.wmsSource && typeof window.wmsSource.updateParams === 'function'){ var up = { 'x': bx, 'y': by, 'crs': 'EPSG:3857', 'ANGLE': (typeof _getSendAngle === 'function' ? _getSendAngle() : (typeof rotationDeg !== 'undefined' ? rotationDeg : 0)) }; try{ if(typeof mapScale !== 'undefined' && mapScale !== null) up.scale = mapScale; }catch(e){} try{ var currentTheme = (document.getElementById('qmp-themes') ? document.getElementById('qmp-themes').value : null); if(currentTheme && currentTheme !== '__prompt'){ up.theme = currentTheme; } }catch(e){} window.wmsSource.updateParams(up); window.wmsSource.refresh(); } }catch(e){} } } } }catch(e){} try{ this.value = '__prompt'; }catch(e){} });\n"
-                "    }\n"
-                "  }catch(e){}\n"
-                "})();\n"
-            )
+            "(function(){\n"
+            "  try{\n"
+            "    var themeSel = document.getElementById('qmp-themes');\n"
+            "    try{ var urlParams = (typeof URLSearchParams !== 'undefined') ? new URLSearchParams(window.location.search) : null; }catch(e){ urlParams = null; }\n"
+            "    if(themeSel && Array.isArray(themes) && themes.length){\n"
+            "      try{\n"
+            "        // Avoid duplicating options when server-side already rendered them.\n"
+            "        // If only the prompt option exists (or none), append client-side; otherwise skip.\n"
+            "        if(typeof themeSel.options === 'undefined' || themeSel.options.length <= 1){\n"
+            "          themes.forEach(function(t){ try{ var opt = document.createElement('option'); opt.value = t; opt.text = t; themeSel.appendChild(opt);}catch(e){} });\n"
+            "        }\n"
+            "      }catch(e){}\n"
+            "      try{ var initialTheme = urlParams ? urlParams.get('theme') : null; if(initialTheme && Array.isArray(themes) && themes.indexOf(initialTheme) !== -1){ themeSel.value = initialTheme; if(window.wmsSource && typeof window.wmsSource.updateParams === 'function'){ window.wmsSource.updateParams({ 'theme': initialTheme, 'ANGLE': (typeof _getSendAngle === 'function' ? _getSendAngle() : (typeof rotationDeg !== 'undefined' ? rotationDeg : 0)) }); } } }catch(e){}\n"
+            "      themeSel.addEventListener('change', function(){\n"
+            "        try{\n"
+            "          var sel = this.value;\n"
+            "          if(window.wmsSource && typeof window.wmsSource.updateParams === 'function'){\n"
+            "            if(sel && sel !== '__prompt'){\n"
+            "              window.wmsSource.updateParams({ 'theme': sel, 'ANGLE': (typeof _getSendAngle === 'function' ? _getSendAngle() : (typeof rotationDeg !== 'undefined' ? rotationDeg : 0)) });\n"
+            "            } else {\n"
+            "              window.wmsSource.updateParams({ 'ANGLE': (typeof _getSendAngle === 'function' ? _getSendAngle() : (typeof rotationDeg !== 'undefined' ? rotationDeg : 0)) });\n"
+            "            }\n"
+            "            window.wmsSource.refresh();\n"
+            "          }\n"
+            "          try{\n"
+            "            if(urlParams){\n"
+            "              if(sel && sel !== '__prompt') urlParams.set('theme', sel);\n"
+            "              else urlParams.delete('theme');\n"
+            "              var search = urlParams.toString();\n"
+            "              var newUrl = window.location.origin + window.location.pathname + (search ? ('?' + search) : '') + window.location.hash;\n"
+            "              if(window.history && typeof window.history.replaceState === 'function'){\n"
+            "                window.history.replaceState(null, '', newUrl);\n"
+            "              }\n"
+            "            }\n"
+            "          }catch(e){}\n"
+            "        }catch(e){}\n"
+            "      });\n"
+            "    }\n"
+            "    var sel = document.getElementById('qmp-bookmarks');\n"
+            "    if(sel && Array.isArray(bookmarks) && bookmarks.length){\n"
+            "      try{\n"
+            "        // If server-side already rendered bookmark options (prompt + Home etc.), avoid adding duplicates.\n"
+            "        if(typeof sel.options === 'undefined' || sel.options.length <= 2){\n"
+            "          bookmarks.forEach(function(b,i){ try{ var opt = document.createElement('option'); opt.value = i; opt.text = b.name || ('Bookmark ' + (i+1)); sel.appendChild(opt);}catch(e){} });\n"
+            "        }\n"
+            "      }catch(e){}\n"
+            "      sel.addEventListener('change', function(){ try{ if(this.value === '__home' || this.value === '__prompt'){ map.getView().animate({ center: [inputX, inputY], duration: 600 }); } else { var idx = parseInt(this.value); var b = bookmarks[idx]; if(b){ var bx = parseFloat(b.x || b.orig_x || b.lon || b.lng || 0); var by = parseFloat(b.y || b.orig_y || b.lat || 0); if(isFinite(bx) && isFinite(by)){ map.getView().animate({ center: [bx, by], duration: 600 }); try{ if(window.wmsSource && typeof window.wmsSource.updateParams === 'function'){ var up = { 'x': bx, 'y': by, 'crs': 'EPSG:3857', 'ANGLE': (typeof _getSendAngle === 'function' ? _getSendAngle() : (typeof rotationDeg !== 'undefined' ? rotationDeg : 0)) }; try{ if(typeof mapScale !== 'undefined' && mapScale !== null) up.scale = mapScale; }catch(e){} try{ var currentTheme = (document.getElementById('qmp-themes') ? document.getElementById('qmp-themes').value : null); if(currentTheme && currentTheme !== '__prompt'){ up.theme = currentTheme; } }catch(e){} window.wmsSource.updateParams(up); window.wmsSource.refresh(); } }catch(e){} } } } }catch(e){} try{ this.value = '__prompt'; }catch(e){} });\n"
+            "    }\n"
+            "  }catch(e){}\n"
+            "})();\n"
+        )
 
         # Add button handlers that open external viewers (Google Maps / Google Earth)
         js += (
@@ -713,9 +981,10 @@ class QMapWebMapGenerator:
             "          lat = 180.0 / Math.PI * (2.0 * Math.atan(Math.exp(lat * Math.PI / 180.0)) - Math.PI / 2.0);\n"
             "          var zoom = view.getZoom ? Math.round(view.getZoom()) : 12;\n"
             "          // prefer server-computed URL if available\n"
-            "          if(typeof serverGoogleMapsUrl !== 'undefined' && serverGoogleMapsUrl){ var w = window.open(serverGoogleMapsUrl, '_blank'); if(!w){ alert('ポップアップブロック'); } return; }\n"
+            "          if(typeof serverGoogleMapsUrl !== 'undefined' && serverGoogleMapsUrl){ var w = window.open(serverGoogleMapsUrl, '_blank'); if(!w){ alert(" + _ptj(
+                'Popup blocked') + "); } return; }\n"
             "          var url = 'https://www.google.com/maps/@' + encodeURIComponent(lat) + ',' + encodeURIComponent(lon) + ',' + encodeURIComponent(zoom) + 'z';\n"
-            "          var w = window.open(url, '_blank'); if(!w){ alert('ポップアップブロック'); }\n"
+            "          var w = window.open(url, '_blank'); if(!w){ alert(" + _ptj('Popup blocked') + "); }\n"
             "        }catch(e){ console.error(e); }\n"
             "      });\n"
             "    }\n"
@@ -731,11 +1000,30 @@ class QMapWebMapGenerator:
             "          var lon = (x / 20037508.34) * 180.0; var lat = (y / 20037508.34) * 180.0;\n"
             "          lat = 180.0 / Math.PI * (2.0 * Math.atan(Math.exp(lat * Math.PI / 180.0)) - Math.PI / 2.0);\n"
             "          // prefer server-computed URL if available\n"
-            "          if(typeof serverGoogleEarthUrl !== 'undefined' && serverGoogleEarthUrl){ var w = window.open(serverGoogleEarthUrl, '_blank'); if(!w){ alert('ポップアップブロック'); } return; }\n"
+            "          if(typeof serverGoogleEarthUrl !== 'undefined' && serverGoogleEarthUrl){ var w = window.open(serverGoogleEarthUrl, '_blank'); if(!w){ alert(" + _ptj(
+                'Popup blocked') + "); } return; }\n"
             "          // Use Google Earth Web search link (best-effort)\n"
             "          var url = 'https://earth.google.com/web/search/' + encodeURIComponent(lat) + ',' + encodeURIComponent(lon);\n"
-            "          var w = window.open(url, '_blank'); if(!w){ alert('ポップアップブロック'); }\n"
+            "          var w = window.open(url, '_blank'); if(!w){ alert(" + _ptj('Popup blocked') + "); }\n"
             "        }catch(e){ console.error(e); }\n"
+            "      });\n"
+            "    }\n"
+            "  }catch(e){}\n"
+            "})();\n"
+            "(function(){\n"
+            "  try{\n"
+            "    var btn = document.getElementById('qmp-open-kasugai');\n"
+            "    if(btn){\n"
+            "      btn.addEventListener('click', function(){\n"
+            "        try{\n"
+            "          btn.disabled = true;\n"
+            "          fetch('kasugai').then(function(r){ return r.json(); }).then(function(j){\n"
+            "            if(j && j.ok && j.url){ var w = window.open(j.url, '_blank'); if(!w){ alert(" + _ptj('Popup blocked') + "); } }\n"
+            "            else if(j && j.ok){ alert(" + _ptj('Exported KASUGAI project to') + " + ' ' + (j.dir || '')); }\n"
+            "            else { alert(" + _ptj('KASUGAI export failed') + " + ': ' + ((j && j.error) || 'unknown')); }\n"
+            "          }).catch(function(e){ alert(" + _ptj('KASUGAI export failed') + " + ': ' + e); })\n"
+            "            .finally(function(){ btn.disabled = false; });\n"
+            "        }catch(e){ console.error(e); btn.disabled = false; }\n"
             "      });\n"
             "    }\n"
             "  }catch(e){}\n"
@@ -744,7 +1032,7 @@ class QMapWebMapGenerator:
 
         html = (
             '<!doctype html>\n'
-            '<html lang="ja">\n'
+            '<html lang="' + _page_lang() + '">\n'
             '<head>' + '\n'
             '  <meta charset="utf-8">\n'
             '  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">\n'
@@ -755,16 +1043,20 @@ class QMapWebMapGenerator:
             '<body>\n'
             '  <div id="map"></div>\n'
             '  <div id="qmp-left-controls">\n'
-            '    <select id="qmp-themes" class="qmp-control" title="Themes">' + (('<option value="__prompt" selected>%s</option>' % ( __import__('html').escape(prompt_theme_text) )) if True else '') + '\n' + (themes_options if 'themes_options' in locals() else '') + '</select>\n'
-            '    <select id="qmp-bookmarks" class="qmp-control" title="Bookmarks">' + (('<option value="__prompt" selected>%s</option>' % ( __import__('html').escape(prompt_text) )) if True else '') + '<option value="__home">Home</option>\n' + (bookmarks_options if 'bookmarks_options' in locals() else '') + '</select>\n'
+            '    <select id="qmp-themes" class="qmp-control" title="' + __import__('html').escape(_pt('Themes')) + '">' + (('<option value="__prompt" selected>%s</option>' % (
+                __import__('html').escape(prompt_theme_text))) if True else '') + '\n' + (themes_options if 'themes_options' in locals() else '') + '</select>\n'
+            '    <select id="qmp-bookmarks" class="qmp-control" title="' + __import__('html').escape(_pt('Bookmarks')) + '">' + (('<option value="__prompt" selected>%s</option>' % (__import__('html').escape(
+                prompt_text))) if True else '') + '<option value="__home">' + __import__('html').escape(_pt('Home')) + '</option>\n' + (bookmarks_options if 'bookmarks_options' in locals() else '') + '</select>\n'
             '  </div>\n'
-                '  <div id="qmp-right-controls">\n'
-                                    '    <button id="qmp-rotate-cycle" class="qmp-control" title="Rotate 0/90/180/270">\u27f3</button>\n'
-                                    '    <button id="qmp-open-googlemaps" class="qmp-control" title="Open Google Maps">MAPS</button>\n'
-                                    '    <button id="qmp-open-googleearth" class="qmp-control" title="Open Google Earth">EARTH</button>\n'
-                                    '  </div>\n'
-                                    '  <div id="qmp-coords" class="qmp-control" aria-live="polite" role="status"></div>\n'
-                                    '  <div id="qmp-cors-warning">WMS の読み込み時に CORS エラーが発生しました。<br>HTML を直接 file:// で開いている場合は、簡易 HTTP サーバで配布するか、WMS 側で Access-Control-Allow-Origin ヘッダを設定してください。</div>\n'
+            '  <div id="qmp-right-controls">\n'
+            '    <button id="qmp-rotate-cycle" class="qmp-control" title="Rotate 0/90/180/270">\u27f3</button>\n'
+            '    <button id="qmp-open-googlemaps" class="qmp-control" title="' + __import__('html').escape(_pt('Open Google Maps')) + '">MAPS</button>\n'
+            '    <button id="qmp-open-googleearth" class="qmp-control" title="' + __import__('html').escape(_pt('Open Google Earth')) + '">EARTH</button>\n'
+            '    <button id="qmp-open-kasugai" class="qmp-control" title="' + __import__('html').escape(_pt('Open in KASUGAI Canvas')) + '">KASUGAI</button>\n'
+            '  </div>\n'
+            '  <div id="qmp-coords" class="qmp-control" aria-live="polite" role="status"></div>\n'
+            '  <div id="qmp-cors-warning">' +
+            _pt('A CORS error occurred while loading the WMS.<br>If you opened this HTML directly via file://, serve it with a simple HTTP server or set the Access-Control-Allow-Origin header on the WMS side.') + '</div>\n'
             '  <script>\n'
             f'    const serverPort = {server_port};\n'
             f'    ' + js + '\n'
@@ -775,39 +1067,6 @@ class QMapWebMapGenerator:
         )
 
         return html
-
-    # lightweight stubs
-    def get_qgis_layers_info(self):
-        return {'layer_count': 0, 'visible_layers': []}
-
-    def get_current_extent_info(self):
-        return {}
-
-    def _resolve_coordinates(self, navigation_data):
-        try:
-            if not navigation_data:
-                return None, None
-            lat = navigation_data.get('lat')
-            lon = navigation_data.get('lon')
-            if lat is not None and lon is not None:
-                return float(lat), float(lon)
-            x = navigation_data.get('x')
-            y = navigation_data.get('y')
-            if x is None or y is None:
-                return None, None
-            # navigation_data provides x/y in map coordinates (x, y).
-            # Previously this returned (y, x) which swapped the axes.
-            # Return (x, y) in the same order as provided.
-            return float(x), float(y)
-        except Exception:
-            return None, None
-
-
-# small helpers used only at generation time; keep them local to avoid runtime deps
-def escape_js_string(s: str) -> str:
-    if s is None:
-        return ''
-    return str(s).replace('\\', '\\\\').replace('"', '\\"').replace("\n", ' ')
 
 
 def json_safe(v):
@@ -821,11 +1080,11 @@ def json_safe(v):
 
 def save_openlayers_html_to_file(html_content: str, server_port: int = 8089) -> str:
     """Save OpenLayers HTML to a file with date-time based folder structure.
-    
+
     Args:
         html_content: The HTML content to save
         server_port: The port number of the QGIS HTTP server (unused, for compatibility)
-    
+
     Returns the file path where the HTML was saved.
     Similar to MapLibre: saves to {base_path}/qmap_openlayers_{timestamp}/index.html
     """
@@ -833,14 +1092,14 @@ def save_openlayers_html_to_file(html_content: str, server_port: int = 8089) -> 
         import os
         import tempfile
         from datetime import datetime
-        
+
         try:
             from qgis.PyQt.QtCore import QSettings
             settings = QSettings('GeoWebView', 'geo_webview')
             saved_path = settings.value('openlayers_output_path', None)
         except Exception:
             saved_path = None
-        
+
         # Determine output directory
         if saved_path is None or saved_path == '__default__':
             # Use system temp directory with base folder
@@ -858,11 +1117,11 @@ def save_openlayers_html_to_file(html_content: str, server_port: int = 8089) -> 
                 os.makedirs(output_dir, exist_ok=True)
             except Exception as e:
                 _qmp_log(f'[OpenLayers] Failed to create output directory {output_dir}: {e}', level='WARN')
-        
+
         # Create timestamped subdirectory
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         timestamped_dir = os.path.join(output_dir, f'qmap_openlayers_{timestamp}')
-        
+
         try:
             os.makedirs(timestamped_dir, exist_ok=True)
         except Exception as e:
@@ -874,12 +1133,12 @@ def save_openlayers_html_to_file(html_content: str, server_port: int = 8089) -> 
             except Exception:
                 _qmp_log('[OpenLayers] Failed to create any output directory', level='ERROR')
                 raise
-        
+
         # Write HTML file
         file_path = os.path.join(timestamped_dir, 'index.html')
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(html_content)
-        
+
         _qmp_log(f'[OpenLayers] HTML saved to {file_path}')
         return file_path
     except Exception as e:

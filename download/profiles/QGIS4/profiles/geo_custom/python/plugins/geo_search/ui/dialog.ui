@@ -36,14 +36,14 @@
    <item row="1" column="0" colspan="6">
     <widget class="QPushButton" name="searchButton">
      <property name="text">
-      <string>検索</string>
+      <string>Search</string>
      </property>
     </widget>
    </item>
     <item row="2" column="0">
     <widget class="QCheckBox" name="showLayerCheckBox">
      <property name="text">
-      <string>レイヤ表示</string>
+      <string>Show layer names</string>
      </property>
      <property name="checked">
       <bool>true</bool>
@@ -53,14 +53,14 @@
    <item row="2" column="1">
   <widget class="QComboBox" name="scaleComboBox">
    <property name="toolTip">
-    <string>固定縮尺を選択または入力します（例: 5000）</string>
+    <string>Select or enter a fixed scale (e.g. 5000)</string>
    </property>
    <property name="editable">
     <bool>true</bool>
    </property>
       <item>
         <property name="text">
-         <string>自動(無指定)</string>
+         <string>Auto (unspecified)</string>
         </property>
       </item>
       <item>
@@ -109,27 +109,27 @@
      <widget class="QComboBox" name="panModeComboBox">
      <item>
       <property name="text">
-       <string>ズームして選択範囲にフィット</string>
+       <string>Zoom to fit selection</string>
       </property>
      </item>
      <item>
       <property name="text">
-       <string>中心へパン（ズーム維持）</string>
+       <string>Pan to center (keep zoom)</string>
       </property>
      </item>
      <item>
       <property name="text">
-       <string>固定縮尺で表示</string>
+       <string>Show at fixed scale</string>
       </property>
      </item>
      <item>
       <property name="text">
-       <string>アニメーションパン</string>
+       <string>Animated pan</string>
       </property>
      </item>
      <item>
       <property name="text">
-       <string>選択のみ（ビュー変更なし）</string>
+       <string>Select only (no view change)</string>
       </property>
      </item>
     </widget>
@@ -160,21 +160,21 @@
    <item row="4" column="1">
     <widget class="QPushButton" name="addLayerButton">
      <property name="text">
-      <string>現在のレイヤを追加</string>
+      <string>Add current layer</string>
      </property>
     </widget>
    </item>
    <item row="4" column="2">
     <widget class="QPushButton" name="removeTabButton">
      <property name="text">
-      <string>選択したタブを削除</string>
+      <string>Delete selected tab</string>
      </property>
     </widget>
    </item>
    <item row="4" column="3">
     <widget class="QPushButton" name="configButton">
      <property name="text">
-      <string>設定編集</string>
+      <string>Edit settings</string>
      </property>
     </widget>
    </item>

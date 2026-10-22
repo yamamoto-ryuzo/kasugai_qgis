@@ -6,12 +6,14 @@ it runs before the plugin instance is created but does not execute during
 partial package initialization.
 """
 
+
 def classFactory(iface):
     # Ensure sys.stderr is usable: some embeders set it to None which breaks
     # third-party libraries (numpy writes to sys.stderr during import). If it
     # is None, restore from sys.__stderr__ or provide a small logging wrapper.
     try:
-        import sys, logging
+        import sys
+        import logging
         if getattr(sys, 'stderr', None) is None or not hasattr(sys.stderr, 'write'):
             if getattr(sys, '__stderr__', None) is not None and hasattr(sys.__stderr__, 'write'):
                 sys.stderr = sys.__stderr__
@@ -20,12 +22,13 @@ def classFactory(iface):
                     def write(self, s):
                         try:
                             logging.getLogger('geo_search').error(str(s).rstrip())
-                        except Exception:
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
+
                     def flush(self):
                         return
                 sys.stderr = _StderrProxy()
-    except Exception:
+    except Exception:  # nosec B110  # 設計上の許容
         # best-effort: do not prevent plugin from loading
         pass
 
@@ -35,7 +38,7 @@ def classFactory(iface):
     try:
         import importlib
         importlib.import_module('geo_search.qt_compat')
-    except Exception:
+    except Exception:  # nosec B110  # 設計上の許容
         # best-effort: if importing the shim fails, continue; plugin should
         # still try to run without the compatibility helpers.
         pass

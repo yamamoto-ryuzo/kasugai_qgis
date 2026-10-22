@@ -1,0 +1,36 @@
+{
+  "Dialog": {
+    "Could not find corresponding entry to remove.": "L'entrée correspondante à supprimer est introuvable.",
+    "Failed to read the JSON file: {0}": "Impossible de lire le fichier JSON : {0}",
+    "Failed to update JSON file: {0}": "Impossible de mettre à jour le fichier JSON : {0}",
+    "JSON file has unsupported structure; expected {'SearchTabs': [...]} or an array.": "Le fichier JSON a une structure non prise en charge ; attendu : {'SearchTabs': [...]} ou un tableau.",
+    "Not found": "Introuvable",
+    "Read error": "Erreur de lecture",
+    "Unsupported format": "Format non pris en charge",
+    "Write error": "Erreur d'écriture"
+  },
+  "SearchWidget": {
+    "Angle (deg):": "Angle (degré):",
+    "Angle: Not specified": "Angle : non spécifié",
+    "Angle: {0}": "Angle : {0}",
+    "Angle: {0}°": "Angle : {0}°",
+    "Edit Tab Settings: {0}": "Modifier les paramètres d’onglet : {0}",
+    "Exact Match": "Correspondance exacte",
+    "Forward Match": "Correspondance de préfixe",
+    "Fuzzy Search": "Recherche floue",
+    "Geo Search: ": "Recherche Géo : ",
+    "OR search for multiple fields": "Recherche OU sur plusieurs champs",
+    "Owner Search": "Recherche de propriétaire",
+    "Partial Match": "Correspondance partielle",
+    "Results": "Résultats",
+    "Scale:": "Échelle:",
+    "Scale: Not specified": "Échelle : non spécifiée",
+    "Scale: {0}": "Échelle : {0}",
+    "Search Results: {0} items": "Résultats de recherche : {0} éléments",
+    "Search all fields": "Rechercher dans tous les champs",
+    "Set current value": "Définir la valeur actuelle"
+  },
+  "plugin": {
+    "Geo Search": "Recherche Géo"
+  }
+}

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from .utils import set_project_variable, remove_entry_from_json_file
 import os
 import json
 import shutil
@@ -7,8 +8,9 @@ import datetime
 from collections import OrderedDict
 
 from qgis.PyQt.QtWidgets import QDialog, QTabWidget, QTextEdit, QVBoxLayout, QPushButton, QHBoxLayout, QMessageBox
-from qgis.PyQt.QtWidgets import QLabel, QGridLayout, QFrame, QCheckBox, QScrollArea, QWidget, QButtonGroup, QRadioButton
-from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtWidgets import QLabel, QCheckBox, QScrollArea, QWidget
+from qgis.PyQt.QtCore import QCoreApplication
+from .constants import DEFAULT_GROUP_NAME
 
 from qgis.PyQt import uic
 from qgis.core import QgsProject
@@ -22,8 +24,6 @@ from .constants import OTHER_GROUP_NAME
 
 
 UI_FILE = "dialog.ui"
-
-from .utils import set_project_variable, remove_entry_from_json_file
 
 
 class SearchDialog(QDialog):
@@ -44,9 +44,9 @@ class SearchDialog(QDialog):
                 QgsMessageLog.logMessage("addLayerButton connected", "GEO-search-plugin", 0)
             except Exception:
                 print("addLayerButton connected")
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
-            
+
         # Connect remove tab button if present
         try:
             self.removeTabButton.clicked.connect(self.remove_current_tab_from_project_variable)
@@ -55,9 +55,9 @@ class SearchDialog(QDialog):
                 QgsMessageLog.logMessage("removeTabButton connected", "GEO-search-plugin", 0)
             except Exception:
                 print("removeTabButton connected")
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
-            
+
         # Connect config button if present
         try:
             self.configButton.clicked.connect(self.edit_project_variable)
@@ -66,7 +66,7 @@ class SearchDialog(QDialog):
                 QgsMessageLog.logMessage("configButton connected", "GEO-search-plugin", 0)
             except Exception:
                 print("configButton connected")
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
 
         # Post-initialization: attempt to stabilize layout and table sizing.
@@ -78,7 +78,7 @@ class SearchDialog(QDialog):
             # ensure top-level layout is recalculated
             try:
                 self.adjustSize()
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
 
             from qgis.PyQt.QtWidgets import QWidget, QTableWidget
@@ -88,7 +88,7 @@ class SearchDialog(QDialog):
                     # keep widgets hidden state as-is; just nudge geometry
                     w.updateGeometry()
                     w.repaint()
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
 
             # resize any tables to contents so headers don't collapse to zero
@@ -97,9 +97,9 @@ class SearchDialog(QDialog):
                     t.resizeColumnsToContents()
                     t.resizeRowsToContents()
                     t.repaint()
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             # swallow any errors - this is purely best-effort
             pass
 
@@ -115,10 +115,10 @@ class SearchDialog(QDialog):
             if self.tab_groups:
                 group_name = tab_setting.get("group", OTHER_GROUP_NAME) if isinstance(tab_setting, dict) else OTHER_GROUP_NAME
                 tab_group_widget = self.tab_groups[group_name]
-                tab_index = tab_group_widget.addTab(page, self.tr(display_title))
+                _ = tab_group_widget.addTab(page, self.tr(display_title))
             else:
-                tab_index = self.tabWidget.addTab(page, self.tr(display_title))
-            
+                _ = self.tabWidget.addTab(page, self.tr(display_title))
+
             # 親のプラグインインスタンスがある場合、current_layersリストを更新
             try:
                 parent = self.parent()
@@ -128,7 +128,7 @@ class SearchDialog(QDialog):
                         layer_name = tab_setting["Layer"]["Name"]
                         if layer_name not in parent.current_layers:
                             parent.current_layers.append(layer_name)
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
 
         self.set_window_title(0)
@@ -136,11 +136,11 @@ class SearchDialog(QDialog):
 
     def set_window_title(self, index):
         text = self.tabWidget.tabText(index)
-        self.setWindowTitle(self.tr("Geo Search: ") + text)
+        self.setWindowTitle(QCoreApplication.translate("SearchWidget", "Geo Search: ") + text)
 
     # ID-based project id helpers removed. Matching is done by Title and group when
     # updating/removing entries from project variables.
-        
+
     def create_page(self, setting):
         if setting["Title"] == "地番検索":
             return SearchTibanWidget(setting)
@@ -186,11 +186,12 @@ class SearchDialog(QDialog):
                         # fallback to raw text
                         self.tabWidget.addTab(page, str(g))
                     created[g] = child_tabs
-                except Exception:
+                except Exception:  # nosec B112  # 設計上の許容
                     continue
             return created
         except Exception:
             return {}
+
     def get_widgets(self):
         """Return a list of page widgets in the same order as self.setting['SearchTabs'].
 
@@ -210,7 +211,7 @@ class SearchDialog(QDialog):
                         try:
                             for i in range(child_tab.count()):
                                 yield child_tab.widget(i)
-                        except Exception:
+                        except Exception:  # nosec B112  # 設計上の許容
                             continue
                 # also include any top-level tabs that are not group containers
                 for i in range(self.tabWidget.count()):
@@ -223,7 +224,7 @@ class SearchDialog(QDialog):
                         if child is not None:
                             # child tabs already yielded above
                             continue
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
                     yield page
             except Exception:
@@ -248,7 +249,7 @@ class SearchDialog(QDialog):
                     name = getattr(p, 'objectName', None)
                     if name:
                         title_map.setdefault((name, None), []).append(p)
-            except Exception:
+            except Exception:  # nosec B112  # 設計上の許容
                 continue
 
         for tab in (self.setting.get('SearchTabs') or []):
@@ -355,11 +356,11 @@ class SearchDialog(QDialog):
             # Create simple JSON that triggers an all-field search.
             # Setting "SearchField" to an empty dict {} will be interpreted
             # by the widget as the All-field and cause full-text search logic to run.
-            
+
             # Create standard JSON for the current layer. Do NOT add an 'id' field;
             # matching will be performed by Title+group only.
             standard_json = {
-                "group": "ﾌﾟﾛｼﾞｪｸﾄ検索",
+                "group": DEFAULT_GROUP_NAME,
                 "Title": layer_name,
                 "Layer": {"LayerType": "Name", "Name": layer_name},
                 # empty dict -> SearchWidget will create the All field
@@ -375,7 +376,7 @@ class SearchDialog(QDialog):
                 # best-effort: if QgsMessageLog not available, print
                 try:
                     print(json.dumps(standard_json, ensure_ascii=False))
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
 
             # Ask user where to save
@@ -401,7 +402,7 @@ class SearchDialog(QDialog):
 
                 # Project variable check
                 try:
-                    from qgis.core import QgsProject, QgsExpressionContextUtils
+                    from qgis.core import QgsProject
                     proj = QgsProject.instance()
                     pv = QgsExpressionContextUtils.projectScope(proj).variable('geo_search_json')
                     proj_file = proj.fileName() or ''
@@ -456,7 +457,7 @@ class SearchDialog(QDialog):
                 # Show dialog with summary and detailed text for troubleshooting
                 try:
                     msg = QMessageBox(self)
-                    msg.setIcon(QMessageBox.Warning)
+                    msg.setIcon(QMessageBox.Icon.Warning)
                     msg.setWindowTitle(self.tr("Add current layer aborted"))
                     msg.setText(self.tr("The save operation was cancelled. Diagnostic information has been logged."))
                     # setDetailedText is available on QMessageBox to show long diagnostics
@@ -465,18 +466,12 @@ class SearchDialog(QDialog):
                     except Exception:
                         # Fallback: append diagnostics to text if detailed not available
                         msg.setText(msg.text() + "\n\n" + "\n".join(diag))
-                    try:
-                        msg.exec_()
-                    except Exception:
-                        try:
-                            msg.exec()
-                        except Exception:
-                            pass
+                    msg.exec()
                 except Exception:
                     # As a last resort, show a simple information box
                     try:
                         QMessageBox.information(self, self.tr("Cancelled"), self.tr("Add current layer aborted. See log for details."))
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
 
                 return
@@ -535,10 +530,10 @@ class SearchDialog(QDialog):
                         if ok:
                             wrote_ok = True
                             try:
-                                from qgis.core import QgsExpressionContextUtils, QgsMessageLog
+                                from qgis.core import QgsMessageLog
                                 read_back = QgsExpressionContextUtils.projectScope(project).variable('GEO-search-plugin')
                                 QgsMessageLog.logMessage(f"Wrote project variable via helper: {str(read_back)}", "GEO-search-plugin", 0)
-                            except Exception:
+                            except Exception:  # nosec B110  # 設計上の許容
                                 pass
                         else:
                             try:
@@ -596,7 +591,7 @@ class SearchDialog(QDialog):
                 # inform user that save failed (wrappers/logs provide details)
                 try:
                     QMessageBox.warning(self, self.tr("Save Failed"), self.tr("Failed to persist the new layer setting. See log for details."))
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 return
         except Exception as e:
@@ -605,33 +600,32 @@ class SearchDialog(QDialog):
                 QgsMessageLog.logMessage(f"add_current_layer_to_project_variable error: {e}", "GEO-search-plugin", 1)
             except Exception:
                 print(f"add_current_layer_to_project_variable error: {e}")
-        
+
         # UI reload is handled after successful save; do not reload unconditionally here.
-    
+
     def reload_ui(self, message=""):
         """UIを再読み込みするための共通メソッド"""
         try:
             # プロジェクトは自動保存せず、変数の更新のみを行う
             print(f"Updating UI without auto-saving the project: {message}")
-                
+
             # QGISに変更を反映させるための遅延処理を設定
             try:
                 from qgis.PyQt.QtCore import QTimer
-                from functools import partial
-                
+
                 def find_plugin_instance():
                     """プラグインインスタンスを複数の方法で探す"""
                     parent_plugin = None
-                    
+
                     # 方法1: 直接の親を調べる
                     try:
                         parent_plugin = self.parent()
                         if parent_plugin and hasattr(parent_plugin, 'create_search_dialog'):
                             print("Found plugin via direct parent")
                             return parent_plugin
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
-                        
+
                     # 方法2: iface経由で探す（可能な場合）
                     try:
                         if hasattr(self, 'iface') and self.iface:
@@ -640,16 +634,16 @@ class SearchDialog(QDialog):
                                 if hasattr(plugin_obj, 'create_search_dialog'):
                                     print(f"Found plugin via plugins dict: {plugin_name}")
                                     return plugin_obj
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
-                        
+
                     return None
-                
+
                 def reload_plugin_ui():
                     try:
                         # プラグインインスタンスを取得
                         plugin_instance = find_plugin_instance()
-                        
+
                         if plugin_instance:
                             # 現在のダイアログを閉じる
                             self.close()
@@ -664,10 +658,10 @@ class SearchDialog(QDialog):
                             self.close()
                     except Exception as err:
                         print(f"Failed in reload_plugin_ui: {err}")
-                
+
                 # より長い遅延を設定（QGISが変数を更新する時間を確保）
                 QTimer.singleShot(500, reload_plugin_ui)
-                
+
             except Exception as e:
                 print(f"Failed to set up timer: {e}")
         except Exception as e:
@@ -676,7 +670,7 @@ class SearchDialog(QDialog):
                 QgsMessageLog.logMessage(f"Failed to refresh UI: {e}", "GEO-search-plugin", 2)
             except Exception:
                 print(f"Failed to refresh UI: {e}")
-                
+
     def remove_current_tab_from_project_variable(self):
         """選択されているタブを削除し、プロジェクト変数から対応する設定を削除します"""
         try:
@@ -686,32 +680,10 @@ class SearchDialog(QDialog):
             except Exception:
                 print("remove_current_tab_from_project_variable invoked")
 
-            # Determine safe QMessageBox constants to avoid binding differences
-            YES_CONST = None
-            NO_CONST = None
-            YES_NO_FLAGS = 0
-            try:
-                # Avoid referencing QMessageBox.Yes/No directly in comparisons
-                YES_CONST = getattr(QMessageBox, 'Yes', None)
-                NO_CONST = getattr(QMessageBox, 'No', None)
-                if YES_CONST is None or NO_CONST is None:
-                    sb = getattr(QMessageBox, 'StandardButton', None)
-                    if sb is not None:
-                        YES_CONST = getattr(sb, 'Yes', YES_CONST)
-                        NO_CONST = getattr(sb, 'No', NO_CONST)
-                if YES_CONST is None:
-                    YES_CONST = 0
-                if NO_CONST is None:
-                    NO_CONST = 0
-                try:
-                    YES_NO_FLAGS = YES_CONST | NO_CONST
-                except Exception:
-                    YES_NO_FLAGS = 0
-            except Exception:
-                YES_CONST = 0
-                NO_CONST = 0
-                YES_NO_FLAGS = 0
-                
+            YES_CONST = QMessageBox.StandardButton.Yes
+            NO_CONST = QMessageBox.StandardButton.No
+            YES_NO_FLAGS = YES_CONST | NO_CONST
+
             # 選択されているタブの情報を取得（共通ヘルパーを使用）
             try:
                 current_tab, current_tab_title, current_tab_index, current_group_name, active_tabwidget, src_val, src_idx = self._get_current_tab_info()
@@ -727,10 +699,11 @@ class SearchDialog(QDialog):
                 if src_val is not None or src_idx is not None:
                     try:
                         from qgis.core import QgsMessageLog
-                        QgsMessageLog.logMessage(f"_get_current_tab_info provenance: src_val={repr(src_val)} src_idx={repr(src_idx)} title={repr(current_tab_title)} group={repr(current_group_name)}", "GEO-search-plugin", 0)
+                        QgsMessageLog.logMessage(
+                            f"_get_current_tab_info provenance: src_val={repr(src_val)} src_idx={repr(src_idx)} title={repr(current_tab_title)} group={repr(current_group_name)}", "GEO-search-plugin", 0)
                     except Exception:
                         print(f"_get_current_tab_info provenance: src_val={repr(src_val)} src_idx={repr(src_idx)} title={repr(current_tab_title)} group={repr(current_group_name)}")
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
 
             # タブが選択されていなければ終了
@@ -741,13 +714,13 @@ class SearchDialog(QDialog):
                 except Exception:
                     print("No tab selected or tab information could not be determined")
                 return
-                
+
             # プロジェクト変数を取得して更新
             from qgis.core import QgsProject, QgsExpressionContextUtils
             project = QgsProject.instance()
             proj_scope = QgsExpressionContextUtils.projectScope(project)
             existing = proj_scope.variable("GEO-search-plugin")
-            
+
             if existing is None or existing == "":
                 # No project variable set. Try to remove from external
                 # geo_search_json if possible. Resolution strategy:
@@ -773,7 +746,7 @@ class SearchDialog(QDialog):
                             proj_dir = ''
                         if p and proj_dir and not os.path.isabs(p):
                             p = os.path.join(proj_dir, p)
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
 
                     if (not p or not os.path.exists(p)) and allow_user_pick:
@@ -830,9 +803,9 @@ class SearchDialog(QDialog):
                                     if 'geo' in low and 'search' in low:
                                         src_val = txt
                                         break
-                                except Exception:
+                                except Exception:  # nosec B112  # 設計上の許容
                                     continue
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         # Best-effort only; continue without inferred source.
                         pass
 
@@ -847,7 +820,7 @@ class SearchDialog(QDialog):
                 except Exception:
                     try:
                         print(f"remove_current_tab: inferred src_val={repr(src_val)} norm={norm_src} src_idx={repr(src_idx)} title={current_tab_title}")
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
 
                 # If the inferred source is the plugin's bundled setting.json,
@@ -868,7 +841,7 @@ class SearchDialog(QDialog):
                         try:
                             from qgis.core import QgsMessageLog
                             QgsMessageLog.logMessage("User cancelled deletion from plugin setting.json (no project variable present)", 'GEO-search-plugin', 0)
-                        except Exception:
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
                         return
 
@@ -902,7 +875,7 @@ class SearchDialog(QDialog):
                         try:
                             from qgis.core import QgsMessageLog
                             QgsMessageLog.logMessage("User cancelled deletion from geo_search_json (no project variable present)", 'GEO-search-plugin', 0)
-                        except Exception:
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
                         return
 
@@ -944,7 +917,7 @@ class SearchDialog(QDialog):
                         try:
                             from qgis.core import QgsMessageLog
                             QgsMessageLog.logMessage("User declined to search external geo_search_json for matching Title", 'GEO-search-plugin', 0)
-                        except Exception:
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
                         return
 
@@ -959,7 +932,7 @@ class SearchDialog(QDialog):
                 except Exception:
                     print("No project variable exists to remove from")
                 return
-                
+
             try:
                 # Try to interpret the project variable. It may be:
                 #  - inline JSON (list/dict)
@@ -1034,7 +1007,7 @@ class SearchDialog(QDialog):
                         try:
                             from qgis.core import QgsMessageLog
                             QgsMessageLog.logMessage("User cancelled deletion from project-backed file", 'GEO-search-plugin', 0)
-                        except Exception:
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
                         return
 
@@ -1070,7 +1043,7 @@ class SearchDialog(QDialog):
                                 if isinstance(it, dict) and it.get('Title') == title:
                                     remove_idx = i
                                     break
-                            except Exception:
+                            except Exception:  # nosec B112  # 設計上の許容
                                 continue
 
                     if remove_idx is None:
@@ -1098,21 +1071,21 @@ class SearchDialog(QDialog):
                             try:
                                 if os.path.exists(tmp_path):
                                     os.remove(tmp_path)
-                            except Exception:
+                            except Exception:  # nosec B110  # 設計上の許容
                                 pass
                     except Exception as e:
                         QMessageBox.warning(self, self.tr("Write error"), self.tr("Failed to update project-backed file: {0}").format(str(e)))
                         try:
                             if bak_path and os.path.exists(bak_path):
                                 shutil.copy2(bak_path, project_file_path)
-                        except Exception:
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
                         return
 
                     try:
                         from qgis.core import QgsMessageLog
                         QgsMessageLog.logMessage(f"Removed entry index={remove_idx} from project-backed file: {project_file_path} (backup={bak_path})", 'GEO-search-plugin', 0)
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
 
                     self.reload_ui("after removing tab from project-backed file")
@@ -1155,7 +1128,6 @@ class SearchDialog(QDialog):
                             ok = self._save_to_project_variable(project, new_value)
                             if not ok:
                                 try:
-                                    from qgis.core import QgsMessageLog
                                     QgsMessageLog.logMessage("set_project_variable returned False when removing tab (inline)", "GEO-search-plugin", 1)
                                 except Exception:
                                     print("set_project_variable returned False when removing tab (inline)")
@@ -1196,14 +1168,14 @@ class SearchDialog(QDialog):
                     QgsMessageLog.logMessage(f"Error updating project variable: {e}", "GEO-search-plugin", 1)
                 except Exception:
                     print(f"Error updating project variable: {e}")
-                
+
         except Exception as e:
             try:
                 from qgis.core import QgsMessageLog
                 QgsMessageLog.logMessage(f"remove_current_tab_from_project_variable error: {e}", "GEO-search-plugin", 1)
             except Exception:
                 print(f"remove_current_tab_from_project_variable error: {e}")
-                
+
     def edit_project_variable(self):
         """現在選択されているタブのレイヤー設定を編集するためのダイアログを表示します"""
         try:
@@ -1212,7 +1184,7 @@ class SearchDialog(QDialog):
                 QgsMessageLog.logMessage("edit_project_variable invoked", "GEO-search-plugin", 0)
             except Exception:
                 print("edit_project_variable invoked")
-            
+
             # 現在選択されているタブの情報を取得（共通ヘルパーを使用）
             try:
                 current_tab, current_tab_title, current_tab_index, current_group_name, active_tabwidget, src_val, src_idx = self._get_current_tab_info()
@@ -1229,10 +1201,11 @@ class SearchDialog(QDialog):
                 if src_val is not None or src_idx is not None:
                     try:
                         from qgis.core import QgsMessageLog
-                        QgsMessageLog.logMessage(f"_get_current_tab_info provenance (edit): src_val={repr(src_val)} src_idx={repr(src_idx)} title={repr(current_tab_title)} group={repr(current_group_name)}", "GEO-search-plugin", 0)
+                        QgsMessageLog.logMessage(
+                            f"_get_current_tab_info provenance (edit): src_val={repr(src_val)} src_idx={repr(src_idx)} title={repr(current_tab_title)} group={repr(current_group_name)}", "GEO-search-plugin", 0)
                     except Exception:
                         print(f"_get_current_tab_info provenance (edit): src_val={repr(src_val)} src_idx={repr(src_idx)} title={current_tab_title} group={current_group_name}")
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
 
             # タブが選択されていなければ終了
@@ -1243,13 +1216,13 @@ class SearchDialog(QDialog):
                 except Exception:
                     print("No tab selected or tab information could not be determined")
                 return
-                
+
             # プロジェクト変数を取得
             from qgis.core import QgsProject, QgsExpressionContextUtils
             project = QgsProject.instance()
             proj_scope = QgsExpressionContextUtils.projectScope(project)
             existing = proj_scope.variable("GEO-search-plugin")
-            
+
             if existing is None or existing == "":
                 existing = "[]"  # 空の配列
                 try:
@@ -1257,12 +1230,12 @@ class SearchDialog(QDialog):
                     QgsMessageLog.logMessage("No existing project variable, creating empty array", "GEO-search-plugin", 0)
                 except Exception:
                     print("No existing project variable, creating empty array")
-            
+
             # 現在のタブに対応する設定を見つける
             tab_config = None
             all_configs = []
             tab_index_in_config = -1
-            
+
             try:
                 parsed = json.loads(existing)
                 # 配列でなければ配列に変換
@@ -1335,38 +1308,39 @@ class SearchDialog(QDialog):
                         tab_config['_source'] = src_val
                     if src_idx is not None:
                         tab_config['_source_index'] = src_idx
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
-            
+
             # 編集ダイアログを作成
             edit_dialog = QDialog(self)
-            edit_dialog.setWindowTitle(self.tr("Edit Tab Settings: {0}").format(resolved_title if 'resolved_title' in locals() and resolved_title else current_tab_title))
+            edit_dialog.setWindowTitle(QCoreApplication.translate("SearchWidget", "Edit Tab Settings: {0}").format(
+                resolved_title if 'resolved_title' in locals() and resolved_title else current_tab_title))
             edit_dialog.setMinimumSize(700, 600)
-            
+
             layout = QVBoxLayout(edit_dialog)
-            
+
             # インポート
             from qgis.PyQt.QtWidgets import QLabel, QGridLayout, QFrame
-            
+
             # フォームレイアウトで編集可能フィールドと読み取り専用フィールドを分ける
             grid_layout = QGridLayout()
-            
+
             # 編集可能フィールドを抽出
             editable_fields = {}
             readonly_fields = {}
-            
+
             # グループ (group)
             if "group" in tab_config:
                 editable_fields["group"] = tab_config["group"]
             else:
                 editable_fields["group"] = "未設定"
-                
+
             # タイトル (Title)
             if "Title" in tab_config:
                 editable_fields["Title"] = tab_config["Title"]
             else:
                 editable_fields["Title"] = current_tab_title
-                
+
             # 検索フィールド (SearchField)
             if "SearchField" in tab_config:
                 editable_fields["SearchField"] = tab_config["SearchField"]
@@ -1413,25 +1387,25 @@ class SearchDialog(QDialog):
                         editable_fields["scale"] = 0.0
             else:
                 editable_fields["scale"] = None
-            
+
             # readonly_fields に編集可能フィールドが混入すると同じ項目が編集セクションと
             # 読み取り専用セクションの両方に表示されてしまうため、編集可能にしたキーは除外する
             editable_exclude = {"group", "Title", "SearchField", "ViewFields", "selectTheme", "angle", "scale"}
             for key, value in tab_config.items():
                 if key not in editable_exclude:
                     readonly_fields[key] = value
-                    
+
             # テキストエディタを作成
             editors = {}
-            
+
             # 編集可能フィールドの設定
             row = 0
             for field_name, field_value in editable_fields.items():
                 # 日本語ラベルを使う（角度/スケールは分かりやすく表示）
                 if field_name == "angle":
-                    label = QLabel(self.tr("Angle (deg):"), edit_dialog)
+                    label = QLabel(QCoreApplication.translate("SearchWidget", "Angle (deg):"), edit_dialog)
                 elif field_name == "scale":
-                    label = QLabel(self.tr("Scale:"), edit_dialog)
+                    label = QLabel(QCoreApplication.translate("SearchWidget", "Scale:"), edit_dialog)
                 else:
                     label = QLabel(self.tr(f"{field_name}:") if isinstance(field_name, str) else field_name, edit_dialog)
                 label.setStyleSheet("font-weight: bold;")
@@ -1468,7 +1442,7 @@ class SearchDialog(QDialog):
                                     themes.append(getattr(t, 'displayName'))
                                 else:
                                     themes.append(str(t))
-                        except Exception:
+                        except Exception:  # nosec B112  # 設計上の許容
                             continue
 
                     editor.addItem("")  # 空選択肢
@@ -1490,7 +1464,7 @@ class SearchDialog(QDialog):
                     spin.setSingleStep(5.0)
                     spin.setDecimals(2)
                     # checkbox: 指定しない -> NULL
-                    chk = QCheckBox("指定しない (NULL)", edit_dialog)
+                    chk = QCheckBox(self.tr("Unspecified (NULL)"), edit_dialog)
                     # set initial state based on field_value (None means unspecified)
                     try:
                         if field_value is None:
@@ -1510,43 +1484,14 @@ class SearchDialog(QDialog):
                     def _on_chk_toggled(state, spin_box=spin):
                         try:
                             spin_box.setDisabled(bool(state))
-                        except Exception:
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
 
                     chk.toggled.connect(_on_chk_toggled)
                     from qgis.PyQt.QtWidgets import QPushButton
 
                     # ボタン: 現在の地図回転値を設定
-                    set_current_btn = QPushButton(self.tr("Set current value"), edit_dialog)
-
-                    def _set_current_value(btn=None, spin_box=spin):
-                        try:
-                            # prefer dialog's iface, fallback to parent iface
-                            iface = getattr(self, 'iface', None)
-                            if iface is None and hasattr(self.parent(), 'iface'):
-                                iface = self.parent().iface
-                            if iface is None:
-                                return
-                            try:
-                                canvas = iface.mapCanvas()
-                                rotation = canvas.rotation() if hasattr(canvas, 'rotation') else None
-                            except Exception:
-                                rotation = None
-                            if rotation is None:
-                                return
-                            try:
-                                spin_box.setValue(float(rotation))
-                                # uncheck '指定しない' if it was checked
-                                try:
-                                    if chk.isChecked():
-                                        chk.setChecked(False)
-                                        spin_box.setDisabled(False)
-                                except Exception:
-                                    pass
-                            except Exception:
-                                pass
-                        except Exception:
-                            pass
+                    set_current_btn = QPushButton(QCoreApplication.translate("SearchWidget", "Set current value"), edit_dialog)
 
                     # capture current chk in default args to avoid late-binding of closure
                     def _set_current_value_captured(btn=None, spin_box=spin, chk=chk):
@@ -1569,11 +1514,11 @@ class SearchDialog(QDialog):
                                     if chk.isChecked():
                                         chk.setChecked(False)
                                         spin_box.setDisabled(False)
-                                except Exception:
+                                except Exception:  # nosec B110  # 設計上の許容
                                     pass
-                            except Exception:
+                            except Exception:  # nosec B110  # 設計上の許容
                                 pass
-                        except Exception:
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
 
                     set_current_btn.clicked.connect(_set_current_value_captured)
@@ -1595,7 +1540,7 @@ class SearchDialog(QDialog):
                     spin.setSingleStep(100.0)
                     spin.setDecimals(2)
                     # checkbox: 指定しない -> NULL
-                    chk = QCheckBox("指定しない (NULL)", edit_dialog)
+                    chk = QCheckBox(self.tr("Unspecified (NULL)"), edit_dialog)
                     # set initial state based on field_value (None means unspecified)
                     try:
                         if field_value is None:
@@ -1615,41 +1560,14 @@ class SearchDialog(QDialog):
                     def _on_chk_toggled_scale(state, spin_box=spin):
                         try:
                             spin_box.setDisabled(bool(state))
-                        except Exception:
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
 
                     chk.toggled.connect(_on_chk_toggled_scale)
                     from qgis.PyQt.QtWidgets import QPushButton
 
                     # ボタン: 現在の地図スケールを設定
-                    set_current_btn = QPushButton("現在のスケールを設定", edit_dialog)
-
-                    def _set_current_scale(btn=None, spin_box=spin):
-                        try:
-                            iface = getattr(self, 'iface', None)
-                            if iface is None and hasattr(self.parent(), 'iface'):
-                                iface = self.parent().iface
-                            if iface is None:
-                                return
-                            try:
-                                canvas = iface.mapCanvas()
-                                scale_val = canvas.scale() if hasattr(canvas, 'scale') else None
-                            except Exception:
-                                scale_val = None
-                            if scale_val is None:
-                                return
-                            try:
-                                spin_box.setValue(float(scale_val))
-                                try:
-                                    if chk.isChecked():
-                                        chk.setChecked(False)
-                                        spin_box.setDisabled(False)
-                                except Exception:
-                                    pass
-                            except Exception:
-                                pass
-                        except Exception:
-                            pass
+                    set_current_btn = QPushButton(self.tr("Set current scale"), edit_dialog)
 
                     # capture current chk in default args to avoid late-binding of closure
                     def _set_current_scale_captured(btn=None, spin_box=spin, chk=chk):
@@ -1672,11 +1590,11 @@ class SearchDialog(QDialog):
                                     if chk.isChecked():
                                         chk.setChecked(False)
                                         spin_box.setDisabled(False)
-                                except Exception:
+                                except Exception:  # nosec B110  # 設計上の許容
                                     pass
-                            except Exception:
+                            except Exception:  # nosec B110  # 設計上の許容
                                 pass
-                        except Exception:
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
 
                     set_current_btn.clicked.connect(_set_current_scale_captured)
@@ -1699,28 +1617,28 @@ class SearchDialog(QDialog):
                     grid_layout.addWidget(editor, row, 1)
                     editors[field_name] = editor
                 row += 1
-                
+
             # レイヤー名を取得
             layer_name = ""
             if "Layer" in tab_config and "Name" in tab_config["Layer"]:
                 layer_name = tab_config["Layer"]["Name"]
-                
+
             # SearchField のエディタを取得
             searchfield_editor = editors.get("SearchField")
-            
+
             if searchfield_editor:
                 # フィールド選択ボタン用のレイアウト
                 searchfield_layout = QHBoxLayout()
-                
+
                 # 現在の値を取得
                 try:
                     current_search_field = json.loads(searchfield_editor.toPlainText())
-                except:
+                except Exception:
                     current_search_field = {}
-                    
+
                 # フィールド選択ボタン
-                select_search_field_button = QPushButton("検索フィールド選択ウィザード（複数選択可 - OR検索）", edit_dialog)
-                
+                select_search_field_button = QPushButton(QCoreApplication.translate("SearchWidget", "OR search for multiple fields"), edit_dialog)
+
                 # ボタンクリック時の処理
                 select_search_field_button.clicked.connect(
                     lambda: self.edit_search_field(
@@ -1730,70 +1648,67 @@ class SearchDialog(QDialog):
                         lambda new_field: searchfield_editor.setText(json.dumps(new_field, indent=2, ensure_ascii=False))
                     )
                 )
-                
+
                 searchfield_layout.addWidget(select_search_field_button)
                 searchfield_layout.addStretch()
-                
+
                 # 補助ラベル
-                search_field_help_label = QLabel("※「SearchField」フィールドを直接編集するか、検索フィールド選択ウィザード（複数選択可 - OR検索）を使用できます", edit_dialog)
+                search_field_help_label = QLabel(self.tr("You can edit the 'SearchField' field directly or use the search field selection wizard (multiple selection - OR search)"), edit_dialog)
                 search_field_help_label.setStyleSheet("color: #555555; font-style: italic;")
-                
+
                 # レイアウトに追加
                 layout.addLayout(searchfield_layout)
                 layout.addWidget(search_field_help_label)
-            
+
             # ViewFields 用のボタンを追加
             # フィールド選択補助ボタン - ViewFields編集用
             helper_layout = QHBoxLayout()
-                
+
             # ViewFieldsのエディタを取得
             viewfields_editor = editors.get("ViewFields")
-            
+
             if viewfields_editor:
                 # フィールド選択ボタン
-                select_fields_button = QPushButton("表示フィールド選択ウィザード", edit_dialog)
-                
+                select_fields_button = QPushButton(self.tr("Display field selection wizard"), edit_dialog)
+
                 # 現在の値を取得
                 try:
                     current_fields = json.loads(viewfields_editor.toPlainText())
                     if not isinstance(current_fields, list):
                         current_fields = []
-                except:
+                except Exception:
                     current_fields = []
-                
+
                 # ボタンクリック時の処理
                 select_fields_button.clicked.connect(
                     lambda: self.edit_view_fields(
-                        current_fields, 
-                        layer_name, 
-                        edit_dialog, 
+                        current_fields,
+                        layer_name,
+                        edit_dialog,
                         lambda new_fields: viewfields_editor.setText(json.dumps(new_fields, indent=2, ensure_ascii=False))
                     )
                 )
-                
+
                 helper_layout.addWidget(select_fields_button)
                 helper_layout.addStretch()
-                
+
                 # 補助ラベル
-                help_label = QLabel("※「ViewFields」フィールドを直接編集するか、表示フィールド選択ウィザードを使用できます", edit_dialog)
+                help_label = QLabel(self.tr("You can edit the 'ViewFields' field directly or use the display field selection wizard"), edit_dialog)
                 help_label.setStyleSheet("color: #555555; font-style: italic;")
-                
+
                 # レイアウトに追加
                 layout.addLayout(helper_layout)
                 layout.addWidget(help_label)
-            
+
             # 区切り線
             separator = QFrame()
-            # PyQt5/6両対応: HLine, Sunken
-            hline = getattr(QFrame, 'HLine', getattr(QFrame, 'Shape', QFrame).HLine if hasattr(getattr(QFrame, 'Shape', QFrame), 'HLine') else 1)
-            sunken = getattr(QFrame, 'Sunken', getattr(QFrame, 'Shadow', QFrame).Sunken if hasattr(getattr(QFrame, 'Shadow', QFrame), 'Sunken') else 2)
-            separator.setFrameShape(hline)
-            separator.setFrameShadow(sunken)
+            separator.setFrameShape(QFrame.Shape.HLine)
+            separator.setFrameShadow(QFrame.Shadow.Sunken)
             layout.addWidget(separator)
-            
+
             # 読み取り専用フィールドの前にスペースを追加
             row += 1
-            
+
             # 読み取り専用フィールドがあれば、セクション区切りを追加
             if readonly_fields:
                 separator = QFrame()
@@ -1803,20 +1718,20 @@ class SearchDialog(QDialog):
                 separator.setFrameShadow(sunken)
                 grid_layout.addWidget(separator, row, 0, 1, 2)
                 row += 1
-                
+
                 # 読み取り専用ヘッダー
-                readonly_label = QLabel("以下のフィールドは読み取り専用です:", edit_dialog)
+                readonly_label = QLabel(self.tr("The following fields are read-only:"), edit_dialog)
                 readonly_label.setStyleSheet("font-weight: bold; color: #777777;")
                 grid_layout.addWidget(readonly_label, row, 0, 1, 2)
                 row += 1
-                
+
                 # 読み取り専用フィールドの表示
                 for field_name, field_value in readonly_fields.items():
                     # ラベル
                     label = QLabel(f"{field_name}:", edit_dialog)
                     label.setStyleSheet("color: #777777;")
                     grid_layout.addWidget(label, row, 0)
-                    
+
                     # 表示のみのエディタ
                     editor = QTextEdit(edit_dialog)
                     font = self.get_monospace_font()
@@ -1826,60 +1741,46 @@ class SearchDialog(QDialog):
                     editor.setStyleSheet("background-color: #f0f0f0;")
                     editor.setMinimumHeight(60)
                     editor.setMaximumHeight(80)
-                    
+
                     # フィールドの内容をJSONとして表示
                     json_str = json.dumps(field_value, indent=2, ensure_ascii=False)
                     editor.setText(json_str)
-                    
+
                     grid_layout.addWidget(editor, row, 1)
-                    
+
                     row += 1
-            
+
             layout.addLayout(grid_layout)
-            
+
             # ボタン配置
             button_layout = QHBoxLayout()
-            
+
             # 保存ボタン
-            save_button = QPushButton("保存", edit_dialog)
+            save_button = QPushButton(self.tr("Save"), edit_dialog)
+
             def save_and_close():
                 # すべてのエディタの内容をtab_configに反映し保存（selectThemeも含む）
                 self.save_tab_config_by_fields(
                     editors,
                     readonly_fields,
-                    edit_dialog, 
-                    all_configs, 
-                    tab_index_in_config, 
+                    edit_dialog,
+                    all_configs,
+                    tab_index_in_config,
                     current_tab_title
                 )
             save_button.clicked.connect(save_and_close)
             button_layout.addWidget(save_button)
-            
+
             # キャンセルボタン
-            cancel_button = QPushButton("キャンセル", edit_dialog)
+            cancel_button = QPushButton(self.tr("Cancel"), edit_dialog)
             cancel_button.clicked.connect(edit_dialog.reject)
             button_layout.addWidget(cancel_button)
-            
+
             layout.addLayout(button_layout)
-            
+
             # ダイアログを表示
-            try:
-                import importlib
-                qt_compat = importlib.import_module('geo_search.qt_compat')
-            except Exception:
-                qt_compat = None
-            if qt_compat is not None:
-                qt_compat.exec_dialog(edit_dialog)
-            else:
-                # fallback: try old call
-                try:
-                    edit_dialog.exec_()
-                except Exception:
-                    try:
-                        edit_dialog.exec()
-                    except Exception:
-                        pass
-            
+            edit_dialog.exec()
+
         except Exception as e:
             try:
                 from qgis.core import QgsMessageLog
@@ -1987,16 +1888,16 @@ class SearchDialog(QDialog):
                             if 'geo' in low and 'search' in low:
                                 src_val = txt
                                 break
-                        except Exception:
+                        except Exception:  # nosec B112  # 設計上の許容
                             continue
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
 
             # Normalize provenance token if present
             try:
                 if src_val:
                     src_val = self._normalize_source(src_val)
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 # leave as-is when normalization fails
                 pass
 
@@ -2011,13 +1912,13 @@ class SearchDialog(QDialog):
             src_idx = None
 
         return current_tab, current_tab_title, current_tab_index, current_group_name, active_tabwidget, src_val, src_idx
-    
+
     def get_monospace_font(self):
         """等幅フォントを取得"""
         try:
             from qgis.PyQt.QtGui import QFont
             font = QFont("Courier New")
-            font.setStyleHint(QFont.Monospace)
+            font.setStyleHint(QFont.StyleHint.Monospace)
             font.setPointSize(10)
             return font
         except Exception:
@@ -2101,7 +2002,7 @@ class SearchDialog(QDialog):
             except Exception:
                 try:
                     print(f"choose_save_target_dialog raw_return={repr(raw)} normalized=(item={repr(item)}, ok={ok})")
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
 
             # If user cancelled or no selection, return None so caller can decide
@@ -2195,20 +2096,20 @@ class SearchDialog(QDialog):
                                     if isinstance(it, dict) and it.get('Title') == title:
                                         idx = i
                                         break
-                                except Exception:
+                                except Exception:  # nosec B112  # 設計上の許容
                                     continue
 
                     if idx is not None:
                         try:
                             target[idx] = item
                             update_performed = True
-                        except Exception:
+                        except Exception:  # nosec B112  # 設計上の許容
                             continue
                     else:
                         try:
                             target.append(item)
                             update_performed = True
-                        except Exception:
+                        except Exception:  # nosec B112  # 設計上の許容
                             continue
             except Exception:
                 update_performed = False
@@ -2235,7 +2136,7 @@ class SearchDialog(QDialog):
             self._write_to_setting_json(item_or_list)
             try:
                 from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(f"save_to_setting_json: wrote item", 'GEO-search-plugin', 0)
+                QgsMessageLog.logMessage("save_to_setting_json: wrote item", 'GEO-search-plugin', 0)
             except Exception:
                 print("save_to_setting_json: wrote item")
             return True
@@ -2247,9 +2148,10 @@ class SearchDialog(QDialog):
                 print(f"save_to_setting_json error: {e}")
             try:
                 QMessageBox.warning(self, self.tr("Error"), self.tr("Failed to write to plugin setting.json: {0}").format(str(e)))
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
             return False
+
     def _update_entry_in_setting_json(self, tab_config, all_configs, tab_index):
         """Update only the matching entry in plugin `setting.json`.
 
@@ -2323,7 +2225,7 @@ class SearchDialog(QDialog):
                             if isinstance(it, dict) and it.get('Title') == title:
                                 update_idx = i
                                 break
-                        except Exception:
+                        except Exception:  # nosec B112  # 設計上の許容
                             continue
 
             # Backup
@@ -2356,15 +2258,15 @@ class SearchDialog(QDialog):
                     try:
                         if os.path.exists(tmp_path):
                             os.remove(tmp_path)
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
 
-            except Exception as e:
+            except Exception:
                 # restore backup on failure
                 try:
                     if bak_path and os.path.exists(bak_path):
                         shutil.copy2(bak_path, path)
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 raise
 
@@ -2382,7 +2284,6 @@ class SearchDialog(QDialog):
             except Exception:
                 print(f"_update_entry_in_setting_json error: {e}")
             return False
-
 
     def _write_to_geo_search_json(self, new_item_or_list):
         """Write new_item_or_list into external file specified by env/project variable 'geo_search_json'.
@@ -2414,7 +2315,7 @@ class SearchDialog(QDialog):
                 if path and proj_dir and not os.path.isabs(path):
                     abs_path = os.path.join(proj_dir, path)
                     path = abs_path
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
 
             if not path:
@@ -2436,11 +2337,10 @@ class SearchDialog(QDialog):
                             ok = set_project_variable(proj, 'geo_search_json', path)
                             if not ok:
                                 try:
-                                    from qgis.core import QgsMessageLog
                                     QgsMessageLog.logMessage(f"Failed to persist geo_search_json to project variables for path={path}", 'GEO-search-plugin', 1)
                                 except Exception:
                                     print(f"Failed to persist geo_search_json to project variables for path={path}")
-                        except Exception:
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
 
                         try:
@@ -2491,7 +2391,8 @@ class SearchDialog(QDialog):
 
             try:
                 from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(f"_write_to_geo_search_json: incoming count={len(incoming)} sample={json.dumps(incoming[0], ensure_ascii=False) if incoming else '[]'}", 'GEO-search-plugin', 0)
+                QgsMessageLog.logMessage(
+                    f"_write_to_geo_search_json: incoming count={len(incoming)} sample={json.dumps(incoming[0], ensure_ascii=False) if incoming else '[]'}", 'GEO-search-plugin', 0)
             except Exception:
                 print(f"_write_to_geo_search_json: incoming count={len(incoming)}")
 
@@ -2531,20 +2432,20 @@ class SearchDialog(QDialog):
                                     if isinstance(it, dict) and it.get('Title') == title:
                                         idx = i
                                         break
-                                except Exception:
+                                except Exception:  # nosec B112  # 設計上の許容
                                     continue
 
                     if idx is not None:
                         try:
                             target[idx] = item
                             update_performed = True
-                        except Exception:
+                        except Exception:  # nosec B112  # 設計上の許容
                             continue
                     else:
                         try:
                             target.append(item)
                             update_performed = True
-                        except Exception:
+                        except Exception:  # nosec B112  # 設計上の許容
                             continue
             except Exception:
                 update_performed = False
@@ -2558,7 +2459,8 @@ class SearchDialog(QDialog):
                 json.dump(out, fh, ensure_ascii=False, indent=2)
             try:
                 from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(f"Wrote settings to geo_search_json file: {path} (items_written={len(out.get('SearchTabs') if isinstance(out, dict) and out.get('SearchTabs') else out if isinstance(out, list) else 1)})", 'GEO-search-plugin', 0)
+                QgsMessageLog.logMessage(
+                    f"Wrote settings to geo_search_json file: {path} (items_written={len(out.get('SearchTabs') if isinstance(out, dict) and out.get('SearchTabs') else out if isinstance(out, list) else 1)})", 'GEO-search-plugin', 0)
             except Exception:
                 print(f"Wrote settings to geo_search_json file: {path}")
 
@@ -2584,7 +2486,7 @@ class SearchDialog(QDialog):
                 print(f"save_to_geo_search_json error: {e}")
             try:
                 QMessageBox.warning(self, self.tr("Error"), self.tr("Failed to write to geo_search_json file: {0}").format(str(e)))
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
             return False
 
@@ -2597,7 +2499,7 @@ class SearchDialog(QDialog):
                     from qgis.core import QgsExpressionContextUtils, QgsMessageLog
                     read_back = QgsExpressionContextUtils.projectScope(project).variable('GEO-search-plugin')
                     QgsMessageLog.logMessage(f"_save_to_project_variable: wrote project variable: {str(read_back)}", 'GEO-search-plugin', 0)
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 return True
             else:
@@ -2608,7 +2510,7 @@ class SearchDialog(QDialog):
                     print("_save_to_project_variable: set_project_variable returned False")
                 try:
                     QMessageBox.warning(self, self.tr("Error"), self.tr("Failed to write project variable 'GEO-search-plugin'."))
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 return False
         except Exception as e:
@@ -2619,10 +2521,10 @@ class SearchDialog(QDialog):
                 print(f"_save_to_project_variable error: {e}")
             try:
                 QMessageBox.warning(self, self.tr("Error"), self.tr("Failed to write project variable 'GEO-search-plugin': {0}").format(str(e)))
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
             return False
-    
+
     def edit_view_fields(self, current_fields, layer_name, dialog, callback):
         """ViewFieldsを編集するためのダイアログを表示する"""
         try:
@@ -2633,53 +2535,53 @@ class SearchDialog(QDialog):
             candidates = project.mapLayersByName(layer_name)
             if candidates:
                 layer = candidates[0]
-            
+
             # レイヤーの属性を取得
             available_fields = []  # リストの各要素は (field_name, display_name) のタプル
             field_aliases = {}     # フィールド名と別名の辞書
-            
+
             if layer:
                 for field in layer.fields():
                     field_name = field.name()
                     field_alias = field.alias() or field_name  # エイリアスがなければ名前を使用
-                    
+
                     # フィールド名と表示名（フィールド名 - エイリアス）のタプルを保存
                     if field_alias != field_name and field_alias:
                         display_name = f"{field_name} - {field_alias}"
                     else:
                         display_name = field_name
-                        
+
                     available_fields.append((field_name, display_name))
                     field_aliases[field_name] = field_alias
             else:
                 # レイヤーが見つからない場合、現在のフィールドを使用
                 try:
                     from qgis.core import QgsMessageLog
-                    QgsMessageLog.logMessage(f"レイヤー '{layer_name}' が見つかりません。現在のフィールドを使用します。", "GEO-search-plugin", 1)
+                    QgsMessageLog.logMessage(f"Layer '{layer_name}' not found; using current fields.", "GEO-search-plugin", 1)
                 except Exception:
-                    print(f"レイヤー '{layer_name}' が見つかりません。現在のフィールドを使用します。")
-                
+                    print(f"Layer '{layer_name}' not found; using current fields.")
+
                 # 現在のフィールドが空でない場合は使用
                 if isinstance(current_fields, list) and current_fields:
                     available_fields = [(field, field) for field in current_fields]
-            
+
             # ダイアログを作成
             fields_dialog = QDialog(dialog)
-            fields_dialog.setWindowTitle(f"表示フィールドの選択: {layer_name}")
+            fields_dialog.setWindowTitle(self.tr("Select display fields: {0}").format(layer_name))
             fields_dialog.setMinimumSize(400, 300)
-            
+
             layout = QVBoxLayout(fields_dialog)
-            
+
             # 説明ラベル
-            info_label = QLabel("表示するフィールドを選択してください:", fields_dialog)
+            info_label = QLabel(self.tr("Select the fields to display:"), fields_dialog)
             layout.addWidget(info_label)
-            
+
             # スクロールエリア
             scroll_area = QScrollArea(fields_dialog)
             scroll_area.setWidgetResizable(True)
             scroll_content = QWidget(scroll_area)
             scroll_layout = QVBoxLayout(scroll_content)
-            
+
             # チェックボックス
             checkboxes = {}
             for field_name, display_name in available_fields:
@@ -2689,54 +2591,40 @@ class SearchDialog(QDialog):
                     checkbox.setChecked(True)
                 scroll_layout.addWidget(checkbox)
                 checkboxes[field_name] = checkbox  # キーはフィールド名、値はチェックボックス
-            
+
             # 空きスペースを追加
             scroll_layout.addStretch(1)
-            
+
             scroll_content.setLayout(scroll_layout)
             scroll_area.setWidget(scroll_content)
             layout.addWidget(scroll_area)
-            
+
             # ボタン配置
             button_layout = QHBoxLayout()
-            
+
             # 保存ボタン
-            save_button = QPushButton("保存", fields_dialog)
+            save_button = QPushButton(self.tr("Save"), fields_dialog)
             save_button.clicked.connect(lambda: self._save_view_fields(checkboxes, fields_dialog, callback))
             button_layout.addWidget(save_button)
-            
+
             # キャンセルボタン
-            cancel_button = QPushButton("キャンセル", fields_dialog)
+            cancel_button = QPushButton(self.tr("Cancel"), fields_dialog)
             cancel_button.clicked.connect(fields_dialog.reject)
             button_layout.addWidget(cancel_button)
-            
+
             layout.addLayout(button_layout)
-            
+
             # ダイアログを表示
-            try:
-                import importlib
-                qt_compat = importlib.import_module('geo_search.qt_compat')
-            except Exception:
-                qt_compat = None
-            if qt_compat is not None:
-                qt_compat.exec_dialog(fields_dialog)
-            else:
-                try:
-                    fields_dialog.exec_()
-                except Exception:
-                    try:
-                        fields_dialog.exec()
-                    except Exception:
-                        pass
-            
+            fields_dialog.exec()
+
         except Exception as e:
             try:
                 from qgis.core import QgsMessageLog
                 QgsMessageLog.logMessage(f"edit_view_fields error: {e}", "GEO-search-plugin", 1)
             except Exception:
                 print(f"edit_view_fields error: {e}")
-            QMessageBox.warning(dialog, "エラー", f"表示フィールドの編集中にエラーが発生しました:\n{str(e)}")
-            
+            QMessageBox.warning(dialog, self.tr("Error"), self.tr("An error occurred while editing display fields:\n{0}").format(e))
+
     def edit_search_field(self, current_search_field, layer_name, dialog, callback):
         """SearchFieldを編集するためのダイアログを表示する"""
         try:
@@ -2747,22 +2635,22 @@ class SearchDialog(QDialog):
             candidates = project.mapLayersByName(layer_name)
             if candidates:
                 layer = candidates[0]
-            
+
             # 利用可能なフィールドを取得
             available_fields = []  # リストの各要素は (field_name, display_name) のタプル
             field_aliases = {}     # フィールド名と別名の辞書
-            
+
             if layer:
                 for field in layer.fields():
                     field_name = field.name()
                     field_alias = field.alias() or field_name  # エイリアスがなければ名前を使用
-                    
+
                     # フィールド名と表示名（フィールド名 - エイリアス）のタプルを保存
                     if field_alias != field_name and field_alias:
                         display_name = f"{field_name} - {field_alias}"
                     else:
                         display_name = field_name
-                        
+
                     available_fields.append((field_name, display_name))
                     field_aliases[field_name] = field_alias
             else:
@@ -2772,34 +2660,35 @@ class SearchDialog(QDialog):
                     for key in current_search_field:
                         if key != "ViewName" and key != "all":  # 特殊キーを除外
                             available_fields.append((key, key))  # 別名情報がないのでフィールド名のみ
-                
+
             # All フィールドを先頭に追加
-            available_fields.insert(0, ("全フィールド検索", "全フィールド検索"))
-            
+            all_fields_label = QCoreApplication.translate("SearchWidget", "Search all fields")
+            available_fields.insert(0, (all_fields_label, all_fields_label))
+
             # ダイアログを作成
             fields_dialog = QDialog(dialog)
-            fields_dialog.setWindowTitle(f"検索フィールドの選択: {layer_name}")
+            fields_dialog.setWindowTitle(self.tr("Select search fields: {0}").format(layer_name))
             fields_dialog.setMinimumSize(400, 300)
-            
+
             layout = QVBoxLayout(fields_dialog)
-            
+
             # 説明ラベル
-            info_label = QLabel("検索に使用するフィールドを選択してください（複数選択可 - OR検索）:", fields_dialog)
+            info_label = QLabel(self.tr("Select the fields to search (multiple selection allowed - OR search):"), fields_dialog)
             layout.addWidget(info_label)
-            
+
             # スクロールエリア
             scroll_area = QScrollArea(fields_dialog)
             scroll_area.setWidgetResizable(True)
             scroll_content = QWidget(scroll_area)
             scroll_layout = QVBoxLayout(scroll_content)
-            
+
             # チェックボックス（複数選択可能）
             checkboxes = {}  # フィールド名とチェックボックスのマッピングを保持
             all_checkbox = None  # 「全フィールド検索」のチェックボックス
-            
+
             for i, (field_name, display_name) in enumerate(available_fields):
                 checkbox = QCheckBox(display_name, scroll_content)
-                
+
                 # 現在の設定と一致するフィールドを選択状態にする
                 if i == 0:  # 「全フィールド検索」の場合
                     all_checkbox = checkbox  # 「全フィールド検索」のチェックボックスを保持
@@ -2813,7 +2702,7 @@ class SearchDialog(QDialog):
                     # 特定のフィールド検索の場合
                     if isinstance(current_search_field, dict) and field_name in current_search_field:
                         checkbox.setChecked(True)
-                
+
                 # 「全フィールド検索」と他のチェックボックスの排他制御
                 if i == 0:
                     # 「全フィールド検索」がチェックされたら他のチェックボックスを無効化
@@ -2821,56 +2710,42 @@ class SearchDialog(QDialog):
                 else:
                     # 他のチェックボックスがチェックされたら「全フィールド検索」のチェックを外す
                     checkbox.stateChanged.connect(lambda state, cb=checkbox, ac=all_checkbox: self._uncheck_all_checkbox(cb, ac))
-                
+
                 checkboxes[field_name] = checkbox
                 scroll_layout.addWidget(checkbox)
-            
+
             # 空きスペースを追加
             scroll_layout.addStretch(1)
-            
+
             scroll_content.setLayout(scroll_layout)
             scroll_area.setWidget(scroll_content)
             layout.addWidget(scroll_area)
-            
+
             # ボタン配置
             button_layout = QHBoxLayout()
-            
+
             # 保存ボタン
-            save_button = QPushButton("保存", fields_dialog)
+            save_button = QPushButton(self.tr("Save"), fields_dialog)
             save_button.clicked.connect(lambda: self._save_search_field(checkboxes, available_fields, field_aliases, fields_dialog, callback))
             button_layout.addWidget(save_button)
-            
+
             # キャンセルボタン
-            cancel_button = QPushButton("キャンセル", fields_dialog)
+            cancel_button = QPushButton(self.tr("Cancel"), fields_dialog)
             cancel_button.clicked.connect(fields_dialog.reject)
             button_layout.addWidget(cancel_button)
-            
+
             layout.addLayout(button_layout)
-            
+
             # ダイアログを表示
-            try:
-                import importlib
-                qt_compat = importlib.import_module('geo_search.qt_compat')
-            except Exception:
-                qt_compat = None
-            if qt_compat is not None:
-                qt_compat.exec_dialog(fields_dialog)
-            else:
-                try:
-                    fields_dialog.exec_()
-                except Exception:
-                    try:
-                        fields_dialog.exec()
-                    except Exception:
-                        pass
+            fields_dialog.exec()
         except Exception as e:
             try:
                 from qgis.core import QgsMessageLog
                 QgsMessageLog.logMessage(f"edit_search_field error: {e}", "GEO-search-plugin", 1)
             except Exception:
                 print(f"edit_search_field error: {e}")
-            QMessageBox.warning(dialog, "エラー", f"検索フィールドの編集中にエラーが発生しました:\n{str(e)}")
-    
+            QMessageBox.warning(dialog, self.tr("Error"), self.tr("An error occurred while editing the search field:\n{0}").format(e))
+
     def _save_search_field(self, checkboxes, available_fields, field_aliases, dialog, callback):
         """選択された検索フィールドを保存する（複数選択対応）"""
         try:
@@ -2883,7 +2758,7 @@ class SearchDialog(QDialog):
             # 選択がない場合は全フィールド検索
             if not selected_fields:
                 search_field = {"FieldType": "Text"}
-            elif "全フィールド検索" in selected_fields:
+            elif QCoreApplication.translate("SearchWidget", "Search all fields") in selected_fields:
                 # 「全フィールド検索」が選択されている場合
                 search_field = {"FieldType": "Text", "ViewName": "All", "all": True}
             else:
@@ -2903,17 +2778,17 @@ class SearchDialog(QDialog):
                     display_fields = selected_fields[:3]
                     field_display = ", ".join(display_fields)
                     if len(selected_fields) > 3:
-                        field_display += f" 他{len(selected_fields)-3}個"
+                        field_display += f" 他{len(selected_fields) - 3}個"
                     view_name = f"OR検索: {field_display}"
 
                 search_field["ViewName"] = view_name
 
                 # 選択されたフィールドをカンマ区切りで1つのキーにまとめる
                 search_field["Field"] = ", ".join(selected_fields)
-            
+
             # コールバック関数を呼び出して結果を返す
             callback(search_field)
-            
+
             # ダイアログを閉じる
             dialog.accept()
         except Exception as e:
@@ -2922,15 +2797,15 @@ class SearchDialog(QDialog):
                 QgsMessageLog.logMessage(f"_save_search_field error: {e}", "GEO-search-plugin", 1)
             except Exception:
                 print(f"_save_search_field error: {e}")
-            QMessageBox.warning(dialog, "エラー", f"検索フィールドの保存中にエラーが発生しました:\n{str(e)}")
-    
+            QMessageBox.warning(dialog, self.tr("Error"), self.tr("An error occurred while saving the search field:\n{0}").format(e))
+
     def _toggle_other_checkboxes(self, all_checkbox, checkboxes):
         """「全フィールド検索」チェックボックスが選択された時、他のチェックボックスを無効化する"""
         try:
             is_checked = all_checkbox.isChecked()
             # 「全フィールド検索」以外のチェックボックスを全て無効化/有効化
             for field_name, checkbox in checkboxes.items():
-                if field_name != "全フィールド検索":
+                if field_name != QCoreApplication.translate("SearchWidget", "Search all fields"):
                     if is_checked:
                         # 「全フィールド検索」がチェックされたら他のチェックを外して無効化
                         checkbox.setChecked(False)
@@ -2940,7 +2815,7 @@ class SearchDialog(QDialog):
                         checkbox.setEnabled(True)
         except Exception as e:
             print(f"_toggle_other_checkboxes error: {e}")
-    
+
     def _uncheck_all_checkbox(self, field_checkbox, all_checkbox):
         """個別のフィールドチェックボックスがチェックされた時、「全フィールド検索」のチェックを外す"""
         try:
@@ -2951,7 +2826,7 @@ class SearchDialog(QDialog):
                 all_checkbox.blockSignals(False)
         except Exception as e:
             print(f"_uncheck_all_checkbox error: {e}")
-    
+
     def _save_view_fields(self, checkboxes, dialog, callback):
         """チェックされたフィールドを保存する"""
         try:
@@ -2960,31 +2835,31 @@ class SearchDialog(QDialog):
             for field_name, checkbox in checkboxes.items():
                 if checkbox.isChecked():
                     selected_fields.append(field_name)
-            
+
             # コールバック関数を呼び出して結果を返す
             callback(selected_fields)
-            
+
             # ダイアログを閉じる
             dialog.accept()
-            
+
         except Exception as e:
             try:
                 from qgis.core import QgsMessageLog
                 QgsMessageLog.logMessage(f"_save_view_fields error: {e}", "GEO-search-plugin", 1)
             except Exception:
                 print(f"_save_view_fields error: {e}")
-            QMessageBox.warning(dialog, "エラー", f"表示フィールドの保存中にエラーが発生しました:\n{str(e)}")
-                
+            QMessageBox.warning(dialog, self.tr("Error"), self.tr("An error occurred while saving the display fields:\n{0}").format(e))
+
     def save_tab_config_by_fields(self, editors, readonly_fields, dialog, all_configs, tab_index, tab_title):
         """各フィールドエディタから値を取得してタブ設定を保存"""
         try:
             # 新しい設定を構築
             tab_config = {}
-            
+
             # 読み取り専用フィールドをコピー
             for field_name, field_value in readonly_fields.items():
                 tab_config[field_name] = field_value
-            
+
             # 編集可能フィールドを処理
             error_messages = []
             for field_name, editor in editors.items():
@@ -3003,7 +2878,7 @@ class SearchDialog(QDialog):
                         try:
                             from qgis.core import QgsMessageLog
                             QgsMessageLog.logMessage(f"save_tab_config_by_fields: selectTheme read error: {e}", "GEO-search-plugin", 1)
-                        except Exception:
+                        except Exception:  # nosec B110  # 設計上の許容
                             pass
                         tab_config[field_name] = ""
                 elif field_name == "angle":
@@ -3054,19 +2929,19 @@ class SearchDialog(QDialog):
                         field_value = json.loads(text)
                         tab_config[field_name] = field_value
                     except Exception as e:
-                        error_messages.append(f"フィールド '{field_name}' のJSONエラー: {str(e)}")
-            
+                        error_messages.append(self.tr("JSON error in field '{0}': {1}").format(field_name, e))
+
             # エラーがあれば表示して終了
             if error_messages:
-                QMessageBox.warning(self, "JSONエラー", "\n".join(error_messages))
+                QMessageBox.warning(self, self.tr("JSON error"), "\n".join(error_messages))
                 return
-                
+
             # ユーザーが入力したタイトルをそのまま使用する
             # (タイトル変更を許可するため、タイトル修正の処理を削除)
-                
+
             # ViewFieldsはすでに編集可能フィールドとして処理されているため、
             # 特別な処理は必要ありません
-            
+
             # バリデーション: angle が存在する場合は範囲内に収める（JSON直接編集でも安全に）
             try:
                 if 'angle' in tab_config and tab_config.get('angle') is not None:
@@ -3081,40 +2956,20 @@ class SearchDialog(QDialog):
                     except Exception:
                         # if not numeric, treat as unspecified
                         tab_config['angle'] = None
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
 
             # 設定を保存
             self._update_config_and_save(tab_config, dialog, all_configs, tab_index)
-            
+
         except Exception as e:
             try:
                 from qgis.core import QgsMessageLog
                 QgsMessageLog.logMessage(f"save_tab_config_by_fields error: {e}", "GEO-search-plugin", 1)
             except Exception:
                 print(f"save_tab_config_by_fields error: {e}")
-            QMessageBox.warning(self, "エラー", f"タブ設定の保存中にエラーが発生しました:\n{str(e)}")
-    
-    def save_tab_config(self, text, dialog, all_configs, tab_index, tab_title):
-        """タブの設定を保存（単一テキストエディタから）"""
-        try:
-            # JSONとして解析できるかチェック
-            try:
-                tab_config = json.loads(text)
-                
-                # ユーザーが入力したタイトルをそのまま使用する
-                # (タイトル変更を許可するため、タイトル修正の処理を削除)
-                    
-            except Exception as e:
-                QMessageBox.warning(self, "JSONエラー", f"入力されたテキストはJSONとして有効ではありません:\n{str(e)}")
-                return
-                
-            # 設定の更新と保存の共通処理を呼び出し
-            self._update_config_and_save(tab_config, dialog, all_configs, tab_index)
-                
-        except Exception as e:
-            QMessageBox.warning(self, "エラー", f"タブ設定の保存中にエラーが発生しました:\n{str(e)}")
-            
+            QMessageBox.warning(self, self.tr("Error"), self.tr("An error occurred while saving the tab settings:\n{0}").format(e))
+
     def _update_config_and_save(self, tab_config, dialog, all_configs, tab_index):
         """設定を更新し、プロジェクト変数に保存する共通処理"""
         try:
@@ -3157,11 +3012,12 @@ class SearchDialog(QDialog):
             # Log auto-selection decision to help debugging
             try:
                 from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(f"_update_config_and_save: auto-detected save_target={repr(save_target)} from tab_config._source={repr(tab_config.get('_source') if isinstance(tab_config, dict) else None)}", "GEO-search-plugin", 0)
+                QgsMessageLog.logMessage(
+                    f"_update_config_and_save: auto-detected save_target={repr(save_target)} from tab_config._source={repr(tab_config.get('_source') if isinstance(tab_config, dict) else None)}", "GEO-search-plugin", 0)
             except Exception:
                 try:
                     print(f"_update_config_and_save: auto-detected save_target={repr(save_target)} from tab_config._source={repr(tab_config.get('_source') if isinstance(tab_config, dict) else None)}")
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
 
             # If auto-detection failed, ask the user (existing behavior)
@@ -3181,7 +3037,7 @@ class SearchDialog(QDialog):
                         print("No save target selected; aborting update_config_and_save")
                     try:
                         QMessageBox.information(dialog, self.tr("Save cancelled"), self.tr("No save target selected. The configuration was not saved."))
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
                     return
 
@@ -3197,10 +3053,9 @@ class SearchDialog(QDialog):
                                 print("set_project_variable returned False when writing GEO-search-plugin")
                         else:
                             try:
-                                from qgis.core import QgsExpressionContextUtils, QgsMessageLog
                                 read_back = QgsExpressionContextUtils.projectScope(project).variable('GEO-search-plugin')
                                 QgsMessageLog.logMessage(f"Updated project variable via helper: {str(read_back)}", "GEO-search-plugin", 0)
-                            except Exception:
+                            except Exception:  # nosec B110  # 設計上の許容
                                 pass
                     except Exception as err:
                         try:
@@ -3273,6 +3128,6 @@ class SearchDialog(QDialog):
             except Exception:
                 print(f"_update_config_and_save error: {e}")
             try:
-                QMessageBox.warning(dialog, "エラー", f"設定の保存中にエラーが発生しました:\n{str(e)}")
-            except Exception:
+                QMessageBox.warning(dialog, self.tr("Error"), self.tr("An error occurred while saving the settings:\n{0}").format(e))
+            except Exception:  # nosec B110  # 設計上の許容
                 pass

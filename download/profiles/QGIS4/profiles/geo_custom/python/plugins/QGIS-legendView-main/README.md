@@ -1,3 +1,5 @@
+### 今後は　GeoReport　へ統合予定
+
 # QGIS-legendView  
 　This repository is intended to build a better QGIS environment and to provide mutual assistance among engineers by the shortage engineers by releasing additional functions of QGIS created by the open source ordered by Soja City and by having as many people as possible contribute programs to extend the functions.  
 　このリポジトリは総社市が発注したオープンソースにより作成されたQGISの追加機能を公開し、多くのユーザーに利用してもらうことで、 機能拡張プログラムの提供をしていただく ことで、よりよいQGIS環境を構築するとともに、不足技術者による技術者間の互助を目的としています。
@@ -20,17 +22,9 @@ The interface will automatically display in your system's language if supported,
 
 ## Qt Compatibility / Qt互換性
 
-This plugin is compatible with both Qt5 and Qt6:
-- **Qt5 Support**: QGIS 3.0 to 3.21 (PyQt5)
-- **Qt6 Support**: QGIS 3.22+ (PyQt6)
+This plugin requires **QGIS 4.0 or later (Qt6/PyQt6)**. Qt5 support was removed in version 2.2.0.
 
-The plugin automatically detects the Qt version and imports the appropriate modules. This ensures compatibility across different QGIS versions.
-
-このプラグインはQt5とQt6の両方に対応しています：
-- **Qt5サポート**: QGIS 3.0～3.21（PyQt5）
-- **Qt6サポート**: QGIS 3.22以降（PyQt6）
-
-プラグインはQtバージョンを自動検出し、適切なモジュールをインポートします。これにより、異なるQGISバージョン間での互換性を確保しています。
+このプラグインは **QGIS 4.0 以降(Qt6/PyQt6) 専用**です。Qt5サポートはバージョン2.2.0で削除されました。
 
 ## Version Management / バージョン管理
 
@@ -78,3 +72,13 @@ python version_manager.py stable   # 2.0.0 (remove pre-release)
 ![image](https://user-images.githubusercontent.com/86514652/209077323-d3b375f9-b713-4ca6-8388-1b82c24b6d50.png)
 <img width="363" height="378" alt="image" src="https://github.com/user-attachments/assets/b3635409-68ef-496b-967e-28f6987e556c" />
 
+# 免責事項
+
+本システムは個人のPCで作成・テストされたものです。  
+ご利用によるいかなる損害も責任を負いません。
+
+<p align="center">
+  <a href="https://giphy.com/explore/free-gif" target="_blank">
+    <img src="https://github.com/yamamoto-ryuzo/QGIS_portable_3x/raw/master/imgs/giphy.gif" width="500" title="avvio QGIS">
+  </a>
+</p>

@@ -6,7 +6,6 @@ plugin's internal socket-based HTTP servers. Keeping these utilities
 centralized makes future extensions (middleware, logging, CORS, etc.)
 easier.
 """
-import socket
 
 
 def read_http_request(conn, max_size=8192):
@@ -61,7 +60,7 @@ def send_http_response(conn, status_code, reason, body, content_type="text/plain
     except Exception:
         try:
             conn.close()
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
 
 
@@ -83,7 +82,7 @@ def send_xml_response(conn, xml_content):
     except Exception:
         try:
             conn.close()
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
 
 
@@ -104,50 +103,50 @@ def send_binary_response(conn, status_code, reason, data, content_type):
     except Exception:
         try:
             conn.close()
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
 
 
 def send_wms_error_response(conn, error_code, error_message):
-        """Send an OWS-style ExceptionReport XML response for WMS errors.
+    """Send an OWS-style ExceptionReport XML response for WMS errors.
 
-        Use the OWS ExceptionReport structure (namespace http://www.opengis.net/ows)
-        which is widely accepted across OGC services (WMS/WFS/etc.). This function
-        sends an HTTP 400 response by default and sets a proper XML content-type.
-        """
-        try:
-                # Build an OWS ExceptionReport which is more interoperable than the
-                # legacy ServiceExceptionReport used by some older servers.
-                xml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
+    Use the OWS ExceptionReport structure (namespace http://www.opengis.net/ows)
+    which is widely accepted across OGC services (WMS/WFS/etc.). This function
+    sends an HTTP 400 response by default and sets a proper XML content-type.
+    """
+    try:
+        # Build an OWS ExceptionReport which is more interoperable than the
+        # legacy ServiceExceptionReport used by some older servers.
+        xml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <ExceptionReport version="1.3.0" xmlns="http://www.opengis.net/ows">
     <Exception exceptionCode="{error_code}">
         <ExceptionText>{error_message}</ExceptionText>
     </Exception>
 </ExceptionReport>"""
-                # Use a 400 Bad Request for parameter/usage errors; callers may choose
-                # to send a different status via send_http_response if appropriate.
-                send_http_response(conn, 400, "Bad Request", xml_content, content_type="text/xml; charset=utf-8")
-        except Exception:
-                # Fallback to plain text response if XML assembly fails
-                send_http_response(conn, 500, "Internal Server Error", f"{error_code}: {error_message}")
+        # Use a 400 Bad Request for parameter/usage errors; callers may choose
+        # to send a different status via send_http_response if appropriate.
+        send_http_response(conn, 400, "Bad Request", xml_content, content_type="text/xml; charset=utf-8")
+    except Exception:
+        # Fallback to plain text response if XML assembly fails
+        send_http_response(conn, 500, "Internal Server Error", f"{error_code}: {error_message}")
 
 
 def send_wfs_error_response(conn, error_code, error_message, locator=None):
-        """Send a basic WFS/OWS-style ExceptionReport XML response.
+    """Send a basic WFS/OWS-style ExceptionReport XML response.
 
-        This generates a small OWS/ExceptionReport-style XML which is commonly
-        used by OGC services (WFS/WMS/etc.) to report parameter and request
-        errors to clients.
-        """
-        try:
-                locator_attr = f' locator="{locator}"' if locator else ''
-                xml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
+    This generates a small OWS/ExceptionReport-style XML which is commonly
+    used by OGC services (WFS/WMS/etc.) to report parameter and request
+    errors to clients.
+    """
+    try:
+        locator_attr = f' locator="{locator}"' if locator else ''
+        xml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <ExceptionReport version="1.0.0" xmlns="http://www.opengis.net/ows">
     <Exception exceptionCode="{error_code}"{locator_attr}>
         <ExceptionText>{error_message}</ExceptionText>
     </Exception>
 </ExceptionReport>"""
-                send_xml_response(conn, xml_content)
-        except Exception:
-                # Fallback to plain text response if XML assembly fails
-                send_http_response(conn, 500, "Internal Server Error", f"{error_code}: {error_message}")
+        send_xml_response(conn, xml_content)
+    except Exception:
+        # Fallback to plain text response if XML assembly fails
+        send_http_response(conn, 500, "Internal Server Error", f"{error_code}: {error_message}")

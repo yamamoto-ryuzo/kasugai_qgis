@@ -1,0 +1,36 @@
+{
+  "LegendViewDockWidget": {
+    "Close": "Chiudi",
+    "Confirm delete": "Conferma eliminazione",
+    "Could not remove variable": "Impossibile rimuovere la variabile",
+    "Could not update variable": "Impossibile aggiornare la variabile",
+    "Delete": "Elimina",
+    "Delete variable %s?": "Eliminare la variabile %s?",
+    "Edit": "Modifica",
+    "Edit variable": "Modifica variabile",
+    "Error": "Errore",
+    "Legend": "Legenda",
+    "Legend variables": "Variabili legenda",
+    "Other values": "Altri valori",
+    "Symbol": "Simbolo",
+    "Value": "Valore",
+    "Value for %s": "Valore per %s",
+    "Variable": "Variabile"
+  },
+  "LegendViewDockWidgetBase": {
+    "Current": "Corrente",
+    "Layer Name": "Nome layer",
+    "Legend View": "Vista legenda",
+    "New Column": "Nuova colonna",
+    "Opacity": "Opacità",
+    "Prio": "Prior.",
+    "Priority for the legend variable (numeric)": "Priorità della variabile di legenda (numerica)",
+    "Register": "Registra",
+    "Register the current layer as a project variable (legend_...)": "Registra il layer corrente come variabile di progetto (legend_...)",
+    "Select the currently active layer": "Seleziona il layer attualmente attivo",
+    "Set numeric priority for the legend variable": "Imposta la priorità numerica della variabile di legenda",
+    "Show existing legend_ project variables": "Mostra le variabili di progetto legend_ esistenti",
+    "Style": "Stile",
+    "Vars": "Vars"
+  }
+}

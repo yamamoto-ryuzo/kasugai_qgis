@@ -1,0 +1,36 @@
+{
+  "LegendViewDockWidget": {
+    "Close": "关闭",
+    "Confirm delete": "确认删除",
+    "Could not remove variable": "无法移除变量",
+    "Could not update variable": "无法更新变量",
+    "Delete": "删除",
+    "Delete variable %s?": "删除变量 %s?",
+    "Edit": "编辑",
+    "Edit variable": "编辑变量",
+    "Error": "错误",
+    "Legend": "图例",
+    "Legend variables": "图例变量",
+    "Other values": "其他值",
+    "Symbol": "符号",
+    "Value": "值",
+    "Value for %s": "%s 的值",
+    "Variable": "变量"
+  },
+  "LegendViewDockWidgetBase": {
+    "Current": "当前",
+    "Layer Name": "图层名称",
+    "Legend View": "图例视图",
+    "New Column": "新列",
+    "Opacity": "不透明度",
+    "Prio": "优先级",
+    "Priority for the legend variable (numeric)": "图例变量的优先级(数字)",
+    "Register": "注册",
+    "Register the current layer as a project variable (legend_...)": "将当前图层注册为项目变量 (legend_...)",
+    "Select the currently active layer": "选择当前活动图层",
+    "Set numeric priority for the legend variable": "为图例变量设置数字优先级",
+    "Show existing legend_ project variables": "显示现有 legend_ 项目变量",
+    "Style": "样式",
+    "Vars": "变量"
+  }
+}

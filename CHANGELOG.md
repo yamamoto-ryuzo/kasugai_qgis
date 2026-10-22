@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.3.0] - 2026-10-22
+
+### Changed
+- スタンドアロン起動時の UI 表示を既定ブラウザ（`opener`）から内蔵 WebView2 ウィンドウ（wry/tao）へ変更。既定ブラウザの関連付けに依存せず確実に起動し、ウィンドウを閉じるとサーバーごと終了する。WebView2 Runtime 非搭載環境のみ従来通り既定ブラウザへフォールバック
+- 引数なし起動でも UI ウィンドウが開くようにした（従来はサーバーのみ起動して何も表示されなかった）
+- `kasugai-qgis:` プロトコル経由の起動は従来通りヘッドレス（ウィンドウを開かない）。残ったタブ・KASUGAI 埋め込みペインが自ら `/health` をポーリングして復帰する方式を維持
+
+### Added
+- QGIS Live Harness 連携の開発モード（`dev_mode` 設定 / 起動タブの「開発モード」チェックボックス / CLI `--dev`）。QGIS 起動時に `QTWEBENGINE_REMOTE_DEBUGGING`・`QTWEBENGINE_CHROMIUM_FLAGS`・`WEBENGINE_AUTOOPEN`・`WEBENGINE_LIVE_DIR`・`WEBENGINE_LOG_PATH` を注入し、junction 配置（dev モード）確定時のみ `WEBENGINE_DEV_SRC` も立てる。harness ルートは `KASUGAI_HARNESS_DIR` または exe 祖先の `qgis-plugin/qgis_live_driver/metadata.txt` から検出
+- `GET /live-sessions`：`~/.qgis-live` レジストリから稼働中の qgis_live_driver セッションを返し、起動タブに稼働中 PID を表示（i18n キー `label_dev_mode` / `live_session_active` / `live_session_none` を全10言語に追加）
+- `scripts/sync_bundle_plugins.py`：`<harness>/qgis-plugin/kasugai_qgis` 配置時、同梱プラグイン（geo_search・geo_webview・geo_report・geo_import・QGIS-legendView-main）を repo 側の正本へミラー同期。`run.py --build` に統合、`--sync-plugins` で単独実行も可
+
+### Changed
+- `download/profiles` 同梱の repo 管理プラグインを repo 側の最新へ更新（geo_search 3.3.2→4.4.0、geo_webview 3.10.3→3.17.0、geo_report 2.2.6→2.9.0、geo_import V2.3.45→2.10.0、QGIS-legendView-main 2.0.16→2.6.1）
+
+### Fixed
+- `--cli` 起動時に配布プロファイルのコピー（`copy_profiles_at_startup`）が実行されず、未シード環境で `--profile` が空プロファイルを指していた問題を修正
+- `GET /profiles` が配布側 `profiles/QGIS{major}` バージョン別コンテナや空ディレクトリをプロファイル名として誤列挙していた問題を修正（`QGIS{major}/profiles/` 内を実プロファイルとして列挙）
+- `GET /live-sessions` で dead セッションの stale レジストリ（`~/.qgis-live/*.json`）を自動削除するようにした（起動直後120秒以内のファイルは誤削除防止のため保持）
+
 ## [2.2.1] - 2026-10-07
 
 ### Changed
@@ -53,7 +73,7 @@
 
 ### Changed
 - Windows サブシステム化
-- インストーラー・ショートカットを AGENT.md 仕様に合わせて整備
+- インストーラー・ショートカットを AGENTS.md 仕様に合わせて整備
   - ショートカットに `--open-browser` オプションを付与
   - `RequestExecutionLevel` を `admin` に修正
 - `update.json` を 2.0.2 に更新

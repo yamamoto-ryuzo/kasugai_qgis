@@ -78,5 +78,8 @@
   "status_server_stopped_close": "O servidor foi parado. Reinicie o launcher ou feche esta aba.",
   "btn_restart_launcher": "Reiniciar launcher",
   "status_restarting": "Reiniciando o launcher. Se o navegador exibir uma confirmação, permita…",
-  "status_restart_timeout": "Não foi possível confirmar a reinicialização. Inicie o launcher manualmente."
+  "status_restart_timeout": "Não foi possível confirmar a reinicialização. Inicie o launcher manualmente.",
+  "label_dev_mode": "Modo de desenvolvimento (QGIS Live Harness)",
+  "live_session_active": "Sessão de desenvolvimento ativa (PID {pid})",
+  "live_session_none": "Sem sessão de desenvolvimento"
 }

@@ -4,9 +4,8 @@ Simple settings dialog for GEO-search-plugin.
 日本語コメント: 設定ダイアログの実装ファイル。必要な設定ウィジェットをここに追加してください。
 """
 from qgis.PyQt.QtWidgets import QDialog, QVBoxLayout, QLabel, QHBoxLayout, QPushButton, QLineEdit
-from qgis.PyQt.QtWidgets import QInputDialog, QMessageBox, QComboBox, QFileDialog
+from qgis.PyQt.QtWidgets import QMessageBox, QFileDialog
 import os
-import re
 from .utils import set_project_variable
 
 
@@ -53,9 +52,9 @@ class SettingsDialog(QDialog):
                         pv = None
                     if pv:
                         self.geo_line.setText(str(pv))
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
         browse_geo_btn = QPushButton(self.tr("Browse..."), self)
         apply_geo_btn = QPushButton(self.tr("Apply"), self)
@@ -80,11 +79,11 @@ class SettingsDialog(QDialog):
         # geo_search_json 用のハンドラ
         try:
             browse_geo_btn.clicked.connect(self._browse_geo_search_json)
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
         try:
             apply_geo_btn.clicked.connect(self._apply_geo_search_json)
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
 
         # 下部に OK / Cancel を右寄せで配置
@@ -99,33 +98,6 @@ class SettingsDialog(QDialog):
         layout.addLayout(btn_layout)
 
     # 必要なら保存用のメソッドやプロパティをここに追加
-    def _safe_filename(self, s: str, maxlen: int = 120) -> str:
-        """ファイル名に使えるように安全化する（日本語コメント）"""
-        if not s:
-            return "unnamed"
-        r = re.sub(r'[^A-Za-z0-9\-_.]', '_', s)
-        return r[:maxlen]
-
-    def _qmsg_button(self, name: str):
-        """QMessageBox のボタン列挙を互換的に取得するヘルパ。
-
-        Qt6 / PyQt6 では QMessageBox.StandardButton.Yes のように
-        ネストされた enum を使う必要がある場合があるため、まず
-        それを試し、なければ従来の QMessageBox.Yes を返す。
-        """
-        try:
-            sb = getattr(QMessageBox, 'StandardButton', None)
-            if sb is not None:
-                v = getattr(sb, name, None)
-                if v is not None:
-                    return v
-        except Exception:
-            pass
-        try:
-            return getattr(QMessageBox, name)
-        except Exception:
-            return None
-
     def update_theme_list(self):
         """プロジェクトの map themes をコンボに読み込む"""
         try:
@@ -151,142 +123,10 @@ class SettingsDialog(QDialog):
                         names.append(t.title())
                     else:
                         names.append(str(t))
-            except Exception:
+            except Exception:  # nosec B112  # 設計上の許容
                 continue
         # テーマ一覧は返す。UI 表示は不要なのでコンボ操作は行わない
         return names
-
-    def export_themes_dialog(self):
-        """デフォルトをプロジェクト内 `themes/` にセットして、ユーザーが保存先を選べるようにする"""
-        try:
-            from qgis.core import QgsProject
-            project = QgsProject.instance()
-            proj_file = project.fileName() or ""
-            if not proj_file:
-                QMessageBox.warning(self, self.tr("Export Themes"), self.tr("Please save the QGIS project before exporting themes."))
-                return
-            default_dir = os.path.join(os.path.dirname(proj_file), "themes")
-            # プロジェクト変数に保存された保存先があればそれを優先
-            key_group = 'GEO-search-plugin'
-            key_field = 'themes_dir'
-            try:
-                # まず readEntry を試す（より互換性の高い保存先）
-                ok, val = project.readEntry(key_group, key_field, default_dir)
-                if ok and val:
-                    default_dir = str(val)
-                else:
-                    # フォールバックで customProperty を確認
-                    try:
-                        prev = project.customProperty(f"{key_group}:{key_field}")
-                        if prev:
-                            default_dir = str(prev)
-                    except Exception:
-                        pass
-            except Exception:
-                try:
-                    prev = project.customProperty(f"{key_group}:{key_field}")
-                    if prev:
-                        default_dir = str(prev)
-                except Exception:
-                    pass
-            os.makedirs(default_dir, exist_ok=True)
-            # ユーザーに出力先を選ばせる（デフォルトは project/themes またはプロジェクト変数）
-            d = QFileDialog.getExistingDirectory(self, self.tr("Select export directory"), default_dir)
-            if not d:
-                return
-            # 選択をプロジェクト変数に保存（集中ヘルパーを使用）
-            try:
-                try:
-                    ok = set_project_variable(project, key_field, d, group=key_group)
-                    if not ok:
-                        try:
-                            from qgis.core import QgsMessageLog
-                            QgsMessageLog.logMessage(f"Failed to persist {key_group}:{key_field} via helper", 'GEO-search-plugin', 1)
-                        except Exception:
-                            print(f"Failed to persist {key_group}:{key_field} via helper")
-                except Exception as e:
-                    try:
-                        from qgis.core import QgsMessageLog
-                        QgsMessageLog.logMessage(f"Error while persisting {key_group}:{key_field} via helper: {e}", 'GEO-search-plugin', 1)
-                    except Exception:
-                        print(f"Error while persisting {key_group}:{key_field} via helper: {e}")
-            except Exception:
-                pass
-            exported = self.export_all_project_themes(d)
-            if exported:
-                QMessageBox.information(self, self.tr("Export Themes"), self.tr("Exported %n files", None, len(exported)))
-            else:
-                QMessageBox.information(self, self.tr("Export Themes"), self.tr("No themes exported."))
-        except Exception as e:
-            QMessageBox.warning(self, self.tr("Export Themes"), str(e))
-
-    def import_themes_dialog(self):
-        """デフォルトをプロジェクト内 `themes/` にセットして、ユーザーが読み込み元を選べるようにする"""
-        try:
-            from qgis.core import QgsProject
-            project = QgsProject.instance()
-            proj_file = project.fileName() or ""
-            if not proj_file:
-                QMessageBox.warning(self, self.tr("Import Themes"), self.tr("Please save the QGIS project before importing themes."))
-                return
-            default_dir = os.path.join(os.path.dirname(proj_file), "themes")
-            # プロジェクト変数に保存された読み込み元があればそれを優先
-            key_group = 'GEO-search-plugin'
-            key_field = 'themes_dir'
-            try:
-                ok, val = project.readEntry(key_group, key_field, default_dir)
-                if ok and val:
-                    default_dir = str(val)
-                else:
-                    try:
-                        prev = project.customProperty(f"{key_group}:{key_field}")
-                        if prev:
-                            default_dir = str(prev)
-                    except Exception:
-                        pass
-            except Exception:
-                try:
-                    prev = project.customProperty(f"{key_group}:{key_field}")
-                    if prev:
-                        default_dir = str(prev)
-                except Exception:
-                    pass
-            # ユーザーにディレクトリを選ばせる（デフォルトは project/themes またはプロジェクト変数）
-            d = QFileDialog.getExistingDirectory(self, self.tr("Select import directory"), default_dir)
-            if not d:
-                return
-            # 選択をプロジェクト変数に保存（集中ヘルパーを使用）
-            try:
-                try:
-                    ok = set_project_variable(project, key_field, d, group=key_group)
-                    if not ok:
-                        try:
-                            from qgis.core import QgsMessageLog
-                            QgsMessageLog.logMessage(f"Failed to persist {key_group}:{key_field} via helper", 'GEO-search-plugin', 1)
-                        except Exception:
-                            print(f"Failed to persist {key_group}:{key_field} via helper")
-                except Exception as e:
-                    try:
-                        from qgis.core import QgsMessageLog
-                        QgsMessageLog.logMessage(f"Error while persisting {key_group}:{key_field} via helper: {e}", 'GEO-search-plugin', 1)
-                    except Exception:
-                        print(f"Error while persisting {key_group}:{key_field} via helper: {e}")
-            except Exception:
-                pass
-            applied = self.import_themes_from_dir(d)
-            if applied:
-                QMessageBox.information(self, self.tr("Import Themes"), self.tr("Imported %n themes", None, len(applied)))
-                try:
-                    self.update_theme_list()
-                except Exception:
-                    pass
-            else:
-                QMessageBox.information(self, self.tr("Import Themes"), self.tr("No themes imported."))
-        except Exception as e:
-            QMessageBox.warning(self, self.tr("Import Themes"), str(e))
-
-    # export_all_project_themes removed per user request
-
 
     def save_user_theme_dialog(self):
         """Save a minimal user-theme (JSON) representing visible layers and legend state."""
@@ -307,7 +147,7 @@ class SettingsDialog(QDialog):
             try:
                 from . import theme as theme_mod
                 ok = theme_mod.save_user_theme(path)
-            except Exception as ex:
+            except Exception:
                 ok = False
             if ok:
                 QMessageBox.information(self, self.tr("Save User Theme"), self.tr("Saved user theme."))
@@ -315,7 +155,6 @@ class SettingsDialog(QDialog):
                 QMessageBox.warning(self, self.tr("Save User Theme"), self.tr("Failed to save user theme."))
         except Exception as e:
             QMessageBox.warning(self, self.tr("Save User Theme"), str(e))
-
 
     def load_user_theme_dialog(self):
         """Load a user-theme JSON and apply it to the current project."""
@@ -343,7 +182,6 @@ class SettingsDialog(QDialog):
             QMessageBox.information(self, self.tr("Load User Theme"), self.tr("Applied theme to %n layers", None, len(applied)))
         except Exception as e:
             QMessageBox.warning(self, self.tr("Load User Theme"), str(e))
-
 
     def _browse_geo_search_json(self):
         """ファイル選択ダイアログで geo_search_json のファイルを選択する。"""
@@ -410,7 +248,7 @@ class SettingsDialog(QDialog):
         if path:
             try:
                 self.geo_line.setText(path)
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
 
     def _apply_geo_search_json(self):
@@ -423,7 +261,7 @@ class SettingsDialog(QDialog):
             QMessageBox.warning(self, self.tr("geo_search_json"), self.tr("No file selected."))
             return
         try:
-            from qgis.core import QgsProject, QgsExpressionContextUtils, QgsMessageLog
+            from qgis.core import QgsProject, QgsMessageLog
             proj = QgsProject.instance()
             try:
                 # プロジェクトが保存されている場合はプロジェクトディレクトリ基準の相対パスに変換して保存する
@@ -452,31 +290,30 @@ class SettingsDialog(QDialog):
                 try:
                     ok = set_project_variable(proj, 'geo_search_json', save_val)
                     try:
-                        from qgis.core import QgsMessageLog
                         if ok:
                             QgsMessageLog.logMessage(f"Set project variable 'geo_search_json' to: {save_val}", 'GEO-search-plugin', 0)
                         else:
                             QgsMessageLog.logMessage(f"Failed to persist 'geo_search_json' via helper, attempted value: {save_val}", 'GEO-search-plugin', 1)
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
                 except Exception:
                     try:
-                        QgsMessageLog.logMessage(f"Failed to set project variable 'geo_search_json' via helper", 'GEO-search-plugin', 2)
-                    except Exception:
+                        QgsMessageLog.logMessage("Failed to set project variable 'geo_search_json' via helper", 'GEO-search-plugin', 2)
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
             except Exception as e:
                 try:
                     QgsMessageLog.logMessage(f"Failed to set project variable 'geo_search_json': {e}", 'GEO-search-plugin', 2)
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             # qgis.core が使えない環境でもランタイム環境変数は設定する
             pass
         # ランタイム環境変数としても設定（永続化はしない）
         try:
             import os
             os.environ['geo_search_json'] = path
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
         QMessageBox.information(self, self.tr("geo_search_json"), self.tr("Saved geo_search_json to project variables (and runtime env)."))
 

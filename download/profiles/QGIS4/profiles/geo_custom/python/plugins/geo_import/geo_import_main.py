@@ -1,12 +1,14 @@
-from qgis.PyQt.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
+from qgis.PyQt.QtCore import QSettings, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QAction
+from qgis.PyQt.QtWidgets import QAction, QToolBar
 from qgis.core import QgsMessageLog, Qgis
 from .geo_import_dialog import GeoImportDialog
 from .geo_import_dialog_settings import GeoImportDialogSettings
 import os.path
+from .i18n_json import install_translator
 from .settings import Settings
 from .util import Util
+
 
 class GeoImport:
     """QGIS Plugin Implementation."""
@@ -21,81 +23,16 @@ class GeoImport:
         """
         # 設定クラスを初期化して、プラグイン全体で使用する設定を管理
         self.settings = Settings()
-        QgsMessageLog.logMessage('__init__', self.settings.DLG_CAPTION, Qgis.Info)
+        QgsMessageLog.logMessage('__init__', self.settings.DLG_CAPTION, Qgis.MessageLevel.Info)
         QSettings().setValue("geo_import/isopen", False)
         self.iface = iface
 
         # プラグインディレクトリを初期化し、リソースファイルのパスを構築
         self.plugin_dir = os.path.dirname(__file__)
-        QgsMessageLog.logMessage(u'plugin directory: {}'.format(self.plugin_dir), self.settings.DLG_CAPTION, Qgis.Info)
+        QgsMessageLog.logMessage(u'plugin directory: {}'.format(self.plugin_dir), self.settings.DLG_CAPTION, Qgis.MessageLevel.Info)
 
-        # ロケールを初期化（安全に取得）
-        locale_value = QSettings().value('locale/userLocale', 'en_US')
-        if locale_value and len(locale_value) >= 2:
-            locale = locale_value[0:2]
-        else:
-            locale = 'en'
-        QgsMessageLog.logMessage(u'locale: {}'.format(locale), self.settings.DLG_CAPTION, Qgis.Info)
-        # Use geo_import_*.qm naming convention
-        locale_path_geo = os.path.join(
-            self.plugin_dir,
-            'i18n',
-            'geo_import_{}.qm'.format(locale))
-
-        locale_path_legacy = os.path.join(
-            self.plugin_dir,
-            'i18n',
-            'CKANBrowser_{}.qm'.format(locale))
-
-        locale_path_geo_en = os.path.join(
-            self.plugin_dir,
-            'i18n',
-            'geo_import_en.qm'
-        )
-
-        locale_path_legacy_en = os.path.join(
-            self.plugin_dir,
-            'i18n',
-            'CKANBrowser_en.qm'
-        )
-
-        # Choose which English fallback to use if present
-        if os.path.exists(locale_path_geo_en):
-            locale_path_en = locale_path_geo_en
-        else:
-            locale_path_en = locale_path_legacy_en
-
-        # Decide which file to use for the chosen locale
-        if os.path.exists(locale_path_geo):
-            locale_path = locale_path_geo
-        elif os.path.exists(locale_path_legacy):
-            locale_path = locale_path_legacy
-        else:
-            # current locale file not found -> fall back to English
-            locale = 'en'
-            if os.path.exists(locale_path_geo_en):
-                locale_path = locale_path_geo_en
-            else:
-                locale_path = locale_path_legacy_en
-
-        # ロケールが英語でない場合、未翻訳要素用のフォールバックとして英語を追加でロード
-        if locale != 'en':
-            QgsMessageLog.logMessage(u'loading "en" fallback: {}'.format(locale_path_en), self.settings.DLG_CAPTION, Qgis.Info)
-            self.translator_en = QTranslator()
-            self.translator_en.load(locale_path_en)
-            if not QCoreApplication.installTranslator(self.translator_en):
-                QgsMessageLog.logMessage(u'could not install translator: {}'.format(locale_path_en), self.settings.DLG_CAPTION, Qgis.Critical)
-            else:
-                QgsMessageLog.logMessage(u'locale "en" installed', self.settings.DLG_CAPTION, Qgis.Info)
-
-        # ロケールに応じた翻訳をロード
-        if os.path.exists(locale_path):
-            self.translator = QTranslator()
-            self.translator.load(locale_path)
-            if not QCoreApplication.installTranslator(self.translator):
-                QgsMessageLog.logMessage(u'could not install translator: {}'.format(locale_path), self.settings.DLG_CAPTION, Qgis.Critical)
-            else:
-                QgsMessageLog.logMessage(u'locale "{}" installed'.format(locale), self.settings.DLG_CAPTION, Qgis.Info)
+        # 言語を初期化(i18n/<lang>.json をQGISの言語設定に合わせて載せる)
+        self.translator = install_translator(self.plugin_dir)
 
         # 設定をロード
         self.settings.load()
@@ -103,22 +40,33 @@ class GeoImport:
 
         # インスタンス属性を宣言
         self.actions = []
-        self.menu = self.util.tr(u'&geo_import')
-        self.toolbar = self.iface.addToolBar(u'geo_import')
-        self.toolbar.setObjectName(u'geo_import')
+        self.menu = QCoreApplication.translate('GeoImport', u'&geo_import')
+        # 共有ツールバーGeoSuiteに集約(無ければ作成)
+        self.toolbar = self.iface.mainWindow().findChild(QToolBar, u'GeoSuite')
+        if self.toolbar is None:
+            self.toolbar = self.iface.addToolBar(u'GeoSuite')
+            self.toolbar.setObjectName(u'GeoSuite')
 
+        # AI/外部制御用ブリッジ。qgis_live_driver の bridge_call コマンドが
+        # qgis.utils.plugins['geo_import'].bridge をプロセス内で直接呼ぶため、
+        # ファイルJSONL/REST/MCP(qgis_bridge_call)の全経路から制御できる
+        try:
+            from .bridge import GeoImportBridge
+            self.bridge = GeoImportBridge(self)
+        except Exception:
+            self.bridge = None
 
     def add_action(
-        self,
-        icon_path,
-        text,
-        callback,
-        enabled_flag=True,
-        add_to_menu=True,
-        add_to_toolbar=True,
-        status_tip=None,
-        whats_this=None,
-        parent=None):
+            self,
+            icon_path,
+            text,
+            callback,
+            enabled_flag=True,
+            add_to_menu=True,
+            add_to_toolbar=True,
+            status_tip=None,
+            whats_this=None,
+            parent=None):
         """Add a toolbar icon to the InaSAFE toolbar.
 
         :param icon_path: Path to the icon for this action. Can be a resource
@@ -191,16 +139,16 @@ class GeoImport:
 
         self.add_action(
             icon_path,
-            text=self.util.tr(u'geo_import'),
+            text=QCoreApplication.translate('GeoImport', u'geo_import'),
             callback=self.run,
             parent=self.iface.mainWindow()
         )
-        
+
         icon_settings = os.path.join(os.path.dirname(__file__), 'icon-settings.png')
-        
+
         self.add_action(
             icon_settings,
-            text=self.util.tr(u'geo_import_settings'),
+            text=QCoreApplication.translate('GeoImport', u'geo_import_settings'),
             callback=self.open_settings,
             parent=self.iface.mainWindow()
         )
@@ -211,29 +159,29 @@ class GeoImport:
         # 全てのアクションをメニューとツールバーから削除
         for action in self.actions:
             self.iface.removePluginMenu(
-                self.util.tr(u'&geo_import'),
+                QCoreApplication.translate('GeoImport', u'&geo_import'),
                 action)
-            self.iface.removeToolBarIcon(action)
+            self.toolbar.removeAction(action)
 
     def run(self):
         """Run method that performs all the real work"""
         # プラグインのメイン処理を実行する
         # データカタログブラウザダイアログを表示し、ユーザーがデータを検索・追加できるようにする
-        
+
         # ダイアログが既に開いているかチェック（二重起動防止）
         is_open = QSettings().value("geo_import/isopen", False)
         # Pythonはほとんど全てをTrueとして扱うため、明示的にboolに変換
         self.util.msg_log_debug(u'isopen: {0}'.format(is_open))
-        
+
         # 文字列比較 - WindowsとLinuxは文字列として、Macはboolとして扱うため
         # 文字列をboolに変換する
         if isinstance(is_open, str):
             is_open = self.util.str2bool(is_open)
-        
+
         if is_open:
             self.util.msg_log_debug(u'Dialog already opened')
             return
-        
+
         # auf URL testen
         dir_check = self.util.check_dir(self.settings.cache_dir)
         api_url_check = self.util.check_api_url(self.settings.ckan_url)
@@ -252,7 +200,7 @@ class GeoImport:
 
             # show the dialog
             self.dlg.show()
-            #self.dlg.open()
+            # self.dlg.open()
             # Run the dialog event loop
             result = self.dlg.exec()
             # See if OK was pressed

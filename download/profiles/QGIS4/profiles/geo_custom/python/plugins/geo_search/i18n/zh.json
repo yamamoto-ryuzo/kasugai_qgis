@@ -1,0 +1,36 @@
+{
+  "Dialog": {
+    "Could not find corresponding entry to remove.": "找不到要删除的对应条目。",
+    "Failed to read the JSON file: {0}": "无法读取 JSON 文件: {0}",
+    "Failed to update JSON file: {0}": "无法更新 JSON 文件: {0}",
+    "JSON file has unsupported structure; expected {'SearchTabs': [...]} or an array.": "JSON 文件结构不受支持;应为 {'SearchTabs': [...]} 或数组。",
+    "Not found": "未找到",
+    "Read error": "读取错误",
+    "Unsupported format": "不支持的格式",
+    "Write error": "写入错误"
+  },
+  "SearchWidget": {
+    "Angle (deg):": "角度（度）：",
+    "Angle: Not specified": "角度: 未指定",
+    "Angle: {0}": "角度: {0}",
+    "Angle: {0}°": "角度: {0}°",
+    "Edit Tab Settings: {0}": "编辑选项卡设置：{0}",
+    "Exact Match": "精确匹配",
+    "Forward Match": "前缀匹配",
+    "Fuzzy Search": "模糊搜索",
+    "Geo Search: ": "地理搜索： ",
+    "OR search for multiple fields": "对多个字段进行 OR 搜索",
+    "Owner Search": "所有者搜索",
+    "Partial Match": "部分匹配",
+    "Results": "结果",
+    "Scale:": "比例尺：",
+    "Scale: Not specified": "比例尺: 未指定",
+    "Scale: {0}": "比例尺: {0}",
+    "Search Results: {0} items": "搜索结果：{0} 项",
+    "Search all fields": "搜索所有字段",
+    "Set current value": "设置当前值"
+  },
+  "plugin": {
+    "Geo Search": "地理搜索"
+  }
+}

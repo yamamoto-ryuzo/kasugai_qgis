@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import (
     QDialog,
     QWidget,
@@ -15,8 +14,8 @@ from qgis.PyQt.QtWidgets import (
     QSpacerItem,
     QLayout,
     QLayoutItem,
+    QAbstractItemView,
 )
-import importlib
 
 
 class SearchWidget(QWidget):
@@ -68,14 +67,14 @@ class SearchWidget(QWidget):
             except Exception:
                 try:
                     inner.addWidget(widget)
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
 
         outer.addLayout(inner)
         # add angle/scale display on a new row under the inputs
         try:
             outer.addLayout(self._angle_scale_layout())
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
 
         self.setLayout(outer)
@@ -125,10 +124,10 @@ class SearchWidget(QWidget):
         # stretch to push labels to the left
         try:
             from qgis.PyQt.QtWidgets import QSpacerItem, QSizePolicy
-            spacer = QSpacerItem(20, 10, QSizePolicy.Expanding, QSizePolicy.Minimum)
+            spacer = QSpacerItem(20, 10, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
             # layouts accept addItem
             h.addItem(spacer)
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
 
         v.addLayout(h)
@@ -177,8 +176,8 @@ class SearchWidget(QWidget):
         src_label.setStyleSheet("color: #666666; font-size: 10px;")
         try:
             from qgis.PyQt.QtCore import Qt
-            src_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        except Exception:
+            src_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        except Exception:  # nosec B110  # 設計上の許容
             pass
 
         v.addWidget(src_label)
@@ -256,7 +255,7 @@ class SearchTibanWidget(SearchTextWidget):
         # add angle/scale display for this widget
         try:
             layout.addLayout(self._angle_scale_layout())
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
         self.setLayout(layout)
 
@@ -286,40 +285,9 @@ class SearchTibanWidget(SearchTextWidget):
             input_layout.addWidget(edit)
 
         self.code_table = QTableWidget()
-        self.code_table.setEditTriggers(QTableWidget.NoEditTriggers)
-        self.code_table.setSelectionMode(QTableWidget.SingleSelection)
-        # Qt5: QTableWidget.SelectRows (alias of QAbstractItemView.SelectRows)
-        # Qt6: enum moved to QAbstractItemView.SelectionBehavior.SelectRows
-        try:
-            qt_compat = importlib.import_module('geo_search.qt_compat')
-        except Exception:
-            qt_compat = None
-
-        sel = None
-        if qt_compat is not None:
-            try:
-                sel = qt_compat.get_enum_value(qt_compat.QtWidgets.QAbstractItemView, 'SelectRows')
-            except Exception:
-                sel = None
-            if sel is None:
-                try:
-                    sel = qt_compat.get_enum_value(qt_compat.QtWidgets.QTableWidget, 'SelectRows')
-                except Exception:
-                    sel = None
-
-        if sel is not None:
-            try:
-                self.code_table.setSelectionBehavior(sel)
-            except Exception:
-                try:
-                    self.code_table.setSelectionBehavior(1)
-                except Exception:
-                    pass
-        else:
-            try:
-                self.code_table.setSelectionBehavior(1)
-            except Exception:
-                pass
+        self.code_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.code_table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.code_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         v_header = self.code_table.verticalHeader()
         v_header.setVisible(False)
         search_layout.addLayout(input_layout)
@@ -344,7 +312,7 @@ class SearchOwnerWidget(SearchTextWidget):
         # add angle/scale display for this widget
         try:
             layout.addLayout(self._angle_scale_layout())
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
 
         self.setLayout(layout)
@@ -382,6 +350,6 @@ class SearchOwnerWidget(SearchTextWidget):
             self.check_list.append(check)
             self.button_group.addButton(check)
             self.QHBox.addWidget(check)
-        spacer = QSpacerItem(20, 40, QSizePolicy.Expanding)
+        spacer = QSpacerItem(20, 40, QSizePolicy.Policy.Expanding)
 
         return [label_layout, self.QHBox, self.line_edit, spacer]

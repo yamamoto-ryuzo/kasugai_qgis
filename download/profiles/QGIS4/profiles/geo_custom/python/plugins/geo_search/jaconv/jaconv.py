@@ -8,6 +8,7 @@ from .compat import map
 
 consonants = frozenset('sdfghjklqwrtypzxcvbnm')
 
+
 def _exclude_ignorechar(ignore, conv_map):
     for character in map(ord, ignore):
         conv_map[character] = character

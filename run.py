@@ -400,6 +400,18 @@ def run_release(extra=None):
     return subprocess.run([str(exe), *extra], cwd=ROOT).returncode
 
 
+def sync_bundle_plugins():
+    """download/profiles 同梱の repo 管理プラグインを qgis-plugin/* と同期する。
+
+    このリポジトリが <harness>/qgis-plugin/kasugai_qgis に置かれている場合のみ効果あり。
+    単体 clone 時は同期対象がなくスクリプト側で正常終了する。
+    """
+    script = ROOT / "scripts" / "sync_bundle_plugins.py"
+    if not script.exists():
+        return 0
+    return subprocess.run([sys.executable, str(script)], cwd=ROOT).returncode
+
+
 def build_release_bundle(with_zip=True):
     """リリース一式をビルドし、バージョン情報を同期する。"""
     version = read_cargo_version()
@@ -407,6 +419,10 @@ def build_release_bundle(with_zip=True):
     # インストーラーに焼き込まれるバージョンを先に合わせる
     sync_nsi_version(version)
     sync_settings_version(version)
+    # 同梱プラグインを repo 側の最新に同期する
+    rc = sync_bundle_plugins()
+    if rc != 0:
+        return rc
 
     rc = cargo_build_release()
     if rc != 0:
@@ -437,6 +453,8 @@ def main():
                         help="バージョンを更新してリリース一式をビルドする（例: --bump 2.1.0）")
     parser.add_argument("--check-version", action="store_true",
                         help="バージョン整合性のみ確認する")
+    parser.add_argument("--sync-plugins", action="store_true",
+                        help="download/profiles 同梱プラグインを qgis-plugin/* と同期するのみ")
     parser.add_argument("--tag", action="store_true",
                         help="git tag vX.Y.Z 作成 → push --follow-tags → Pages デプロイ確認まで実行する")
     parser.add_argument("--publish", action="store_true",
@@ -454,6 +472,8 @@ def main():
 
     if args.check_version:
         return verify_release_consistency(read_cargo_version())
+    if args.sync_plugins:
+        return sync_bundle_plugins()
     if args.bump:
         if not re.fullmatch(r"\d+\.\d+\.\d+", args.bump):
             print("ERROR: バージョンは X.Y.Z 形式で指定してください")

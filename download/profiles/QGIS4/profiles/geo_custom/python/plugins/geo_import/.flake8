@@ -1,0 +1,12 @@
+[flake8]
+# QGIS plugin codebase conventions:
+# - E501: pre-existing code contains very long lines; line-length is not enforced.
+# - W503/W504: mutually exclusive line-break rules; both styles are used.
+extend-ignore = E501, W503, W504
+
+# pyperclip and defusedxml are vendored third-party code kept verbatim
+# (pyperclip contains Python 2 compatibility branches such as 'unicode';
+# defusedxml wraps stdlib xml.* with unused-looking imports by design).
+per-file-ignores =
+    pyperclip/__init__.py: F821
+    defusedxml/*.py: F401,F403,F405,E731,F841

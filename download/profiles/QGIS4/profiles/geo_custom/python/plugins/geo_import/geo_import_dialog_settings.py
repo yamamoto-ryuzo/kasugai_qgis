@@ -23,12 +23,10 @@
 
 import os
 from qgis.PyQt.QtCore import Qt, QCoreApplication
-from qgis.PyQt import QtGui, uic
-from qgis.PyQt.QtWidgets import QApplication, QDialog, QFileDialog, QVBoxLayout, QDialogButtonBox
-from collections import OrderedDict
+from qgis.PyQt import uic
+from qgis.PyQt.QtWidgets import QDialog, QFileDialog, QVBoxLayout, QDialogButtonBox
 from .util import Util
 from .ckanconnector import CkanConnector
-import json
 
 try:
     from qgis.gui import QgsAuthConfigSelect
@@ -41,11 +39,6 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 
 
 class GeoImportDialogSettings(QDialog, FORM_CLASS):
-    @staticmethod
-    def tr(message):
-        """翻訳用のtr()メソッド"""
-        return QCoreApplication.translate('GeoImport', message)
-    
     def __init__(self, settings, iface, parent=None):
         """Constructor."""
         super(GeoImportDialogSettings, self).__init__(parent)
@@ -60,6 +53,9 @@ class GeoImportDialogSettings(QDialog, FORM_CLASS):
 
         self.IDC_leCacheDir.setText(self.settings.cache_dir)
         self.IDC_chkbox_show_debug_info.setChecked(self.settings.debug)
+        if hasattr(self, 'IDC_chkLocalCacheAll'):
+            self.IDC_chkLocalCacheAll.setChecked(
+                getattr(self.settings, 'use_local_cache_all', False))
 
         if QgsAuthConfigSelect is None:
             self.IDC_leAuthCfg.hide()
@@ -95,12 +91,14 @@ class GeoImportDialogSettings(QDialog, FORM_CLASS):
         cache_dir = self.IDC_leCacheDir.text()
         if self.util.check_dir(cache_dir) is False:
             self.util.dlg_warning(
-                self.util.tr(u'py_dlg_set_warn_cache_not_use').format(self.settings.cache_dir)
+                QCoreApplication.translate('GeoImport', u'py_dlg_set_warn_cache_not_use').format(self.settings.cache_dir)
             )
             return
 
         self.settings.cache_dir = cache_dir
         self.settings.debug = self.IDC_chkbox_show_debug_info.isChecked()
+        if hasattr(self, 'IDC_chkLocalCacheAll'):
+            self.settings.use_local_cache_all = self.IDC_chkLocalCacheAll.isChecked()
 
         authcfg = self.IDC_leAuthCfg.text()
         self.settings.authcfg = authcfg
@@ -111,14 +109,14 @@ class GeoImportDialogSettings(QDialog, FORM_CLASS):
         QDialog.accept(self)
 
     def help_cache_dir(self):
-        self.util.dlg_information(self.util.tr(u'dlg_set_tool_cache'))
+        self.util.dlg_information(QCoreApplication.translate('GeoImport', u'dlg_set_tool_cache'))
 
     def authcfg_clear(self):
-         self.IDC_leAuthCfg.clear()
+        self.IDC_leAuthCfg.clear()
 
     def authcfg_edit(self):
         dlg = QDialog(None)
-        dlg.setWindowTitle(self.util.tr("Select Authentication"))
+        dlg.setWindowTitle(QCoreApplication.translate('GeoImport', "Select Authentication"))
         layout = QVBoxLayout(dlg)
 
         acs = QgsAuthConfigSelect(dlg)
