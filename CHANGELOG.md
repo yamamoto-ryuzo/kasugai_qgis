@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- 配布プロファイルのコピー元を `project_root` 基準から `resolved_settings_dir`（実効 `qgis_settings.json` のあるディレクトリ＝インストール先）へ統一。`project_root` をプロジェクト用ドライブ等の別ディレクトリに設定している環境で `<project_root>\profiles` が見つからずシードがスキップされ、`--profile` が空の新規プロファイルを指していた問題を修正（`GET /profiles` の列挙元と一致させた）。`POST /reset` の再コピー元も同様に統一
+
 ## [2.3.0] - 2026-10-22
 
 ### Changed

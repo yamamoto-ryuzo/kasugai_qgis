@@ -1277,7 +1277,7 @@ fn main() {
         register_protocol_handler();
         let server_port = args.port.unwrap_or(settings.api_server_port.unwrap_or(8500));
         mount_drive_mappings(&settings.drive_mappings, &settings, None);
-        copy_profiles_at_startup(&project_root_dir, None);
+        copy_profiles_at_startup(&resolved_settings_dir, None);
         run_local_sync(&settings, &project_root_dir, None);
         // kasugai-qgis:// からの起動(uri 引数あり)は残ったタブ/pane 自身が
         // /health をポーリングして復帰する方式なので、ここではウィンドウを開かず
@@ -1296,7 +1296,7 @@ fn main() {
 
     // CLI モードでも配布プロファイルをシードする。
     // 未シード環境で --profile が空プロファイルを指すのを防ぐ
-    copy_profiles_at_startup(&project_root_dir, None);
+    copy_profiles_at_startup(&resolved_settings_dir, None);
 
     // KASUGAI/yr-qgis-launcher 方式のローカル自動同期（CLI モード）
     run_local_sync(&settings, &project_root_dir, None);
@@ -2949,8 +2949,8 @@ async fn reset_profiles_handler(State(state): State<AppState>) -> Result<Json<se
         }
     });
 
-    let project_root_dir = state.project_root_dir.clone();
-    let reset = tokio::task::spawn_blocking(move || reset_profiles(&project_root_dir, Some(&tx)));
+    let settings_dir = state.settings_dir.clone();
+    let reset = tokio::task::spawn_blocking(move || reset_profiles(&settings_dir, Some(&tx)));
 
     let res = reset.await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let _ = bridge.await;
