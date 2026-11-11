@@ -23,8 +23,9 @@ from qgis.core import *
 # from PyQt6 import QtCore, QtGui, QtWidgets
 # from PyQt6.QtWidgets import *
 
-from qgis.PyQt import QtCore, QtGui, QtWidgets
+from qgis.PyQt import QtCore, QtGui, QtWidgets, QtNetwork
 from qgis.PyQt.QtWidgets import *
+from qgis.PyQt.QtNetwork import QNetworkRequest
 
 try:
 	from .mmqgis_library import *
@@ -2431,10 +2432,16 @@ class mmqgis_search_widget(QtWidgets.QDockWidget, Ui_mmqgis_search_widget):
 		address = address.replace(" ", "+")
 
 		url = "http://nominatim.openstreetmap.org/search?format=geojson&q=" + address
+
 		try:
-			user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3)"
-			request = urllib.request.Request(url, headers={'User-Agent': user_agent})
-			json_string = urllib.request.urlopen(request).read()
+			#user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3)"
+			#request = urllib.request.Request(url, headers={'User-Agent': user_agent})
+			#json_string = urllib.request.urlopen(request).read()
+			request = QNetworkRequest(QUrl(url))
+			request.setRawHeader(bytes("User-Agent", "utf-8"), \
+				bytes("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3)", "utf-8"))
+			reply = QgsNetworkAccessManager.instance().blockingGet(request)
+			json_string = reply.content().data()
 			json_array = json.loads(json_string.decode("utf-8"))
 
 		except Exception as e:

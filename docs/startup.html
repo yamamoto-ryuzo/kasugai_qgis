@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>起動処理の流れ（内部動作） — QGIS Launcher</title>
+  <link rel="stylesheet" href="style.css">
+  <style>pre.mermaid { background: #fff; }</style>
+  <script src="nav.js" defer></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>QGIS Launcher (qgis_launcher) <span class="version-badge">v2.4.0</span></h1>
+      <p><strong>QGIS / QField 起動ランチャー</strong> — Web UI・HTTP API・CLI で動作する Rust(Axum) 製デスクトップランチャーのドキュメント</p>
+    </header>
+    <main>
+<section>
+<h2 id="起動処理の流れ内部動作">2. 🔄 起動処理の流れ（内部動作）</h2>
+<p><code>qgis_launcher.exe</code> が実行されてから QGIS
+が起動するまでの内部処理を、実装（<code>src/main.rs</code>）に沿って図解します。</p>
+<h3
+id="全体シーケンス起動モード分岐">図1: 全体シーケンス（起動～モード分岐）</h3>
+<pre class="mermaid">flowchart TD
+    A(["qgis_launcher.exe 起動"]) --> B["CLI 引数をパース<br/>--profile / --cli / --list-qgis / --server / --port<br/>--open-browser / --no-update-check / --qgis-executable<br/>--dev / 位置引数 URI（kasugai-qgis:）"]
+    B --> C{"--list-qgis ?"}
+    C -- "はい" --> C1["検出した QGIS 一覧を出力して終了"]
+    C -- "いいえ" --> D["カレントディレクトリを EXE 所在フォルダへ変更"]
+    D --> E["設定読込（3段マージ・後勝ち）<br/>① qgis_settings.json（ベース）<br/>② qgis_settings_override.json（全ユーザー強制）<br/>③ qgis_settings_USERNAME.json（最終適用）"]
+    E --> F["project_root 解決<br/>未指定 → 設定ファイル所在フォルダ<br/>project_root 内に別 qgis_settings.json が<br/>存在すればそちらを正として再読込"]
+    F --> G["更新状態の照合（reconcile_update_state）<br/>%LOCALAPPDATA%\kasugai_qgis\update_state.json<br/>試行済みの目標バージョンに到達していれば記録クリア"]
+    G --> H["プロファイル決定<br/>settings.profile → CLI --profile（既定 geo_custom）→ default"]
+    H --> I{"起動モード判定"}
+    I -- "--cli" --> J["CLI モードへ（図3）"]
+    I -- "GUI / サーバ<br/>（--cli 無し or --open-browser or --server）" --> K["サーバモードへ（図2）"]
+
+    classDef profile fill:#e9f7ee,stroke:#2e9e56,color:#1a2230
+    class H profile</pre>
+<h3 id="サーバ--gui-モードの起動シーケンス">図2: サーバ / GUI
+モードの起動シーケンス</h3>
+<pre class="mermaid">flowchart TD
+    S(["サーバモード入り口"]) --> P1["register_protocol_handler<br/>kasugai-qgis: を HKCU\Software\Classes に登録<br/>（停止後に残ったブラウザタブからの再起動用。<br/>失敗しても起動は継続）"]
+    P1 --> P2["待受ポート決定<br/>--port → api_server_port → 8500"]
+    P2 --> P3["mount_drive_mappings<br/>・mode=subst: robocopy_src があれば先に robocopy /MIR で<br/>  local_cache へ同期 → subst でドライブ割当<br/>・mode=sync: rclone sync → subst<br/>・mode=mount: rclone mount（要 WinFsp）"]
+    P3 --> P4["copy_profiles_at_startup<br/>起動フォルダの profiles\ 直下を<br/>%APPDATA%\QGIS\QGIS{major}\ へコピー<br/>（既存はスキップ）"]
+    P4 --> P5["run_local_sync<br/>qgislocalsync.config ＞ local_sync の順で設定解決<br/>SYNC_SRC → SYNC_DST を robocopy /MIR<br/>QField* / QGIS* / portable_profile は<br/>バージョン文字列比較で差分がある場合のみ同期"]
+    P5 --> Q{"ヘッドレス?<br/>--server または URI 起動<br/>（--open-browser 無し）"}
+    Q -- "はい" --> R1["run_api_server_sync<br/>axum サーバを同一スレッドで起動"]
+    Q -- "いいえ" --> R2["run_gui_server<br/>axum をバックグラウンドスレッドで起動"]
+    R2 --> R3["wait_for_server_ready<br/>GET /health を最大60秒ポーリング"]
+    R3 --> R4{"WebView2 Runtime<br/>インストール済み?<br/>（EdgeUpdate レジストリ確認）"}
+    R4 -- "あり" --> R5["wry/tao の WebView2 ウィンドウに<br/>http://127.0.0.1:PORT/ を表示<br/>（ユーザーデータは %LOCALAPPDATA%\kasugai_qgis\webview2）"]
+    R4 -- "なし" --> R6["既定ブラウザで URL を開く（フォールバック）"]
+    R1 --> T["axum ルート群<br/>GET / → Web UI（public/index.html 埋込）<br/>GET /health /settings /qgis /profiles /projects<br/>/progress /project-version /update /version /live-sessions<br/>GET /i18n.js /i18n/*file /favicon.ico<br/>POST /settings /launch /reset /update/apply<br/>POST /api/v1/server/stop  GET /api/v1/server/info"]
+    T --> U{"ポート bind"}
+    U -- "競合" --> U1["既存インスタンスの /health 応答を確認 →<br/>POST /api/v1/server/stop → 解放待ち → 再 bind"]
+    U1 --> U2["127.0.0.1:PORT で待受開始"]
+    U -- "成功" --> U2
+    U2 -. "ブラウザ上で操作" .-> V{"Web UI からの要求"}
+    V -- "POST /launch" --> W["QGIS 起動処理へ（図3）"]
+    V -- "POST /reset" --> Y["プロファイル強制更新へ（図5）"]
+    V -- "GET /update / POST /update/apply" --> X["自動更新処理へ（図4）"]
+
+    classDef profile fill:#e9f7ee,stroke:#2e9e56,color:#1a2230
+    class P4 profile</pre>
+<blockquote>
+<p><code>kasugai-qgis:</code> プロトコル経由の起動:
+サーバー停止後に残ったブラウザタブが <code>kasugai-qgis://open</code>
+へ遷移すると、EXE が URI
+位置引数付きで再起動しヘッドレスサーバとして立ち上がります。タブ側は
+<code>/health</code> をポーリングして復帰を検出します。</p>
+</blockquote>
+<h3 id="qgis-起動処理launch_qgis--cli-モードと-post-launch-共通">図3: QGIS
+起動処理（launch_qgis — CLI モードと POST /launch 共通）</h3>
+<pre class="mermaid">flowchart TD
+    A(["launch_qgis(profile, project_paths, exe, role, dev_mode)"]) --> B["QGIS 実行ファイルの決定（優先順位）<br/>1. CLI --qgis-executable（明示指定）<br/>2. settings.qgis_executable（実在確認あり）<br/>3. CLI 時: プロジェクトの version 属性に合致する<br/>   インストール済み QGIS を自動選択<br/>  （major.minor 一致 → major 一致 → 文字列包含の順）<br/>4. レジストリの .qgs 関連付けから検出"]
+    B --> C{"実行ファイルが見つかった?"}
+    C -- "いいえ" --> C1["エラーを出力して起動中止"]
+    C -- "はい" --> D["ロール制御ファイル準備<br/>・--customizationfile ini/ROLE.xml<br/>  （QGIS4 用・ファイル存在時のみ）<br/>・ini/qgis_global_settings.ini を生成<br/>   [Variables] userrole=ROLE<br/>・--code ini/startup.py（ファイル存在時のみ）"]
+    D --> E["子プロセスへ環境変数を注入<br/>PORTAL_USERROLE=ROLE"]
+    E --> F{"dev_mode?<br/>--dev or settings.dev_mode"}
+    F -- "はい" --> F1["QGIS Live Harness 用環境変数を注入<br/>QTWEBENGINE_REMOTE_DEBUGGING=9222<br/>QTWEBENGINE_CHROMIUM_FLAGS（--disable-gpu 等）<br/>WEBENGINE_AUTOOPEN=1<br/>WEBENGINE_LIVE_DIR / WEBENGINE_LOG_PATH<br/>WEBENGINE_DEV_SRC（junction 配置時のみ）"]
+    F -- "いいえ" --> G["project_path 各エントリを解決<br/>・.qgs/.qgz → そのファイル<br/>・フォルダ → 直下の .qgs/.qgz の先頭<br/>・解決不可 → プロジェクト無しで起動"]
+    F1 --> G
+    G --> H["qgis.exe / qgis.bat を spawn<br/>--profile PROFILE<br/>+ --customizationfile / --globalsettingsfile / --code<br/>+ プロジェクトパス（位置引数）<br/>.bat/.cmd は cmd.exe /C 経由"]
+    H --> I{"呼出し経路"}
+    I -- "POST /launch" --> I1["応答返却後 500ms で<br/>ランチャーサーバを自動停止"]
+    I -- "--cli" --> I2["ランチャー終了"]</pre>
+<h3 id="自動更新フローget-update--post-updateapply">図4: 自動更新フロー（GET
+/update ・ POST /update/apply）</h3>
+<pre class="mermaid">flowchart TD
+    A(["GET /update（UI からの更新確認）"]) --> B{"update_check_enabled?<br/>--no-update-check 無し かつ<br/>update_check ≠ false かつ update_url 有効"}
+    B -- "無効" --> B1["available:false + disabled:true を返す"]
+    B -- "有効" --> C["check_nsis_update<br/>update.json を GET<br/>（既定: GitHub Pages 上の update.json）"]
+    C --> D{"remote version > 現在の version?"}
+    D -- "いいえ" --> D1["最新版 → available:false"]
+    D -- "はい" --> E["available:true + version/url/full_url<br/>/full/notes を返す<br/>（ループガードの blocked 情報も付与）"]
+    E --> F["ユーザー操作で POST /update/apply"]
+    F --> G["prepare_nsis_update<br/>・ループガード確認（update_state.json。<br/>  同一バージョンへの試行は1回/24hまで）<br/>・full ? full_url : url のインストーラを<br/>  %TEMP%\kasugai_qgis_setup.exe へダウンロード<br/>・sha256 があれば SHA-256 検証<br/>・試行を記録（record_update_attempt）"]
+    G --> H["run_nsis_installer_and_exit<br/>installer /S /D=INSTALL_DIR を起動し<br/>本体プロセスは終了"]
+    H --> I["NSIS が qgis_launcher.exe を上書きし<br/>新しい exe を自動起動"]
+    I --> J["次回起動時に reconcile_update_state で<br/>到達を確認 → 記録クリア"]</pre>
+<blockquote>
+<p>起動時に更新を自動適用しないのは意図的です（適用直後の再起動で再び更新が走り、無限ループになるため）。起動時は試行結果の照合のみを行い、適用は
+<code>POST /update/apply</code> のユーザー操作起点のみです。</p>
+</blockquote>
+<h3 id="図5-プロファイル強制更新フロー">図5: プロファイル強制更新フロー（Reset
+Profiles — POST /reset）</h3>
+<p>Web UI の「Reset
+Profiles」ボタンから実行される強制更新処理です。詳細は「プロファイルの強制更新（Reset
+Profiles）」も参照してください。</p>
+<pre class="mermaid">flowchart TD
+    A(["Web UI「Reset Profiles」ボタン押下"]) --> B["POST /reset<br/>reset_profiles_handler"]
+    B --> C["進捗キューをクリアし<br/>spawn_blocking で reset_profiles を実行<br/>PROG: / MSG: を /progress へ送信"]
+    C -.-> P["UI は GET /progress をポーリング<br/>モーダルで進捗表示"]
+    C --> E{"settings_dir\profiles\ 存在?"}
+    E -- "なし" --> E1["distribution profiles not found<br/>で失敗を返す"]
+    E -- "あり" --> F["① 既存プロファイルの削除<br/>%APPDATA%\QGIS\QGIS{major}\profiles\ 配下を全削除<br/>（profiles\ 無しの構成では<br/>QGIS{major}\ 直下のディレクトリを削除）"]
+    F --> G["② copy_profiles_at_startup を再実行<br/>起動フォルダの profiles\ 直下を<br/>%APPDATA%\QGIS\ へ再コピー<br/>（削除済みのため全ファイル新規配置 = 強制更新）"]
+    G --> H["MSG:done → { ok: true } を返却<br/>モーダル自動クローズ"]
+
+    classDef profile fill:#e9f7ee,stroke:#2e9e56,color:#1a2230
+    class F,G profile</pre>
+</section>
+    </main>
+  </div>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@12.2.0/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, securityLevel: 'strict', theme: 'default' });
+  </script>
+</body>
+</html>

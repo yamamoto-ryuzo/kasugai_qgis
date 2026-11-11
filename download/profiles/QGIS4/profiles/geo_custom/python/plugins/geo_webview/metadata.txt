@@ -2,17 +2,16 @@
 name = geo_webview
 qgisMinimumVersion = 4.0
 qgisMaximumVersion = 4.99
-description = Navigate QGIS map views through external permalink system; includes dynamic WMS/OpenLayers and MapLibre (WMTS/WFS with style injection) endpoints for remote navigation
-version = 3.17.4
+description = Serverless web distribution of QGIS projects — export .kasc+DATA/ packages playable on KASUGAI Canvas multi-engines (Cesium/MapLibre/OpenLayers/Leaflet/GSI Maps/Navara); permalinks and an embedded HTTP server
+version = 4.13.0
 author = yamamoto-ryuzo
 email = ryu@yamakun.net
-supportsQt6 = True
-about = geo_webview は QGIS を軽量な OGC サーバー（WMS/WMTS/WFS）として起動し、QGIS の地図表示状態を外部から復元するパーマリンク機能を提供します。ドッキング可能なパネルからサーバーを起動し、`/wms`、`/wmts`、`/wfs`、`/qgis-map`、`/maplibre`、`/maplibre-style` 等のエンドポイントを公開します。詳細な使用法・ユースケースは `README_JP.md` を参照してください。
-about[en] = geo_webview enables instant conversion of QGIS projects into lightweight OGC-compliant map services (WMS/WMTS/WFS) and provides permalink-based navigation of full map states (center, zoom, layer visibility, themes, styles). The plugin runs an embedded HTTP server exposing endpoints such as `/wms`, `/wmts`, `/wfs`, `/qgis-map`, `/maplibre` and `/maplibre-style`. See README.md / README_JP.md for usage details and deployment scenarios.
+about = geo_webview は開いている QGIS プロジェクトを `.kasc`+`DATA/` パッケージに出力し、KASUGAI Canvas のマルチエンジン（Cesium/MapLibre/OpenLayers/Leaflet/GSI Maps/Navara）で再生する、QGIS のサーバレス Web 配信プラグインです。出力物は静的ホスティングだけで配信できます。パネルの `Export`（ファイル出力）/`▶ Open`（エンジン選択付きで登録・起動）に加え、`/kasugai`・bridge `kasugaiExport` からも呼べます。補助として内蔵 HTTP サーバーが `/export-data/` 配信・`/present`/`/screenshot` 画面共有・パーマリンク受領を提供します。詳細は `README_JP.md` を参照してください。
+about[en] = geo_webview is a serverless web distribution plugin for QGIS: it exports the open project as a `.kasc`+`DATA/` package playable on the KASUGAI Canvas multi-engines (Cesium/MapLibre/OpenLayers/Leaflet/GSI Maps/Navara), and the output runs on plain static hosting. Available from the panel (`Export` = files only, `▶ Open` = pick an engine, register and launch) as well as `/kasugai` and the `kasugaiExport` bridge. The embedded HTTP server additionally provides `/export-data/` delivery, `/present`/`/screenshot` canvas sharing and permalink reception. See README.md / README_JP.md for usage details and deployment scenarios.
 tracker = https://github.com/yamamoto-ryuzo/qgis_live_harness/issues
 repository = https://github.com/yamamoto-ryuzo/qgis_live_harness/tree/master/qgis-plugin/geo_webview
-homepage = https://github.com/yamamoto-ryuzo/qgis_live_harness/tree/master/qgis-plugin/geo_webview
-tags = permalink,navigation,map,view,link,external,document,excel,pdf,theme,layer,state,style,google,maps,earth,integration,wms,wmts,openlayers,maplibre,webmap,server,http,remote,gis,wms-server,openlayers-map,geo_suite,ogc
+homepage = https://yamamoto-ryuzo.github.io/qgis_live_harness/geo_webview/
+tags = permalink,navigation,map,view,link,external,document,excel,pdf,theme,layer,state,style,openlayers,maplibre,webmap,server,http,remote,gis,openlayers-map,geo_suite,cesium,navara,gsimap,leaflet,kasugai
 category = Plugins
 license = GPL-3.0
 icon = icon.png
@@ -20,6 +19,43 @@ experimental = false
 deprecated = false
 hasProcessingProvider = false
 changelog = 
+	- 4.13.0: Navara エンジン対応(engine=navara・パネルの Engine コンボ・navara.html 起動ページ・openExternal("navara"))。tags に navara/gsimap/leaflet を追加
+	- 4.12.4: plugins.qgis.org セキュリティスキャン対応(except〜continue 6箇所の # nosec ルールIDが B110 になっていた誤りを B112 へ修正。4.12.3 がサイトスキャンでブロックされた原因)。QGIS core から撤去済みの非推奨フラグ supportsQt6 を metadata.txt から削除
+	- 4.12.3: kasugaiExport の "too many values to unpack" を修正(4.12.2 の _tree_layers() 4要素タプル化に伴う 3要素アンパック残存6箇所: kasugai_export の base:XYZ 検出・theme: 行生成、live_sync/server_manager のタイトル写像・writeback 解決)
+	- 4.12.2: QGIS レイヤツリーの凡例ノード順・ユーザーラベル・凡例表示名を legendnode: メタ行として出力し、グループの checked/unchecked/partial(中間)状態を group: 行の checked= で出力(#63)
+	- 4.12.1: QgsVectorTileLayer を mvt:/pmtiles: 行として出力(XYZ テンプレート/TileJSON/PMTiles URL。ローカル .mbtiles 等 URL 参照不可は理由付き skipped)(#50)
+	- 4.12.0: Live Driver MCP リレー(GET /live/mcp-discover・POST /live/mcp)。CDN ホスト版 KASUGAI Canvas の AI チャットから Live Driver の MCP ツール(qgis_pyeval/qgis_bridge_call 等)へ到達可能に(トークンはサーバ側付与・TCP ピア loopback 限定)
+	- 4.11.0: ライブ双方向連携の拡張 — POST /live/writeback(Canvas 表示/テーマ/フィルタの QGIS 書き戻し)・POST /live/features(GeoJSON 地物のスクラッチレイヤ投入)・QGIS→Canvas 選択同期・オンデマンド配信 API(GET /live/layers・/live/features・/live/selection・/live/render)・bridge liveWriteback/liveAddFeatures 追加
+	- 4.10.0: QGIS4の3Dグローブビュー対応(地心系シーンCRS=EPSG:4978の ECEF→測地変換で globe ビューのカメラを正しく出力し scene3d: に globe=on を付与) + 3Dアニメーション(<animation3d>キーフレーム)をカメラ軌道の fly_geojson: 行+DATA/anim3d_*.geojson として出力。3Dビューのカメラ姿勢変換を QgsCameraPose 準拠へ修正(高さ=dist*cos(pitch)・水平距離=dist*sin(pitch)・視線方位=360-yaw・p=pitch-90。従来は高さ/距離が入れ替わり視線方位も反転していた)
+	- 4.8.0: アトラス有効な印刷レイアウトを fly_geojson: 行+DATA/atlas_*.geojson(各ページ範囲を巡回するプレゼン用FLYルート・座標Z=ページを収めるカメラ高)として出力(emit_atlas=True既定、bridge kasugaiExport に emit_atlas 追加)
+	- 4.2.1: .kasc+DATA/ エクスポートで未読込レイヤ(layer()=None)をプロジェクトファイルの <maplayer> 定義から再生成・再登録し、破損レイヤ(isValid()=False)も setDataSource で再オープンして出力対象に含める。解決不能は skipped へ記録
+	- 4.2.0: GSI Maps エンジン対応(engine=gsimaps・gsimaps.html 起動ページ・Engine: コンボ)。内蔵HTTPサーバーのCORSを許可リスト方式へ強化(任意サイトからのローカルデータ読み取りを遮断)
+	- 4.0.4: サイトスキャン指摘対応(.qml パースを vendored defusedxml へ切替・配布ZIPダウンロードを https 固定・try/except/pass の # nosec 明示、.bandit/.flake8 更新)
+	- 4.0.3: 配布前チェックの flake8 findings 0 化(未使用 import 除去・継続行インデント修正・過剰空行の整理)
+	- 4.0.2: エクスポート起動HTML(index/<engine>.html)と /present 共有ページをロケール対応(日本語/英語固定→translate_textでUI言語追従、9言語カタログへ geo_webview.page コンテキスト41キー追加)。不使用キー39件をカタログから除去
+	- 4.0.1: KASUGAI出力UIの未登録文字列(「▶ Canvas」「▶ WebView」・保存先選択・ZIPダウンロード・起動フォールバック等26キー)を i18n 9言語カタログへ追記
+	- 3.36.8: 連携構成図の「【▶ Canvas】」に Canvas のローカルポートを明示(HTTPサーバー :8510・AI ブリッジハブ :8511)
+	- 3.36.7: .kasc+DATA/ エクスポートで .qml 参照のシンボル画像を DATA/ へ複製し参照を書き換え(_export_qml_assets)。QGIS内蔵SVG/ローカル画像が Canvas 側で解決できず円マーカー/単色へフォールバックしていた問題を解消
+	- 3.36.6: パネルタイトルを「WebView」へ短縮(旧「geo_webview — Web Distribution」)。i18n 9言語カタログを同期
+	- 3.36.5: インストール進捗ダイアログの×で実際に途中キャンセル可能に(DL/ウィザード待機/展開の各段で中断、キャンセル時は情報通知)
+	- 3.36.4: インストール方式選択ダイアログを非モーダル化(背面隠れで全入力ロック→「閉じられない」問題の根本修正)。進捗ダイアログの×でタスクキャンセル可
+	- 3.36.3: インストール進捗を段階別実表示へ(ダウンロードのMB/バー確定表示・ウィザード待機・展開)。レジストリ幽霊登録の誤検出をexe存在チェックで防止
+	- 3.36.2: セットアップ経路の進捗文言に「ウィザード/セキュリティ確認が別ウィンドウ・背面に出る」旨の案内を追加(背面プロンプト放置で「固まる」問題の対策)
+	- 3.36.1: Canvasインストール実行中に不定プログレスダイアログを表示し、失敗時はログ記録+延長表示へ(DL中が無通知で「何も起きない」状態を解消)
+	- 3.36.0: Canvas 未検出時の「▶ Canvas」を Install ボタン化し、セットアップ(.kasc関連付け)/ポータブルZIPを選択してバックグラウンドインストール→起動へ合流
+	- 3.35.0: Web配信パネルの起動行を2行化し、「▶ WebView」行にCDN(ホスト版チャンネル)選択コンボを追加(stable/unstable/カスタムURL)
+	- 3.34.3: /present にプレゼンターのマウスカーソル誇張表示(黄色矢印、キャンバス退出で非表示)
+	- 3.34.2: 「パーマリンク」タブと「移動」タブを「パーマリンク」タブに統合(生成→URLコピー→貼り付け→移動が1タブで完結)
+	- 3.34.1: 共有URLをLAN IP表示へ変更。/present起動・サーバーステータス・起動メッセージが http://<LAN-IP>:<port> を優先表示し、共有URLをクリップボードへコピー(bridge は network_url を返却)。外部PCからの接続を前提とした表示に統一
+	- 3.34.0: /present をOpenLayers化し視聴者ごとの独立ズーム/パン/回転(キャンバス回転はビュー回転で再現、操作終了時にサーバ範囲描画)。/screenshot に extent/screen/bbox/rot パラメータと X-Map-Extent/X-Map-Corners ヘッダを追加
+	- 3.33.6: 「生成」タブを「テーマ」へ改名し、「パーマリンク生成」ボタンを「パーマリンク」タブへ移動(生成→URL表示→コピーが1タブで完結)
+	- 3.33.4: DATA/ へのネイティブ参照コピーを固定名へ変更(同一内容は再利用・異内容は上書き)。エクスポート毎に slug_N.* が複製蓄積していた問題を解消
+	- 3.33.3: 「▶ Canvas」はエクスポートせず既存の .kasc のみ登録・起動。未出力時はメッセージで Export を案内(bridge kasugaiExport に use_existing 追加)
+	- 3.33.2: パネルの Web Distribution グループを「保存行(Export＋保存先フォルダ名＋↺リセット＋📁)」と「起動行(Engine選択＋▶ WebView＋▶ Canvas)」の2行に整理(「Save to:」ラベル廃止)
+	- 3.33.1: 「▶ WebView」ボタンが動作しない不具合を修正(panel.py に pushButton_kasugai_launch_hosted の属性エイリアスが無く clicked 未接続だった問題)
+	- 3.32.3: 「▶ Canvas」ボタンを KASUGAI Canvas 未インストール時はグレーアウト(設定でインストール先登録 or インストーラ登録検出で有効化、パネル再表示/設定ダイアログ後に再判定)
+	- 3.29.0: パネルを「Web配信(サーバレス)」最上段の構成へ刷新(エンジン選択コンボ+「▶ Open」で出力→登録→ブラウザ起動、サーバーON/OFFをサーバーグループへ集約)。README/SPECをサーバレスWeb配信・マルチエンジン主軸で再構築。OGCサーバー(WMS/WMTS/XYZ/WFS・/maplibre-style)を全撤去しサーバレス配信へ完全移行(/kasugai・/export-data/・/present・/screenshot・パーマリンクは継続、bridge `wfsLayers` 廃止)。OGC(WMS/WMTS/WFS)サービスは廃止
+	- 3.24.0: プラグイン内生成ビューア(OpenLayers /qgis-map・MapLibre /maplibre・OL+Cesium /map3d)を廃止。パネルにKASUGAI Canvas 4エンジン(Cesium/OpenLayers/MapLibre/Leaflet)起動ボタンを追加し、`/kasugai`・bridge `kasugaiExport`/`openExternal` で engine 指定可能に
 	- 3.17.4: サイトスキャン指摘対応(subprocess/random/saxutilsの # nosec・html.escape化)
 	- 3.17.3: try/except/pass|continue の # nosec 明示(B110/B112)
 	- 3.17.2: Qt6互換性チェック対応(非スコープ列挙型Qgis.*等212箇所をスコープ化)

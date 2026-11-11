@@ -12,7 +12,7 @@ qgisMinimumVersion=3.40
 qgisMaximumVersion=4.99
 supportsQt6=True
 description=Sync your projects to QField
-version=v4.21.3
+version=v4.23.2
 author=OPENGIS.ch
 email=info@opengis.ch
 

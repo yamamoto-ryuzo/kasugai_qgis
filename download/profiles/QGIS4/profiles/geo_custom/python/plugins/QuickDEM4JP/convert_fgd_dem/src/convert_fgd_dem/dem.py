@@ -1,23 +1,69 @@
 import os
 import shutil
-import xml.etree.ElementTree as et
+import xml.etree.ElementTree as et  # nosec B405 # input is checked by _parse_xml
 import zipfile
 from pathlib import Path
+from xml.parsers import expat
 
 import numpy as np
 
 from .helpers import DemInputXmlException
 
 
+class _RootReached(Exception):
+    """Raised by the guard parser to stop once the prolog has been checked"""
+
+
+def _reject_doctype(*_args):
+    raise DemInputXmlException("DOCTYPE declarations are not allowed in DEM XML.")
+
+
+def _stop_at_root(*_args):
+    raise _RootReached
+
+
+def _parse_xml(xml_path):
+    """Parse an XML file after refusing any DOCTYPE declaration
+
+    Entity expansion ("billion laughs") and external entities (XXE) both need a
+    DOCTYPE, which a DEM file has no use for. Rejecting it up front makes the
+    standard library parser safe without depending on defusedxml, which QGIS's
+    Python does not ship.
+
+    A DOCTYPE can only come before the root element, so the guard stops there:
+    it only reads the prolog, not the whole document.
+
+    Args:
+        xml_path (Path): Path object of xml path
+
+    Returns:
+        xml.etree.ElementTree.Element: Root element
+
+    Raises:
+        DemInputXmlException: If the file declares a DOCTYPE
+    """
+    guard = expat.ParserCreate()
+    guard.StartDoctypeDeclHandler = _reject_doctype
+    guard.StartElementHandler = _stop_at_root
+
+    with open(xml_path, "rb") as f:
+        try:
+            guard.ParseFile(f)
+        except _RootReached:
+            pass
+
+        f.seek(0)
+        return et.parse(f).getroot()  # nosec B314 # DOCTYPE rejected above
+
+
 class Dem:
     """Retrieve metadata from DEM xml"""
 
-    def __init__(self, import_path, sea_at_zero=False):
+    def __init__(self, import_path):
         """Initializer
 
         Args:
             import_path (Path): Path object of import path
-            sea_at_zero (bool): whether to set sea area as 0 (if False, no Data)
 
         Notes:
             "Meta_data" refers to mesh code, lonlat of the bottom left and top right, grid size, initial position, and pixel size of DEM.
@@ -29,7 +75,6 @@ class Dem:
         self.all_content_list: list = []
         self.mesh_code_list: list = []
         self.meta_data_list: list = []
-        self.sea_at_zero = sea_at_zero
 
     def contents_to_array(self):
         self._get_metadata_list()
@@ -188,8 +233,7 @@ class Dem:
         }
 
         try:
-            tree = et.parse(xml_path)
-            root = tree.getroot()
+            root = _parse_xml(xml_path)
 
             mesh_code = int(root.find("dataset:DEM//dataset:mesh", name_space).text)
 
@@ -220,6 +264,8 @@ class Dem:
                 name_space,
             ).text
 
+        except DemInputXmlException:
+            raise
         except Exception:
             raise DemInputXmlException("Incorrect XML file.")
 
@@ -227,22 +273,7 @@ class Dem:
         if tuple_list.startswith("\n"):
             tuple_list = tuple_list.strip()
 
-        if self.sea_at_zero:
-            # replace -9999 by zero if sea_at_zero option is handled
-            items = [
-                (
-                    "0.0"
-                    if (
-                        item.split(",")[0] in ["海水面", "海水底面"]
-                        and item.split(",")[1] == "-9999."
-                    )
-                    else item.split(",")[1]
-                )
-                for item in tuple_list.split("\n")
-            ]
-
-        else:
-            items = [item.split(",")[1] for item in tuple_list.split("\n")]
+        items = [item.split(",")[1] for item in tuple_list.split("\n")]
 
         elevation = {"mesh_code": mesh_code, "items": items}
 

@@ -211,6 +211,42 @@ class GeoSearchBridge:
             "description": "検索ダイアログを再構築(設定変更の反映用)。",
             "example": {"method": "reloadDialog", "args": []},
         },
+        "openSettings": {
+            "description":
+                "設定ダイアログ(geo_search_json適用・ユーザテーマ保存/読込)"
+                "を非modalで開く。",
+            "example": {"method": "openSettings", "args": []},
+        },
+        "setTabSetting": {
+            "description":
+                "既存タブの設定JSONを更新して由来ソースへ書き戻す"
+                "(configボタンの編集ダイアログ相当)。configはdictで"
+                "既存設定へマージする。注意:設定を実際に変更する。",
+            "example": {"method": "setTabSetting",
+                        "args": ["市区町村",
+                                 {"SearchField": {"Field": "name"}}]},
+        },
+        "addTab": {
+            "description":
+                "任意のタブ定義dictを検索タブとして追加する。"
+                "targetは 'project'(既定)/'setting_json'/'geo_search_json'。",
+            "example": {"method": "addTab",
+                        "args": [{"Title": "新規", "group": "各種レイヤ",
+                                  "Layer": {"LayerType": "Name",
+                                            "Name": "layer1"},
+                                  "SearchField": {}, "ViewFields": []}]},
+        },
+        "resultPage": {
+            "description":
+                "結果ダイアログの表示ページを取得/設定する(1始まり)。",
+            "example": {"method": "resultPage", "args": [2]},
+        },
+        "resultDisplayMode": {
+            "description":
+                "結果ダイアログの表示モードを取得/設定する"
+                "('table'/'form')。",
+            "example": {"method": "resultDisplayMode", "args": ["form"]},
+        },
     }
 
     def __init__(self, plugin):
@@ -1336,6 +1372,252 @@ class GeoSearchBridge:
         if rebuild:
             out["rebuilt"] = self._rebuild_dialog()
         return self._ok(out)
+
+    # ---------- 設定ダイアログ / タブ設定の書込み / 結果表示 ----------
+
+    def openSettings(self):
+        """設定ダイアログを非modalで開く。"""
+        from qgis.PyQt.QtCore import QTimer
+        p = self._plugin
+        QTimer.singleShot(0, p.open_settings_dialog)
+        return self._ok({"opened": True})
+
+    @staticmethod
+    def _resolve_tab_source(setting):
+        """タブ設定の由来ソースを解決する。"""
+        import os
+        from qgis.core import QgsProject, QgsExpressionContextUtils
+        src = (setting or {}).get("_source")
+        src_idx = (setting or {}).get("_source_index")
+        try:
+            src_idx = int(src_idx) if src_idx is not None else None
+        except Exception:
+            src_idx = None
+        if src == "setting.json":
+            return ("file", os.path.join(os.path.dirname(__file__),
+                                         "setting.json"), src_idx)
+        project = QgsProject.instance()
+        if src == "geo_search_json":
+            path = os.environ.get("geo_search_json")
+            if not path:
+                pv = QgsExpressionContextUtils.projectScope(
+                    project).variable("geo_search_json")
+                if pv:
+                    path = pv
+                    if not os.path.isabs(path):
+                        proj_dir = os.path.dirname(project.fileName() or "")
+                        path = os.path.join(proj_dir, path) \
+                            if proj_dir else path
+            if path and os.path.exists(path):
+                return ("file", path, src_idx)
+        return ("project", None, src_idx)
+
+    @staticmethod
+    def _load_tab_container(path):
+        """タブ定義ファイルを読み(コンテナobj, タブlist)を返す。"""
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if isinstance(data, dict) and isinstance(data.get("SearchTabs"), list):
+            return data, data["SearchTabs"]
+        if isinstance(data, list):
+            return None, data
+        return data, []
+
+    @staticmethod
+    def _find_in_container(tabs, title, src_idx):
+        if src_idx is not None and 0 <= src_idx < len(tabs):
+            return src_idx
+        for i, it in enumerate(tabs):
+            if isinstance(it, dict) and it.get("Title") == title:
+                return i
+        return None
+
+    def setTabSetting(self, tab=None, config=None, rebuild=True):
+        """既存タブの設定JSONを更新して由来ソースへ書き戻す。
+
+        config(dict) は既存設定へマージされる(Title/Layer/SearchField/
+        ViewFields/group 等)。由来はタブの _source で決まり、
+        project variable / setting.json / geo_search_json へ書き戻す。
+        """
+        import os
+        from qgis.core import QgsProject, QgsExpressionContextUtils
+        from .utils import set_project_variable
+        entry = self._find_tab(tab)
+        if entry is None:
+            return self._err(f"tab not found: {tab!r}")
+        feat = entry["feature"]
+        old = dict(getattr(feat, "setting", {}) or {})
+        if not isinstance(config, dict):
+            return self._err("config must be an object")
+        title = old.get("Title") or getattr(feat, "title", None)
+        new_cfg = dict(old)
+        new_cfg.pop("_source", None)
+        new_cfg.pop("_source_index", None)
+        new_cfg.update(config)
+        kind, path, src_idx = self._resolve_tab_source(old)
+        written = None
+        if kind == "file":
+            container, tabs = self._load_tab_container(path)
+            idx = self._find_in_container(tabs, title, src_idx)
+            if idx is None:
+                tabs.append(new_cfg)
+            else:
+                tabs[idx] = new_cfg
+            out = container if container is not None else tabs
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(out, f, ensure_ascii=False, indent=2)
+            written = path
+        else:
+            project = QgsProject.instance()
+            scope = QgsExpressionContextUtils.projectScope(project)
+            raw = scope.variable("GEO-search-plugin")
+            data = None
+            if raw and str(raw).strip()[:1] in "{[":
+                try:
+                    data = json.loads(str(raw))
+                except Exception:
+                    data = None
+            if isinstance(data, dict) and isinstance(
+                    data.get("SearchTabs"), list):
+                tabs = data["SearchTabs"]
+            elif isinstance(data, list):
+                tabs = data
+            else:
+                data, tabs = {}, []
+            idx = self._find_in_container(tabs, title, src_idx)
+            if idx is None:
+                tabs.append(new_cfg)
+            else:
+                tabs[idx] = new_cfg
+            out = data if data else tabs
+            if not set_project_variable(
+                    project, "GEO-search-plugin",
+                    json.dumps(out, ensure_ascii=False)):
+                return self._err("failed to write project variable")
+            written = "project variable"
+        out = {"updated": title, "to": written}
+        if rebuild:
+            out["rebuilt"] = self._rebuild_dialog()
+        return self._ok(out)
+
+    def addTab(self, config, target="project", rebuild=True):
+        """任意のタブ定義dictを検索タブとして追加する。
+
+        target: 'project'(既定)=プロジェクト変数 /
+                'setting_json'=同梱setting.json /
+                'geo_search_json'=geo_search_jsonファイル
+        """
+        import os
+        from qgis.core import QgsProject, QgsExpressionContextUtils
+        from .utils import set_project_variable
+        if not isinstance(config, dict) or not config.get("Title"):
+            return self._err("config must be an object with Title")
+        new_cfg = dict(config)
+        target = str(target or "project")
+        if target == "setting_json":
+            path = os.path.join(os.path.dirname(__file__), "setting.json")
+            container, tabs = (self._load_tab_container(path)
+                               if os.path.exists(path)
+                               else ({"SearchTabs": []}, []))
+            if container is not None and "SearchTabs" in container:
+                tabs = container["SearchTabs"]
+            tabs.append(new_cfg)
+            out = container if container is not None else tabs
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(out, f, ensure_ascii=False, indent=2)
+            written = path
+        elif target == "geo_search_json":
+            path = os.environ.get("geo_search_json")
+            project = QgsProject.instance()
+            if not path:
+                pv = QgsExpressionContextUtils.projectScope(
+                    project).variable("geo_search_json")
+                if pv:
+                    path = pv
+                    if not os.path.isabs(path):
+                        proj_dir = os.path.dirname(project.fileName() or "")
+                        path = os.path.join(proj_dir, path) \
+                            if proj_dir else path
+            if not path:
+                return self._err("geo_search_json path not configured "
+                                 "(use setSettings first)")
+            if os.path.exists(path):
+                container, tabs = self._load_tab_container(path)
+            else:
+                container, tabs = {"SearchTabs": []}, []
+            if container is not None and "SearchTabs" in container:
+                tabs = container["SearchTabs"]
+            tabs.append(new_cfg)
+            out = container if container is not None else tabs
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(out, f, ensure_ascii=False, indent=2)
+            written = path
+        else:
+            project = QgsProject.instance()
+            scope = QgsExpressionContextUtils.projectScope(project)
+            raw = scope.variable("GEO-search-plugin")
+            data = None
+            if raw and str(raw).strip()[:1] in "{[":
+                try:
+                    data = json.loads(str(raw))
+                except Exception:
+                    data = None
+            if isinstance(data, dict) and isinstance(
+                    data.get("SearchTabs"), list):
+                tabs = data["SearchTabs"]
+            elif isinstance(data, list):
+                tabs = data
+            else:
+                data, tabs = {}, []
+            tabs.append(new_cfg)
+            out = data if data else tabs
+            if not set_project_variable(
+                    project, "GEO-search-plugin",
+                    json.dumps(out, ensure_ascii=False)):
+                return self._err("failed to write project variable")
+            written = "project variable"
+        out = {"added": new_cfg.get("Title"), "to": written}
+        if rebuild:
+            out["rebuilt"] = self._rebuild_dialog()
+        return self._ok(out)
+
+    def _result_dialog(self):
+        feat = getattr(self._plugin, "current_feature", None)
+        return getattr(feat, "result_dialog", None) if feat is not None \
+            else None
+
+    def resultPage(self, page=None):
+        """結果ダイアログの表示ページを取得/設定する(1始まり)。"""
+        rd = self._result_dialog()
+        if rd is None:
+            return self._err("no result dialog")
+        if page is not None:
+            try:
+                page = int(page)
+            except Exception:
+                return self._err(f"invalid page: {page!r}")
+            if page < 1 or page > rd.pageBox.maximum():
+                return self._err(
+                    f"page out of range: {page} "
+                    f"(1..{rd.pageBox.maximum()})")
+            rd.pageBox.setValue(page)  # → move_page
+        return self._ok({"page": rd.pageBox.value(),
+                         "page_count": rd.pageBox.maximum(),
+                         "tab": rd.tabWidget.currentIndex()})
+
+    def resultDisplayMode(self, mode=None):
+        """結果ダイアログの表示モードを取得/設定する('table'/'form')。"""
+        rd = self._result_dialog()
+        if rd is None:
+            return self._err("no result dialog")
+        if mode is not None:
+            mode = str(mode).lower()
+            if mode not in ("table", "form"):
+                return self._err("mode must be 'table' or 'form'")
+            if getattr(rd, "display_mode", "table") != mode:
+                rd._toggle_display_mode()
+        return self._ok({"mode": getattr(rd, "display_mode", "table"),
+                         "visible": bool(rd.isVisible())})
 
     def openDialog(self):
         p = self._plugin

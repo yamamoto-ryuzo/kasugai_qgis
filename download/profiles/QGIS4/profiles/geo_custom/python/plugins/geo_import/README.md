@@ -1,3 +1,5 @@
+> **QGIS Live Harness のプラグイン** — [QGIS Live Harness](https://yamamoto-ryuzo.github.io/qgis_live_harness/) · [プラグイン一覧](https://yamamoto-ryuzo.github.io/qgis_live_harness/plugins.html) · [リポジトリ](https://github.com/yamamoto-ryuzo/qgis_live_harness)
+
 # QGIS Data Catalog Integration（Catalog Integration）
 
 本プラグイン「QGIS Data Catalog Integration（Catalog Integration）」は、オリジナルの「データカタログ統合」プラグインをベースに、機能拡張・改良を加えたものです。データカタログ統合 の思想と実装を継承しつつ、より多様なデータカタログやQGISとの統合を目指しています。

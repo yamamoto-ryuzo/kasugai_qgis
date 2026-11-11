@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>トップ・画面構成 — QGIS Launcher</title>
+  <link rel="stylesheet" href="style.css">
+  <style>pre.mermaid { background: #fff; }</style>
+  <script src="nav.js" defer></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>QGIS Launcher (qgis_launcher) <span class="version-badge">v2.4.0</span></h1>
+      <p><strong>QGIS / QField 起動ランチャー</strong> — Web UI・HTTP API・CLI で動作する Rust(Axum) 製デスクトップランチャーのドキュメント</p>
+    </header>
+    <main>
+      <section>
+<p><a class="demo-link" href="https://yamamoto-ryuzo.github.io/kasugai_qgis/public/kasugai_qgis-setup.exe">DOWNLOAD: インストーラー（kasugai_qgis-setup.exe）</a></p>
+<p><img
+src="https://yamamoto-ryuzo.github.io/kasugai_qgis/images/qgis_launcher.png"
+alt="alt text" /> <img
+src="https://yamamoto-ryuzo.github.io/kasugai_qgis/images/qgis_launcher_info.png"
+alt="alt text" /></p>
+<blockquote>
+<p><strong>v2.0.0 以降</strong>: FLTK GUI は削除され、Web
+UI（ブラウザ）+ AXUM HTTP API
+に移行しました。本ドキュメントの画面イメージは旧 FLTK 版のものです。</p>
+</blockquote>
+      </section>
+<section>
+<h2 id="画面構成">1. 🖥️ 画面構成</h2>
+<p>以下はランチャーの実際のメイン画面構成を要素単位で整理したものです（左上から順に操作を行い、下部で状態確認や操作を行うレイアウトを想定しています）。</p>
+<ul>
+<li>概要: 起動設定（プロファイル / プロジェクトパス / QGIS
+Version）に基づいて QGIS / QField
+を起動するデスクトップランチャーです。設定は
+<code>qgis_settings.json</code>（構造は
+<code>QgisSettings</code>）に保存され、Web UIまたは CLI
+モードで操作できます。</li>
+</ul>
+<h3 id="メイン要素">メイン要素</h3>
+<ul>
+<li><p>プロファイル（ドロップダウン）</p>
+<ul>
+<li>説明: 使用する QGIS プロファイルを選択します。</li>
+<li>備考: 設定基準フォルダの <code>profiles</code> と
+<code>%APPDATA%</code> 以下を自動検出します。</li>
+</ul></li>
+<li><p>プロジェクト（ドロップダウン）</p>
+<ul>
+<li>説明: <code>project_path</code>
+に設定された候補（ファイルまたはフォルダ）から起動する <code>.qgs</code>
+/ <code>.qgz</code> を選択します。</li>
+<li>表示: 「親フォルダ名 - ファイル名」（例:
+<code>ProjectFiles - ProjectFile.qgs</code>）。</li>
+</ul></li>
+<li><p>プロジェクト・バージョン</p>
+<ul>
+<li>説明: <code>Project File Version</code>
+を表示します。この項目は選択したプロジェクトファイルがどの QGIS
+バージョンで作成されたかを示します。</li>
+</ul></li>
+<li><p>QGIS Version（ドロップダウン）</p>
+<ul>
+<li>説明: システム上で検出した QGIS
+実行ファイルを一覧表示します。複数バージョンがある場合は起動時に選択可能です。</li>
+<li>補足: 選択したプロジェクトファイルの <code>version</code>
+属性に基づき、同バージョンの QGIS
+実行ファイルを自動で初期選択します（Web UI
+のドロップダウンでいつでも手動変更可能）。</li>
+</ul></li>
+<li><p>ユーザーロール（ドロップダウン）</p>
+<ul>
+<li>説明: <code>Viewer</code> / <code>Editor</code> /
+<code>Administrator</code> のいずれかを選択します。選択したロールは QGIS
+起動時に <code>--customizationfile</code> /
+<code>--globalsettingsfile</code> / <code>--code</code> で渡され、QGIS
+内の UI 表示やレイヤーの編集可否に反映されます。</li>
+<li>備考:
+詳細な振る舞い（どの設定ファイルが渡されるか等）は「<a href="roles.html">ユーザーロール制御</a>」セクションに記載しています。</li>
+</ul></li>
+<li><p>ボタン類（下部）</p>
+<ul>
+<li><code>Launch QGIS</code>: 選択中の設定で QGIS を起動します。</li>
+<li><code>Reset Profiles</code>:
+配布プロファイルを再配布／強制上書きする操作用（モーダルで進捗表示）。</li>
+</ul></li>
+<li><p>状態表示領域</p>
+<ul>
+<li>説明: QGIS
+実行ファイル検出や起動ログ、エラーメッセージなどを短く表示する領域です。</li>
+</ul></li>
+</ul>
+<h3 id="動作方針重要">動作方針（重要）</h3>
+<ul>
+<li><code>project_path</code> は設定上の候補一覧です。Web UI
+上でプロジェクトを選択しても <code>project_path</code>
+自体は書き換わりません。選択は <code>current_project</code>
+に保存され、次回起動時の初期選択に使われます。</li>
+<li><code>Project File Version</code> は
+<strong>選択されたファイルのみ</strong>
+を解析して表示します（範囲を限定することで最小限の負荷を確保）。</li>
+<li><code>.qgz</code> の取り扱い: ランチャーは <code>.qgz</code>
+を一時展開せずに ZIP を読み取り、最初に見つかった <code>.qgs</code>
+を解析してバージョン情報を抽出します。</li>
+<li>解析結果キャッシュ:
+取得したバージョン文字列は内部キャッシュに保存し、ファイルの最終更新時刻が変わらない限り再解析しません（表示の高速化）。</li>
+<li>CLI モード（<code>--cli</code>）: Web UI
+を起動せず設定に基づいて直接 QGIS を起動します。</li>
+<li>Web UI: デフォルトでは簡易 Web UIを起動します。Web UI
+はプルダウンでプロファイル、プロジェクト、QGIS
+バージョンを選択して「Launch QGIS」で起動します。プロファイル候補は
+<code>%APPDATA%</code> 下の QGIS
+プロファイルパス（<code>get_qgis_profile_paths()</code>）と、設定基準フォルダ配下の
+<code>profiles</code> フォルダを参照します。プロジェクト候補は
+<code>project_path</code>
+に指定されたファイル／フォルダを上記ルールで解決して列挙します。QGIS /
+QField
+の実行ファイル候補はシステム上の標準インストール箇所やポータブル配布を探索して自動検出します。</li>
+</ul>
+<p>これにより、ユーザーは画面上で起動に必要な項目を左上から順に設定し、下部で状態確認・起動操作を行えるようになります。</p>
+<h3 id="qgis-バージョン別プロファイル配信">QGIS
+バージョン別プロファイル配信</h3>
+<p>起動フォルダの <code>profiles\</code>
+直下の内容は、EXE 起動時に <code>%APPDATA%\QGIS\</code>
+へ自動コピーされます。<code>profiles\QGIS4\</code>
+のようなバージョン別フォルダに配置しておくと、そのまま
+<code>%APPDATA%\QGIS\QGIS4\</code> へ展開されます。</p>
+<ul>
+<li><strong>コピーのタイミング</strong>: EXE
+起動時に自動実行されます（「Launch
+QGIS」ボタン押下前）。コピー先にファイルが既に存在する場合はスキップされるため、複数回起動しても無駄なコピーは発生しません。</li>
+<li><strong>Web UI の挙動</strong>: Web UI
+で起動した場合、起動処理（<code>SUBST</code>
+によるドライブ割当てやプロファイルの配布コピー）はバックグラウンドで実行され、モーダルの進捗ウィンドウ（メッセージ
++ プログレスバー）で進捗を確認できます。CLI
+起動では従来どおりコンソールログのみが出力されます。</li>
+<li><strong>備考</strong>: プロファイルの初期化（配布コピー）は設定で
+<code>project_root</code>
+が指定されている場合はそのディレクトリを基準に行われます。未指定時は設定ファイル所在フォルダ（通常は
+EXE の親フォルダ）を使用します。</li>
+<li><strong>配置ルール</strong>: <code>profiles\</code>
+直下のフォルダ・ファイルがそのまま <code>%APPDATA%\QGIS\</code>
+直下に展開されます（例: <code>profiles\QGIS4\</code> →
+<code>%APPDATA%\QGIS\QGIS4\</code>）。別バージョン用は
+<code>profiles\</code> 直下に <code>QGIS3\</code>
+等のフォルダを作れば同様に配信できます。インストール済み QGIS
+の自動検出は行いません。</li>
+</ul>
+<p>フォルダ構成例:</p>
+<pre><code>(設定基準フォルダ)/
+  profiles/
+    QGIS4/
+      profiles/
+        geo_custom/    ← QGIS 4.x 用プロファイル
+                         → %APPDATA%\QGIS\QGIS4\profiles\geo_custom へコピー</code></pre>
+<blockquote>
+<p><strong>注意</strong>:
+コピー先に既存ファイルがある場合は上書きしません（ユーザーの設定変更を保護）。配信ファイルを更新してユーザー側に反映させたい場合は、後述の「プロファイルの強制更新（Reset
+Profiles）」を使うか、コピー先の該当ファイルを削除してから再起動してください。</p>
+</blockquote>
+<h3 id="プロファイルの強制更新">プロファイルの強制更新（Reset Profiles）</h3>
+<p>通常起動時のコピーは既存ファイルをスキップするため、配布側を更新してもユーザー環境には自動で反映されません。Web
+UI の「Reset Profiles」ボタン（<code>POST /reset</code>）を使うと、
+<code>%APPDATA%\QGIS\QGIS{major}\</code> 配下の既存プロファイルを削除してから配布プロファイルを再コピーし、最新状態へ強制更新できます（処理の流れは <a href="startup.html#図5-プロファイル強制更新フロー">図5</a>
+参照）。実行中はメッセージとプログレスバーを備えたモーダル風ウィンドウで進捗を確認でき、完了すると自動で閉じてメインウィンドウに結果が表示されます。大量のファイル削除／コピーを伴う処理のため、完了まで時間がかかる場合があります。</p>
+<h3 id="cli-モード">CLI モード</h3>
+<ul>
+<li><code>--cli</code> を指定すると Web UI を起動せずに CLI
+モードで動作します。</li>
+<li>現状、<code>Reset Profiles</code> は Web UI
+操作用の機能として提供しています（Web UI 起動時に利用可能）。</li>
+</ul>
+</section>
+    </main>
+  </div>
+</body>
+</html>

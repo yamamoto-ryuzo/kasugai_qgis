@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>qgis_settings.json 制御 — QGIS Launcher</title>
+  <link rel="stylesheet" href="style.css">
+  <style>pre.mermaid { background: #fff; }</style>
+  <script src="nav.js" defer></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>QGIS Launcher (qgis_launcher) <span class="version-badge">v2.4.0</span></h1>
+      <p><strong>QGIS / QField 起動ランチャー</strong> — Web UI・HTTP API・CLI で動作する Rust(Axum) 製デスクトップランチャーのドキュメント</p>
+    </header>
+    <main>
+<section>
+<h2 id="qgis_settingsjson-制御">3. ⚙️ qgis_settings.json 制御</h2>
+<h3 id="適用順序は次のとおりです">適用順序は次のとおりです：</h3>
+<pre><code>qgis_settings.json              ①ベース設定
+  ↓
+qgis_settings_override.json     ②全ユーザー強制オーバーライド（任意）
+  ↓
+qgis_settings_{USERNAME}.json   ③ユーザー個別オーバーライド（任意）← 最終適用</code></pre>
+<p>③が最後に適用されるため、ユーザー個別設定（③）は全ユーザー強制オーバーライド（②）より優先されます。</p>
+<h3 id="ファイル配置例">ファイル配置例</h3>
+<pre><code>C:\qgis_launcher\
+  qgis_settings.json              ← 全員共通のベース設定
+  qgis_settings_override.json     ← 全ユーザーに強制適用（任意）
+  qgis_settings_yamamoto.json     ← yamamoto ユーザーのみ上書き（任意）</code></pre>
+<h3
+id="project_root新しいオプション"><code>project_root</code>（新しいオプション）</h3>
+<p>ランチャーは設定内の <code>project_path</code>
+を解決する際に基準となるルートフォルダを使用します。<code>project_root</code>
+を <code>qgis_settings.json</code>
+に追加すると、相対パスの解決基準を明示的に指定できます。未指定の場合は従来どおり設定ファイルの所在フォルダ（通常は
+EXE の親フォルダ）が基準となります。</p>
+<p>例:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;project_root&quot;</span><span class="fu">:</span> <span class="st">&quot;Q:/&quot;</span><span class="fu">,</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;project_path&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;data_projects&quot;</span><span class="ot">,</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;other_projects/ProjectFile.qgs&quot;</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>挙動:</p>
+<ul>
+<li><code>project_root</code>
+が絶対パスならそのまま使用されます（ドライブ指定 <code>Q:/...</code>
+等）。</li>
+<li><code>project_root</code>
+が相対パスなら設定ファイルの所在フォルダに対して結合して解決されます。</li>
+<li><code>project_path</code> の各エントリが相対パスの場合はこの
+<code>project_root</code> を基準に探索されます。</li>
+</ul>
+<p>注意: JSON 内の Windows パスはバックスラッシュを <code>\\</code>
+でエスケープするか、スラッシュ (<code>/</code>)
+を使用してください。ランチャーには入力時にバックスラッシュ補正処理が入っていますが、明示的にエスケープすることを推奨します。</p>
+<h3
+id="全ユーザー強制オーバーライドqgis_settings_overridejson">全ユーザー強制オーバーライド（qgis_settings_override.json）</h3>
+<p><code>qgis_settings.json</code> と同じディレクトリに
+<code>qgis_settings_override.json</code>
+を置くと、<strong>ユーザー名に関係なくすべてのユーザーに対して</strong>設定を強制上書きできます。</p>
+<h4 id="マージ動作">マージ動作</h4>
+<p>マージルールはユーザーオーバーライドと同じです：</p>
+<table>
+<thead>
+<tr>
+<th>キー</th>
+<th>マージ方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>drive_mappings</code></td>
+<td><code>drive</code>
+キーで既存エントリを照合してフィールド単位で上書き（未指定フィールドは維持）</td>
+</tr>
+<tr>
+<td><code>path_aliases</code></td>
+<td>マップキー単位でマージ（未指定キーは維持）</td>
+</tr>
+<tr>
+<td>その他のキー</td>
+<td>値ごと置き換え</td>
+</tr>
+</tbody>
+</table>
+<h4 id="用途例">用途例</h4>
+<p>特定の <code>profile</code> を全員に強制したい場合：</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;profile&quot;</span><span class="fu">:</span> <span class="st">&quot;corporate_profile&quot;</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>特定のドライブマウントを全員に強制追加したい場合（他のフィールドはベースのまま）:</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;drive_mappings&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;drive&quot;</span><span class="fu">:</span> <span class="st">&quot;S:&quot;</span><span class="fu">,</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;mode&quot;</span><span class="fu">:</span> <span class="st">&quot;subst&quot;</span><span class="fu">,</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;local_cache&quot;</span><span class="fu">:</span> <span class="st">&quot;C:</span><span class="ch">\\</span><span class="st">shared_data&quot;</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>サンプルファイル: <a
+href="https://yamamoto-ryuzo.github.io/kasugai_qgis/download/qgis_settings_override.json.example">qgis_launcher/download/qgis_settings_override.json.example</a></p>
+<h3
+id="ユーザーごとの設定オーバーライドqgis_settings_usernamejson">ユーザーごとの設定オーバーライド（qgis_settings_{USERNAME}.json）</h3>
+<p>BOX
+のフォルダ階層はユーザーによって異なる場合があります。<code>qgis_settings.json</code>
+と同じディレクトリに <code>qgis_settings_{Windowsログイン名}.json</code>
+を置くと、全員共通のベース設定を上書きできます。</p>
+<h4 id="ファイル命名規則">ファイル命名規則</h4>
+<pre><code>C:\qgis_launcher\
+  qgis_settings.json              ← 全員共通のベース設定
+  qgis_settings_tanaka.json       ← tanaka ユーザーのみ上書き
+  qgis_settings_yamamoto.json     ← yamamoto ユーザーのみ上書き</code></pre>
+<p><code>{USERNAME}</code> は Windows の <code>%USERNAME%</code>
+環境変数（ログインユーザー名）と一致させてください。</p>
+<h4 id="マージ動作-1">マージ動作</h4>
+<table>
+<thead>
+<tr>
+<th>キー</th>
+<th>マージ方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>drive_mappings</code></td>
+<td><code>drive</code>
+キーで既存エントリを照合してフィールド単位で上書き（未指定フィールドはベースを維持）</td>
+</tr>
+<tr>
+<td><code>path_aliases</code></td>
+<td>マップキー単位でマージ（未指定キーはベースを維持）</td>
+</tr>
+<tr>
+<td>その他のキー</td>
+<td>値ごと置き換え</td>
+</tr>
+</tbody>
+</table>
+<h4 id="オーバーライドファイルの例">オーバーライドファイルの例</h4>
+<p><code>robocopy_src</code>
+だけを変えたい場合（他のフィールドはベースのまま）:</p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;drive_mappings&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;drive&quot;</span><span class="fu">:</span> <span class="st">&quot;Q:&quot;</span><span class="fu">,</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;robocopy_src&quot;</span><span class="fu">:</span> <span class="st">&quot;BOX:</span><span class="ch">\\</span><span class="st">MyFolder</span><span class="ch">\\</span><span class="st">Geo_Portal&quot;</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p><code>path_aliases</code> の BOX
+パスだけをユーザーごとに変えたい場合:</p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;path_aliases&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;BOX&quot;</span><span class="fu">:</span> <span class="st">&quot;D:</span><span class="ch">\\</span><span class="st">Box&quot;</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>サンプルファイル: <a
+href="qgis_launcher/download/qgis_settings_USERNAME.json.example">qgis_launcher/download/qgis_settings_USERNAME.json.example</a></p>
+<hr />
+</section>
+    </main>
+  </div>
+</body>
+</html>

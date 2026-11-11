@@ -1,0 +1,633 @@
+<?xml version='1.0' encoding='utf-8'?>
+<TS version="2.1" language="fr_FR" sourcelanguage="en_US">
+<context>
+    <name>GeoImport</name>
+    <message>
+        <source>&amp;geo_import</source>
+        <translation type="vanished">&amp;Geo Import</translation>
+    </message>
+    <message>
+        <source>geo_import</source>
+        <translation type="vanished">Geo Import</translation>
+    </message>
+    <message>
+        <source>geo_import_settings</source>
+        <translation type="vanished">Paramètres Geo Import</translation>
+    </message>
+</context>
+<context>
+    <name>GeoImportDialogBase</name>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="35" />
+        <source>dlg_base_title</source>
+        <translation>Catalog Integration</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="57" />
+        <source>dlg_base_search_term</source>
+        <translation>Mot clé:</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="90" />
+        <source>dlg_base_ttip_search</source>
+        <translation>Entrez vos mots clés ici.</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="93" />
+        <location filename="../geo_import_dialog_base.ui" line="216" />
+        <location filename="../geo_import_dialog_base.ui" line="524" />
+        <location filename="../geo_import_dialog_base.ui" line="599" />
+        <source>?</source>
+        <translation>?</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="104" />
+        <source>Data Format</source>
+        <translation>Data Format</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="112" />
+        <source>All</source>
+        <translation>All</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="117" />
+        <source>CSV</source>
+        <translation>CSV</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="122" />
+        <source>GeoJSON</source>
+        <translation>GeoJSON</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="127" />
+        <source>Shapefile</source>
+        <translation>Shapefile</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="132" />
+        <source>KML</source>
+        <translation>KML</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="137" />
+        <source>JSON</source>
+        <translation>JSON</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="147" />
+        <source>dlg_base_btn_strt_srch</source>
+        <translation>Recherche</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="154" />
+        <source>dlg_base_ttip_show</source>
+        <translation>Montrer toutes les ressources disponibles sur le serveur CKAN</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="157" />
+        <source>dlg_base_btn_show_all</source>
+        <translation>Liste tous les jeux de données</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="172" />
+        <source>dlg_base_filter_to</source>
+        <translation>Limiter la recherche par catégorie:</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="213" />
+        <source>dlg_base_ttip_filter</source>
+        <translation>Activer la case pour limiter la recherche à cette catégorie. Double click sur une catégorie liste tous ses jeux de données.</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="285" />
+        <source>Refresh all datasets and recreate SQLite cache</source>
+        <translation>Refresh all datasets and recreate SQLite cache</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="288" />
+        <source>Refresh SQLite</source>
+        <translation>Refresh SQLite</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="321" />
+        <source>dlg_base_btn_disclaimer</source>
+        <translation>Avertissement</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="354" />
+        <source>dlg_base_srch_rslt</source>
+        <translation>Résultats:</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="370" />
+        <source>Clear Selection</source>
+        <translation>Clear Selection</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="373" />
+        <source>Clear the selection of search results</source>
+        <translation>Clear the selection of search results</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="380" />
+        <source>Select All</source>
+        <translation>Select All</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="388" />
+        <source>IDC_lblPage</source>
+        <translation />
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="409" />
+        <source>dlg_base_ttip_prev</source>
+        <translation>précédent</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="412" />
+        <source>dlg_base_btn_lt</source>
+        <translation>&lt;</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="434" />
+        <source>dlg_base_ttip_next</source>
+        <translation>suivant</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="437" />
+        <source>dlg_base_btn_gt</source>
+        <translation>&gt;</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="461" />
+        <source>dlg_base_descr</source>
+        <translation>Description:</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="480" />
+        <source>dlg_base_data_list</source>
+        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Données trouvées:&lt;br /&gt;Choisir le jeu de données à télécharger.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="521" />
+        <source>dlg_base_ttip_data_list</source>
+        <translation>Télécharge les jeux de données sélectionnés et tente leur ouverture dans QGIS. Si les jeux de données ne peuvent pas s'afficher le répertoire source s'ouvre.</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="543" />
+        <source>選択中: 0件</source>
+        <translation>選択中: 0件</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="555" />
+        <source>dlg_base_ressource</source>
+        <translation>URL de la ressource:</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="596" />
+        <source>dlg_base_ttip_resource</source>
+        <translation>URL de la resource sélectionnée</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="634" />
+        <source>dlg_base_ttip_copy</source>
+        <translation>Copier dans le presse-papier</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="667" />
+        <source>dlg_base_btn_load_data</source>
+        <translation>Charger données</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="674" />
+        <source>dlg_base_btn_close</source>
+        <translation>Fermer</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="314" />
+        <source>dlg_base_btn_select_dataprovider</source>
+        <translation>Sélectionner un serveur CKAN</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="253" />
+        <source>dlg_base_current_server</source>
+        <translation>Serveur courrant</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="275" />
+        <source>dlg_base_lbl_cache_dir</source>
+        <translation>Répertoire de cache</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="307" />
+        <source>dlg_base_lbl_plugin_version</source>
+        <translation>Version du plugin : {}</translation>
+    </message>
+</context>
+<context>
+    <name>GeoImportDialogDataProviders</name>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.ui" line="26" />
+        <source>dlg_dataproviders_title</source>
+        <translation>Serveurs CKAN</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.ui" line="38" />
+        <source>dlg_dataproviders_grp_manual</source>
+        <translation>Ajouter un nouveau serveur CKAN</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.ui" line="50" />
+        <source>dlg_dataproviders_lbl_enter_dataprovider_url</source>
+        <translation>CKAN API Endpoint, ex: https://ckan0.cf.opendata.inter.prod-toronto.ca/api/3/</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.ui" line="63" />
+        <source>dlg_dataproviders_btn_test_connection</source>
+        <translation>Test connection</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.ui" line="70" />
+        <source>dlg_dataproviders_btn_add_connection</source>
+        <translation>Ajout du serveur CKAN à la liste</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.ui" line="77" />
+        <source>dlg_dataproviders_btn_browse_local</source>
+        <translation>dlg_dataproviders_btn_browse_local</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.ui" line="80" />
+        <source>dlg_dataproviders_btn_browse_local_tooltip</source>
+        <translation>dlg_dataproviders_btn_browse_local_tooltip</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.ui" line="106" />
+        <source>dlg_dataproviders_lbl_search_for_provider</source>
+        <translation>Recherche de serveurs CKAN - liste fournie par https://ckan.org/about/instances/</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.ui" line="116" />
+        <source>dlg_dataproviders_lbl_nr_of_instances</source>
+        <translation>{} / {} sélectionnable (les autres n'ont pas d'URL API définie)</translation>
+    </message>
+</context>
+<context>
+    <name>GeoImportDialogDisclaimer</name>
+    <message>
+        <location filename="../geo_import_dialog_disclaimer.ui" line="32" />
+        <source>dlg_dsc_dlg_title</source>
+        <translation>Avertissement</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_disclaimer.ui" line="70" />
+        <source>dlg_dsc_title</source>
+        <translation>Catalog Integration</translation>
+    </message>
+</context>
+<context>
+    <name>GeoImportDialogSettings</name>
+    <message>
+        <location filename="../geo_import_dialog_settings.ui" line="26" />
+        <source>dlg_set_title</source>
+        <translation>Paramètres</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_settings.ui" line="248" />
+        <source>dlg_set_btn_save</source>
+        <translation>Enregistrer</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_settings.ui" line="255" />
+        <source>dlg_set_btn_cancel</source>
+        <translation>Annuler</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_settings.ui" line="65" />
+        <source>dlg_set_tool_cache</source>
+        <translation>Sélectionner un répertoire dans lequel les données seront téléchargées.</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_settings.ui" line="68" />
+        <source>?</source>
+        <translation>?</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_settings.ui" line="90" />
+        <source>dlg_set_cache_path</source>
+        <translation>Répertoire de cache</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_settings.ui" line="125" />
+        <source>dlg_set_ellipsis</source>
+        <translation>...</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_settings.ui" line="150" />
+        <source>Authentication</source>
+        <translation>Authentification</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_settings.ui" line="177" />
+        <source>Clear</source>
+        <translation>Effacer</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_settings.ui" line="170" />
+        <source>Edit</source>
+        <translation>Editer</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_settings.ui" line="200" />
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=" font-weight:600;"&gt;Warning: &lt;/span&gt;if this option is enabled, the same authentication configuration will be implicitely propagated to &lt;span style=" font-weight:600;"&gt;all&lt;/span&gt; OGC layers (WMS, WFS ...) returned by this catalog, this may leak credentials to the result endpoint  if it is not supposed to use the same authentication configuration.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=" font-weight:600;"&gt;Avertissement: &lt;/span&gt;si cette option est active,la même authentification sera affectée à &lt;span style=" font-weight:600;"&gt;toutes&lt;/span&gt; les couches OGC  (WMS, WFS ...) présentes dans le catalogue, cela peut occasioner unefuite des informations d'identification si ik n'est pas supposé qu'elles utilisent la même configuration d'autentification.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_settings.ui" line="203" />
+        <source>Use the same authentication settings for all OGC layers</source>
+        <translation>Utiliser la même authentification pour toutes les couches OGC</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_settings.ui" line="38" />
+        <source>dlg_settings_grp_cache_folder</source>
+        <translation>Répertoire de cache</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_settings.ui" line="144" />
+        <source>dlg_settings_grp_authentication</source>
+        <translation>Paramètres d'authentification</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_settings.ui" line="213" />
+        <source>dlg_settings_grpbox_misc</source>
+        <translation>Divers</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_settings.ui" line="225" />
+        <source>dlg_settings_chkbox_show_debug_info</source>
+        <translation>Afficher les informations de debugage dans le panneau 'Journal des messages'</translation>
+    </message>
+</context>
+<context>
+    <name>Util</name>
+    <message>
+        <source>py_dlg_base_open_manager</source>
+        <translation type="vanished">Type de fichier inconnu. &lt;br /&gt;&lt;br /&gt; Téléchargé de: &lt;br /&gt;{0} &lt;br /&gt;&lt;br /&gt; Ouvrir répertoire?&lt;br /&gt;</translation>
+    </message>
+</context>
+<context>
+    <name>self.util</name>
+    <message>
+        <location filename="../geo_import_dialog.py" line="268" />
+        <source>py_dlg_base_page_1_1</source>
+        <translation>Page 1/1</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog.py" line="626" />
+        <location filename="../geo_import_dialog.py" line="891" />
+        <source>py_dlg_set_info_empty_local_created</source>
+        <translation>py_dlg_set_info_empty_local_created</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog.py" line="906" />
+        <source>py_dlg_set_info_local_read_error_boxdrive</source>
+        <translation>py_dlg_set_info_local_read_error_boxdrive</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog.py" line="909" />
+        <source>py_dlg_set_info_local_read_error</source>
+        <translation>py_dlg_set_info_local_read_error</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog.py" line="937" />
+        <source>CKAN全件取得中...</source>
+        <translation>CKAN全件取得中...</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog.py" line="937" />
+        <source>キャンセル</source>
+        <translation>キャンセル</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog.py" line="938" />
+        <source>進捗</source>
+        <translation>進捗</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog.py" line="947" />
+        <source>CKAN全件取得中... ({}/{})</source>
+        <translation>CKAN全件取得中... ({}/{})</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog.py" line="1006" />
+        <source>Current server: {0}</source>
+        <translation>Current server: {0}</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog.py" line="1007" />
+        <source>Cache path: {0}</source>
+        <translation>Cache path: {0}</translation>
+    </message>
+    <message>
+        <source>py_dlg_base_search_result_0</source>
+        <translation type="vanished">Résultats recherche: 0</translation>
+    </message>
+    <message>
+        <source>py_dlg_base_no_result</source>
+        <translation type="vanished">Pas de résultat</translation>
+    </message>
+    <message>
+        <source>py_dlg_base_result_count</source>
+        <translation type="vanished">Résultat recherche: {0} jeux de données</translation>
+    </message>
+    <message>
+        <source>py_dlg_base_page_count</source>
+        <translation type="vanished">Page {0}/{1:.0f}</translation>
+    </message>
+    <message>
+        <source>py_dlg_base_warn_no_resource</source>
+        <translation type="vanished">Aucune ressource sélectionnée</translation>
+    </message>
+    <message>
+        <source>py_dlg_base_warn_cache_dir_not_created</source>
+        <translation type="vanished">Création répertoire cache impossible: {0}</translation>
+    </message>
+    <message>
+        <source>py_dlg_base_data_already_loaded</source>
+        <translation type="vanished">Jeu de données déjà téléchargé. Recommencer?</translation>
+    </message>
+    <message>
+        <source>py_dlg_base_big_file</source>
+        <translation type="vanished">Taille du fichier {0} MB. Télécharger quand même?</translation>
+    </message>
+    <message>
+        <source>py_dlg_base_warn_not_extracted</source>
+        <translation type="vanished">Extraction archive impossible:&lt;br /&gt;{0}</translation>
+    </message>
+    <message>
+        <source>py_dlg_base_open_manager</source>
+        <translation type="vanished">Type de fichier inconnu. &lt;br /&gt;&lt;br /&gt; Téléchargé de: &lt;br /&gt;{0} &lt;br /&gt;&lt;br /&gt; Ouvrir répertoire?&lt;br /&gt;</translation>
+    </message>
+    <message>
+        <source>py_dlg_base_lyr_not_loaded</source>
+        <translation type="vanished">Chargement couche impossible:&lt;br /&gt;{0}&lt;br /&gt;{1}</translation>
+    </message>
+    <message>
+        <source>dlg_base_ttip_search</source>
+        <translation type="vanished">Entrez vos mots clés ici.</translation>
+    </message>
+    <message>
+        <source>dlg_base_ttip_filter</source>
+        <translation type="vanished">Activer la case pour limiter la recherche à cette catégorie. Double click sur une catégorie liste tous ses jeux de données.</translation>
+    </message>
+    <message>
+        <source>dlg_base_ttip_data_list</source>
+        <translation type="vanished">Télécharge les jeux de données sélectionnés et tente leur ouverture dans QGIS. Si les jeux de données ne peuvent pas s'afficher le répertoire source s'ouvre.</translation>
+    </message>
+    <message>
+        <source>dlg_base_ttip_resource</source>
+        <translation type="vanished">URL de la ressource sélectionnée</translation>
+    </message>
+    <message>
+        <source>cc_url_error</source>
+        <translation type="vanished">Erreur URL&lt;br /&gt; {0} &lt;br /&gt;&lt;br /&gt;{1}</translation>
+    </message>
+    <message>
+        <source>cc_connection_timeout</source>
+        <translation type="vanished">Délai de connexion dépassé :&lt;br /&gt;&lt;br /&gt;{0}</translation>
+    </message>
+    <message>
+        <source>cc_download_error</source>
+        <translation type="vanished">Erreur de téléchargement: {0}</translation>
+    </message>
+    <message>
+        <source>cc_api_not_accessible</source>
+        <translation type="vanished">API CKAN inaccessible</translation>
+    </message>
+    <message>
+        <source>cc_server_fault</source>
+        <translation type="vanished">Serveur:&lt;br /&gt;</translation>
+    </message>
+    <message>
+        <source>cc_invalid_json</source>
+        <translation type="vanished">Réponse serveur objet JSON invalide</translation>
+    </message>
+    <message>
+        <source>cc_wrong_api</source>
+        <translation type="vanished">Support V3 uniquement</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_disclaimer.py" line="60" />
+        <source>py_disc_info_html</source>
+        <translation>&lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd"&gt;&lt;html&gt;&lt;head&gt;&lt;meta name="qrichtext" content="1" /&gt;&lt;style type="text/css"&gt;p, li { white-space: pre-wrap; }&lt;/style&gt;&lt;/head&gt;&lt;body style=" font-family:'.Helvetica Neue DeskInterface'; font-size:13pt; font-weight:400; font-style:normal;"&gt;&lt;h1&gt;Disclaimer&lt;/h1&gt;&lt;p&gt;EN Es besteht die Möglichkeit, dass das Plugin nicht mit allen CKAN funktioniert, da die Metadaten der Plattformen unterschiedlich abgebildet werden. Unterstützt werden nur Server, die groups oder tags verwenden. &lt;a href="http://docs.ckan.org/en/latest/api/"&gt;link auf CKAN docs&lt;/a&gt;&lt;br /&gt;Dieses Plugin funktioniert nur mit API-Verson 3&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+    </message>
+    <message>
+        <source>py_dlg_set_info_conn_succs</source>
+        <translation type="vanished">Connexion réussie</translation>
+    </message>
+    <message>
+        <source>py_dlg_set_warn_cache_not_use</source>
+        <translation type="vanished">Le répertoire cache ne peut pas être utilisé</translation>
+    </message>
+    <message>
+        <source>dlg_set_tool_cache</source>
+        <translation type="vanished">Sélectionner un répertoire dans lequel les données seront téléchargées.</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_settings.py" line="121" />
+        <source>Select Authentication</source>
+        <translation>Sélectionner l'authentification</translation>
+    </message>
+    <message>
+        <source>&amp;Catalog Integration</source>
+        <translation type="vanished">&amp;Catalog Integration</translation>
+    </message>
+    <message>
+        <source>Catalog Integration</source>
+        <translation type="vanished">Catalog Integration</translation>
+    </message>
+    <message>
+        <source>ckan_browser_settings</source>
+        <translation type="vanished">Paramètres</translation>
+    </message>
+    <message>
+        <source>py_dlg_base_current_server</source>
+        <translation type="vanished">Serveur actuel : {}</translation>
+    </message>
+    <message>
+        <source>py_dlg_base_cache_path</source>
+        <translation type="vanished">Chemin du cache : {}</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.py" line="66" />
+        <source>Browse folder...</source>
+        <translation>Browse folder...</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.py" line="252" />
+        <location filename="../geo_import_dialog_dataproviders.py" line="473" />
+        <source>py_dlg_data_providers_no_server_selected</source>
+        <translation>Aucun serveur sélectionné</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.py" line="257" />
+        <source>py_dlg_data_providers_cannot_delete_sever_from_official_list</source>
+        <translation>Impossible de supprimer le serveur de la liste officielle CKAN</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.py" line="279" />
+        <source>Select LOCAL folder</source>
+        <translation>Select LOCAL folder</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.py" line="345" />
+        <source>py_dlg_set_info_local_not_found</source>
+        <translation>py_dlg_set_info_local_not_found</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.py" line="410" />
+        <source>py_dlg_data_providers_custom_server</source>
+        <translation>Serveur CKAN personnalisé</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.py" line="411" />
+        <source>py_dlg_data_providers_name_custom_server</source>
+        <translation>Nom de votre serveur CKAN :</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.py" line="419" />
+        <source>py_dlg_data_providers_custom_server_name_exists</source>
+        <translation>Un serveur avec ce nom existe déjà : {}</translation>
+    </message>
+    <message>
+        <source>Data Format</source>
+        <translation type="vanished">Format de données</translation>
+    </message>
+    <message>
+        <source>All</source>
+        <translation type="vanished">Tous</translation>
+    </message>
+    <message>
+        <source>Refresh SQLite</source>
+        <translation type="vanished">Actualiser SQLite</translation>
+    </message>
+    <message>
+        <source>Refresh all datasets and recreate SQLite cache</source>
+        <translation type="vanished">Actualiser tous les jeux de données et recréer le cache SQLite</translation>
+    </message>
+    <message>
+        <source>Clear Selection</source>
+        <translation type="vanished">Effacer la sélection</translation>
+    </message>
+    <message>
+        <source>Clear the selection of search results</source>
+        <translation type="vanished">Effacer la sélection des résultats de recherche</translation>
+    </message>
+    <message>
+        <source>Select All</source>
+        <translation type="vanished">Tout sélectionner</translation>
+    </message>
+</context>
+</TS>

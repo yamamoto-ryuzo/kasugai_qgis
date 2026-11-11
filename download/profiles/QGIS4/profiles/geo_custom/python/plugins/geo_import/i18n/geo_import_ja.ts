@@ -1,0 +1,691 @@
+<?xml version='1.0' encoding='utf-8'?>
+<TS version="2.1" language="ja_JP">
+<context>
+    <name>GeoImport</name>
+    <message>
+        <source>&amp;geo_import</source>
+        <translation type="vanished">&amp;Geo Import</translation>
+    </message>
+    <message>
+        <source>geo_import</source>
+        <translation type="vanished">Geo Import</translation>
+    </message>
+    <message>
+        <source>geo_import_settings</source>
+        <translation type="vanished">Geo Import 設定</translation>
+    </message>
+</context>
+<context>
+    <name>GeoImportDialogBase</name>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="35" />
+        <source>dlg_base_title</source>
+        <translation>データカタログ統合</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="57" />
+        <source>dlg_base_search_term</source>
+        <translation>検索語:</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="104" />
+        <source>Data Format</source>
+        <translation>Data Format</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="112" />
+        <source>All</source>
+        <translation>All</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="117" />
+        <source>CSV</source>
+        <translation>CSV</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="122" />
+        <source>GeoJSON</source>
+        <translation>GeoJSON</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="127" />
+        <source>Shapefile</source>
+        <translation>Shapefile</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="132" />
+        <source>KML</source>
+        <translation>KML</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="137" />
+        <source>JSON</source>
+        <translation>JSON</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="147" />
+        <source>dlg_base_btn_strt_srch</source>
+        <translation>検索</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="157" />
+        <source>dlg_base_btn_show_all</source>
+        <translation>検索可能全データセットをリストします</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="172" />
+        <source>dlg_base_filter_to</source>
+        <translation>検索範囲をカテゴリで制限します:</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="253" />
+        <source>dlg_base_current_server</source>
+        <translation>dlg_base_current_server</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="275" />
+        <source>dlg_base_lbl_cache_dir</source>
+        <translation>dlg_base_lbl_cache_dir</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="285" />
+        <source>Refresh all datasets and recreate SQLite cache</source>
+        <translation>Refresh all datasets and recreate SQLite cache</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="288" />
+        <source>Refresh SQLite</source>
+        <translation>Refresh SQLite</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="307" />
+        <source>dlg_base_lbl_plugin_version</source>
+        <translation>dlg_base_lbl_plugin_version</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="314" />
+        <source>dlg_base_btn_select_dataprovider</source>
+        <translation>dlg_base_btn_select_dataprovider</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="321" />
+        <source>dlg_base_btn_disclaimer</source>
+        <translation>免責事項</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="354" />
+        <source>dlg_base_srch_rslt</source>
+        <translation>結果:</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="370" />
+        <source>Clear Selection</source>
+        <translation>Clear Selection</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="373" />
+        <source>Clear the selection of search results</source>
+        <translation>Clear the selection of search results</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="380" />
+        <source>Select All</source>
+        <translation>Select All</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="388" />
+        <source>IDC_lblPage</source>
+        <translation />
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="412" />
+        <source>dlg_base_btn_lt</source>
+        <translation>&lt;</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="437" />
+        <source>dlg_base_btn_gt</source>
+        <translation>&gt;</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="461" />
+        <source>dlg_base_descr</source>
+        <translation>説明:</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="480" />
+        <source>dlg_base_data_list</source>
+        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;検索されたデータ:&lt;br /&gt;ダウンロードするデータの選択.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="543" />
+        <source>選択中: 0件</source>
+        <translation>選択中: 0件</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="555" />
+        <source>dlg_base_ressource</source>
+        <translation>リソース URL:</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="667" />
+        <source>dlg_base_btn_load_data</source>
+        <translation>データのロード</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="674" />
+        <source>dlg_base_btn_close</source>
+        <translation>閉じる</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="90" />
+        <source>dlg_base_ttip_search</source>
+        <translation>検索したい言葉をここに入力する.</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="154" />
+        <source>dlg_base_ttip_show</source>
+        <translation>CKANサーバで検索可能な全データセットを表示します</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="213" />
+        <source>dlg_base_ttip_filter</source>
+        <translation>チェックボックスをアクティブにするとそのカテゴリで検索範囲を制限します. カテゴリをダブルクリックするとその全データセットをリストします.</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="409" />
+        <source>dlg_base_ttip_prev</source>
+        <translation>前</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="434" />
+        <source>dlg_base_ttip_next</source>
+        <translation>次</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="521" />
+        <source>dlg_base_ttip_data_list</source>
+        <translation>選択したデータセットをダウンロードしてQGISで開こうとします. データセットが表示できない場合はそれが格納されているディレクトリが開きます.</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="634" />
+        <source>dlg_base_ttip_copy</source>
+        <translation>クリップボードへコピーします</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="596" />
+        <source>dlg_base_ttip_resource</source>
+        <translation>選択リソースのURL</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_base.ui" line="93" />
+        <location filename="../geo_import_dialog_base.ui" line="216" />
+        <location filename="../geo_import_dialog_base.ui" line="524" />
+        <location filename="../geo_import_dialog_base.ui" line="599" />
+        <source>?</source>
+        <translation>?</translation>
+    </message>
+    <message>
+        <source>Current server: {0}</source>
+        <translation type="vanished">現在のサーバー: {0}</translation>
+    </message>
+    <message>
+        <source>Cache path: {0}</source>
+        <translation type="vanished">キャッシュパス: {0}</translation>
+    </message>
+    <message>
+        <source>Failed to get categories: {0}</source>
+        <translation type="vanished">カテゴリ取得失敗: {0}</translation>
+    </message>
+    <message>
+        <source>Category list is empty. Please check CKAN server or network settings.</source>
+        <translation type="vanished">カテゴリリストが空です。CKANサーバやネットワーク設定を確認してください。</translation>
+    </message>
+    <message>
+        <source>Data provider selection</source>
+        <translation type="vanished">データプロバイダ選択</translation>
+    </message>
+    <message>
+        <source>Plugin version</source>
+        <translation type="vanished">プラグインバージョン</translation>
+    </message>
+    <message>
+        <source>Manual settings</source>
+        <translation type="vanished">手動設定</translation>
+    </message>
+    <message>
+        <source>Enter data provider URL</source>
+        <translation type="vanished">データプロバイダURLを入力</translation>
+    </message>
+    <message>
+        <source>Test connection</source>
+        <translation type="vanished">接続テスト</translation>
+    </message>
+    <message>
+        <source>Add connection</source>
+        <translation type="vanished">接続追加</translation>
+    </message>
+    <message>
+        <source>Provider search</source>
+        <translation type="vanished">プロバイダ検索</translation>
+    </message>
+    <message>
+        <source>Number of instances</source>
+        <translation type="vanished">インスタンス数</translation>
+    </message>
+</context>
+<context>
+    <name>GeoImportDialogDataProviders</name>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.ui" line="26" />
+        <source>dlg_dataproviders_title</source>
+        <translation>データプロバイダ設定</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.ui" line="38" />
+        <source>dlg_dataproviders_grp_manual</source>
+        <translation>手動設定</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.ui" line="50" />
+        <source>dlg_dataproviders_lbl_enter_dataprovider_url</source>
+        <translation>データプロバイダURLを入力</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.ui" line="63" />
+        <source>dlg_dataproviders_btn_test_connection</source>
+        <translation>接続テスト</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.ui" line="70" />
+        <source>dlg_dataproviders_btn_add_connection</source>
+        <translation>接続追加</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.ui" line="77" />
+        <source>dlg_dataproviders_btn_browse_local</source>
+        <translation>dlg_dataproviders_btn_browse_local</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.ui" line="80" />
+        <source>dlg_dataproviders_btn_browse_local_tooltip</source>
+        <translation>dlg_dataproviders_btn_browse_local_tooltip</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.ui" line="106" />
+        <source>dlg_dataproviders_lbl_search_for_provider</source>
+        <translation>プロバイダ検索</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.ui" line="116" />
+        <source>dlg_dataproviders_lbl_nr_of_instances</source>
+        <translation>インスタンス数</translation>
+    </message>
+</context>
+<context>
+    <name>GeoImportDialogDisclaimer</name>
+    <message>
+        <location filename="../geo_import_dialog_disclaimer.ui" line="32" />
+        <source>dlg_dsc_dlg_title</source>
+        <translation>免責事項</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_disclaimer.ui" line="70" />
+        <source>dlg_dsc_title</source>
+        <translation>データカタログ統合</translation>
+    </message>
+</context>
+<context>
+    <name>GeoImportDialogSettings</name>
+    <message>
+        <location filename="../geo_import_dialog_settings.ui" line="26" />
+        <source>dlg_set_title</source>
+        <translation>設定</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_settings.ui" line="90" />
+        <source>dlg_set_cache_path</source>
+        <translation>キャッシュディレクトリ</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_settings.ui" line="125" />
+        <source>dlg_set_ellipsis</source>
+        <translation>...</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_settings.ui" line="248" />
+        <source>dlg_set_btn_save</source>
+        <translation>保存</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_settings.ui" line="255" />
+        <source>dlg_set_btn_cancel</source>
+        <translation>キャンセル</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_settings.ui" line="65" />
+        <source>dlg_set_tool_cache</source>
+        <translation>ダウンロードデータを格納するディレクトリを選択します.</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_settings.ui" line="150" />
+        <source>Authentication</source>
+        <translation>認証</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_settings.ui" line="68" />
+        <source>?</source>
+        <translation>?</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_settings.ui" line="177" />
+        <source>Clear</source>
+        <translation>クリア</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_settings.ui" line="170" />
+        <source>Edit</source>
+        <translation>編集</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_settings.ui" line="200" />
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=" font-weight:600;"&gt;Warning: &lt;/span&gt;if this option is enabled, the same authentication configuration will be implicitely propagated to &lt;span style=" font-weight:600;"&gt;all&lt;/span&gt; OGC layers (WMS, WFS ...) returned by this catalog, this may leak credentials to the result endpoint  if it is not supposed to use the same authentication configuration.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=" font-weight:600;"&gt;警告: &lt;/span&gt;このオプションを有効にすると、同じ認証設定がこのカタログで返される &lt;span style=" font-weight:600;"&gt;すべての&lt;/span&gt; OGCレイヤー（WMS, WFS ...）に自動的に適用されます。これにより、同じ認証設定を使うべきでないエンドポイントに認証情報が漏れる可能性があります。&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_settings.ui" line="203" />
+        <source>Use the same authentication settings for all OGC layers</source>
+        <translation>すべてのOGCレイヤーで同じ認証設定を使用する</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_settings.ui" line="38" />
+        <source>dlg_settings_grp_cache_folder</source>
+        <translation>キャッシュフォルダ</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_settings.ui" line="144" />
+        <source>dlg_settings_grp_authentication</source>
+        <translation>認証</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_settings.ui" line="213" />
+        <source>dlg_settings_grpbox_misc</source>
+        <translation>その他</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_settings.ui" line="225" />
+        <source>dlg_settings_chkbox_show_debug_info</source>
+        <translation>デバッグ情報を表示</translation>
+    </message>
+</context>
+<context>
+    <name>Util</name>
+    <message>
+        <source>py_dlg_base_open_manager</source>
+        <translation type="vanished">不明なファイルタイプです. &lt;br /&gt;&lt;br /&gt; ダウンロード元: &lt;br /&gt;{0} &lt;br /&gt;&lt;br /&gt; ディレクトリを開きますか?&lt;br /&gt;</translation>
+    </message>
+</context>
+<context>
+    <name>self.util</name>
+    <message>
+        <location filename="../geo_import_dialog.py" line="268" />
+        <source>py_dlg_base_page_1_1</source>
+        <translation>ページ 1/1</translation>
+    </message>
+    <message>
+        <source>py_dlg_base_search_result_0</source>
+        <translation type="vanished">検索結果: 0</translation>
+    </message>
+    <message>
+        <source>py_dlg_base_no_result</source>
+        <translation type="vanished">結果無し</translation>
+    </message>
+    <message>
+        <source>py_dlg_base_result_count</source>
+        <translation type="vanished">検索結果: {0} データセット</translation>
+    </message>
+    <message>
+        <source>py_dlg_base_page_count</source>
+        <translation type="vanished">ページ {0}/{1:.0f}</translation>
+    </message>
+    <message>
+        <source>py_dlg_base_warn_no_resource</source>
+        <translation type="vanished">リソースが選択されていません</translation>
+    </message>
+    <message>
+        <source>py_dlg_base_warn_cache_dir_not_created</source>
+        <translation type="vanished">キャッシュディレクトリを作れません: {0}</translation>
+    </message>
+    <message>
+        <source>py_dlg_base_data_already_loaded</source>
+        <translation type="vanished">データセットはすでにダウンロードされています. 再ダウンロードしますか?</translation>
+    </message>
+    <message>
+        <source>py_dlg_base_big_file</source>
+        <translation type="vanished">ファイルのサイズは {0} MBです. それでもダウンロードしますか?</translation>
+    </message>
+    <message>
+        <source>py_dlg_base_warn_not_extracted</source>
+        <translation type="vanished">アーカイブを解凍できません:&lt;br /&gt;{0}</translation>
+    </message>
+    <message>
+        <source>py_dlg_base_open_manager</source>
+        <translation type="vanished">不明なファイルタイプです. &lt;br /&gt;&lt;br /&gt; ダウンロード元: &lt;br /&gt;{0} &lt;br /&gt;&lt;br /&gt; ディレクトリを開きますか?&lt;br /&gt;</translation>
+    </message>
+    <message>
+        <source>py_dlg_base_lyr_not_loaded</source>
+        <translation type="vanished">レイヤをロードできません:&lt;br /&gt;{0}&lt;br /&gt;{1}</translation>
+    </message>
+    <message>
+        <source>py_dlg_set_info_no_local_packages</source>
+        <translation type="vanished">指定したフォルダにはCKANパッケージが見つかりません: {0}</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog.py" line="626" />
+        <location filename="../geo_import_dialog.py" line="891" />
+        <source>py_dlg_set_info_empty_local_created</source>
+        <translation>フォルダは空でした。空の索引を作成しました: {0}</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog.py" line="909" />
+        <source>py_dlg_set_info_local_read_error</source>
+        <translation>ローカルファイルの読み込みエラー: {0}</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog.py" line="937" />
+        <source>CKAN全件取得中...</source>
+        <translation>CKAN全件取得中...</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog.py" line="937" />
+        <source>キャンセル</source>
+        <translation>キャンセル</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog.py" line="938" />
+        <source>進捗</source>
+        <translation>進捗</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog.py" line="947" />
+        <source>CKAN全件取得中... ({}/{})</source>
+        <translation>CKAN全件取得中... ({}/{})</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog.py" line="1006" />
+        <source>Current server: {0}</source>
+        <translation>Current server: {0}</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog.py" line="1007" />
+        <source>Cache path: {0}</source>
+        <translation>Cache path: {0}</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog.py" line="906" />
+        <source>py_dlg_set_info_local_read_error_boxdrive</source>
+        <translation>BOXドライブのファイル読み込みエラー: {0}
+        
+BOXドライブはクラウドストレージのため、アクセスするまでファイルが実際にダウンロードされない場合があります。以下をお試しください：
+
+1. エクスプローラーでフォルダを開き、必要なファイルを一度開いてダウンロードする
+2. BOXドライブの同期設定で「ファイルをローカルに常に保持する」を選択する
+3. データをローカルドライブにコピーしてから操作する</translation>
+    </message>
+    <message>
+        <source>dlg_base_ttip_search</source>
+        <translation type="vanished">検索したい言葉をここに入力する.</translation>
+    </message>
+    <message>
+        <source>dlg_base_ttip_filter</source>
+        <translation type="vanished">チェックボックスをアクティブにするとそのカテゴリで検索範囲を制限します. カテゴリをダブルクリックするとその全データセットをリストします.</translation>
+    </message>
+    <message>
+        <source>dlg_base_ttip_data_list</source>
+        <translation type="vanished">選択したデータセットをダウンロードしてQGISで開こうとします. データセットが表示できない場合はそれが格納されているディレクトリが開きます.</translation>
+    </message>
+    <message>
+        <source>dlg_base_ttip_resource</source>
+        <translation type="vanished">選択リソースのURL</translation>
+    </message>
+    <message>
+        <source>cc_url_error</source>
+        <translation type="vanished">URL取得エラー&lt;br /&gt; {0} &lt;br /&gt;&lt;br /&gt;{1}</translation>
+    </message>
+    <message>
+        <source>cc_connection_timeout</source>
+        <translation type="vanished">コネクションタイムアウト:&lt;br /&gt;&lt;br /&gt;{0}</translation>
+    </message>
+    <message>
+        <source>cc_download_error</source>
+        <translation type="vanished">ダウンロードエラー: {0}</translation>
+    </message>
+    <message>
+        <source>cc_api_not_accessible</source>
+        <translation type="vanished">CKAN API がアクセスできません</translation>
+    </message>
+    <message>
+        <source>cc_server_fault</source>
+        <translation type="vanished">サーバエラー</translation>
+    </message>
+    <message>
+        <source>cc_invalid_json</source>
+        <translation type="vanished">サーバの返答が正しくないJSONオブジェクトです</translation>
+    </message>
+    <message>
+        <source>cc_wrong_api</source>
+        <translation type="vanished">v3 APIのみサポートされています</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_disclaimer.py" line="60" />
+        <source>py_disc_info_html</source>
+        <translation>&lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd"&gt;&lt;html&gt;&lt;head&gt;&lt;meta name="qrichtext" content="1" /&gt;&lt;style type="text/css"&gt;p, li { white-space: pre-wrap; }&lt;/style&gt;&lt;/head&gt;&lt;body style=" font-family:'.Helvetica Neue DeskInterface'; font-size:13pt; font-weight:400; font-style:normal;"&gt;&lt;h1&gt;免責事項&lt;/h1&gt;&lt;p&gt;各サーバではそのサーバを利用するグループ独自で使用するタグをサポートしたりします.そのためプラットフォームのメタデータはそれぞれ異なってマッピングされているので,このプラグインはすべてのCKANでは動作しない可能性がありますn.. &lt;a href="http://docs.ckan.org/en/latest/api/"&gt;CKAN ドキュメントへのリンク&lt;/a&gt;&lt;br /&gt;このプラグインは APIバージョン3でのみ動作します&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+    </message>
+    <message>
+        <source>py_dlg_set_info_conn_succs</source>
+        <translation type="vanished">接続成功</translation>
+    </message>
+    <message>
+        <source>py_dlg_set_warn_cache_not_use</source>
+        <translation type="vanished">キャッシュディレクトリが利用できません</translation>
+    </message>
+    <message>
+        <source>dlg_set_tool_cache</source>
+        <translation type="vanished">ダウンロードデータを格納するディレクトリを選択します.</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_settings.py" line="121" />
+        <source>Select Authentication</source>
+        <translation>認証を選択</translation>
+    </message>
+    <message>
+        <source>&amp;Catalog Integration</source>
+        <translation type="vanished">データカタログ統合(&amp;D)</translation>
+    </message>
+    <message>
+        <source>Catalog Integration</source>
+        <translation type="vanished">データカタログ統合</translation>
+    </message>
+    <message>
+        <source>ckan_browser_settings</source>
+        <translation type="vanished">設定</translation>
+    </message>
+    <message>
+        <source>py_dlg_base_current_server</source>
+        <translation type="vanished">現在のサーバー</translation>
+    </message>
+    <message>
+        <source>py_dlg_base_cache_path</source>
+        <translation type="vanished">キャッシュパス</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.py" line="66" />
+        <source>Browse folder...</source>
+        <translation>Browse folder...</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.py" line="252" />
+        <location filename="../geo_import_dialog_dataproviders.py" line="473" />
+        <source>py_dlg_data_providers_no_server_selected</source>
+        <translation>サーバーが選択されていません</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.py" line="257" />
+        <source>py_dlg_data_providers_cannot_delete_sever_from_official_list</source>
+        <translation>公式リストからサーバーを削除できません</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.py" line="279" />
+        <source>Select LOCAL folder</source>
+        <translation>Select LOCAL folder</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.py" line="345" />
+        <source>py_dlg_set_info_local_not_found</source>
+        <translation>py_dlg_set_info_local_not_found</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.py" line="410" />
+        <source>py_dlg_data_providers_custom_server</source>
+        <translation>カスタムサーバー</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.py" line="411" />
+        <source>py_dlg_data_providers_name_custom_server</source>
+        <translation>カスタムサーバー名</translation>
+    </message>
+    <message>
+        <location filename="../geo_import_dialog_dataproviders.py" line="419" />
+        <source>py_dlg_data_providers_custom_server_name_exists</source>
+        <translation>同じ名前のカスタムサーバーが既に存在します</translation>
+    </message>
+    <message>
+        <source>Data Format</source>
+        <translation type="vanished">データ形式</translation>
+    </message>
+    <message>
+        <source>All</source>
+        <translation type="vanished">すべて</translation>
+    </message>
+    <message>
+        <source>Refresh SQLite</source>
+        <translation type="vanished">SQLite再取得</translation>
+    </message>
+    <message>
+        <source>Refresh all datasets and recreate SQLite cache</source>
+        <translation type="vanished">全データセットを再取得しSQLiteキャッシュを再作成します</translation>
+    </message>
+    <message>
+        <source>Clear Selection</source>
+        <translation type="vanished">選択クリア</translation>
+    </message>
+    <message>
+        <source>Clear the selection of search results</source>
+        <translation type="vanished">検索結果の選択をクリアします</translation>
+    </message>
+    <message>
+        <source>Select All</source>
+        <translation type="vanished">全選択</translation>
+    </message>
+</context>
+</TS>

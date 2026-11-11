@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Changed
+- `copy_profiles_at_startup` を簡素化: インストール済み QGIS のバージョン検出と `profiles\QGIS{major}\` ソース解決を廃止し、起動フォルダの `profiles\` 直下を `%APPDATA%\QGIS\` へそのままコピーする方式に変更（`profiles\QGIS4\` → `%APPDATA%\QGIS\QGIS4\`）。`startup.py` 掃除の走査先を `<ver>\profiles\<name>\python\startup.py`（QGIS が実際に読む階層）に修正
+- ドキュメントを `index.md` から `docs/` 配下の静的サイトへ移行（左サイドバーナビ + ページ分割 + Mermaid 起動フロー図）。ルート `index.html` は `docs/` へのリダイレクトに変更
+
+### Added
+- `LICENSE`（GPL-3.0）と `THIRD_PARTY_LICENSES.md`（依存・同梱ソフトウェアのライセンス一覧。商用利用可否の整理を含む）を追加
+
 ### Fixed
 - 配布プロファイルのコピー元を `project_root` 基準から `resolved_settings_dir`（実効 `qgis_settings.json` のあるディレクトリ＝インストール先）へ統一。`project_root` をプロジェクト用ドライブ等の別ディレクトリに設定している環境で `<project_root>\profiles` が見つからずシードがスキップされ、`--profile` が空の新規プロファイルを指していた問題を修正（`GET /profiles` の列挙元と一致させた）。`POST /reset` の再コピー元も同様に統一
 

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>クラウドドライブ自動割り当て（drive_mappings） — QGIS Launcher</title>
+  <link rel="stylesheet" href="style.css">
+  <style>pre.mermaid { background: #fff; }</style>
+  <script src="nav.js" defer></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>QGIS Launcher (qgis_launcher) <span class="version-badge">v2.4.0</span></h1>
+      <p><strong>QGIS / QField 起動ランチャー</strong> — Web UI・HTTP API・CLI で動作する Rust(Axum) 製デスクトップランチャーのドキュメント</p>
+    </header>
+    <main>
+<section>
+<h2 id="クラウドドライブ自動割り当てdrive_mappings">5. ☁️ クラウドドライブ自動割り当て（drive_mappings）</h2>
+<p>※注意: Web ポータル（ブラウザ）側では <code>rclone</code>
+を実行してマウントする処理は行いません。 <code>drive_mappings</code>
+設定は互換性のため読み書き・保持しますが、実際のドライブ割り当てや
+rclone の起動は ローカルの <code>qgis_launcher</code>
+実行環境（ランチャー）側でのみ行われます。ランチャーを使用しない環境ではこの設定は無視されます。</p>
+<p>QGIS
+起動前に任意のフォルダをドライブレターへ自動割り当てする機能です。
+追加インストール不要の <code>subst</code> モードを採用しています。</p>
+<p><strong>対応クラウドストレージ</strong>: BOX Drive / OneDrive /
+Google Drive for Desktop
+など、ローカルフォルダとして同期されるすべてのクラウドストレージに対応します。</p>
+<h3 id="ドライブ構成と役割box-の例">ドライブ構成と役割（BOX の例）</h3>
+<pre><code>BOX Drive (BOX:\Geo_Portal = %USERPROFILE%\Box\Geo_Portal)
+    │
+    │  robocopy /MIR（起動時に自動実行）
+    │  ← BOX → ローカルの一方向コピー
+    ▼
+ローカルキャッシュ (C:\qgis_cache\master)
+    │
+    │  subst
+    ▼
+  Q:  参照用・高速読み取り専用
+
+BOX Drive (BOX:\Geo_Portal = %USERPROFILE%\Box\Geo_Portal)
+    │
+    │  subst
+    ▼
+  R:  編集用・BOX Drive アプリが BOX へ自動同期</code></pre>
+<table>
+<thead>
+<tr>
+<th>ドライブ</th>
+<th>書き込み先</th>
+<th>BOX への反映</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Q:</td>
+<td>ローカル SSD</td>
+<td><strong>されない</strong></td>
+<td>QGIS 高速参照専用。起動時に robocopy でキャッシュを最新化</td>
+</tr>
+<tr>
+<td>R:</td>
+<td>BOX Drive フォルダ</td>
+<td>BOX Drive アプリが自動同期</td>
+<td>データ編集・保存</td>
+</tr>
+</tbody>
+</table>
+<p>QGIS プロジェクトファイル（.qgs）のデータソースパスを
+<code>Q:\data\道路.gpkg</code> のように
+ドライブレターで統一でき、チーム全員が同じ <code>.qgs</code>
+ファイルを共有できます。</p>
+<blockquote>
+<p><strong>注意</strong>: Q: に直接保存したデータは BOX
+へ反映されません。編集・保存は R: を使用してください。</p>
+</blockquote>
+<h3 id="qgis_settingsjson-の設定例">qgis_settings.json の設定例</h3>
+<div class="sourceCode" id="cb18"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;path_aliases&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;BOX&quot;</span><span class="fu">:</span> <span class="st">&quot;%USERPROFILE%</span><span class="ch">\\</span><span class="st">Box&quot;</span><span class="fu">,</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;OneDrive&quot;</span><span class="fu">:</span> <span class="st">&quot;%OneDrive%&quot;</span><span class="fu">,</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;SharePoint&quot;</span><span class="fu">:</span> <span class="st">&quot;%OneDriveCommercial%</span><span class="ch">\\</span><span class="st">&lt;サイト名&gt;</span><span class="ch">\\</span><span class="st">Geo_Portal&quot;</span><span class="fu">,</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;OneDriveBiz&quot;</span><span class="fu">:</span> <span class="st">&quot;%OneDriveCommercial%&quot;</span><span class="fu">,</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;GoogleDrive&quot;</span><span class="fu">:</span> <span class="st">&quot;G:</span><span class="ch">\\</span><span class="st">マイドライブ&quot;</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;drive_mappings&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;drive&quot;</span><span class="fu">:</span> <span class="st">&quot;Q:&quot;</span><span class="fu">,</span></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;mode&quot;</span><span class="fu">:</span> <span class="st">&quot;subst&quot;</span><span class="fu">,</span></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;local_cache&quot;</span><span class="fu">:</span> <span class="st">&quot;C:</span><span class="ch">\\</span><span class="st">qgis_cache</span><span class="ch">\\</span><span class="st">master&quot;</span><span class="fu">,</span></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;robocopy_src&quot;</span><span class="fu">:</span> <span class="st">&quot;BOX:</span><span class="ch">\\</span><span class="st">Geo_Portal&quot;</span><span class="fu">,</span></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;robocopy_exclude&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="st">&quot;secret-folder&quot;</span><span class="ot">,</span> <span class="st">&quot;private-data&quot;</span><span class="ot">]</span></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;drive&quot;</span><span class="fu">:</span> <span class="st">&quot;R:&quot;</span><span class="fu">,</span></span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;mode&quot;</span><span class="fu">:</span> <span class="st">&quot;subst&quot;</span><span class="fu">,</span></span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;local_cache&quot;</span><span class="fu">:</span> <span class="st">&quot;BOX:</span><span class="ch">\\</span><span class="st">Geo_Portal&quot;</span></span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>フィールド</th>
+<th>説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>drive</code></td>
+<td>割り当て先ドライブレター（例: <code>Q:</code>）</td>
+</tr>
+<tr>
+<td><code>mode</code></td>
+<td><code>subst</code>（省略時は <code>subst</code>）</td>
+</tr>
+<tr>
+<td><code>local_cache</code></td>
+<td>割り当て元フォルダのパス（必須。<code>BOX:\\path</code> ・
+<code>%VAR%</code> 記法対応）</td>
+</tr>
+<tr>
+<td><code>robocopy_src</code></td>
+<td>指定時は起動時に <code>robocopy /MIR</code> で
+<code>local_cache</code> へミラーリング（<code>BOX:\\path</code> ・
+<code>%VAR%</code> 記法対応）。<strong>コピー方向は
+<code>robocopy_src</code> → <code>local_cache</code>
+の一方向</strong></td>
+</tr>
+<tr>
+<td><code>robocopy_exclude</code></td>
+<td>robocopy の除外サブフォルダ名の配列（例:
+<code>["secret-folder", "private-data"]</code>）</td>
+</tr>
+</tbody>
+</table>
+<p><code>path_aliases</code>
+ではエイリアス名（2文字以上）をパスにマッピングできます。<code>BOX</code>
+は未定義時のデフォルトで <code>%USERPROFILE%\Box</code>
+に解決されます。OneDrive / Google Drive 等も同様に定義できます。</p>
+<table>
+<thead>
+<tr>
+<th>記法例</th>
+<th>展開後</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>BOX:\Geo_Portal</code></td>
+<td><code>C:\Users\&lt;ユーザ&gt;\Box\Geo_Portal</code>（<code>BOX</code>
+エイリアス展開）</td>
+</tr>
+<tr>
+<td><code>OneDrive:\Documents</code></td>
+<td><code>C:\Users\&lt;ユーザ&gt;\OneDrive\Documents</code>（<code>%OneDrive%</code>
+展開）</td>
+</tr>
+<tr>
+<td><code>OneDriveBiz:\Geo_Portal</code></td>
+<td><code>C:\Users\&lt;ユーザ&gt;\OneDrive - 会社名\Geo_Portal</code>（<code>%OneDriveCommercial%</code>
+展開）</td>
+</tr>
+<tr>
+<td><code>GoogleDrive:\Geo_Portal</code></td>
+<td><code>G:\マイドライブ\Geo_Portal</code>（Google Drive
+のドライブレターを指定）</td>
+</tr>
+<tr>
+<td><code>%USERPROFILE%\Box\Geo_Portal</code></td>
+<td><code>C:\Users\&lt;ユーザ&gt;\Box\Geo_Portal</code></td>
+</tr>
+<tr>
+<td><code>C:\qgis_cache\master</code></td>
+<td>そのまま</td>
+</tr>
+</tbody>
+</table>
+<h3 id="事前準備">事前準備</h3>
+<p><strong>使用するクラウドストレージに応じて以下を設定してください。</strong></p>
+<table>
+<thead>
+<tr>
+<th>クラウド</th>
+<th>準備</th>
+<th>エイリアスの基準</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>BOX Drive</strong></td>
+<td>BOX Drive
+アプリをインストール、対象フォルダをオフライン同期（常にこのデバイス上に保持）に設定</td>
+<td><code>%USERPROFILE%\Box</code>（デフォルト、または
+<code>path_aliases</code> で変更）</td>
+</tr>
+<tr>
+<td><strong>OneDrive（個人）</strong></td>
+<td>OneDrive アプリが動作していれば <code>%OneDrive%</code>
+環境変数が自動設定される</td>
+<td><code>%OneDrive%</code></td>
+</tr>
+<tr>
+<td><strong>OneDrive（法人/Microsoft 365）</strong></td>
+<td>サインイン後に <code>%OneDriveCommercial%</code>
+環境変数が自動設定される</td>
+<td><code>%OneDriveCommercial%</code></td>
+</tr>
+<tr>
+<td><strong>Google Drive for Desktop</strong></td>
+<td>Google Drive for Desktop をインストール、ドライブレター（例:
+<code>G:</code>）を確認</td>
+<td><code>G:\マイドライブ</code>（ドライブレターは環境により異なるため
+<code>path_aliases</code> で指定）</td>
+</tr>
+<tr>
+<td><strong>SharePoint（ライブラリ）</strong></td>
+<td>ブラウザで対象の SharePoint
+サイトのドキュメントライブラリを開き「同期」をクリックして OneDrive
+と同期してください。同期後に作成されるローカルフォルダ（通常は
+<code>%OneDriveCommercial%</code> 以下）を <code>path_aliases</code>
+に設定してください（例:
+<code>%OneDriveCommercial%\\&lt;サイト名&gt;\\Geo_Portal</code>）。</td>
+<td><code>%OneDriveCommercial%\\&lt;サイト名&gt;\\Geo_Portal</code></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>Q: の <code>local_cache</code>（<code>C:\qgis_cache\master</code>
+等）は初回起動時に自動作成されます。</li>
+<li>OneDrive は会社名がパスに含まれる（例:
+<code>OneDrive - 株式会社XXX</code>）ため、ユーザーごとにパスが異なる場合があります。その場合は<a
+href="settings.html#ユーザーごとの設定オーバーライドqgis_settings_usernamejson">ユーザーオーバーライド</a>で
+<code>path_aliases</code> を上書きしてください。</li>
+</ul>
+<hr />
+</section>
+    </main>
+  </div>
+</body>
+</html>

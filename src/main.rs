@@ -1806,9 +1806,8 @@ fn mount_drive(m: &RcloneMount, rclone_path: &str, sender: Option<&std::sync::mp
     }
 }
 
-/// EXE 起動時: インストール済みQGIS4のプロファイルフォルダをコピーする
-/// profiles\QGIS4\ → APPDATA\QGIS\QGIS4\
-/// バージョン別フォルダが無い場合は profiles\ 直下を共通フォルダとして使用
+/// EXE 起動時: 起動フォルダの profiles\ 直下を %APPDATA%\QGIS\ へコピーする
+/// profiles\QGIS4\ → %APPDATA%\QGIS\QGIS4\ となる（コピー先に既存ファイルがある場合はスキップ）
 fn copy_profiles_at_startup(settings_dir: &str, sender: Option<&std::sync::mpsc::Sender<String>>) {
     let base_profiles = PathBuf::from(settings_dir).join("profiles");
     if !base_profiles.exists() {
@@ -1818,69 +1817,28 @@ fn copy_profiles_at_startup(settings_dir: &str, sender: Option<&std::sync::mpsc:
         return;
     }
 
-    // インストール済みQGIS4の存在を確認
-    let installed = get_available_qgis_versions();
-    let mut major_versions: Vec<u32> = installed.iter()
-        .filter_map(|(_, exe)| {
-            let lower = exe.to_lowercase();
-            let major = 4u32;
-            let patterns = [
-                format!("qgis {}", major),
-                format!("qgis{}", major),
-                format!("\\{}.", major),
-            ];
-            if patterns.iter().any(|p| lower.contains(p.as_str())) {
-                Some(major)
-            } else {
-                None
-            }
-        })
-        .collect();
-    major_versions.sort();
-    major_versions.dedup();
-
-    if major_versions.is_empty() {
-        if let Some(s) = sender {
-            let _ = s.send("MSG:no matching QGIS installations found".to_string());
-        }
-        return;
-    }
-
-    let all_profile_paths = qgis_launcher::get_qgis_profile_paths();
-    let total = major_versions.len().max(1) as f64;
-    for (idx, major) in major_versions.iter().enumerate() {
-        let target = all_profile_paths.iter()
-            .find(|p| p.to_string_lossy().to_lowercase().contains(&format!("qgis{}", major)));
-        let target = match target {
-            Some(t) => t,
+    for target in qgis_launcher::get_qgis_profile_paths() {
+        // target = %APPDATA%\QGIS\QGIS{major}。profiles\ 直下の
+        // QGIS{major}\ フォルダがそのまま %APPDATA%\QGIS\ 配下に入るよう親にコピーする。
+        let qgis_dir = match target.parent() {
+            Some(p) => p.to_path_buf(),
             None => continue,
         };
-        // ソース: profiles\QGIS{major}\ があればそちら、なければ profiles\ 直下
-        let versioned_src = base_profiles.join(format!("QGIS{}", major));
-        let source = if versioned_src.exists() { versioned_src } else { base_profiles.clone() };
-        if !source.exists() {
-            continue;
-        }
-        if let Err(e) = fs::create_dir_all(target) {
+        if let Err(e) = fs::create_dir_all(&qgis_dir) {
             if let Some(s) = sender {
-                let _ = s.send(format!("MSG:failed to create target {:?}: {}", target, e));
+                let _ = s.send(format!("MSG:failed to create target {:?}: {}", qgis_dir, e));
             }
             continue;
         }
         if let Some(s) = sender {
-            let _ = s.send(format!("MSG:Copying profiles from {:?} -> {:?}", source, target));
+            let _ = s.send(format!("MSG:Copying profiles from {:?} -> {:?}", base_profiles, qgis_dir));
         }
-        let _ = copy_dir_contents_skip(&source, target);
-
-        // 進捗を送る（50%〜90% の範囲で割当）
-        if let Some(s) = sender {
-            let perc = 50.0 + ((idx as f64 + 1.0) / total) * 40.0;
-            let _ = s.send(format!("PROG:{}", perc));
-        }
+        let _ = copy_dir_contents_skip(&base_profiles, &qgis_dir);
 
         // startup.py は --code ini/startup.py で管理するため、
         // プロファイル配下に残っている古い startup.py を削除する（二重実行防止）
-        if let Ok(entries) = fs::read_dir(target) {
+        let profiles_dir = target.join("profiles");
+        if let Ok(entries) = fs::read_dir(&profiles_dir) {
             for entry in entries.flatten() {
                 if entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
                     let startup = entry.path().join("python").join("startup.py");

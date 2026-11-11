@@ -4,3 +4,8 @@
 #   templates up to ~1600 chars); line-length is not enforced.
 # - W503/W504: mutually exclusive line-break rules; both styles are used.
 extend-ignore = E501, W503, W504
+
+# defusedxml is vendored third-party code kept verbatim (its facades wrap
+# stdlib xml.* with unused-looking imports by design).
+per-file-ignores =
+    defusedxml/*.py: F401,F403,F405,E402,E731,F841

@@ -3,7 +3,7 @@
 name=geo_search
 qgisMinimumVersion=4.0
 qgisMaximumVersion=4.99
-version=4.4.5
+version=4.4.7
 author=yamamoto-ryuzo
 email=ryu@yamakun.net
 tracker=https://github.com/yamamoto-ryuzo/qgis_live_harness/issues

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>自動更新 — QGIS Launcher</title>
+  <link rel="stylesheet" href="style.css">
+  <style>pre.mermaid { background: #fff; }</style>
+  <script src="nav.js" defer></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>QGIS Launcher (qgis_launcher) <span class="version-badge">v2.4.0</span></h1>
+      <p><strong>QGIS / QField 起動ランチャー</strong> — Web UI・HTTP API・CLI で動作する Rust(Axum) 製デスクトップランチャーのドキュメント</p>
+    </header>
+    <main>
+<section>
+<h2 id="自動更新">8. ⬆️ 自動更新</h2>
+<p><code>qgis_settings.json</code>
+に以下を設定すると、<code>qgis_launcher.exe</code>
+起動時に自動で更新を確認します。</p>
+<div class="sourceCode" id="cb24"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;update_url&quot;</span><span class="fu">:</span> <span class="st">&quot;https://yamamoto-ryuzo.github.io/kasugai_qgis/update.json&quot;</span><span class="fu">,</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;update_check&quot;</span><span class="fu">:</span> <span class="kw">true</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h3 id="通常更新と全体更新">通常更新と全体更新</h3>
+<p>配布物は 2 種類あり、更新の内容によって使い分けます。</p>
+<table>
+<thead>
+<tr>
+<th>種類</th>
+<th>ファイル</th>
+<th>内容</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>全体版</td>
+<td><code>kasugai_qgis-setup.exe</code></td>
+<td>EXE 本体 + ini/profiles/ProjectFiles 等のデータ一式</td>
+<td>初期インストール・全体更新</td>
+</tr>
+<tr>
+<td>EXEのみ版</td>
+<td><code>kasugai_qgis-update.exe</code></td>
+<td>EXE 本体のみ（既存データは変更しない）</td>
+<td>通常のバージョンアップ</td>
+</tr>
+</tbody>
+</table>
+<p><code>update.json</code> の形式:</p>
+<div class="sourceCode" id="cb25"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="st">&quot;1.4.1&quot;</span><span class="fu">,</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;url&quot;</span><span class="fu">:</span> <span class="st">&quot;https://yamamoto-ryuzo.github.io/kasugai_qgis/public/kasugai_qgis-update.exe&quot;</span><span class="fu">,</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;full_url&quot;</span><span class="fu">:</span> <span class="st">&quot;https://yamamoto-ryuzo.github.io/kasugai_qgis/public/kasugai_qgis-setup.exe&quot;</span><span class="fu">,</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;full&quot;</span><span class="fu">:</span> <span class="kw">false</span><span class="fu">,</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;notes&quot;</span><span class="fu">:</span> <span class="st">&quot;Kasugai QGIS Launcher 1.4.1&quot;</span></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<ul>
+<li>通常は <code>full: false</code> のままとし、自動更新では
+<code>url</code> の EXE
+のみ版が使われます（軽量・ユーザーデータに影響なし）</li>
+<li>データも含めて更新したい特殊なリリースでは <code>full: true</code>
+にすると、<code>full_url</code>
+の全体版がダウンロード・実行されます</li>
+</ul>
+<h3 id="更新の流れ">更新の流れ</h3>
+<ol type="1">
+<li>起動時に <code>update_url</code> の JSON を取得</li>
+<li>リモートの <code>version</code> と現在のバージョンを比較</li>
+<li>リモートの方が新しければ、<code>full</code> が <code>false</code>
+なら <code>url</code>（EXE のみ版）、<code>true</code> なら
+<code>full_url</code>（全体版）の NSIS インストーラーをダウンロード</li>
+<li>ダウンロードしたインストーラーを
+<code>/S /D=&lt;インストールフォルダ&gt;</code> でサイレント実行</li>
+<li>インストーラーが <code>qgis_launcher.exe</code> を上書き後、新しい
+exe を起動して終了</li>
+</ol>
+<h3 id="リリース時の更新手順">リリース時の更新手順</h3>
+<ol type="1">
+<li><code>Cargo.toml</code> の <code>version</code> を更新</li>
+<li><code>installer/setup.nsi</code> の <code>PRODUCT_VERSION</code>
+を更新</li>
+<li><code>update.json</code> の <code>version</code>
+を更新（データ込みの全体更新にしたい場合のみ <code>full: true</code>
+を設定）</li>
+<li><code>cargo build --release</code></li>
+<li><code>cd installer &amp;&amp; build.bat</code> で
+<code>..\public\kasugai_qgis-setup.exe</code>（全体版）、<code>..\public\kasugai_qgis-update.exe</code>（EXEのみ版）、<code>..\public\kasugai_qgis.zip</code>
+を生成</li>
+<li>GitHub に push して GitHub Pages に反映</li>
+</ol>
+<h3 id="注意">注意</h3>
+<ul>
+<li>自動更新は <code>update_check: true</code> かつ
+<code>update_url</code> が有効な場合のみ動作します</li>
+<li>更新確認に失敗しても、ランチャーは通常起動します（ネット不通時も安全）</li>
+<li>通常更新（EXEのみ版）は本体 <code>qgis_launcher.exe</code>
+のみを更新します。プロファイル・プラグイン等は <code>local_sync</code>
+機能または全体更新（<code>full: true</code>）で更新してください</li>
+<li>全体更新でも <code>qgis_settings.json</code>
+は初回のみ配置されるため、ユーザー設定は上書きされません</li>
+</ul>
+<hr />
+</section>
+    </main>
+  </div>
+</body>
+</html>

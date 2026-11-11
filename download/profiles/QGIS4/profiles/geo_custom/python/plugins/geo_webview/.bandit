@@ -7,10 +7,14 @@
 #   B112: try/except/continue is an intentional idiom to keep the QGIS GUI thread alive
 #   B311: random used for non-cryptographic purpose only
 #   B404: import subprocess is required by plugin functionality (audit notice)
+#   B405: import xml.etree - only inside vendored defusedxml (audit notice)
 #   B406: import flagged for audit only; required by plugin functionality
 #   B603: subprocess already invoked without shell (audit notice)
 #   B606: os.startfile/xdg-open style invocation is required (audit notice)
 #   B607: system commands (cmd/netsh/icacls/powershell/xclip etc.) resolved via PATH by design
 #
 [bandit]
-skips: B110,B112,B311,B404,B406,B603,B606,B607
+skips: B110,B112,B311,B404,B405,B406,B603,B606,B607
+
+# defusedxml is vendored upstream code (its facades wrap stdlib xml.* by design)
+exclude = defusedxml

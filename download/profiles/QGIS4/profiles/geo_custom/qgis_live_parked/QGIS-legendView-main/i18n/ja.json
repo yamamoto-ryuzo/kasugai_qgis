@@ -1,0 +1,36 @@
+{
+  "LegendViewDockWidget": {
+    "Close": "閉じる",
+    "Confirm delete": "削除の確認",
+    "Could not remove variable": "変数を削除できませんでした",
+    "Could not update variable": "変数を更新できませんでした",
+    "Delete": "削除",
+    "Delete variable %s?": "変数 %s を削除しますか?",
+    "Edit": "編集",
+    "Edit variable": "変数の編集",
+    "Error": "エラー",
+    "Legend": "凡例",
+    "Legend variables": "凡例変数",
+    "Other values": "その他の値",
+    "Symbol": "シンボル",
+    "Value": "値",
+    "Value for %s": "%s の値",
+    "Variable": "変数"
+  },
+  "LegendViewDockWidgetBase": {
+    "Current": "現在のレイヤ",
+    "Layer Name": "レイヤ名",
+    "Legend View": "凡例表示",
+    "New Column": "新規列",
+    "Opacity": "不透明度",
+    "Prio": "優先度",
+    "Priority for the legend variable (numeric)": "凡例変数の優先度(数値)",
+    "Register": "登録",
+    "Register the current layer as a project variable (legend_...)": "現在のレイヤをプロジェクト変数(legend_...)として登録",
+    "Select the currently active layer": "現在アクティブなレイヤを選択",
+    "Set numeric priority for the legend variable": "凡例変数の優先度を数値で設定",
+    "Show existing legend_ project variables": "既存の legend_ プロジェクト変数を表示",
+    "Style": "スタイル",
+    "Vars": "変数一覧"
+  }
+}

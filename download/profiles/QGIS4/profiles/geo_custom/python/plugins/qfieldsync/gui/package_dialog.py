@@ -46,7 +46,7 @@ except ModuleNotFoundError:
         ),
     )
 
-from libqfieldsync.project import ProjectConfiguration
+from libqfieldsync.project import ProjectConfig
 from libqfieldsync.project_checker import ProjectChecker
 from libqfieldsync.utils.file_utils import fileparts
 from libqfieldsync.utils.qgis import get_project_title
@@ -79,8 +79,8 @@ class PackageDialog(QDialog, DialogUi):
         self.offliner = QgisCoreOffliner(offline_editing=offline_editing)
         self.project = project
         self.qfield_preferences = Preferences()
+        self.config = ProjectConfig(self.project)
         self.dirsToCopyWidget = DirsToCopyWidget()
-        self.__project_configuration = ProjectConfiguration(self.project)
         self.button_box.button(QDialogButtonBox.StandardButton.Save).setText(
             self.tr("Create")
         )
@@ -121,7 +121,7 @@ class PackageDialog(QDialog, DialogUi):
     def setup_gui(self):
         """Populate gui and connect signals of the push dialog"""
         self.packagedProjectTitleLineEdit.setText(get_project_title(self.project))
-        self.packagedProjectFileWidget.setFilter("QGIS Project Files (*.qgs)")
+        self.packagedProjectFileWidget.setFilter("QGIS Project Files (*.qgz,*.qgs)")
         self.packagedProjectFileWidget.setConfirmOverwrite(True)
         self.packagedProjectFileWidget.setFilePath(
             self.get_export_filename_suggestion()
@@ -146,19 +146,36 @@ class PackageDialog(QDialog, DialogUi):
         self.dirsToCopyWidget.refresh_tree()
 
         feedback = None
-        if os.path.exists(self.project.fileName()):
+        if Path(self.project.fileName()).exists():
             feedback = self.project_checker.check(ExportType.Cable)
 
         if feedback and feedback.count > 0:
             has_errors = len(feedback.error_feedbacks) > 0
 
-            feedback_table = CheckerFeedbackTable(feedback)
-            self.feedbackTableWrapperLayout.addWidget(feedback_table)
+            self.feedback_table = CheckerFeedbackTable(feedback)
+            self.feedback_table.feedback_fixed.connect(
+                self.refresh_project_compatibility_page
+            )
+            self.feedbackTableWrapperLayout.addWidget(self.feedback_table)
             self.stackedWidget.setCurrentWidget(self.projectCompatibilityPage)
             self.nextButton.setVisible(True)
             self.nextButton.setEnabled(not has_errors)
         else:
             self.show_package_page()
+
+    def refresh_project_compatibility_page(self):
+        # The project file might not exist on disk if the current session is an unsaved, newly created QGIS project
+        if not Path(self.project.fileName()).exists():
+            return
+
+        feedback = self.project_checker.check(ExportType.Cable)
+        if feedback.count == 0:
+            # All issues resolved -> advance directly to package page
+            self.show_package_page()
+        else:
+            self.feedback_table.set_feedback(feedback)
+            has_errors = len(feedback.error_feedbacks) > 0
+            self.nextButton.setEnabled(not has_errors)
 
     def get_export_filename_suggestion(self) -> str:
         """Get the suggested export filename"""
@@ -171,7 +188,7 @@ class PackageDialog(QDialog, DialogUi):
 
         export_folder = Path(QDir.toNativeSeparators(str(export_dirname)))
         full_project_name_suggestion = export_folder.joinpath(
-            f"{self.project.baseName()}_qfield.qgs"
+            f"{self.project.baseName()}_qfield.qgz"
         )
         return str(full_project_name_suggestion)
 
@@ -185,9 +202,12 @@ class PackageDialog(QDialog, DialogUi):
         export_packaged_project = Path(self.packagedProjectFileWidget.filePath())
         feedback_messages = []
 
-        if export_packaged_project.suffix.lower() != ".qgs":
+        if (
+            export_packaged_project.suffix.lower() != ".qgs"
+            and export_packaged_project.suffix.lower() != ".qgz"
+        ):
             feedback_messages.append(
-                self.tr('The filename must have a ".qgs" extension')
+                self.tr("The filename must have a .qgz or .qgs extension")
             )
 
         if len(export_packaged_project.as_posix()) > MAX_LENGTH_CHARS_FILEPATH:
@@ -228,13 +248,13 @@ class PackageDialog(QDialog, DialogUi):
 
         self.button_box.button(QDialogButtonBox.StandardButton.Save).setEnabled(True)
 
-        if self.__project_configuration.area_of_interest:
-            area_of_interest = self.__project_configuration.area_of_interest
+        if self.config.area_of_interest:
+            area_of_interest = self.config.area_of_interest
         else:
             area_of_interest = self.iface.mapCanvas().extent().asWktPolygon()
 
-        if self.__project_configuration.area_of_interest_crs:
-            area_of_interest_crs = self.__project_configuration.area_of_interest_crs
+        if self.config.area_of_interest_crs:
+            area_of_interest_crs = self.config.area_of_interest_crs
         else:
             area_of_interest_crs = QgsProject.instance().crs().authid()
 

@@ -1,0 +1,13 @@
+Unfinished translations summary
+================================
+de_DE (geo_import_de.ts): 80 entries -> C:\github\geo_import\geo_import\i18n\reports\unfinished_de_DE.txt
+en_US (geo_import_en.ts): 53 entries -> C:\github\geo_import\geo_import\i18n\reports\unfinished_en_US.txt
+es_ES (geo_import_es.ts): 80 entries -> C:\github\geo_import\geo_import\i18n\reports\unfinished_es_ES.txt
+fi_FI (geo_import_fi.ts): 7 entries -> C:\github\geo_import\geo_import\i18n\reports\unfinished_fi_FI.txt
+fr_FR (geo_import_fr.ts): 27 entries -> C:\github\geo_import\geo_import\i18n\reports\unfinished_fr_FR.txt
+hi_IN (geo_import_hi.ts): 59 entries -> C:\github\geo_import\geo_import\i18n\reports\unfinished_hi_IN.txt
+it_IT (geo_import_it.ts): 59 entries -> C:\github\geo_import\geo_import\i18n\reports\unfinished_it_IT.txt
+ja_JP (geo_import_ja.ts): 28 entries -> C:\github\geo_import\geo_import\i18n\reports\unfinished_ja_JP.txt
+pt_PT (geo_import_pt.ts): 59 entries -> C:\github\geo_import\geo_import\i18n\reports\unfinished_pt_PT.txt
+ru_RU (geo_import_ru.ts): 59 entries -> C:\github\geo_import\geo_import\i18n\reports\unfinished_ru_RU.txt
+zh_CN (geo_import_zh.ts): 59 entries -> C:\github\geo_import\geo_import\i18n\reports\unfinished_zh_CN.txt

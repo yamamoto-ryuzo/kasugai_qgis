@@ -21,7 +21,12 @@ import contextlib
 import os
 
 from libqfieldsync.layer import LayerSource
-from libqfieldsync.project import ProjectConfiguration, ProjectProperties
+from libqfieldsync.project import (
+    BaseMapType,
+    GeofencingBehavior,
+    InitialMapMode,
+    ProjectConfig,
+)
 from qgis.core import (
     Qgis,
     QgsCoordinateReferenceSystem,
@@ -91,23 +96,18 @@ class ProjectConfigurationWidget(WidgetUi, QgsPanelWidget):
 
         self.project = QgsProject.instance()
         self.preferences = Preferences()
-        self.__project_configuration = ProjectConfiguration(self.project)
+        self.__project_configuration = ProjectConfig(self.project)
 
         self.stamping_font_style = self.__project_configuration.stamping_font_style
         self.stamping_horizontal_alignment = (
             self.__project_configuration.stamping_horizontal_alignment
         )
-        self.stamping_image_decoration = (
-            self.__project_configuration.stamping_image_decoration
-        )
-        if self.__project_configuration.stamping_image_decoration:
-            self.stamping_image_decoration = (
-                QgsProject.instance()
-                .pathResolver()
-                .readPath(self.__project_configuration.stamping_image_decoration)
-            )
-        else:
-            self.stamping_image_decoration = ""
+
+        source = self.__project_configuration.stamping_image_decoration
+        if source and not source.startswith("base64:"):
+            source = QgsProject.instance().pathResolver().readPath(source)
+
+        self.stamping_image_decoration = source or ""
 
         self.stamping_details_template = (
             self.__project_configuration.stamping_details_template
@@ -182,15 +182,15 @@ class ProjectConfigurationWidget(WidgetUi, QgsPanelWidget):
 
         self.geofencingBehaviorComboBox.addItem(
             self.tr("Alert users when inside an area"),
-            ProjectProperties.GeofencingBehavior.ALERT_INSIDE_AREAS,
+            GeofencingBehavior.ALERT_INSIDE_AREAS,
         )
         self.geofencingBehaviorComboBox.addItem(
             self.tr("Alert users when outside all areas"),
-            ProjectProperties.GeofencingBehavior.ALERT_OUTSIDE_AREAS,
+            GeofencingBehavior.ALERT_OUTSIDE_AREAS,
         )
         self.geofencingBehaviorComboBox.addItem(
             self.tr("Inform users when entering and leaving an area"),
-            ProjectProperties.GeofencingBehavior.INFORM_ENTER_LEAVE_AREAS,
+            GeofencingBehavior.INFORM_ENTER_LEAVE_AREAS,
         )
 
         self.initialMapModeComboBox.addItem(
@@ -198,7 +198,7 @@ class ProjectConfigurationWidget(WidgetUi, QgsPanelWidget):
                 os.path.join(os.path.dirname(__file__), "../resources/state_browse.svg")
             ),
             self.tr("Browse"),
-            ProjectProperties.InitialMapMode.BROWSE,
+            InitialMapMode.BROWSE,
         )
         self.initialMapModeComboBox.addItem(
             QIcon(
@@ -207,7 +207,7 @@ class ProjectConfigurationWidget(WidgetUi, QgsPanelWidget):
                 )
             ),
             self.tr("Digitize"),
-            ProjectProperties.InitialMapMode.DIGITIZE,
+            InitialMapMode.DIGITIZE,
         )
 
         self._reload_project()
@@ -256,7 +256,7 @@ class ProjectConfigurationWidget(WidgetUi, QgsPanelWidget):
             self.digitizingLogsLayerComboBox.setProject(self.project)
             self.initialActiveLayerComboBox.setProject(self.project)
 
-        self.__project_configuration = ProjectConfiguration(self.project)
+        self.__project_configuration = ProjectConfig(self.project)
 
         self.mapThemesConfigWidget = MapThemesConfigWidget(
             self.project, self.__project_configuration.map_themes_active_layer
@@ -268,10 +268,7 @@ class ProjectConfigurationWidget(WidgetUi, QgsPanelWidget):
             self.__project_configuration.create_base_map
         )
 
-        if (
-            self.__project_configuration.base_map_type
-            == ProjectProperties.BaseMapType.SINGLE_LAYER
-        ):
+        if self.__project_configuration.base_map_type == BaseMapType.SINGLE_LAYER:
             self.singleLayerRadioButton.setChecked(True)
         else:
             self.mapThemeRadioButton.setChecked(True)
@@ -397,13 +394,9 @@ class ProjectConfigurationWidget(WidgetUi, QgsPanelWidget):
         )
 
         if self.singleLayerRadioButton.isChecked():
-            self.__project_configuration.base_map_type = (
-                ProjectProperties.BaseMapType.SINGLE_LAYER
-            )
+            self.__project_configuration.base_map_type = BaseMapType.SINGLE_LAYER
         else:
-            self.__project_configuration.base_map_type = (
-                ProjectProperties.BaseMapType.MAP_THEME
-            )
+            self.__project_configuration.base_map_type = BaseMapType.MAP_THEME
 
         self.__project_configuration.base_map_theme = (
             self.mapThemeComboBox.currentText()
@@ -512,14 +505,11 @@ class ProjectConfigurationWidget(WidgetUi, QgsPanelWidget):
         self.__project_configuration.stamping_horizontal_alignment = (
             self.stamping_horizontal_alignment
         )
-        if self.stamping_image_decoration:
-            self.__project_configuration.stamping_image_decoration = (
-                QgsProject.instance()
-                .pathResolver()
-                .writePath(self.stamping_image_decoration)
-            )
-        else:
-            self.__project_configuration.stamping_image_decoration = ""
+        source = self.stamping_image_decoration
+        if source and not source.startswith("base64:"):
+            source = QgsProject.instance().pathResolver().writePath(source)
+
+        self.__project_configuration.stamping_image_decoration = source or ""
 
         self.__project_configuration.stamping_details_template = (
             self.stamping_details_template

@@ -34,7 +34,6 @@ from qgis.PyQt.QtWidgets import (
     QApplication,
     QDialog,
     QDialogButtonBox,
-    QGroupBox,
     QMainWindow,
     QPushButton,
     QWidget,
@@ -132,10 +131,15 @@ class CloudLoginDialog(QDialog, CloudLoginDialogUi):
         )
 
         self.loginFormGroup.setVisible(False)
-        self.set_login_groupbox_visibility(self.signInUsernameGroupBox, False)
+        self.signInUsernameGroupBox.setEnabled(False)
 
-        for server_url in self.network_manager.server_urls():
-            self.serverUrlCmb.addItem(server_url)
+        default_urls = list(self.network_manager.server_urls())
+        history_urls = self.preferences.value("qfieldCloudServerUrlsHistory") or []
+
+        combined_urls = set(default_urls + history_urls)
+
+        for url in combined_urls:
+            self.serverUrlCmb.addItem(url)
 
         cfg = self.network_manager.auth()
         self.serverUrlCmb.setCurrentText(cfg.uri() or self.network_manager.url)
@@ -196,16 +200,18 @@ class CloudLoginDialog(QDialog, CloudLoginDialogUi):
         self.loginFormGroup.setVisible(not self.loginFormGroup.isVisible())
 
     def clear_login_widgets(self) -> None:
-        self.set_login_groupbox_visibility(self.signInUsernameGroupBox, False)
+        # disable credentials inputs
+        self.usernameLineEdit.setEnabled(False)
+        self.passwordLineEdit.setEnabled(False)
+        self.signInUsernameButton.setEnabled(False)
+
+        self.signInUsernameGroupBox.setEnabled(False)
         self.authenticationDivider.setVisible(False)
 
         for push_button in self._sso_login_buttons:
             push_button.deleteLater()
 
         self._sso_login_buttons = []
-
-    def set_login_groupbox_visibility(self, group_box: QGroupBox, visible: bool):
-        group_box.setEnabled(visible)
 
     def fetch_server_auth_capabilities(self) -> None:
         """Fetches the provided server authentication method capabilities."""
@@ -218,7 +224,7 @@ class CloudLoginDialog(QDialog, CloudLoginDialogUi):
         try:
             auth_methods = self.network_manager.json_array(self.auth_methods_reply)
         except QfcError:
-            self.set_login_groupbox_visibility(self.signInUsernameGroupBox, True)
+            self.signInUsernameGroupBox.setEnabled(True)
             return
 
         self.signInUsernameGroupBox.setEnabled(True)
@@ -247,9 +253,14 @@ class CloudLoginDialog(QDialog, CloudLoginDialogUi):
 
         has_credentials = False
 
+        if len(auth_methods) > 0:
+            self.signInUsernameGroupBox.setEnabled(True)
+
         for auth_method in auth_methods:
             if auth_method["id"] == "credentials":
-                self.set_login_groupbox_visibility(self.signInUsernameGroupBox, True)
+                self.usernameLineEdit.setEnabled(True)
+                self.passwordLineEdit.setEnabled(True)
+                self.signInUsernameButton.setEnabled(True)
                 has_credentials = True
                 continue
 
@@ -337,7 +348,7 @@ class CloudLoginDialog(QDialog, CloudLoginDialogUi):
             self.buttonBox.button(QDialogButtonBox.StandardButton.Ok).setEnabled(False)
 
             self.network_manager.set_url(cfg.uri())
-            self.network_manager.set_auth(self.network_manager.url, token="")
+            self.network_manager.set_auth(self.network_manager.url, token="")  # nosec B106
             # don't trust the password, just login once again
             self.network_manager.login_with_credentials(
                 cfg.config("username"), cfg.config("password")
@@ -398,6 +409,13 @@ class CloudLoginDialog(QDialog, CloudLoginDialogUi):
             self.rememberMeCheckBox.setEnabled(True)
             self.buttonBox.button(QDialogButtonBox.StandardButton.Ok).setEnabled(True)
             return
+
+        current_url = self.serverUrlCmb.currentText().strip()
+        if current_url:
+            history = self.preferences.value("qfieldCloudServerUrlsHistory") or []
+            if current_url not in history:
+                history.append(current_url)
+                self.preferences.set_value("qfieldCloudServerUrlsHistory", history)
 
         self.usernameLineEdit.setEnabled(False)
         self.passwordLineEdit.setEnabled(False)

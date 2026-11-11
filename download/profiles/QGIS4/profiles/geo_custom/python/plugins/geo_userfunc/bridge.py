@@ -166,6 +166,36 @@ class GeoUserfuncBridge:
             "description": "管理ダイアログを開く。",
             "example": {"method": "openManager", "args": []},
         },
+        "fetchFromUrl": {
+            "description":
+                "http/httpsのURLから.pyファイルを取得してライブラリへ"
+                "保存しreloadする(管理ダイアログのURL取得相当)。",
+            "example": {"method": "fetchFromUrl",
+                        "args": ["https://example.com/my_func.py"]},
+        },
+        "listSources": {
+            "description":
+                "sources.json(ライブラリdir+同梱seed)の"
+                "upstream更新元一覧を返す。",
+            "example": {"method": "listSources", "args": []},
+        },
+        "addSource": {
+            "description":
+                "sources.jsonへ更新元(file+url)を追加し、"
+                "updateFromUpstreamで取得可能にする。",
+            "example": {"method": "addSource",
+                        "args": ["my_func.py", "https://example.com/my_func.py"]},
+        },
+        "removeSource": {
+            "description":
+                "sources.jsonから更新元を削除する(ライブラリファイルは残る)。",
+            "example": {"method": "removeSource", "args": ["my_func.py"]},
+        },
+        "openLibraryDir": {
+            "description":
+                "ライブラリフォルダをOSのファイルマネージャで開く。",
+            "example": {"method": "openLibraryDir", "args": []},
+        },
     }
 
     def __init__(self, plugin):
@@ -362,3 +392,98 @@ class GeoUserfuncBridge:
         """管理ダイアログを開く。"""
         dlg = self._plugin.open_manager()
         return self._ok({"opened": dlg is not None})
+
+    def fetchFromUrl(self, url, name=None):
+        """http/httpsのURLから.pyを取得してライブラリへ保存しreloadする。"""
+        import urllib.parse
+        import urllib.request
+        url = str(url or "").strip()
+        if urllib.parse.urlparse(url).scheme.lower() not in ("http", "https"):
+            return self._err("only http/https URLs are allowed")
+        try:
+            with urllib.request.urlopen(url, timeout=15) as r:  # nosec B310  # 直上でhttp/httpsスキームを検証済み
+                src = r.read().decode("utf-8")
+        except Exception as e:
+            return self._err(f"download failed: {e}")
+        fname = (str(name).strip() if name else
+                 os.path.basename(url.split("?")[0])) or "fetched.py"
+        res = self._plugin.library.save_file(fname, src)
+        if not res.get("ok"):
+            return self._err(res.get("error"))
+        d = self._plugin.library.reload()
+        return self._ok({"file": res["file"], "analysis": res["analysis"],
+                         "files": d["files"]})
+
+    def _read_sources(self):
+        """(lib_dirのsources.jsonパス, 一覧[{file,url}])を返す。"""
+        from .library import SOURCES_FILE, SEED_DIR
+        lib = self._plugin.library
+        out = []
+        lib_path = os.path.join(lib.dir, SOURCES_FILE)
+        for base, path in ((lib.dir, lib_path),
+                           (SEED_DIR, os.path.join(SEED_DIR, SOURCES_FILE))):
+            if not os.path.isfile(path):
+                continue
+            try:
+                with open(path, encoding="utf-8") as f:
+                    data = json.load(f)
+            except Exception:
+                continue
+            for item in data if isinstance(data, list) else []:
+                item = dict(item)
+                item["origin"] = ("user" if base == lib.dir else "seed")
+                out.append(item)
+        return lib_path, out
+
+    def listSources(self):
+        """sources.json のupstream更新元一覧を返す。"""
+        path, items = self._read_sources()
+        return self._ok({"path": path, "sources": items})
+
+    def addSource(self, file, url):
+        """sources.jsonへ更新元を追加する(ユーザdir側)。"""
+        import urllib.parse
+        file = os.path.basename(str(file or "").strip())
+        url = str(url or "").strip()
+        if not file or not file.endswith(".py"):
+            return self._err("file must be a .py file name")
+        if urllib.parse.urlparse(url).scheme.lower() not in ("http", "https"):
+            return self._err("only http/https URLs are allowed")
+        lib_path, items = self._read_sources()
+        user_items = [dict(i, origin=None)
+                      for i in items if i.get("origin") == "user"]
+        for i in user_items:
+            i.pop("origin", None)
+        for it in user_items:
+            if it.get("file") == file:
+                it["url"] = url
+                break
+        else:
+            user_items.append({"file": file, "url": url})
+        os.makedirs(os.path.dirname(lib_path), exist_ok=True)
+        with open(lib_path, "w", encoding="utf-8") as f:
+            json.dump(user_items, f, ensure_ascii=False, indent=2)
+        return self._ok({"added": file, "url": url})
+
+    def removeSource(self, file):
+        """sources.jsonから更新元を削除する。"""
+        file = os.path.basename(str(file or "").strip())
+        lib_path, items = self._read_sources()
+        user_items = [i for i in items if i.get("origin") == "user"]
+        kept = [dict(i) for i in user_items if i.get("file") != file]
+        for i in kept:
+            i.pop("origin", None)
+        if len(kept) == len(user_items):
+            return self._err(f"source not found: {file!r}")
+        with open(lib_path, "w", encoding="utf-8") as f:
+            json.dump(kept, f, ensure_ascii=False, indent=2)
+        return self._ok({"removed": file})
+
+    def openLibraryDir(self):
+        """ライブラリフォルダをOSのファイルマネージャで開く。"""
+        from qgis.PyQt.QtCore import QUrl
+        from qgis.PyQt.QtGui import QDesktopServices
+        d = self._plugin.library.dir
+        os.makedirs(d, exist_ok=True)
+        QDesktopServices.openUrl(QUrl.fromLocalFile(os.path.abspath(d)))
+        return self._ok({"dir": d})

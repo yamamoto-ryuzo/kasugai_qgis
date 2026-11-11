@@ -123,6 +123,58 @@ class GeoReportBridge:
                 "複製が可能)を開く。操作はパネル一覧へ自動反映される。",
             "example": {"method": "manageLayouts", "args": []},
         },
+        "listStandardLayouts": {
+            "description":
+                "同梱 composer/*.qpt の標準レイアウトテンプレート一覧を返す。",
+            "example": {"method": "listStandardLayouts", "args": []},
+        },
+        "addStandardLayout": {
+            "description":
+                "標準レイアウトテンプレート(composer/*.qpt)をプロジェクトへ"
+                "追加する。name省略時は一覧のみ返す。同名は連番でユニーク化。",
+            "example": {"method": "addStandardLayout", "args": ["A4縦"]},
+        },
+        "refresh": {
+            "description":
+                "アイテム情報とレイアウト情報を再読込する"
+                "(Refresh Item Infoボタン相当)。",
+            "example": {"method": "refresh", "args": []},
+        },
+        "layoutInfo": {
+            "description":
+                "選択中レイアウトの情報テキスト(ページ数・サイズ・"
+                "全アイテム一覧)を返す。",
+            "example": {"method": "layoutInfo", "args": []},
+        },
+        "listPropertyFiles": {
+            "description":
+                "保存済みレイアウトプロパティJSON一覧"
+                "(~/QGIS_Layouts/*.json)を返す。",
+            "example": {"method": "listPropertyFiles", "args": []},
+        },
+        "removeLayout": {
+            "description":
+                "レイアウトをプロジェクトから削除する(index/名前)。"
+                "注意:確認なしで実際に削除する。",
+            "example": {"method": "removeLayout", "args": ["A4縦"]},
+        },
+        "renameLayout": {
+            "description":
+                "レイアウトの名前を変更する(index/名前 + new_name)。",
+            "example": {"method": "renameLayout",
+                        "args": ["A4縦", "A4縦_改"]},
+        },
+        "duplicateLayout": {
+            "description":
+                "レイアウトを複製する(index/名前、任意で新しい名前)。",
+            "example": {"method": "duplicateLayout",
+                        "args": ["A4縦", "A4縦_copy"]},
+        },
+        "createLayout": {
+            "description":
+                "空の印刷レイアウトを新規作成する(name)。",
+            "example": {"method": "createLayout", "args": ["新規図面"]},
+        },
         "status": {
             "description":
                 "パネル開閉・選択レイアウト・スケール/角度・印刷範囲表示の"
@@ -442,3 +494,202 @@ class GeoReportBridge:
         # モーダルダイアログなので呼出をブロックしないよう非同期起動する
         QTimer.singleShot(0, dlg.open_layout_manager_dialog)
         return self._ok({"launched": True})
+
+    # ---------- 標準レイアウト / レイアウト情報 ----------
+
+    @staticmethod
+    def _composer_qpt_files():
+        import glob
+        composer_dir = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), 'composer')
+        return sorted(glob.glob(os.path.join(composer_dir, '*.qpt')))
+
+    def listStandardLayouts(self):
+        """同梱 composer/*.qpt の標準レイアウト名一覧を返す。"""
+        names = [os.path.splitext(os.path.basename(p))[0]
+                 for p in self._composer_qpt_files()]
+        return self._ok({"templates": names})
+
+    def addStandardLayout(self, name=None):
+        """標準レイアウトテンプレートをプロジェクトへ追加する。"""
+        import glob
+        from qgis.core import QgsReadWriteContext, QgsPrintLayout
+        from qgis.PyQt.QtXml import QDomDocument
+        qpt_files = self._composer_qpt_files()
+        names = [os.path.splitext(os.path.basename(p))[0]
+                 for p in qpt_files]
+        if not names:
+            return self._err("no standard layout templates found")
+        if name is None:
+            return self._ok({"templates": names,
+                             "note": "pass a template name to add"})
+        s = str(name)
+        match = None
+        for i, n in enumerate(names):
+            if n == s:
+                match = i
+                break
+        if match is None:
+            for i, n in enumerate(names):  # 部分一致フォールバック
+                if s in n:
+                    match = i
+                    break
+        if match is None:
+            return self._err(f"template not found: {name!r} "
+                             f"(available: {names})")
+        qpt_path = qpt_files[match]
+        try:
+            with open(qpt_path, encoding='utf-8') as f:
+                doc = QDomDocument()
+                doc.setContent(f.read())
+            project = QgsProject.instance()
+            mgr = project.layoutManager()
+            layout = QgsPrintLayout(project)
+            layout.initializeDefaults()
+            res = layout.loadFromTemplate(doc, QgsReadWriteContext())
+            ok = bool(res[1]) if isinstance(res, (tuple, list)) \
+                and len(res) > 1 else bool(res)
+            if not ok:
+                return self._err("loadFromTemplate failed")
+            existing = {ly.name() for ly in mgr.layouts()}
+            new_name = names[match]
+            i = 2
+            while new_name in existing:
+                new_name = f"{names[match]}_{i}"
+                i += 1
+            layout.setName(new_name)
+            mgr.addLayout(layout)
+        except Exception as e:
+            return self._err(f"import failed: {e}")
+        # パネルが開いていれば一覧と選択を更新
+        dlg = self._dialog()
+        if dlg is not None:
+            try:
+                dlg.reload_layout_list()
+                for row in range(dlg.layout_list.count()):
+                    it = dlg.layout_list.item(row)
+                    if it is not None and it.data(_USER_ROLE) is layout:
+                        dlg.layout_list.setCurrentRow(row)
+                        break
+            except Exception:  # nosec B110  # 設計上の許容
+                pass
+        return self._ok({"added": new_name, "template": names[match]})
+
+    def refresh(self):
+        """アイテム情報とレイアウト情報を再読込する。"""
+        dlg = self._dialog()
+        if dlg is None:
+            return self._err("panel not open")
+        if getattr(dlg, "current_layout", None) is not None:
+            dlg.load_layout_items()
+            dlg.load_layout_info()
+        return self._ok({"layoutCount": dlg.layout_list.count(),
+                         "layout": (dlg.current_layout.name()
+                                    if getattr(dlg, "current_layout", None)
+                                    is not None else None)})
+
+    def layoutInfo(self):
+        """選択中レイアウトの情報テキストを返す。"""
+        dlg = self._dialog()
+        if dlg is None or getattr(dlg, "current_layout", None) is None:
+            return self._err("no layout selected")
+        dlg.load_layout_info()
+        text = ""
+        if getattr(dlg, "info_text", None) is not None:
+            try:
+                text = dlg.info_text.toPlainText()
+            except Exception:  # nosec B110  # 設計上の許容
+                pass
+        return self._ok({"layout": dlg.current_layout.name(), "info": text})
+
+    def listPropertyFiles(self):
+        """~/QGIS_Layouts の保存済みプロパティJSON一覧を返す。"""
+        folder = os.path.join(os.path.expanduser("~"), "QGIS_Layouts")
+        files = []
+        if os.path.isdir(folder):
+            for fn in sorted(os.listdir(folder)):
+                if fn.lower().endswith('.json'):
+                    p = os.path.join(folder, fn)
+                    files.append({
+                        "file": fn, "path": p,
+                        "size": os.path.getsize(p),
+                        "mtime": os.path.getmtime(p)})
+        return self._ok({"folder": folder, "files": files})
+
+    # ---------- レイアウト操作(マネージャ相当) ----------
+
+    def _find_layout(self, layout):
+        """index/名前をレイアウトオブジェクトに解決する。"""
+        mgr = QgsProject.instance().layoutManager()
+        layouts = mgr.layouts() if mgr is not None else []
+        if isinstance(layout, bool):
+            return None, layouts
+        if isinstance(layout, int):
+            return (layouts[layout]
+                    if -len(layouts) <= layout < len(layouts)
+                    else None), layouts
+        s = str(layout)
+        for ly in layouts:
+            if ly.name() == s:
+                return ly, layouts
+        for ly in layouts:
+            if s in ly.name():
+                return ly, layouts
+        return None, layouts
+
+    def removeLayout(self, layout):
+        """レイアウトを削除する(確認なし)。"""
+        ly, layouts = self._find_layout(layout)
+        if ly is None:
+            return self._err(f"layout not found: {layout!r} "
+                             f"(have: {[x.name() for x in layouts]})")
+        name = ly.name()
+        QgsProject.instance().layoutManager().removeLayout(ly)
+        return self._ok({"removed": name})
+
+    def renameLayout(self, layout, new_name):
+        """レイアウト名を変更する。"""
+        ly, layouts = self._find_layout(layout)
+        if ly is None:
+            return self._err(f"layout not found: {layout!r}")
+        new_name = str(new_name or "").strip()
+        if not new_name:
+            return self._err("new_name is empty")
+        mgr = QgsProject.instance().layoutManager()
+        # 同名チェック(QGISは重複名を許容しない)
+        if any(x.name() == new_name for x in mgr.layouts()):
+            return self._err(f"name already in use: {new_name!r}")
+        old = ly.name()
+        # QgsLayoutManager.renameLayout が無い環境は setName で代替
+        try:
+            mgr.renameLayout(ly, new_name)
+        except Exception:
+            ly.setName(new_name)
+        return self._ok({"renamed": old, "name": ly.name()})
+
+    def duplicateLayout(self, layout, new_name=None):
+        """レイアウトを複製する。"""
+        ly, _layouts = self._find_layout(layout)
+        if ly is None:
+            return self._err(f"layout not found: {layout!r}")
+        mgr = QgsProject.instance().layoutManager()
+        dup = mgr.duplicateLayout(
+            ly, str(new_name) if new_name else (ly.name() + "_copy"))
+        if dup is None:
+            return self._err("duplicateLayout failed")
+        return self._ok({"duplicated": ly.name(), "name": dup.name()})
+
+    def createLayout(self, name):
+        """空の印刷レイアウトを新規作成する。"""
+        from qgis.core import QgsPrintLayout
+        name = str(name or "").strip()
+        if not name:
+            return self._err("name is empty")
+        project = QgsProject.instance()
+        mgr = project.layoutManager()
+        layout = QgsPrintLayout(project)
+        layout.initializeDefaults()
+        layout.setName(mgr.generateUniqueTitle(name)
+                       if hasattr(mgr, "generateUniqueTitle") else name)
+        mgr.addLayout(layout)
+        return self._ok({"created": layout.name()})

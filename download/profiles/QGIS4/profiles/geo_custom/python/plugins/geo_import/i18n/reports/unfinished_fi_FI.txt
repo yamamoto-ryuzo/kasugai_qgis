@@ -1,0 +1,51 @@
+# Unfinished translations report for geo_import_fi.ts (language=fi_FI)
+# Count: 7
+
+---
+Context: self.util
+Locations: ../ckan_browser_dialog.py:96
+Source:
+py_dlg_base_current_server
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../ckan_browser_dialog.py:97
+Source:
+py_dlg_base_cache_path
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../ckan_browser_dialog_dataproviders.py:297
+Source:
+py_dlg_data_providers_no_server_selected
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../ckan_browser_dialog_dataproviders.py:166
+Source:
+py_dlg_data_providers_cannot_delete_sever_from_official_list
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../ckan_browser_dialog_dataproviders.py:237
+Source:
+py_dlg_data_providers_custom_server
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../ckan_browser_dialog_dataproviders.py:237
+Source:
+py_dlg_data_providers_name_custom_server
+Existing translation (empty/unfinished):
+
+---
+Context: self.util
+Locations: ../ckan_browser_dialog_dataproviders.py:249
+Source:
+py_dlg_data_providers_custom_server_name_exists
+Existing translation (empty/unfinished):

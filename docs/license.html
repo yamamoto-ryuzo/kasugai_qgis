@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ライセンス・免責事項 — QGIS Launcher</title>
+  <link rel="stylesheet" href="style.css">
+  <style>pre.mermaid { background: #fff; }</style>
+  <script src="nav.js" defer></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>QGIS Launcher (qgis_launcher) <span class="version-badge">v2.4.0</span></h1>
+      <p><strong>QGIS / QField 起動ランチャー</strong> — Web UI・HTTP API・CLI で動作する Rust(Axum) 製デスクトップランチャーのドキュメント</p>
+    </header>
+    <main>
+<section>
+<h2 id="ライセンス">9. 📜 ライセンス</h2>
+<h3 id="このリポジトリ">このリポジトリ</h3>
+<p>GNU General Public License v3.0 (GPL-3.0-only) — 詳細は <a
+href="LICENSE">LICENSE</a> を参照してください。</p>
+<h3
+id="同梱依存ソフトウェアのライセンス">同梱・依存ソフトウェアのライセンス</h3>
+<p><strong>商用利用可否の整理</strong>:
+商用利用を妨げるプロプライエタリな制限付きライセンスはなく、すべてフリーのライセンスで構成されています。ただし
+GPL 系コンポーネント（本体含む）は再配布時にソース提供・ライセンス表示が必須で、プロプライエタリ製品として販売することはできません。WinFsp（<code>mode=mount</code>
+時のみ必要）は GPLv3 + FLOSS 特例のデュアル構成で、商用利用でも無料です。有料の商用ライセンスが必要になるのは、クローズドソース製品（ソースを公開しないプロプライエタリな製品）に
+WinFsp を組み込んで配布する場合のみです。詳細は <a
+href="third-party-licenses.html">THIRD_PARTY_LICENSES.md</a>
+を参照してください。</p>
+<table>
+<thead>
+<tr>
+<th>ソフトウェア</th>
+<th>ライセンス</th>
+<th>配布</th>
+<th>備考</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Web UI / HTTP サーバー</strong> (Axum / Tokio /
+tower-http)</td>
+<td>MIT / Apache-2.0</td>
+<td>依存</td>
+<td><code>Cargo.toml</code> で指定</td>
+</tr>
+<tr>
+<td><strong>Wry / Tao</strong></td>
+<td>Apache-2.0 / MIT</td>
+<td>依存</td>
+<td>WebView2 ウィンドウ（GUI モード）</td>
+</tr>
+<tr>
+<td><strong>その他 Rust クレート</strong> (reqwest / clap / serde /
+winreg / sha2 等)</td>
+<td>MIT / Apache-2.0</td>
+<td>依存</td>
+<td><a href="third-party-licenses.html">THIRD_PARTY_LICENSES.md</a>
+に一覧</td>
+</tr>
+<tr>
+<td><strong>QGIS / QField</strong></td>
+<td>GPL v2 以降</td>
+<td>別途インストール</td>
+<td>qgis_launcher とは独立したソフトウェア</td>
+</tr>
+<tr>
+<td><strong>rclone</strong></td>
+<td>MIT</td>
+<td>別途インストール</td>
+<td><code>drive_mappings</code> の <code>sync</code> /
+<code>mount</code> モード利用時のみ必要</td>
+</tr>
+<tr>
+<td><strong>WinFsp</strong></td>
+<td>GPL v3 / 商用</td>
+<td>別途インストール</td>
+<td><code>mode=mount</code>（rclone
+mount）利用時のみ必要</td>
+</tr>
+<tr>
+<td><strong>同梱 QGIS プラグイン一式</strong></td>
+<td>GPL-3.0 / MIT / GPL v2 以降 等</td>
+<td>同梱あり</td>
+<td><code>download/profiles/.../plugins/</code>
+に含まれる。一覧とライセンスは <a
+href="third-party-licenses.html">THIRD_PARTY_LICENSES.md</a> 参照</td>
+</tr>
+</tbody>
+</table>
+<p>同梱・依存コンポーネントの詳細は <a
+href="third-party-licenses.html">THIRD_PARTY_LICENSES.md</a>
+を参照してください。</p>
+<h3
+id="同梱配布する場合のパッケージ構成">同梱配布する場合のパッケージ構成</h3>
+<pre><code>配布パッケージの構成例:
+  qgis_launcher.exe
+  qgis_settings.json</code></pre>
+<hr />
+</section>
+<section>
+<h2 id="changelog">10. 📝 CHANGELOG</h2>
+<p>主な変更履歴は <a href="CHANGELOG.md">CHANGELOG.md</a>
+を参照してください。</p>
+</section>
+<section class="card">
+<h2 id="免責事項">11. ⚠️ 免責事項</h2>
+<p>本システムは個人のPCで作成・テストされたものです。<br />
+ご利用によるいかなる損害も責任を負いません。</p>
+<p align="center">
+  <a href="https://giphy.com/explore/free-gif" target="_blank">
+    <img src="https://github.com/yamamoto-ryuzo/QGIS_portable_3x/raw/master/imgs/giphy.gif" width="500" title="avvio QGIS">
+  </a>
+</p>
+</section>
+    </main>
+  </div>
+</body>
+</html>

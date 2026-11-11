@@ -7,9 +7,9 @@
 #    email                : See www.michaelminn.com
 #
 #   MMQGIS is free software and is offered without guarantee
-#   or warranty. You can redistribute it and/or modify it 
-#   under the terms of version 2 of the GNU General Public 
-#   License (GPL v2) as published by the Free Software 
+#   or warranty. You can redistribute it and/or modify it
+#   under the terms of version 2 of the GNU General Public
+#   License (GPL v2) as published by the Free Software
 #   Foundation (www.gnu.org).
 # --------------------------------------------------------
 

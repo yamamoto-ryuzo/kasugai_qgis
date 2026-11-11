@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ユーザーロール制御 — QGIS Launcher</title>
+  <link rel="stylesheet" href="style.css">
+  <style>pre.mermaid { background: #fff; }</style>
+  <script src="nav.js" defer></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>QGIS Launcher (qgis_launcher) <span class="version-badge">v2.4.0</span></h1>
+      <p><strong>QGIS / QField 起動ランチャー</strong> — Web UI・HTTP API・CLI で動作する Rust(Axum) 製デスクトップランチャーのドキュメント</p>
+    </header>
+    <main>
+<section>
+<h2 id="ユーザーロール制御">4. 👤 ユーザーロール制御</h2>
+<p>Web UI の「User Role」ドロップダウンで <code>Viewer</code> /
+<code>Editor</code> / <code>Administrator</code> を選択すると、QGIS の
+UI がロールに応じて制限されます。</p>
+<h3 id="仕組み">仕組み</h3>
+<p>QGIS 起動時に以下の 3 つの引数が自動で設定されます：</p>
+<table>
+<thead>
+<tr>
+<th>引数</th>
+<th>ファイル</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--customizationfile</code></td>
+<td><code>ini/&lt;role&gt;.xml</code></td>
+<td>QGIS4 用の <code>.xml</code>（Customization XML）を渡します。QGIS4.0
+未満はサポートしません。</td>
+</tr>
+<tr>
+<td><code>--globalsettingsfile</code></td>
+<td><code>ini/qgis_global_settings.ini</code></td>
+<td><code>userrole</code> を QGIS
+グローバル変数として設定（プロジェクト式 <code>@userrole</code>
+で参照可能）。ランチャーはこのファイルを生成して渡します。</td>
+</tr>
+<tr>
+<td><code>--code</code></td>
+<td><code>ini/startup.py</code></td>
+<td>起動後に動的制御（ツールバー表示・レイヤーのReadOnly設定）</td>
+</tr>
+</tbody>
+</table>
+<pre><code>qgis.exe --profile geo_custom
+         --customizationfile   ini/Viewer.xml
+         --globalsettingsfile  ini/qgis_global_settings.ini
+         --code                ini/startup.py</code></pre>
+<p>ランチャーは子プロセスの環境に <code>PORTAL_USERROLE</code>
+を注入します（<code>launch_qgis</code> が
+<code>cmd.env("PORTAL_USERROLE", role)</code>
+を設定）。<code>startup.py</code> は QGIS グローバル変数
+<code>userrole</code> を参照し、存在しなければ
+<code>PORTAL_USERROLE</code>
+を参照するため、両者を併用することで確実にロール情報を伝達します。</p>
+<h3 id="ロールごとの制御内容">ロールごとの制御内容</h3>
+<table>
+<thead>
+<tr>
+<th>ロール</th>
+<th>カスタマイズファイル</th>
+<th>UI 制御</th>
+<th>レイヤー</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Viewer</strong></td>
+<td><code>Viewer.xml</code></td>
+<td>編集メニュー・編集ツールバーを非表示</td>
+<td>プロジェクト読み込み時に全ベクターレイヤーを ReadOnly に設定</td>
+</tr>
+<tr>
+<td><strong>Editor</strong></td>
+<td><code>Editor.xml</code></td>
+<td>プロジェクト新規作成・保存メニューを非表示（編集操作は許可）</td>
+<td>制限なし</td>
+</tr>
+<tr>
+<td><strong>Administrator</strong></td>
+<td><code>Administrator.xml</code></td>
+<td>制限なし</td>
+<td>制限なし</td>
+</tr>
+</tbody>
+</table>
+<p>ランチャーは QGIS4 用の <code>*.xml</code>（Customization
+XML）を渡します。QGIS4.0 未満はサポートしません。</p>
+<h3 id="ファイル構成">ファイル構成</h3>
+<pre><code>qgis_launcher.exe と同階層/
+  ini/
+    Viewer.xml                  ← QGIS4 用 Customization XML
+    Editor.xml
+    Administrator.xml
+    qgis_global_settings.ini    ← 起動のたびに自動生成（userrole を記録）
+    startup.py                  ← QGIS 起動後に自動実行されるスクリプト</code></pre>
+<blockquote>
+<p><strong>注意</strong>: <code>ini/</code>
+フォルダが実行ファイルと同階層に存在しない場合、ロール制御はスキップされます（エラーにはなりません）。</p>
+</blockquote>
+<h3 id="startuppy-の動作タイミング">startup.py の動作タイミング</h3>
+<table>
+<thead>
+<tr>
+<th>タイミング</th>
+<th>処理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>起動後 500ms</td>
+<td>UI 制御（ツールバー表示/非表示、ボタンの有効/無効）</td>
+</tr>
+<tr>
+<td>プロジェクト読み込みのたびに</td>
+<td>Viewer の場合、全ベクターレイヤーを ReadOnly に設定</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><p>設定ファイルの探索と優先度:</p>
+<ul>
+<li>ランチャー実行時の設定基準フォルダは
+<strong><code>qgis_launcher.exe</code> と同じディレクトリ</strong>
+になります。</li>
+<li>※以前のバージョンで存在した <code>C:\qgis_launcher</code>
+への固定フォールバックや、JSON内部での絶対パス指定は廃止され、常に「EXEの配置場所」ベースでポータブルに動作するようになりました。</li>
+</ul></li>
+<li><p>プロファイル選択の優先順位:</p>
+<ol type="1">
+<li><code>qgis_settings.json</code> の <code>profile</code>
+が空でない場合はそれを使用</li>
+<li>そうでなければ CLI の <code>--profile</code> 引数</li>
+<li>それでも無ければ <code>default</code> を使用</li>
+</ol></li>
+<li><p>QGIS 実行ファイルパスの優先順位（重要）:</p>
+<ol type="1">
+<li>CLI 引数 <code>--qgis_executable</code>（明示指定）</li>
+<li><code>qgis_settings.json</code> の <code>qgis_executable</code>
+フィールド</li>
+<li>レジストリやファイル関連付けからの自動検出（<code>find_qgis_path_from_registry()</code>）</li>
+<li>見つからない場合はエラーで終了します（実装上、レジストリ検出に失敗すると起動を中止します）。</li>
+</ol></li>
+<li><p>ビルド・実行例:</p></li>
+</ul>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cd</span> qgis_launcher</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>cargo build <span class="op">--</span>release</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co"># ランチャー（デフォルトは Web UI を起動）</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>cargo run <span class="op">--</span>release</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="co"># CLI モードで即座に起動</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>cargo run <span class="op">--</span>release <span class="op">--</span> <span class="op">--</span>cli</span></code></pre></div>
+<ul>
+<li>備考: <code>Cargo.toml</code> は
+<code>axum</code>、<code>tokio</code>、<code>tower-http</code>
+を利用したヘッドレス API サーバー構成になっており、FLTK や
+<code>gui</code> feature は削除されています。Web UI は
+<code>public/index.html</code> に同梱されています。</li>
+</ul>
+<hr />
+</section>
+    </main>
+  </div>
+</body>
+</html>

@@ -51,6 +51,7 @@ from qgis.PyQt.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
     QInputDialog,
+    QLabel,
     QMenu,
     QMessageBox,
     QPushButton,
@@ -62,7 +63,12 @@ from qgis.PyQt.uic import loadUiType
 from qgis.utils import iface
 
 from qfieldsync.core.cloud_api import CloudNetworkAccessManager, QfcError
-from qfieldsync.core.cloud_project import CloudProject, ProjectFile, ProjectFileCheckout
+from qfieldsync.core.cloud_project import (
+    CloudProject,
+    ProjectFile,
+    ProjectFileCheckout,
+    ProjectType,
+)
 from qfieldsync.core.cloud_transferrer import FileTransfer
 from qfieldsync.core.preferences import Preferences
 from qfieldsync.gui.cloud_create_project_widget import CloudCreateProjectWidget
@@ -344,6 +350,7 @@ class CloudProjectsDialog(QDialog, CloudProjectsDialogUi):
 
     def on_projects_cached_projects_updated(self) -> None:
         self.projectsStack.setEnabled(True)
+        self.createButton.setEnabled(True)
         self.projects_refreshed.emit()
         self.show_projects()
 
@@ -569,6 +576,9 @@ class CloudProjectsDialog(QDialog, CloudProjectsDialogUi):
         self.network_manager.projects_cache.refresh()
 
     def filter_projects_search(self) -> None:
+        if self.network_manager.projects_cache.projects is not None:
+            self.projectsSearch.setFocus()
+
         filter_text = self.projectsSearch.text().lower()
         self.cloud_projects_model.set_filter_string(filter_text)
 
@@ -767,11 +777,28 @@ class CloudProjectsDialog(QDialog, CloudProjectsDialogUi):
             reassuring_remark = self.tr(
                 "The project will be permanently deleted from QFieldCloud, your local copy will remain unaffected"
             )
-            return QInputDialog().getText(
-                self,
-                delete_msg,
-                f"<p><b>{are_you_sure}</b></p>{maybe_warning}<p>{confirm_with} <em>{expected_input}</em>. {reassuring_remark}.</p>",
+
+            input_dialog = QInputDialog()
+            input_dialog.setInputMode(QInputDialog.InputMode.TextInput)
+            input_dialog.setWindowTitle(delete_msg)
+            input_dialog.setMinimumWidth(350)
+            input_dialog.setLabelText(
+                f"<p><b>{are_you_sure}</b></p>{maybe_warning}<p>{confirm_with} <em>{expected_input}</em>.</p>{reassuring_remark}."
             )
+
+            label_widget = input_dialog.findChild(QLabel)
+            if label_widget:
+                label_widget.setTextInteractionFlags(
+                    Qt.TextInteractionFlag.TextSelectableByMouse
+                    | Qt.TextInteractionFlag.TextSelectableByKeyboard
+                )
+                label_widget.setWordWrap(True)
+
+            ok = input_dialog.exec()
+            response = input_dialog.textValue()
+            input_dialog.deleteLater()
+
+            return response, ok
 
         text, ok = ask()
 
@@ -837,6 +864,27 @@ class CloudProjectsDialog(QDialog, CloudProjectsDialogUi):
         )
 
         self.projectOwnerLineEdit.setText(self.current_cloud_project.owner)
+
+        if self.current_cloud_project.project_type == ProjectType.SHARED_DATASETS:
+            self.projectTypeComboBox.clear()
+            self.projectTypeComboBox.addItem(
+                self.tr("Shared datasets"), ProjectType.SHARED_DATASETS
+            )
+            self.projectTypeComboBox.setEnabled(False)
+        else:
+            self.projectTypeComboBox.clear()
+            self.projectTypeComboBox.addItem(self.tr("Regular"), ProjectType.REGULAR)
+            self.projectTypeComboBox.addItem(self.tr("Template"), ProjectType.TEMPLATE)
+            current_index = self.projectTypeComboBox.findData(
+                self.current_cloud_project.project_type
+            )
+            if current_index == -1:
+                current_index = 0
+
+            self.projectTypeComboBox.setCurrentIndex(current_index)
+            self.projectTypeComboBox.setEnabled(
+                can_update_project(self.current_cloud_project)
+            )
 
         self.localDirLineEdit.setText(self.current_cloud_project.local_dir or "")
         self.projectUrlLabelValue.setText(
@@ -919,6 +967,13 @@ class CloudProjectsDialog(QDialog, CloudProjectsDialogUi):
             != self.projectIsPublicCheckBox.isChecked()
         ):
             cloud_project_data["is_public"] = self.projectIsPublicCheckBox.isChecked()
+
+        if (
+            self.projectTypeComboBox.isEnabled()
+            and self.current_cloud_project.project_type
+            != self.projectTypeComboBox.currentData()
+        ):
+            cloud_project_data["project_type"] = self.projectTypeComboBox.currentData()
 
         if cloud_project_data:
             self.projectsFormPage.setEnabled(False)

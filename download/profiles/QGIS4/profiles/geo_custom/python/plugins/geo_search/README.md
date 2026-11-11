@@ -1,3 +1,5 @@
+> **QGIS Live Harness のプラグイン** — [QGIS Live Harness](https://yamamoto-ryuzo.github.io/qgis_live_harness/) · [プラグイン一覧](https://yamamoto-ryuzo.github.io/qgis_live_harness/plugins.html) · [リポジトリ](https://github.com/yamamoto-ryuzo/qgis_live_harness)
+
 # GEO Search System — Map Search System for QGIS
 
 [日本語版 / 日本語 (README_JP.md)](./README_JP.md) 
@@ -136,3 +138,12 @@ For configuration examples and detailed behavior, see `SEARCH.md` and `THEMES.md
 
 
 
+
+## License
+
+GPL-3.0-or-later — see [LICENSE](LICENSE).
+
+This plugin originates from the [GEO-search-plugin](https://github.com/yamamoto-ryuzo/GEO-search-plugin) project (which was distributed under GPL-2.0). It is maintained by the same author and is now distributed from the QGIS Live Harness repository under GPL-3.0-or-later.
+
+Bundled third-party code:
+- `jaconv/` — MIT License, (c) Yukino Ikegami (see `jaconv/LICENSE`)

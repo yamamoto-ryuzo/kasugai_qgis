@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>THIRD-PARTY LICENSES — QGIS Launcher</title>
+  <link rel="stylesheet" href="style.css">
+  <style>pre.mermaid { background: #fff; }</style>
+  <script src="nav.js" defer></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>QGIS Launcher (qgis_launcher) <span class="version-badge">v2.4.0</span></h1>
+      <p><strong>QGIS / QField 起動ランチャー</strong> — Web UI・HTTP API・CLI で動作する Rust(Axum) 製デスクトップランチャーのドキュメント</p>
+    </header>
+    <main>
+<section>
+<h2 id="third-party-licenses">THIRD-PARTY LICENSES</h2>
+<p>このドキュメントは、本リポジトリが依存・同梱するサードパーティソフトウェアのライセンスをまとめたものです。</p>
+<h3 id="本リポジトリ">本リポジトリ</h3>
+<p>GNU General Public License v3.0 (GPL-3.0-only) — <a href="LICENSE">LICENSE</a></p>
+<h3 id="商用利用可否の整理要約">商用利用可否の整理（要約）</h3>
+<p><strong>結論:
+商用利用を妨げるプロプライエタリな制限付きライセンスはありません。すべてフリーのライセンスで構成されています。</strong></p>
+<table>
+<thead>
+<tr>
+<th>区分</th>
+<th>ライセンス種別</th>
+<th>商用利用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Rust 依存クレート</td>
+<td>MIT / Apache-2.0</td>
+<td>✅ 制限なし</td>
+</tr>
+<tr>
+<td>同梱 QGIS プラグイン</td>
+<td>GPL-2.0 / GPL-3.0 / MIT</td>
+<td>✅ 商用利用可（GPL は再配布時にソース提供・告知義務）</td>
+</tr>
+<tr>
+<td>QGIS / QField</td>
+<td>GPL-2.0 以降</td>
+<td>✅
+別途インストールの独立ソフト。起動するだけなので本体へのコピーレフト波及なし</td>
+</tr>
+<tr>
+<td>rclone</td>
+<td>MIT</td>
+<td>✅ 制限なし</td>
+</tr>
+<tr>
+<td>WinFsp</td>
+<td>GPL-3.0 + FLOSS 特例（別途商用ライセンスあり）</td>
+<td>⚠️ <code>mode=mount</code>
+時のみ必要。商用利用でも無料。有料化（商用ライセンス）が必要なのは、クローズドソース製品に
+WinFsp を組み込んで配布する場合のみ（組織 $6,000/3年・個人
+$2,400/3年）</td>
+</tr>
+<tr>
+<td>WebView2 Runtime</td>
+<td>Microsoft プロプライエタリ（無償）</td>
+<td>✅ 無償利用・再配布可。オープンソースではない点のみ留意</td>
+</tr>
+<tr>
+<td>NSIS（インストーラー）</td>
+<td>zlib/libpng</td>
+<td>✅ 制限なし</td>
+</tr>
+</tbody>
+</table>
+<p>注意点:</p>
+<ul>
+<li><strong>GPL コンポーネント</strong>（本体含む）は商用利用自体は可能ですが、<strong>再配布時にソース提供・ライセンス表示が必須</strong>です。プロプライエタリな製品として販売したい場合は
+GPL
+部分を閉じられないため実質不可です（本リポジトリ自体が GPL-3.0
+のため、この点は全体に適用されます）。</li>
+<li><strong>同梱プラグインは Python ソースのまま配布</strong>されるため、GPL
+のソース提供要件は自動的に満たされます。</li>
+<li><strong>WinFsp</strong> は GPLv3 + FLOSS
+特例のデュアル構成です。利用者が個別にインストールする場合は商用利用でも無料です。FLOSS
+ソフトウェア（GPL
+等）であれば無改変のインストーラを同梱配布することも特例で許容されます（著作権表示
++ リポジトリリンクの条件付き）。有料の商用ライセンス（組織 $6,000/3年、個人
+$2,400/3年）が必要になるのは、<strong>クローズドソース製品</strong>に WinFsp
+を組み込んで配布する場合だけです。<br />
+<small>※ クローズドソース製品 =
+ソースコードを公開せず、コンパイル済み実行ファイルのみを配布するプロプライエタリなソフトウェア製品（例:
+Microsoft Office
+等）。kasugai_qgis は GPL-3.0
+でソース公開済みのオープンソース（FLOSS）なので該当しません。</small></li>
+</ul>
+<h3 id="依存ライブラリrust-クレート">依存ライブラリ（Rust クレート）</h3>
+<p><code>Cargo.toml</code>
+で管理されるビルド時依存。配布バイナリに静的に組み込まれます。</p>
+<table>
+<thead>
+<tr>
+<th>クレート</th>
+<th>ライセンス</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>serde / serde_json</td>
+<td>MIT / Apache-2.0</td>
+<td>設定 JSON の読み書き</td>
+</tr>
+<tr>
+<td>axum</td>
+<td>MIT</td>
+<td>HTTP API ルーティング・ハンドラ</td>
+</tr>
+<tr>
+<td>tokio</td>
+<td>MIT</td>
+<td>非同期ランタイム</td>
+</tr>
+<tr>
+<td>tower-http</td>
+<td>MIT</td>
+<td>CORS ミドルウェア</td>
+</tr>
+<tr>
+<td>clap</td>
+<td>MIT / Apache-2.0</td>
+<td>CLI 引数パース</td>
+</tr>
+<tr>
+<td>reqwest</td>
+<td>MIT / Apache-2.0</td>
+<td>HTTP クライアント（更新チェック・ダウンロード）</td>
+</tr>
+<tr>
+<td>wry</td>
+<td>Apache-2.0 / MIT</td>
+<td>WebView2 ウィンドウ（GUI モード）</td>
+</tr>
+<tr>
+<td>tao</td>
+<td>Apache-2.0 / MIT</td>
+<td>ウィンドウ・イベントループ</td>
+</tr>
+<tr>
+<td>winreg</td>
+<td>MIT</td>
+<td>レジストリ参照（QGIS 検出・WebView2 確認）</td>
+</tr>
+<tr>
+<td>mslnk</td>
+<td>MIT</td>
+<td>ショートカット解決</td>
+</tr>
+<tr>
+<td>quick-xml</td>
+<td>MIT</td>
+<td>.qgs プロジェクト解析</td>
+</tr>
+<tr>
+<td>zip</td>
+<td>Apache-2.0 / MIT</td>
+<td>.qgz（ZIP）展開読み取り</td>
+</tr>
+<tr>
+<td>opener</td>
+<td>MIT</td>
+<td>既定ブラウザ起動（フォールバック）</td>
+</tr>
+<tr>
+<td>sha2</td>
+<td>MIT / Apache-2.0</td>
+<td>更新インストーラの SHA-256 検証</td>
+</tr>
+</tbody>
+</table>
+<p>各クレートのライセンス本文は crates.io / docs.rs
+の当該パッケージページ、または <code>cargo license</code>
+等の出力で確認できます。</p>
+<h3
+id="別途インストールが必要なソフトウェア">別途インストールが必要なソフトウェア</h3>
+<table>
+<thead>
+<tr>
+<th>ソフトウェア</th>
+<th>ライセンス</th>
+<th>備考</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>QGIS</td>
+<td>GPL v2 以降</td>
+<td>qgis_launcher
+とは独立したソフトウェア。本ランチャーは起動のみ行う</td>
+</tr>
+<tr>
+<td>QField</td>
+<td>GPL v2 以降</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>rclone</td>
+<td>MIT</td>
+<td><code>drive_mappings</code> の <code>sync</code>/<code>mount</code>
+モード利用時のみ必要</td>
+</tr>
+<tr>
+<td>WinFsp</td>
+<td>GPL v3 / 商用</td>
+<td><code>mode=mount</code>（rclone mount）利用時のみ必要</td>
+</tr>
+<tr>
+<td>WebView2 Runtime</td>
+<td>Microsoft プロプライエタリ（無償）</td>
+<td>GUI モード利用時に必要。未導入時は既定ブラウザにフォールバック</td>
+</tr>
+</tbody>
+</table>
+<h3 id="同梱-qgis-プラグイン">同梱 QGIS プラグイン</h3>
+<p><code>download/profiles/*/profiles/*/python/plugins/</code>
+に同梱。各プラグインのライセンスは同梱 <code>metadata.txt</code> /
+<code>LICENSE</code> を正とします（以下は同梱物から確認した実値）。</p>
+<table>
+<thead>
+<tr>
+<th>プラグイン</th>
+<th>ライセンス</th>
+<th>備考</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>geo_excel</td>
+<td>GPL-3.0</td>
+<td>本リポジトリ管理（QGIS Live Harness 由来）</td>
+</tr>
+<tr>
+<td>geo_import</td>
+<td>MIT</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>geo_report</td>
+<td>GPL-3.0</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>geo_search</td>
+<td>GPL-3.0</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>geo_userfunc</td>
+<td>GPL-3.0</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>geo_webview</td>
+<td>GPL-3.0</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>qgis_live_driver</td>
+<td>本リポジトリ管理</td>
+<td>QGIS Live Harness の制御プラグイン</td>
+</tr>
+<tr>
+<td>QGIS-legendView-main</td>
+<td>GPL-3.0</td>
+<td>upstream: QGIS-legendView</td>
+</tr>
+<tr>
+<td>StreetView</td>
+<td>GPL-3.0</td>
+<td>upstream: saccon/streetview-plugin</td>
+</tr>
+<tr>
+<td>ImportPhotos</td>
+<td>GPL-3.0</td>
+<td>upstream: KIOS-Research/ImportPhotos</td>
+</tr>
+<tr>
+<td>menu_from_project</td>
+<td>GPL-2.0</td>
+<td>upstream: aeag/MenuFromProject-Qgis-Plugin</td>
+</tr>
+<tr>
+<td>mmqgis</td>
+<td>GPL-2.0</td>
+<td>upstream: michaelminn/mmqgis</td>
+</tr>
+<tr>
+<td>mojxml_plugin</td>
+<td>GPL-2.0</td>
+<td>upstream: MIERUNE/qgis-mojxml-plugin</td>
+</tr>
+<tr>
+<td>plateau_plugin</td>
+<td>GPL-2.0</td>
+<td>upstream: Project-PLATEAU/plateau-qgis-plugin</td>
+</tr>
+<tr>
+<td>plugin_reloader</td>
+<td>GPL-3.0</td>
+<td>upstream: borysiasty/plugin_reloader</td>
+</tr>
+<tr>
+<td>qfieldsync</td>
+<td>GPL-3.0</td>
+<td>upstream: opengisch/QFieldSync</td>
+</tr>
+<tr>
+<td>Qgis2threejs</td>
+<td>GPL-2.0</td>
+<td>upstream: minorua/Qgis2threejs</td>
+</tr>
+<tr>
+<td>qgis2web</td>
+<td>GPL-2.0</td>
+<td>upstream: qgis2web/qgis2web</td>
+</tr>
+<tr>
+<td>QuickDEM4JP</td>
+<td>GPL-2.0</td>
+<td>upstream: MIERUNE/QuickDEM4JP</td>
+</tr>
+<tr>
+<td>searchlayers</td>
+<td>GPL-2.0</td>
+<td>upstream: hamiltoncj/qgis-searchlayers-plugin</td>
+</tr>
+</tbody>
+</table>
+<p>QGIS プラグインは一般に GPL v2
+以降で配布されますが、正確な条件は各プラグインの <code>metadata.txt</code>（<code>license=</code>
+行）および upstream リポジトリを参照してください。</p>
+</section>
+    </main>
+  </div>
+</body>
+</html>

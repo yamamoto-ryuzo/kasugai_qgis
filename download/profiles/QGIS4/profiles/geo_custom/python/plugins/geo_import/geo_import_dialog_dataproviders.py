@@ -110,8 +110,8 @@ class GeoImportDialogDataProviders(QDialog, FORM_CLASS):
             # 読み込むJSONファイル（複数）
             instances_urls = [
                 'https://raw.githubusercontent.com/ckan/ckan-instances/gh-pages/config/instances.json',
-                # raw.githubusercontent.com expects the branch name directly (not refs/heads/)
-                'https://raw.githubusercontent.com/yamamoto-ryuzo/geo_import/main/resources/instances/instances.json'
+                # 独自登録分は harness repo の geo_import/resources/ を正本として配信
+                'https://raw.githubusercontent.com/yamamoto-ryuzo/qgis_live_harness/refs/heads/master/qgis-plugin/geo_import/resources/instances/instances.json'
             ]
 
             # ローカルのJSONファイルを追加（存在する場合）

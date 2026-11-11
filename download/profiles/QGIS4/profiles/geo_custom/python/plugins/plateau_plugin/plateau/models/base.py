@@ -115,8 +115,8 @@ class FeatureProcessingDefinition:
     facility_attr_paths: FacilityAttributePaths | None = None
     """施設管理の応用スキーマ関連の属性への element path"""
 
-    disaster_risk_attr_conatiner_path: str | None = None
-    """災害リスク属性 uro:(Building)DisasterRiskAttribute を包含する要素への element path"""
+    disaster_risk_attr_conatiner_path: str | Sequence[str] | None = None
+    """災害リスク属性 uro:(Building)DisasterRiskAttribute を包含する要素への element path (複数指定可)"""
 
     nested_attributes: list[str] | None = None
     """ネストされた属性として表現すべき属性"""
@@ -178,6 +178,8 @@ class ProcessorRegistory:
                 yield "uro15:" + n
                 yield "uro2:" + n
                 yield "uro3:" + n
+                yield "uro31:" + n
+                yield "uro32:" + n
             elif prefix == "urf":
                 yield "urf14:" + n
                 yield "urf15:" + n
@@ -188,22 +190,24 @@ class ProcessorRegistory:
 
     def register_processor(self, processor: FeatureProcessingDefinition) -> None:
         """Processor を登録する"""
-        assert processor.id not in self._id_map, (
-            f"Processor id {processor.id} is already registered"
-        )
+        if processor.id in self._id_map:
+            raise ValueError(f"Processor id {processor.id} is already registered")
 
         self._id_map[processor.id] = processor
         closed_target = set()
         for prefixed_name in self._make_prefix_variants(processor.target_elements):
-            assert prefixed_name not in closed_target
+            if prefixed_name in closed_target:
+                raise ValueError(f"Duplicate target element: {prefixed_name}")
             closed_target.add(prefixed_name)
 
             qualified_name = re.sub(
                 r"^(.+?):()", lambda m: "{" + BASE_NS[m.group(1)] + "}", prefixed_name
             )
-            assert prefixed_name not in self._tag_map
+            if prefixed_name in self._tag_map:
+                raise ValueError(f"{prefixed_name} is already registered")
             self._tag_map[prefixed_name] = processor
-            assert qualified_name not in self._tag_map
+            if qualified_name in self._tag_map:
+                raise ValueError(f"{qualified_name} is already registered")
             self._tag_map[qualified_name] = processor
 
     def get_processor_by_tag(
@@ -224,18 +228,21 @@ class ProcessorRegistory:
             for target in processor.nested_attributes or []:
                 target = target.rsplit("/", 1)[1]
                 for prefixed in self._make_prefix_variants([target]):
-                    assert prefixed in self._tag_map, f"{prefixed} is not registered"
+                    if prefixed not in self._tag_map:
+                        raise ValueError(f"{prefixed} is not registered")
 
             for target in processor.geometries.semantic_parts or []:
                 target = target.rsplit("/", 1)[1]
                 if target == "*":
                     continue
                 for prefixed in self._make_prefix_variants([target]):
-                    assert prefixed in self._tag_map, f"{prefixed} is not registered"
+                    if prefixed not in self._tag_map:
+                        raise ValueError(f"{prefixed} is not registered")
 
             for group in processor.attribute_groups:
                 for attr in group.attributes:
-                    assert attr.name in attr.path, f"{attr.name} not in {attr.path}"
+                    if attr.name not in attr.path:
+                        raise ValueError(f"{attr.name} not in {attr.path}")
                     if attr.predefined_codelist:
                         if isinstance(attr.predefined_codelist, str):
                             codelists.get_predefined(attr.predefined_codelist)

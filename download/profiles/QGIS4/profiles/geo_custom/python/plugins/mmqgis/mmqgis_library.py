@@ -26,12 +26,13 @@ import os.path
 import operator
 import tempfile
 import urllib.parse
-import urllib.request
+# import urllib.request
 import xml.etree.ElementTree
 
 from qgis.core import *
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtNetwork import QNetworkRequest
 
 # from PyQt6.QtCore import *
 # from PyQt6.QtGui import *
@@ -1401,29 +1402,29 @@ def mmqgis_float_to_text(input_layer, attributes, separator, \
 #    mmqgis_geocode_reverse - Reverse geocode locations to addresses
 # ---------------------------------------------------------------------
 
-def mmqgis_proxy_settings():
-	# Load proxy settings from qgis options settings
-	try:
-		settings = QSettings()
-		proxyEnabled = settings.value("proxy/proxyEnabled", "")
-		proxyType = settings.value("proxy/proxyType", "" )
-		proxyHost = settings.value("proxy/proxyHost", "" )
-		proxyPort = settings.value("proxy/proxyPort", "" )
-		proxyUser = settings.value("proxy/proxyUser", "" )
-		proxyPassword = settings.value("proxy/proxyPassword", "" )
-
-		# http://stackoverflow.com/questions/1450132/proxy-with-urllib2
-		if proxyEnabled == "true":
-			if proxyUser:
-				proxy = urllib.request.ProxyHandler({'http': 'http://' +  proxyUser + ':' + 
-					proxyPassword + '@' + proxyHost + ':' + proxyPort})
-			else:
-				proxy = urllib.request.ProxyHandler({'http': 'http://' + proxyHost + ':' + proxyPort})
-
-			opener = urllib.request.build_opener(proxy)
-			urllib.request.install_opener(opener)
-	except:
-		pass
+# def mmqgis_proxy_settings():
+# 	# Load proxy settings from qgis options settings
+# 	try:
+# 		settings = QSettings()
+# 		proxyEnabled = settings.value("proxy/proxyEnabled", "")
+# 		proxyType = settings.value("proxy/proxyType", "" )
+# 		proxyHost = settings.value("proxy/proxyHost", "" )
+# 		proxyPort = settings.value("proxy/proxyPort", "" )
+# 		proxyUser = settings.value("proxy/proxyUser", "" )
+# 		proxyPassword = settings.value("proxy/proxyPassword", "" )
+# 
+# 		# http://stackoverflow.com/questions/1450132/proxy-with-urllib2
+# 		if proxyEnabled == "true":
+# 			if proxyUser:
+# 				proxy = urllib.request.ProxyHandler({'http': 'http://' +  proxyUser + ':' + 
+# 					proxyPassword + '@' + proxyHost + ':' + proxyPort})
+# 			else:
+# 				proxy = urllib.request.ProxyHandler({'http': 'http://' + proxyHost + ':' + proxyPort})
+# 
+# 			opener = urllib.request.build_opener(proxy)
+# 			urllib.request.install_opener(opener)
+# 	except:
+# 		pass
 
 def mmqgis_geocode_reverse(input_layer, web_service, api_key, use_first, output_file_name, status_callback = None):
 
@@ -1478,7 +1479,7 @@ def mmqgis_geocode_reverse(input_layer, web_service, api_key, use_first, output_
 
 
 	# HTTP(S) proxy settings from qgis options settings
-	mmqgis_proxy_settings()
+	# mmqgis_proxy_settings()
 
 
 	# Coordinates to the web services assumed to be WGS 84 latitude/longitude
@@ -1519,14 +1520,20 @@ def mmqgis_geocode_reverse(input_layer, web_service, api_key, use_first, output_
 				# Avoids the dreaded SSL: CERTIFICATE_VERIFY_FAILED error
 				# https://datumorphism.com/til/data/python-urllib-ssl/
 				# Ignore SSL certificate errors
-				request_context = ssl.create_default_context()
-				request_context.check_hostname = False
-				request_context.verify_mode = ssl.CERT_NONE
+				# request_context = ssl.create_default_context()
+				# request_context.check_hostname = False
+				# request_context.verify_mode = ssl.CERT_NONE
 
 				# https://operations.osmfoundation.org/policies/nominatim/
-				user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3)"
-				request = urllib.request.Request(url, headers={'User-Agent': user_agent})
-				json_string = urllib.request.urlopen(request, context=request_context).read()
+				# user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3)"
+				# request = urllib.request.Request(url, headers={'User-Agent': user_agent})
+				# json_string = urllib.request.urlopen(request, context=request_context).read()
+
+				request = QNetworkRequest(QUrl(url))
+				request.setHeader(QNetworkRequest.KnownHeaders.UserAgentHeader, \
+					"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3)")
+				reply = QgsNetworkAccessManager.instance().blockingGet(request)
+				json_string = reply.content().data()
 				break
 
 			except Exception as e:
@@ -2183,7 +2190,7 @@ def mmqgis_geocode_web_service(input_csv_name, parameter_attributes, web_service
 		return "Failure creating output file: " + str(outfile.errorMessage())
 
 	# Proxy settings from qgis options settings
-	mmqgis_proxy_settings()
+	# mmqgis_proxy_settings()
 
 
 	# Geocode and import
@@ -2267,26 +2274,35 @@ def mmqgis_geocode_web_service(input_csv_name, parameter_attributes, web_service
 				# Avoids the dreaded SSL: CERTIFICATE_VERIFY_FAILED error
 				# https://datumorphism.com/til/data/python-urllib-ssl/
 				# Ignore SSL certificate errors
-				request_context = ssl.create_default_context()
-				request_context.check_hostname = False
-				request_context.verify_mode = ssl.CERT_NONE
+				# request_context = ssl.create_default_context()
+				# request_context.check_hostname = False
+				# request_context.verify_mode = ssl.CERT_NONE
 
 				# https://operations.osmfoundation.org/policies/nominatim/
 				# 11/9/2024: Added referer to avoid 403 prohibited error
 
-				headers = {'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0)",
-					'Referer': 'https://plugins.qgis.org/plugins/mmqgis/' }
+				# headers = {'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0)",
+				#	'Referer': 'https://plugins.qgis.org/plugins/mmqgis/' }
 
-				# headers = {'User-Agent': "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3)" }
-
-				if web_service == "NetToolKit":
-					headers['X-NTK-KEY'] = api_key
+				# if web_service == "NetToolKit":
+				#	headers['X-NTK-KEY'] = api_key
 
 				# print(headers)
 
-				request = urllib.request.Request(url, headers = headers)
+				#request = urllib.request.Request(url, headers = headers)
+				#json_string = urllib.request.urlopen(request, context=request_context).read()
 
-				json_string = urllib.request.urlopen(request, context=request_context).read()
+				request = QNetworkRequest(QUrl(url))
+				request.setRawHeader(bytes("User-Agent", "utf-8"), \
+					bytes("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3)", "utf-8"))
+				request.setRawHeader(bytes("Referer", "utf-8"), \
+					bytes("https://plugins.qgis.org/plugins/mmqgis/", "utf-8"))
+				if web_service == "NetToolKit":
+					request.setRawHeader(bytes("X-NTK-KEY", "utf-8"), bytes(api_key, "utf-8"))
+
+				reply = QgsNetworkAccessManager.instance().blockingGet(request)
+
+				json_string = reply.content().data()
 
 				# print(str(json_string) + "\n\n")
 

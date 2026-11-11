@@ -13,7 +13,7 @@
 
 <p>Michael Minn (<a href="http://michaelminn.com">http://michaelminn.com</a>)</p>
 
-<p>19 March 2026</p>
+<p>12 June 2026</p>
 
 <p><em>Describes use of MMQGIS, a set of Python vector map layer plugins for Quantum GIS</em></p>
 
@@ -1281,9 +1281,15 @@ be provided. Publicly accessible servers include:
 	<ul>
 	<li>ArcGIS World Geocoding Service: 
 	https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates</li>
-	<li><a href="http://gis.ny.gov/gisdata/inventories/details.cfm?DSID=1278">
-	NY State GIS Program Office Geocoding Service</a>:
-	https://gisservices.its.ny.gov/arcgis/rest/services/Locators/Street_and_Address_Composite/GeocodeServer/findAddressCandidates</li>
+
+	<li><a href="https://gis.ny.gov/nys-geocoding-service">NYS Geocoding Service</a>:
+	https://nysgeohub.ny.gov/arcgis/rest/services/Geocoder/NYS_Geocoder/GeocodeServer/findAddressCandidates</li>
+</li>
+
+<!--
+http://gis.ny.gov/gisdata/inventories/details.cfm?DSID=1278
+https://gisservices.its.ny.gov/arcgis/rest/services/Locators/Street_and_Address_Composite/GeocodeServer/findAddressCandidates
+-->
 	</ul>
 	</li>
 
@@ -1344,13 +1350,13 @@ print("Geocode: " + str(message))
 input_csv_name = "2019-federal-reserve-banks.csv"
 parameter_attributes = [ ("Address", "Street"), ("City", "City"), ("State", "State") ]
 web_service = "Google"
-api_key = "YOUR API KEY HERE"
+google_key = YOUR_GOOGLE_KEY_HERE
 use_first = True
 output_file_name = "2019-federal-reserve-banks.geojson"
 not_found_file_name = "2019-federal-reserve-banks.notfound.csv"
 
 message = mmqgis_geocode_web_service(input_csv_name, \
-	parameter_attributes, web_service, api_key, use_first, \
+	parameter_attributes, web_service, google_key, use_first, \
 	output_file_name, not_found_file_name)
 
 print("Geocode: " + str(message))
@@ -1363,13 +1369,13 @@ print("Geocode: " + str(message))
 input_csv_name = "2019-federal-reserve-banks.csv"
 parameter_attributes = [ ("Address", "Street"), ("City", "City"), ("State", "State") ]
 web_service = "ESRI Server"
-api_key = "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates"
+geocoder_url = "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates"
 use_first = True
 output_file_name = "2019-federal-reserve-banks.geojson"
 not_found_file_name = "2019-federal-reserve-banks.notfound.csv"
 
 message = mmqgis_geocode_web_service(input_csv_name, \
-	parameter_attributes, web_service, api_key, use_first, \
+	parameter_attributes, web_service, geocoder_url, use_first, \
 	output_file_name, not_found_file_name)
 
 print("Geocode: " + str(message))
@@ -2733,9 +2739,17 @@ qgis.exec_()
 
 <h2>Version History</h2>
 
+<p><a href="http://michaelminn.com/linux/mmqgis/mmqgis.2026.06.12.zip">v2026.6.12</a></p>
+<ul>
+<li>Security cleanup: Replace urllib calls with QgsNetworkAccessManager, remove makeui.bat,
+update README.html to mitigate bogus detection of secret API keys in code examples.</li>
+<li>New NYS geocoder URL (Jenkins)</li>
+</ul>
+
 <p><a href="http://michaelminn.com/linux/mmqgis/mmqgis.2026.03.19.zip">v2026.3.19</a></p>
 <ul>
 <li>Second beta release for QGIS 4.0 / QT 6.x limited to v3.99 to v4.99</li>
+<li>QT import using from qgis.PyQt rather than PyQt6 (Giudiceandrea)</li>
 </ul>
 
 <p><a href="http://michaelminn.com/linux/mmqgis/mmqgis.2026.02.14.zip">v2026.2.14</a></p>

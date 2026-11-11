@@ -1,0 +1,42 @@
+{
+  "LegendView": {
+    "&Legend View": "&Vista de legenda",
+    "Legend": "Legenda",
+    "Other values": "Outros valores",
+    "Symbol": "Símbolo"
+  },
+  "LegendViewDockWidget": {
+    "Close": "Fechar",
+    "Confirm delete": "Confirmar eliminação",
+    "Could not remove variable": "Não foi possível remover a variável",
+    "Could not update variable": "Não foi possível atualizar a variável",
+    "Delete": "Eliminar",
+    "Delete variable %s?": "Eliminar a variável %s?",
+    "Edit": "Editar",
+    "Edit variable": "Editar variável",
+    "Error": "Erro",
+    "Legend": "Legenda",
+    "Legend variables": "Variáveis de legenda",
+    "Other values": "Outros valores",
+    "Symbol": "Símbolo",
+    "Value": "Valor",
+    "Value for %s": "Valor para %s",
+    "Variable": "Variável"
+  },
+  "LegendViewDockWidgetBase": {
+    "Current": "Atual",
+    "Layer Name": "Nome da camada",
+    "Legend View": "Vista de legenda",
+    "New Column": "Nova coluna",
+    "Opacity": "Opacidade",
+    "Prio": "Prio",
+    "Priority for the legend variable (numeric)": "Prioridade da variável de legenda (numérica)",
+    "Register": "Registar",
+    "Register the current layer as a project variable (legend_...)": "Registar a camada atual como variável de projeto (legend_...)",
+    "Select the currently active layer": "Selecionar a camada atualmente ativa",
+    "Set numeric priority for the legend variable": "Definir prioridade numérica para a variável de legenda",
+    "Show existing legend_ project variables": "Mostrar variáveis de projeto legend_ existentes",
+    "Style": "Estilo",
+    "Vars": "Variáveis"
+  }
+}

@@ -1,3 +1,5 @@
+> **QGIS Live Harness のプラグイン** — [QGIS Live Harness](https://yamamoto-ryuzo.github.io/qgis_live_harness/) · [プラグイン一覧](https://yamamoto-ryuzo.github.io/qgis_live_harness/plugins.html) · [リポジトリ](https://github.com/yamamoto-ryuzo/qgis_live_harness)
+
 # geo_userfunc
 
 Library manager for user-defined Python code in QGIS
@@ -68,3 +70,14 @@ the manager dialog or `updateFromUpstream`.
 
 Initial bundle: `user_functions.py` from
 [QGIS_user_function](https://github.com/yamamoto-ryuzo/QGIS_user_function).
+
+## Disclaimer
+
+This system was created and tested on a personal computer.  
+We accept no liability for any damage arising from its use.
+
+<p align="center">
+  <a href="https://giphy.com/explore/free-gif" target="_blank">
+    <img src="https://github.com/yamamoto-ryuzo/QGIS_portable_3x/raw/master/imgs/giphy.gif" width="500" title="avvio QGIS">
+  </a>
+</p>

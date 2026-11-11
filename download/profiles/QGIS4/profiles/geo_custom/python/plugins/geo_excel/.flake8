@@ -1,0 +1,13 @@
+[flake8]
+# QGIS plugin codebase conventions:
+# - E501: pre-existing code contains very long lines; line-length is not enforced.
+# - W503/W504: mutually exclusive line-break rules; both styles are used.
+extend-ignore = E501, W503, W504
+
+# export*.py are upstream QGIS-exportExcel action scripts shipped unmodified.
+# They are exec()'d at runtime after a PyQt5 -> qgis.PyQt source rewrite, so
+# star imports / qgis globals are intentional and boilerplate imports unused.
+per-file-ignores =
+    exportList.py: E711, E712, F401, F403, F405, F841, W605
+    exportSingle.py: E711, E712, F401, F403, F405, F841
+    exportSingleBulk.py: E711, E712, E713, F401, F403, F405, F841

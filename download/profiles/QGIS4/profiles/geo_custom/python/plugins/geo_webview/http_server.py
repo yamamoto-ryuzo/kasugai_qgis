@@ -7,13 +7,95 @@ centralized makes future extensions (middleware, logging, CORS, etc.)
 easier.
 """
 
+import threading
+import urllib.parse
 
-def read_http_request(conn, max_size=8192):
+# ワーカースレッドごとの現在リクエスト Origin(接続ハンドラが記録)
+_request_local = threading.local()
+
+# file:// 起動HTML は Origin "null"。ホスト版エンジンは
+# kasugai-canvas-web CDN・kasugai_canvas Pages が同一オリジン
+_STATIC_ALLOWED_ORIGINS = frozenset((
+    'null',
+    'https://yamamoto-ryuzo.github.io',
+))
+
+# ローカルの別ポートのページからの開発・連携用(同一マシン上の
+# プロセスは CORS 無しで読めるため実質的な追加露出にならない)
+_LOOPBACK_HOSTNAMES = frozenset(('127.0.0.1', 'localhost', '::1'))
+
+
+def set_request_origin(origin):
+    """接続ハンドラが現在リクエストの Origin ヘッダを記録する。"""
+    _request_local.origin = origin or ''
+
+
+def _custom_hosted_origin():
+    """設定のホスト版チャンネル(カスタムURL時)のオリジンを返す。"""
+    try:
+        from . import kasugai_export
+        base = kasugai_export.hosted_engine_base()
+    except Exception:  # nosec B110  # 未初期化/QGIS外は追加許可なし
+        return ''
+    parts = urllib.parse.urlsplit(base)
+    if parts.scheme in ('http', 'https') and parts.hostname:
+        default = 80 if parts.scheme == 'http' else 443
+        port = '' if parts.port in (None, default) else ':{0}'.format(parts.port)
+        return '{0}://{1}{2}'.format(parts.scheme, parts.hostname, port)
+    return ''
+
+
+def cors_allowed_origin(origin):
+    """CORS で応答を読ませてよいオリジンか判定する。
+
+    許可リスト: file://(null)・ホスト版エンジン(github.io・設定の
+    カスタムURL)・ループバック。それ以外のオリジンには ACAO を
+    返さず、任意サイトからのローカルデータ読み取りを遮断する。
+    """
+    if not origin:
+        return False
+    if origin in _STATIC_ALLOWED_ORIGINS:
+        return True
+    # prefix 一致だと http://localhost.evil.com 等の偽サブドメインが
+    # 通るため、ループバックは urlsplit でホスト名を厳密に抜き出して比較
+    try:
+        parts = urllib.parse.urlsplit(origin)
+        if parts.scheme in ('http', 'https') \
+                and parts.hostname in _LOOPBACK_HOSTNAMES:
+            return True
+    except Exception:  # nosec B110  # 不正な Origin は未許可扱い
+        pass
+    return origin == _custom_hosted_origin()
+
+
+def _cors_headers():
+    """許可オリジンのときだけ ACAO/Vary 行を返す。
+
+    Expose-Headers は MCP リレー(POST /live/mcp)がブラウザへ
+    セッションIDを読み取らせるために必要。
+    """
+    origin = getattr(_request_local, 'origin', '')
+    if cors_allowed_origin(origin):
+        return [
+            'Access-Control-Allow-Origin: {0}'.format(origin),
+            'Access-Control-Expose-Headers: Mcp-Session-Id, '
+            'MCP-Protocol-Version',
+            'Vary: Origin',
+        ]
+    return []
+
+
+def read_http_request(conn, max_size=8192, max_body=4 * 1024 * 1024):
     """Read raw HTTP request bytes from a connected socket.
+
+    ヘッダ終端(\r\n\r\n)まで読み、Content-Length があればボディも
+    続けて読む(POST /live/* 用)。ボディ上限は max_body。
 
     Args:
         conn: socket-like object with recv
-        max_size: maximum bytes to read (prevents unbounded memory use)
+        max_size: maximum bytes to read for the header section
+            (prevents unbounded memory use)
+        max_body: maximum bytes to read for the request body
 
     Returns:
         bytes: raw request bytes (may be empty on error/timeout)
@@ -25,6 +107,23 @@ def read_http_request(conn, max_size=8192):
             if not chunk:
                 break
             data += chunk
+        if b'\r\n\r\n' in data:
+            head, _, body = data.partition(b'\r\n\r\n')
+            want = 0
+            for line in head.split(b'\r\n'):
+                if line.lower().startswith(b'content-length:'):
+                    try:
+                        want = int(line.split(b':', 1)[1].strip())
+                    except (ValueError, IndexError):
+                        want = 0
+                    break
+            want = max(0, min(want, max_body))
+            while len(body) < want:
+                chunk = conn.recv(min(65536, want - len(body)))
+                if not chunk:
+                    break
+                body += chunk
+            data = head + b'\r\n\r\n' + body
         return data
     except Exception:
         return b''
@@ -50,7 +149,7 @@ def send_http_response(conn, status_code, reason, body, content_type="text/plain
             f"HTTP/1.1 {status_code} {reason}",
             f"Content-Length: {len(body_bytes)}",
             f"Content-Type: {content_type}",
-            "Access-Control-Allow-Origin: *",
+        ] + _cors_headers() + [
             "Connection: close",
             "",
             "",
@@ -64,36 +163,21 @@ def send_http_response(conn, status_code, reason, body, content_type="text/plain
             pass
 
 
-def send_xml_response(conn, xml_content):
-    """Send a 200 OK XML response encoded as UTF-8."""
-    try:
-        xml_bytes = xml_content.encode('utf-8')
-        header_lines = [
-            "HTTP/1.1 200 OK",
-            f"Content-Length: {len(xml_bytes)}",
-            "Content-Type: text/xml; charset=utf-8",
-            "Access-Control-Allow-Origin: *",
-            "Connection: close",
-            "",
-            "",
-        ]
-        header = "\r\n".join(header_lines).encode('utf-8')
-        conn.sendall(header + xml_bytes)
-    except Exception:
-        try:
-            conn.close()
-        except Exception:  # nosec B110  # 設計上の許容
-            pass
+def send_binary_response(conn, status_code, reason, data, content_type, extra_headers=None):
+    """Send a binary HTTP response (images, etc.).
 
-
-def send_binary_response(conn, status_code, reason, data, content_type):
-    """Send a binary HTTP response (images, etc.)."""
+    Args:
+        extra_headers: optional list of additional "Name: value" header lines
+    """
     try:
         header_lines = [
             f"HTTP/1.1 {status_code} {reason}",
             f"Content-Length: {len(data)}",
             f"Content-Type: {content_type}",
-            "Access-Control-Allow-Origin: *",
+        ] + _cors_headers()
+        if extra_headers:
+            header_lines.extend(extra_headers)
+        header_lines += [
             "Connection: close",
             "",
             "",
@@ -107,46 +191,57 @@ def send_binary_response(conn, status_code, reason, data, content_type):
             pass
 
 
-def send_wms_error_response(conn, error_code, error_message):
-    """Send an OWS-style ExceptionReport XML response for WMS errors.
+def send_options_response(conn):
+    """CORS + Private Network Access プリフライト(OPTIONS)応答。
 
-    Use the OWS ExceptionReport structure (namespace http://www.opengis.net/ows)
-    which is widely accepted across OGC services (WMS/WFS/etc.). This function
-    sends an HTTP 400 response by default and sets a proper XML content-type.
+    ホスト版エンジン(https://*.github.io)から http://localhost への
+    fetch は Chrome の Private Network Access 対象となり、プリフライト
+    応答に Access-Control-Allow-Private-Network が必要。
+    許可リスト外のオリジンには CORS ヘッダを返さない。
     """
     try:
-        # Build an OWS ExceptionReport which is more interoperable than the
-        # legacy ServiceExceptionReport used by some older servers.
-        xml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
-<ExceptionReport version="1.3.0" xmlns="http://www.opengis.net/ows">
-    <Exception exceptionCode="{error_code}">
-        <ExceptionText>{error_message}</ExceptionText>
-    </Exception>
-</ExceptionReport>"""
-        # Use a 400 Bad Request for parameter/usage errors; callers may choose
-        # to send a different status via send_http_response if appropriate.
-        send_http_response(conn, 400, "Bad Request", xml_content, content_type="text/xml; charset=utf-8")
+        header_lines = ["HTTP/1.1 204 No Content"]
+        origin = getattr(_request_local, 'origin', '')
+        if cors_allowed_origin(origin):
+            header_lines += [
+                'Access-Control-Allow-Origin: {0}'.format(origin),
+                "Access-Control-Allow-Methods: GET, HEAD, POST, OPTIONS",
+                "Access-Control-Allow-Headers: *",
+                "Access-Control-Allow-Private-Network: true",
+                "Access-Control-Max-Age: 600",
+                "Vary: Origin",
+            ]
+        header_lines += [
+            "Content-Length: 0",
+            "Connection: close",
+            "",
+            "",
+        ]
+        header = "\r\n".join(header_lines).encode('utf-8')
+        conn.sendall(header)
     except Exception:
-        # Fallback to plain text response if XML assembly fails
-        send_http_response(conn, 500, "Internal Server Error", f"{error_code}: {error_message}")
+        try:
+            conn.close()
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
 
 
-def send_wfs_error_response(conn, error_code, error_message, locator=None):
-    """Send a basic WFS/OWS-style ExceptionReport XML response.
-
-    This generates a small OWS/ExceptionReport-style XML which is commonly
-    used by OGC services (WFS/WMS/etc.) to report parameter and request
-    errors to clients.
-    """
+def send_head_response(conn, status_code, reason, content_length, content_type):
+    """Send headers only for a HEAD request (no body)."""
     try:
-        locator_attr = f' locator="{locator}"' if locator else ''
-        xml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
-<ExceptionReport version="1.0.0" xmlns="http://www.opengis.net/ows">
-    <Exception exceptionCode="{error_code}"{locator_attr}>
-        <ExceptionText>{error_message}</ExceptionText>
-    </Exception>
-</ExceptionReport>"""
-        send_xml_response(conn, xml_content)
+        header_lines = [
+            f"HTTP/1.1 {status_code} {reason}",
+            f"Content-Length: {int(content_length)}",
+            f"Content-Type: {content_type}",
+        ] + _cors_headers() + [
+            "Connection: close",
+            "",
+            "",
+        ]
+        header = "\r\n".join(header_lines).encode('utf-8')
+        conn.sendall(header)
     except Exception:
-        # Fallback to plain text response if XML assembly fails
-        send_http_response(conn, 500, "Internal Server Error", f"{error_code}: {error_message}")
+        try:
+            conn.close()
+        except Exception:  # nosec B110  # 設計上の許容
+            pass

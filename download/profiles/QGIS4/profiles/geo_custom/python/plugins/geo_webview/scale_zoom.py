@@ -81,6 +81,7 @@ MAPLIBRE_ZOOM_SCALE_REFERENCE = {
 }
 
 
+
 def estimate_zoom_from_scale(scale):
     """Estimate a continuous zoom level from a scale denominator.
 
@@ -277,3 +278,44 @@ def estimate_zoom_from_scale_maplibre(scale):
 
     except (ValueError, TypeError, OverflowError):
         return 16.0
+
+
+def estimate_scale_from_zoom_maplibre(zoom_level):
+    """MapLibre-specific duplicated implementation of estimate_scale_from_zoom.
+
+    Kept separate so MapLibre behaviour can be tuned independently.
+    """
+    # Implementation duplicated from estimate_scale_from_zoom above.
+    if zoom_level is None:
+        return 20000.0
+    try:
+        z = float(zoom_level)
+        # Use the MapLibre-specific expanded table.
+        scale_table = _expand_reference_to_table(MAPLIBRE_ZOOM_SCALE_REFERENCE, 0, 30)
+
+        z = max(0.0, min(30.0, z))
+        if z == int(z) and int(z) in scale_table:
+            return scale_table[int(z)]
+
+        z_floor = int(math.floor(z))
+        z_ceil = int(math.ceil(z))
+        if z_floor < 0:
+            z_floor = 0
+        if z_ceil > 30:
+            z_ceil = 30
+        if z_floor not in scale_table:
+            z_floor = max([k for k in scale_table.keys() if k <= z_floor], default=0)
+        if z_ceil not in scale_table:
+            z_ceil = min([k for k in scale_table.keys() if k >= z_ceil], default=30)
+        if z_floor == z_ceil:
+            return scale_table.get(z_floor, 20000.0)
+
+        s1, s2 = scale_table[z_floor], scale_table[z_ceil]
+        log_s1, log_s2 = math.log(s1), math.log(s2)
+        t = (z - z_floor) / (z_ceil - z_floor) if z_ceil != z_floor else 0.0
+        interpolated_log_scale = log_s1 + t * (log_s2 - log_s1)
+        interpolated_scale = math.exp(interpolated_log_scale)
+        return interpolated_scale
+
+    except (ValueError, TypeError, OverflowError):
+        return 20000.0

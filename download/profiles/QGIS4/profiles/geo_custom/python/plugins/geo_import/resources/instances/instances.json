@@ -1,0 +1,114 @@
+[
+  {
+    "title": "データカタログ横断検索システム",
+    "url": "https://search.ckan.jp/",
+    "url-api": "https://search.ckan.jp/backend/api/",
+    "type": "CKAN",
+    "country": "JP",
+    "description": "日本のオープンデータカタログを横断的に検索できる統合プラットフォーム"
+  },
+  {
+    "title": "DATA GO.JP (日本のオープンデータポータル)",
+    "url": "https://www.data.go.jp/",
+    "url-api": "https://www.data.go.jp/data/api/3/",
+    "type": "CKAN",
+    "country": "JP",
+    "description": "日本政府のオープンデータポータルサイト"
+  },
+  {
+    "title": "横浜市オープンデータポータル",
+    "url": "https://data.city.yokohama.lg.jp/",
+    "url-api": "https://data.city.yokohama.lg.jp/api/3/",
+    "type": "CKAN",
+    "country": "JP",
+    "description": "横浜市が公開する地域の統計情報や行政情報などのオープンデータカタログ"
+  },
+  {
+    "title": "青森県オープンデータカタログ",
+    "url": "https://opendata.pref.aomori.lg.jp/",
+    "url-api": "https://opendata.pref.aomori.lg.jp/api/3/",
+    "type": "CKAN",
+    "country": "JP",
+    "description": "青森県および県内市町村の公共データを提供するオープンデータカタログサイト"
+  },
+  {
+    "title": "G空間情報センター",
+    "url": "https://www.geospatial.jp/ckan/",
+    "url-api": "https://www.geospatial.jp/ckan/api/3/",
+    "type": "CKAN",
+    "country": "JP",
+    "description": "地理空間情報（G空間情報）の流通支援・利活用推進を行うプラットフォーム"
+  },
+  {
+    "title": "東京都オープンデータカタログサイト",
+    "url": "https://catalog.data.metro.tokyo.lg.jp/",
+    "url-api": "https://catalog.data.metro.tokyo.lg.jp/api/3/",
+    "type": "CKAN",
+    "country": "JP",
+    "description": "東京都が保有する公共データを広く提供するオープンデータポータル"
+  },
+  {
+    "title": "地質調査総合センターデータカタログ",
+    "url": "https://data.gsj.jp/gkan/",
+    "url-api": "https://data.gsj.jp/gkan/api/3/",
+    "type": "CKAN",
+    "country": "JP",
+    "description": "産業技術総合研究所地質調査総合センターが公開する地質情報のデータカタログ"
+  },
+  {
+    "title": "姫路市・播磨圏域連携中枢都市圏オープンデータカタログサイト",
+    "url": "https://city.himeji.gkan.jp/gkan/",
+    "url-api": "https://city.himeji.gkan.jp/gkan/api/3/",
+    "type": "CKAN",
+    "country": "JP",
+    "description": "姫路市と周辺自治体の播磨圏域連携中枢都市圏のオープンデータカタログ"
+  },
+  {
+    "title": "ビッグデータ&オープンデータ・イニシアティブ九州",
+    "url": "https://data.bodik.jp/",
+    "url-api": "https://data.bodik.jp/api/3/",
+    "type": "CKAN",
+    "country": "JP",
+    "description": "九州地方のビッグデータとオープンデータを提供するデータプラットフォーム"
+  },
+  {
+    "title": "神奈川県オープンデータポータル",
+    "url": "https://catalog.opendata.pref.kanagawa.jp/",
+    "url-api": "https://catalog.opendata.pref.kanagawa.jp/api/3/",
+    "type": "CKAN",
+    "country": "JP",
+    "description": "神奈川県が保有する公共データを広く提供するオープンデータポータル"
+  },
+  {
+    "title": "山口県オープンデータカタログ",
+    "url": "https://yamaguchi-opendata.jp/",
+    "url-api": "https://yamaguchi-opendata.jp/ckan/api/3/",
+    "type": "CKAN",
+    "country": "JP",
+    "description": "山口県のオープンデータを提供するカタログサイト"
+  },
+  {
+    "title": "岐阜県オープンデータカタログサイト",
+    "url": "https://gifu-opendata.pref.gifu.lg.jp/",
+    "url-api": "https://gifu-opendata.pref.gifu.lg.jp/api/3/",
+    "type": "CKAN",
+    "country": "JP",
+    "description": "岐阜県が公開する各種統計情報や地理空間情報などのオープンデータカタログ"
+  },
+  {
+    "title": "金沢市オープンデータポータル",
+    "url": "https://catalog-data.city.kanazawa.ishikawa.jp/",
+    "url-api": "https://catalog-data.city.kanazawa.ishikawa.jp/api/3/",
+    "type": "CKAN",
+    "country": "JP",
+    "description": "金沢市が提供する行政情報や地域データのオープンデータカタログサイト"
+  },
+  {
+    "title": "宇都宮市オープンデータカタログ",
+    "url": "https://catalog.city.utsunomiya.tochigi.jp/",
+    "url-api": "https://catalog.city.utsunomiya.tochigi.jp/api/3/",
+    "type": "CKAN",
+    "country": "JP",
+    "description": "宇都宮市が公開する行政情報や地域データのオープンデータカタログサイト"
+  }
+]

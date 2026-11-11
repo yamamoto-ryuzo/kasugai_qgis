@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>導入・起動方法 — QGIS Launcher</title>
+  <link rel="stylesheet" href="style.css">
+  <style>pre.mermaid { background: #fff; }</style>
+  <script src="nav.js" defer></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>QGIS Launcher (qgis_launcher) <span class="version-badge">v2.4.0</span></h1>
+      <p><strong>QGIS / QField 起動ランチャー</strong> — Web UI・HTTP API・CLI で動作する Rust(Axum) 製デスクトップランチャーのドキュメント</p>
+    </header>
+    <main>
+<section>
+<h2 id="導入起動方法">7. 🚀 導入・起動方法</h2>
+<h3
+id="初回導入インストーラー版推奨">初回導入（インストーラー版：推奨）</h3>
+<p>NSIS インストーラー <code>kasugai_qgis-setup.exe</code>
+を使って、<code>C:\kasugai\kasugai_qgis\</code>
+へ自動的にインストールできます。</p>
+<ol type="1">
+<li>インストーラーをダウンロード
+<ul>
+<li><a
+href="https://yamamoto-ryuzo.github.io/kasugai_qgis/public/kasugai_qgis-setup.exe">kasugai_qgis-setup.exe</a></li>
+</ul></li>
+<li>ダウンロードした <code>kasugai_qgis-setup.exe</code> を実行
+<ul>
+<li>インストール先はデフォルトで <code>C:\kasugai\kasugai_qgis\</code>
+です</li>
+<li>インストール先フォルダはインストール時に変更できます</li>
+<li><code>C:\kasugai</code>
+フォルダが存在し、ユーザーが書き込み可能であれば管理者権限は不要です</li>
+<li>スタートメニューにショートカットが作成されます</li>
+</ul></li>
+<li>インストールフォルダ内の <code>qgis_launcher.exe</code>
+をダブルクリックで起動</li>
+</ol>
+<h4 id="サイレントインストール">サイレントインストール</h4>
+<p>コマンドラインから以下のように実行すると、画面を表示せずにインストールできます。</p>
+<pre class="batch"><code>kasugai_qgis-setup.exe /S /D=C:\kasugai\kasugai_qgis</code></pre>
+<h3 id="zip-版インストール権限がない場合">ZIP
+版（インストール権限がない場合）</h3>
+<p>インストーラーの実行権限がない場合は、配布用 ZIP
+を任意のフォルダに展開して使用できます。</p>
+<ol type="1">
+<li>ZIP をダウンロード
+<ul>
+<li><a
+href="https://yamamoto-ryuzo.github.io/kasugai_qgis/public/kasugai_qgis.zip">kasugai_qgis.zip</a></li>
+</ul></li>
+<li>任意のユーザー書き込み可能なフォルダ（例:
+<code>%USERPROFILE%\kasugai_qgis\</code> や
+<code>%LOCALAPPDATA%\kasugai_qgis\</code>）に展開</li>
+<li>展開したフォルダ内の <code>qgis_launcher.exe</code>
+をダブルクリックで起動</li>
+</ol>
+<blockquote>
+<p>注意: ZIP
+版はスタートメニューショートカットを作成しません。必要に応じて手動でショートカットを作成してください。</p>
+</blockquote>
+<h3 id="推奨フォルダ構成">推奨フォルダ構成</h3>
+<p>すべての設定、配布プロファイル、ユーザーロール、サンプルプロジェクトは、<strong>インストール先（<code>qgis_launcher.exe</code>
+と同じフォルダ）を起点</strong>として配置・解決されます。</p>
+<pre><code>C:\kasugai\kasugai_qgis\
+  qgis_launcher.exe
+  qgis_settings.json      # 全設定の起点
+  ini\                    # ユーザーロール制御用（`ini/&lt;role&gt;.ini/xml` 等）
+  profiles\               # 配布プロファイル（`%APPDATA%\QGIS\` へコピー元）
+  ProjectFiles\           # サンプルプロジェクト（任意）</code></pre>
+<ul>
+<li><code>qgis_settings.json</code> や
+<code>ini/</code>、<code>profiles/</code>、<code>ProjectFiles/</code> は
+<code>qgis_launcher.exe</code> と同じ階層に置きます。</li>
+<li>設定ファイルの <code>project_root</code>
+等が未指定、または相対パスの場合は上記フォルダを基準に解決されます。</li>
+<li>配布プロファイルは、インストール先の <code>profiles\QGIS4\</code>
+から <code>%APPDATA%\QGIS\QGIS4\</code> へ起動時にコピーされます。</li>
+</ul>
+<h3 id="起動方法">起動方法</h3>
+<ul>
+<li><strong>Web UI 起動</strong>: <code>qgis_launcher.exe</code> を実行
+<ul>
+<li>既定ポートは <code>8500</code>。起動後は
+<code>http://127.0.0.1:8500/</code> にアクセス</li>
+<li>ポートを変更する場合:
+<code>qgis_launcher.exe --port &lt;ポート番号&gt;</code></li>
+</ul></li>
+<li><strong>CLI 起動</strong>: <code>qgis_launcher.exe --cli</code></li>
+<li><strong>開発起動</strong>: <code>python run.py</code> または
+<code>python run.py --release</code>
+<ul>
+<li>ポートを変更する場合:
+<code>python run.py --release --port &lt;ポート番号&gt;</code></li>
+</ul></li>
+<li><strong>設定ファイルの所在</strong>: <code>qgis_launcher.exe</code>
+と同じフォルダの <code>qgis_settings.json</code> を読み込みます</li>
+</ul>
+<hr />
+</section>
+    </main>
+  </div>
+</body>
+</html>
