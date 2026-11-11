@@ -18,10 +18,26 @@
 <section>
 <h2 id="導入起動方法">7. 🚀 導入・起動方法</h2>
 <h3
-id="初回導入インストーラー版推奨">初回導入（インストーラー版：推奨）</h3>
+id="初回導入zip-版推奨">初回導入（ZIP 版：推奨）</h3>
+<p>配布用 ZIP
+を任意のフォルダに展開するだけで使えます。インストール権限が不要で、EXE
+の実行が制限されている環境でも利用できるため、基本的にはこちらを推奨します。</p>
+<ol type="1">
+<li>ZIP をダウンロード
+<ul>
+<li><a
+href="https://yamamoto-ryuzo.github.io/kasugai_qgis/public/kasugai_qgis.zip">kasugai_qgis.zip</a></li>
+</ul></li>
+<li>任意のユーザー書き込み可能なフォルダ（例:
+<code>%USERPROFILE%\kasugai_qgis\</code> や
+<code>%LOCALAPPDATA%\kasugai_qgis\</code>）に展開</li>
+<li>展開したフォルダ内の <code>qgis_launcher.exe</code>
+をダブルクリックで起動</li>
+</ol>
+<h3 id="インストーラー版">インストーラー版</h3>
 <p>NSIS インストーラー <code>kasugai_qgis-setup.exe</code>
 を使って、<code>C:\kasugai\kasugai_qgis\</code>
-へ自動的にインストールできます。</p>
+へ自動的にインストールできます（スタートメニューへのショートカット作成も行われます）。</p>
 <ol type="1">
 <li>インストーラーをダウンロード
 <ul>
@@ -43,22 +59,6 @@ href="https://yamamoto-ryuzo.github.io/kasugai_qgis/public/kasugai_qgis-setup.ex
 <h4 id="サイレントインストール">サイレントインストール</h4>
 <p>コマンドラインから以下のように実行すると、画面を表示せずにインストールできます。</p>
 <pre class="batch"><code>kasugai_qgis-setup.exe /S /D=C:\kasugai\kasugai_qgis</code></pre>
-<h3 id="zip-版インストール権限がない場合">ZIP
-版（インストール権限がない場合）</h3>
-<p>インストーラーの実行権限がない場合は、配布用 ZIP
-を任意のフォルダに展開して使用できます。</p>
-<ol type="1">
-<li>ZIP をダウンロード
-<ul>
-<li><a
-href="https://yamamoto-ryuzo.github.io/kasugai_qgis/public/kasugai_qgis.zip">kasugai_qgis.zip</a></li>
-</ul></li>
-<li>任意のユーザー書き込み可能なフォルダ（例:
-<code>%USERPROFILE%\kasugai_qgis\</code> や
-<code>%LOCALAPPDATA%\kasugai_qgis\</code>）に展開</li>
-<li>展開したフォルダ内の <code>qgis_launcher.exe</code>
-をダブルクリックで起動</li>
-</ol>
 <blockquote>
 <p>注意: ZIP
 版はスタートメニューショートカットを作成しません。必要に応じて手動でショートカットを作成してください。</p>
