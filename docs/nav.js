@@ -5,7 +5,7 @@
 // - JS が無効でも本文は通常表示される（サイドバーだけ出ない）
 (function () {
   const base = new URL('.', document.currentScript.src).pathname;
-  const VERSION = 'v2.4.0';
+  const VERSION = 'v2.4.1';
 
   const GROUPS = [
     {

@@ -815,13 +815,15 @@
 
     // 言語切替セレクタ（i18n.js で管理）
     const langSel = $('lang-select');
-    SUPPORTED_LANGUAGES.forEach(l => {
-      const opt = document.createElement('option');
-      opt.value = l.code;
-      opt.textContent = l.label;
-      langSel.appendChild(opt);
-    });
-    langSel.addEventListener('change', () => setLanguage(langSel.value));
+    if (typeof SUPPORTED_LANGUAGES !== 'undefined' && langSel) {
+      SUPPORTED_LANGUAGES.forEach(l => {
+        const opt = document.createElement('option');
+        opt.value = l.code;
+        opt.textContent = l.label;
+        langSel.appendChild(opt);
+      });
+      langSel.addEventListener('change', () => setLanguage(langSel.value));
+    }
 
     // 動的に生成される要素（data-i18n 付き）を再描画して翻訳を反映する
     window.onLanguageChanged = () => {
@@ -833,9 +835,35 @@
     };
 
     (async () => {
-      await initI18n();
-      langSel.value = currentLang;
-      await reloadAll();
+      if (typeof initI18n !== 'function' || typeof t !== 'function') {
+        // i18n.js が読み込めなかった（サーバー再起動直後に古いページが描画された場合など）。
+        // サーバー復旧を待ってページ全体をリロードする。
+        status('サーバーに再接続しています…', 'err');
+        for (let i = 0; i < 120; i++) {
+          await new Promise(r => setTimeout(r, 1000));
+          try {
+            const res = await fetch('/health', { cache: 'no-store' });
+            if (res.ok) { location.reload(); return; }
+          } catch (e) { /* まだ起動していない */ }
+        }
+        return;
+      }
+      try {
+        // 起動直後の一時的な接続失敗に備えて再試行する
+        for (let i = 0; i < 30; i++) {
+          try {
+            await initI18n();
+            if (langSel) langSel.value = currentLang;
+            await reloadAll();
+            break;
+          } catch (e) {
+            if (i === 29) throw e;
+            await new Promise(r => setTimeout(r, 1000));
+          }
+        }
+      } catch (e) {
+        status(t('status_server_unreachable', { msg: e.message }), 'err');
+      }
       refreshLiveStatus();
       setInterval(refreshLiveStatus, 15000);
       try {
