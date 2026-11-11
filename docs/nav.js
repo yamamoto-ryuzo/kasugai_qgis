@@ -5,7 +5,7 @@
 // - JS が無効でも本文は通常表示される（サイドバーだけ出ない）
 (function () {
   const base = new URL('.', document.currentScript.src).pathname;
-  const VERSION = 'v2.3.0';
+  const VERSION = 'v2.4.0';
 
   const GROUPS = [
     {
@@ -46,6 +46,7 @@
   ];
 
   const DEMOS = [
+    { href: 'https://yamamoto-ryuzo.github.io/kasugai_qgis/public/kasugai_qgis.zip', text: '⬇ ポータブル ZIP（kasugai_qgis.zip）' },
     { href: 'https://yamamoto-ryuzo.github.io/kasugai_qgis/public/kasugai_qgis-setup.exe', text: '⬇ インストーラー（kasugai_qgis-setup.exe）' },
     { href: 'https://github.com/yamamoto-ryuzo/kasugai_qgis/issues', text: '🐛 問い合わせ（GitHub Issues）' }
   ];
