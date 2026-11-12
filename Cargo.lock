@@ -2247,7 +2247,7 @@ dependencies = [
 
 [[package]]
 name = "qgis_launcher"
-version = "2.5.3"
+version = "2.5.4"
 dependencies = [
  "axum",
  "clap",

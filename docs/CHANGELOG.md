@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [2.5.4] - 2026-11-13
 
 ### Added
 - 起動時に配布バンドル同梱プラグインをインストール済みプロファイルへバージョン同期する機能を追加。`profiles/<QGIS*>/profiles/<name>/python/plugins/<id>` の `metadata.txt` バージョンを比較し、バンドル版が新しい場合のみそのプラグインをミラー上書き（削除→再コピー）する。junction/symlink 配置（ハーネス開発モード）は外部管理のため対象外。あわせて `[PythonPlugins]` に有効化キーが無いプラグインを `=true` で追記する（既存の `=false` は尊重）
