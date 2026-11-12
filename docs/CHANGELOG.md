@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [2.5.2] - 2026-11-13
 
 ### Fixed
 - プロジェクト選択が空になる問題を修正。`project_root` が `Q:\` 等のドライブルートの場合 `/projects` が `Q:\\dir\file.qgs` のような二重区切りパスを返し、保存済み `current_project`（`Q:\dir\file.qgs`）と文字列が一致せず復元に失敗していた。`/projects` の返却パスを `components()` で正規化し、あわせて保存値が選択肢に一致しない/未設定の場合は先頭候補を自動選択するようにした
