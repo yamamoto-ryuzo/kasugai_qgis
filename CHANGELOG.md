@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.5.5] - 2026-11-13
+
+### Fixed
+- 配布プロファイルのシード元を exe 直下の `profiles/` に固定。これまで `resolved_settings_dir`（実効 `qgis_settings.json` の所在）の `profiles/` を使っていたため、`project_root` が共有ドライブ上にあり `qgis_settings.json` を含む環境では `project_root\profiles` が配布元となり、インストーラーで更新した `$INSTDIR\profiles` が `%APPDATA%` へ反映されなかった。起動時シード・バンドルプラグイン同期・「プロファイル強制更新」(reset) のすべてで exe 直下を正本とするよう修正し、解決した配布元パスを起動ログに出力するようにした
+
 ## [2.5.4] - 2026-11-13
 
 ### Added

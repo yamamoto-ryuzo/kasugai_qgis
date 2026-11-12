@@ -1191,7 +1191,7 @@ fn main() {
 
     let server_port = args.port.unwrap_or(settings.api_server_port.unwrap_or(8500));
     mount_drive_mappings(&settings.drive_mappings, &settings, None);
-    copy_profiles_at_startup(&resolved_settings_dir, None);
+    copy_profiles_at_startup(None);
     run_local_sync(&settings, &project_root_dir, None);
     // URI 位置引数つき起動は外部プロセス（KASUGAI 埋め込みペイン等）からの
     // 呼び出しを想定しているため、ここではウィンドウを開かず
@@ -1611,14 +1611,17 @@ fn mount_drive(m: &RcloneMount, rclone_path: &str, sender: Option<&std::sync::mp
 
 /// EXE 起動時: 起動フォルダの profiles\ 直下を %APPDATA%\QGIS\ へコピーする
 /// profiles\QGIS4\ → %APPDATA%\QGIS\QGIS4\ となる（コピー先に既存ファイルがある場合はスキップ）
-fn copy_profiles_at_startup(settings_dir: &str, sender: Option<&std::sync::mpsc::Sender<String>>) {
-    let base_profiles = PathBuf::from(settings_dir).join("profiles");
+/// 配布プロファイルの正本は常に「起動直下」= exe と同じ階層の `profiles/`。
+/// resolved_settings_dir は project_root（共有ドライブ等）へずれ得るため使わない。
+fn copy_profiles_at_startup(sender: Option<&std::sync::mpsc::Sender<String>>) {
+    let base_profiles = PathBuf::from(get_default_settings_dir()).join("profiles");
     if !base_profiles.exists() {
         if let Some(s) = sender {
             let _ = s.send("MSG:distribution profiles not found".to_string());
         }
         return;
     }
+    println!("配布プロファイル元: {:?}", base_profiles);
 
     for target in qgis_launcher::get_qgis_profile_paths() {
         // target = %APPDATA%\QGIS\QGIS{major}。profiles\ 直下の
@@ -1661,8 +1664,8 @@ fn copy_profiles_at_startup(settings_dir: &str, sender: Option<&std::sync::mpsc:
 
 /// 既存の QGIS プロファイルを強制削除してから配布プロファイルを再コピーする。
 /// 削除対象は `%APPDATA%/QGIS/QGISx/profiles/*` または `%APPDATA%/QGIS/QGISx/*` の直下ディレクトリ。
-fn reset_profiles(settings_dir: &str, sender: Option<&std::sync::mpsc::Sender<String>>) -> Result<(), String> {
-    let base_profiles = PathBuf::from(settings_dir).join("profiles");
+fn reset_profiles(sender: Option<&std::sync::mpsc::Sender<String>>) -> Result<(), String> {
+    let base_profiles = PathBuf::from(get_default_settings_dir()).join("profiles");
     if !base_profiles.exists() {
         return Err("distribution profiles not found".to_string());
     }
@@ -1709,7 +1712,7 @@ fn reset_profiles(settings_dir: &str, sender: Option<&std::sync::mpsc::Sender<St
     if let Some(s) = sender { let _ = s.send("MSG:配布プロファイルをコピーしています".to_string()); }
 
     // コピーして再構築
-    copy_profiles_at_startup(settings_dir, sender);
+    copy_profiles_at_startup(sender);
     if let Some(s) = sender { let _ = s.send("PROG:100".to_string()); }
     Ok(())
 }
@@ -2584,8 +2587,7 @@ async fn reset_profiles_handler(State(state): State<AppState>) -> Result<Json<se
         }
     });
 
-    let settings_dir = state.settings_dir.clone();
-    let reset = tokio::task::spawn_blocking(move || reset_profiles(&settings_dir, Some(&tx)));
+    let reset = tokio::task::spawn_blocking(move || reset_profiles(Some(&tx)));
 
     let res = reset.await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let _ = bridge.await;
