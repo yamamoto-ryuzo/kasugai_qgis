@@ -455,7 +455,9 @@
       });
       if (currentSettings.current_project) {
         sel.value = currentSettings.current_project;
-      } else if (list.length > 0) {
+      }
+      // 設定値が選択肢に一致しない場合や未設定の場合は先頭を選択する
+      if (sel.selectedIndex === -1 && list.length > 0) {
         sel.selectedIndex = 0;
       }
       checkProjectVersion();

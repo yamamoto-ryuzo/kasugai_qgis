@@ -2656,6 +2656,9 @@ fn get_available_projects(settings: &QgisSettings, project_root: &str) -> Vec<Pr
         } else {
             PathBuf::from(project_root).join(&expanded)
         };
+        // "Q:\\" のようなドライブルートに join すると "Q:\\dir" と二重の
+        // 区切り文字が入るため、components 経由で正規化して保存値と一致させる
+        let pb: PathBuf = pb.components().collect();
 
         if pb.is_file() && is_qgis_project(&pb) {
             if seen.insert(pb.clone()) {
