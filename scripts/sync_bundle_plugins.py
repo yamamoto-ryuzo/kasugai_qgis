@@ -4,8 +4,7 @@ qgis-plugin/<id> を正本として、
 download/profiles/*/profiles/*/python/plugins/<id> へミラーコピーする。
 正本の解決順:
   1. KASUGAI_HARNESS_DIR 環境変数 → <dir>/qgis-plugin
-  2. <harness>/qgis-plugin/kasugai_qgis 配置（親ディレクトリ名が qgis-plugin）
-  3. 兄弟リポジトリ <親>/qgis_live_harness/qgis-plugin（単体 clone 配置）
+  2. 兄弟リポジトリ <親>/qgis_live_harness/qgis-plugin（単体 clone 配置）
 
 - 同期対象: バンドル側に既に存在し、かつ正本側に metadata.txt を持つ
   プラグインのみ（サードパーティ製や同梱専用プラグインは触らない）
@@ -37,8 +36,6 @@ def _resolve_harness():
     env = os.environ.get("KASUGAI_HARNESS_DIR")
     if env and (Path(env) / "qgis-plugin").is_dir():
         return Path(env) / "qgis-plugin", Path(env)
-    if ROOT.parent.name == "qgis-plugin":
-        return ROOT.parent, ROOT.parent.parent
     qp = ROOT.parent / "qgis_live_harness" / "qgis-plugin"
     if qp.is_dir():
         return qp, qp.parent

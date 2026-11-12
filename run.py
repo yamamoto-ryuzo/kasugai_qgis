@@ -403,8 +403,8 @@ def run_release(extra=None):
 def sync_bundle_plugins():
     """download/profiles 同梱の repo 管理プラグインを qgis-plugin/* と同期する。
 
-    正本は KASUGAI_HARNESS_DIR → <harness>/qgis-plugin/kasugai_qgis 配置 →
-    兄弟リポジトリ ../qgis_live_harness/qgis-plugin の順で解決する。
+    正本は KASUGAI_HARNESS_DIR → 兄弟リポジトリ
+    ../qgis_live_harness/qgis-plugin の順で解決する。
     正本が見つからない場合は同期対象なしでスクリプト側が正常終了する。
     """
     script = ROOT / "scripts" / "sync_bundle_plugins.py"
