@@ -2369,11 +2369,28 @@ async fn launch_handler(State(state): State<AppState>, Json(req): Json<LaunchReq
     let project_paths = req.project_paths;
     let executable = req.executable;
     let role = req.role;
-    tokio::task::spawn_blocking(move || {
-        launch_qgis(&profile, &project_paths, &project_root_dir, &executable, &role);
-    })
-    .await
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    {
+        let (profile, project_paths, executable, role, project_root_dir) =
+            (profile.clone(), project_paths.clone(), executable.clone(), role.clone(), project_root_dir.clone());
+        tokio::task::spawn_blocking(move || {
+            launch_qgis(&profile, &project_paths, &project_root_dir, &executable, &role);
+        })
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    }
+    // 今回の起動選択を次回起動の初期値として保存（保存失敗は起動結果に影響させない）
+    let settings_dir = state.settings_dir;
+    let last_project = project_paths.first().cloned();
+    let _ = tokio::task::spawn_blocking(move || {
+        let mut s = get_current_settings(&settings_dir);
+        s.profile = profile;
+        s.userrole = if role.is_empty() { None } else { Some(role) };
+        s.qgis_executable = if executable.is_empty() { None } else { Some(executable) };
+        s.current_project = last_project;
+        if let Err(e) = save_settings(&settings_dir, &s) {
+            eprintln!("起動選択の保存に失敗: {}", e);
+        }
+    }).await;
     // QGIS 起動後はサーバーを自動停止する（レスポンス送信後に終了）
     tokio::spawn(async {
         tokio::time::sleep(std::time::Duration::from_millis(500)).await;
