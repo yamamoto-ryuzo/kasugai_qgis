@@ -88,7 +88,8 @@ Section "MainSection" SecMain
   SetOutPath "$INSTDIR\ini"
   File /r "..\download\ini\*.*"
 
-  ; 配布プロファイル
+  ; 配布プロファイル（旧バンドルの残存ファイルを削除してから配置）
+  RMDir /r "$INSTDIR\profiles"
   SetOutPath "$INSTDIR\profiles"
   File /r "..\download\profiles\*.*"
 

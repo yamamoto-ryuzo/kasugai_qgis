@@ -88,7 +88,7 @@ def sync_settings_version(version):
         print(f"qgis_settings.json: kasugai_qgis_version = {version}")
 
 
-def sync_update_json(version):
+def sync_update_json(version, full_update=None):
     """ビルド済みインストーラーの実体に合わせて update.json を書き出す。
 
     version と実際に配布される EXE がずれないよう、必ずインストーラー生成後に呼ぶこと。
@@ -117,7 +117,9 @@ def sync_update_json(version):
             or f"https://yamamoto-ryuzo.github.io/{PROJECT_NAME}/public/{UPDATE_EXE_NAME}",
             "full_url": data.get("full_url")
             or f"https://yamamoto-ryuzo.github.io/{PROJECT_NAME}/public/{SETUP_EXE_NAME}",
-            "full": bool(data.get("full", False)),
+            # full=True → 既存インストールは setup.exe（データ込み）を取得する。
+            # None のときは前回値を維持する。
+            "full": bool(data.get("full", False)) if full_update is None else bool(full_update),
             "signature": data.get("signature"),
             "sha256": sha256_of(update_exe),
             "full_sha256": sha256_of(setup_exe),
@@ -415,7 +417,7 @@ def sync_bundle_plugins():
     return subprocess.run([sys.executable, str(script)], cwd=ROOT).returncode
 
 
-def build_release_bundle(with_zip=True):
+def build_release_bundle(with_zip=True, full_update=None):
     """リリース一式をビルドし、バージョン情報を同期する。"""
     version = read_cargo_version()
     print(f"=== リリースビルド {version} ===")
@@ -441,7 +443,7 @@ def build_release_bundle(with_zip=True):
         print("WARNING: インストーラー未生成のため update.json の同期と整合性チェックを省略します。")
         return 0
     # 実際に生成された EXE を元に update.json を更新する
-    rc = sync_update_json(version)
+    rc = sync_update_json(version, full_update=full_update)
     if rc != 0:
         return rc
     return verify_release_consistency(version)
@@ -454,6 +456,8 @@ def main():
     parser.add_argument("--release", action="store_true")
     parser.add_argument("--bump", metavar="VERSION",
                         help="バージョンを更新してリリース一式をビルドする（例: --bump 2.1.0）")
+    parser.add_argument("--full-update", action="store_true",
+                        help="--bump と併用。update.json の full=true を設定し、既存インストールが全体インストーラー（プロファイル等のデータ込み）を取得するようにする。download/ 配下を更新したリリースで指定する")
     parser.add_argument("--check-version", action="store_true",
                         help="バージョン整合性のみ確認する")
     parser.add_argument("--sync-plugins", action="store_true",
@@ -481,8 +485,9 @@ def main():
         if not re.fullmatch(r"\d+\.\d+\.\d+", args.bump):
             print("ERROR: バージョンは X.Y.Z 形式で指定してください")
             return 1
+        # full はリリースごとに明示する（--full-update 非指定時は false に戻す）
         set_cargo_version(args.bump)
-        return build_release_bundle()
+        return build_release_bundle(full_update=args.full_update)
     if args.release:
         return run_release(extra)
     if is_build:

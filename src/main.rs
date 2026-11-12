@@ -1638,6 +1638,10 @@ fn copy_profiles_at_startup(settings_dir: &str, sender: Option<&std::sync::mpsc:
         }
         let _ = copy_dir_contents_skip(&base_profiles, &qgis_dir);
 
+        // バンドル同梱プラグインのバージョン同期（新しい版があれば上書き）と
+        // [PythonPlugins] の有効化キー補完
+        sync_bundle_profile_plugins(&qgis_dir, &base_profiles, sender);
+
         // startup.py は --code ini/startup.py で管理するため、
         // プロファイル配下に残っている古い startup.py を削除する（二重実行防止）
         let profiles_dir = target.join("profiles");
@@ -1912,6 +1916,145 @@ fn copy_dir_contents_skip(src: &PathBuf, dst: &PathBuf) -> std::io::Result<()> {
         }
     }
     Ok(())
+}
+
+/// metadata.txt の `version=` を読み取る。
+fn read_plugin_version(plugin_dir: &PathBuf) -> Option<String> {
+    let content = fs::read_to_string(plugin_dir.join("metadata.txt")).ok()?;
+    content.lines()
+        .map(str::trim)
+        .find(|l| l.get(..7).map(|p| p.eq_ignore_ascii_case("version")).unwrap_or(false))
+        .and_then(|l| l.split_once('=').map(|(_, v)| v.trim().to_string()))
+        .filter(|v| !v.is_empty())
+}
+
+/// "V2.3.45" のようなバージョン文字列を数値列に正規化する。
+/// セグメント先頭の非数字は除去し、先頭からの数字部分を取る。
+fn plugin_version_parts(v: &str) -> Vec<u64> {
+    v.trim().split('.').map(|p| {
+        let digits: String = p.trim_start_matches(|c: char| !c.is_ascii_digit())
+            .chars().take_while(|c| c.is_ascii_digit()).collect();
+        digits.parse().unwrap_or(0)
+    }).collect()
+}
+
+/// バンドル側バージョンがインストール側より新しいなら true。
+/// 同値は false。数値として解釈できない側がある場合は差異をもって
+/// バンドル側を正として true を返す。
+fn bundle_plugin_is_newer(bundle_ver: &str, installed_ver: &str) -> bool {
+    if bundle_ver == installed_ver { return false; }
+    let (b, i) = (plugin_version_parts(bundle_ver), plugin_version_parts(installed_ver));
+    if b.iter().any(|&n| n != 0) && i.iter().any(|&n| n != 0) {
+        for k in 0..b.len().max(i.len()) {
+            let bv = b.get(k).copied().unwrap_or(0);
+            let iv = i.get(k).copied().unwrap_or(0);
+            if bv != iv { return bv > iv; }
+        }
+        return false;
+    }
+    true
+}
+
+fn copy_dir_overwrite(src: &PathBuf, dst: &PathBuf) -> std::io::Result<()> {
+    if !dst.exists() { fs::create_dir_all(dst)?; }
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let from = entry.path();
+        let to = dst.join(entry.file_name());
+        if entry.file_type()?.is_dir() {
+            copy_dir_overwrite(&from, &to)?;
+        } else if entry.file_type()?.is_file() {
+            fs::copy(&from, &to)?;
+        }
+    }
+    Ok(())
+}
+
+/// バンドル同梱プラグインをインストール済みプロファイルへバージョン同期する。
+/// バンドル版が新しいプラグインのみミラー上書き（削除→再コピー）する。
+/// junction/symlink 配置（ハーネス開発モード）は外部管理のため触らない。
+/// あわせて [PythonPlugins] に有効化キーが無いプラグインを `=true` で登録する
+/// （ユーザーが =false で無効化したものは尊重して変更しない）。
+fn sync_bundle_profile_plugins(qgis_dir: &PathBuf, base_profiles: &PathBuf, sender: Option<&std::sync::mpsc::Sender<String>>) {
+    let msg = |s: String| {
+        if let Some(tx) = sender { let _ = tx.send(format!("MSG:{}", s)); }
+        println!("{}", s);
+    };
+    let Ok(vers) = fs::read_dir(base_profiles) else { return; };
+    for ver in vers.flatten() {
+        if !ver.file_type().map(|t| t.is_dir()).unwrap_or(false) { continue; }
+        let profs_root = ver.path().join("profiles");
+        let Ok(profs) = fs::read_dir(&profs_root) else { continue; };
+        for prof in profs.flatten() {
+            if !prof.file_type().map(|t| t.is_dir()).unwrap_or(false) { continue; }
+            let src_plugins = prof.path().join("python").join("plugins");
+            let Ok(plugins) = fs::read_dir(&src_plugins) else { continue; };
+            let dst_profile = qgis_dir.join(ver.file_name())
+                .join("profiles").join(prof.file_name());
+            let dst_plugins = dst_profile.join("python").join("plugins");
+            let mut bundle_ids: Vec<String> = Vec::new();
+            for plug in plugins.flatten() {
+                if !plug.file_type().map(|t| t.is_dir()).unwrap_or(false) { continue; }
+                let id = plug.file_name().to_string_lossy().to_string();
+                bundle_ids.push(id.clone());
+                let src_dir = plug.path();
+                let dst_dir = dst_plugins.join(&id);
+                // 開発配置の junction はハーネス側管理のため触らない
+                if is_reparse_point(&dst_dir) { continue; }
+                let Some(src_ver) = read_plugin_version(&src_dir) else { continue; };
+                let upgrade = match read_plugin_version(&dst_dir) {
+                    Some(inst_ver) => bundle_plugin_is_newer(&src_ver, &inst_ver),
+                    None => true,
+                };
+                if !upgrade { continue; }
+                if dst_dir.exists() {
+                    if let Err(e) = fs::remove_dir_all(&dst_dir) {
+                        msg(format!("プラグイン更新失敗 {}: {}", id, e));
+                        continue;
+                    }
+                }
+                match copy_dir_overwrite(&src_dir, &dst_dir) {
+                    Ok(()) => msg(format!("配布プラグイン同期: {} -> {} ({})", id, src_ver, prof.file_name().to_string_lossy())),
+                    Err(e) => msg(format!("配布プラグイン同期失敗 {}: {}", id, e)),
+                }
+            }
+            ensure_profile_plugins_enabled(&dst_profile, &ver.file_name().to_string_lossy(), &bundle_ids, sender);
+        }
+    }
+}
+
+/// プロファイルの QGIS ini（[PythonPlugins]）に、バンドル同梱プラグインの
+/// 有効化キーが無ければ `<id>=true` を追記する。
+/// 既存の `=false`（ユーザーが無効化したもの）は変更しない。
+fn ensure_profile_plugins_enabled(profile_dir: &PathBuf, ver_name: &str, plugin_ids: &[String], sender: Option<&std::sync::mpsc::Sender<String>>) {
+    if plugin_ids.is_empty() { return; }
+    let ini = profile_dir.join("QGIS").join(format!("{}.ini", ver_name));
+    let Ok(content) = fs::read_to_string(&ini) else { return; };
+    let lines: Vec<&str> = content.lines().collect();
+    let Some(sec) = lines.iter()
+        .position(|l| l.trim().eq_ignore_ascii_case("[pythonplugins]")) else { return; };
+    let end = lines.iter().skip(sec + 1)
+        .position(|l| l.trim_start().starts_with('['))
+        .map(|p| sec + 1 + p).unwrap_or(lines.len());
+    let existing: Vec<String> = lines[sec + 1..end].iter()
+        .map(|l| l.trim().to_ascii_lowercase()).collect();
+    let mut added: Vec<String> = Vec::new();
+    for id in plugin_ids {
+        let key = format!("{}=", id.to_lowercase());
+        if !existing.iter().any(|l| l.starts_with(&key)) {
+            added.push(format!("{}=true", id));
+        }
+    }
+    if added.is_empty() { return; }
+    let newline = if content.contains("\r\n") { "\r\n" } else { "\n" };
+    let mut out: Vec<String> = lines[..end].iter().map(|s| s.to_string()).collect();
+    out.extend(added.iter().cloned());
+    out.extend(lines[end..].iter().map(|s| s.to_string()));
+    if fs::write(&ini, out.join(newline) + newline).is_ok() {
+        let msg = format!("プラグイン有効化を追記: {} ({})", added.join(", "), ini.display());
+        if let Some(s) = sender { let _ = s.send(format!("MSG:{}", msg)); }
+        println!("{}", msg);
+    }
 }
 
 fn get_available_qgis_versions() -> Vec<(String, String)> {
