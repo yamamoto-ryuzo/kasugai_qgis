@@ -17,7 +17,6 @@ mslnk = "0.1.8"
 quick-xml = "0.29"
 zip = "0.6"
 reqwest = { version = "0.12", features = ["blocking", "json"] }
-opener = "0.7"
 sha2 = "0.10"
 wry = "0.57.0"
 tao = "0.37.1"

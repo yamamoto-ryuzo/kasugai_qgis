@@ -75,11 +75,5 @@
   "status_stop_sent": "Solicitud de detención enviada al servidor",
   "status_reloaded": "Recargado",
   "status_server_unreachable": "No se puede conectar al servidor. Es posible que el lanzador se haya cerrado. ({msg})",
-  "status_server_stopped_close": "El servidor se ha detenido. Reinicie el lanzador o cierre esta pestaña.",
-  "btn_restart_launcher": "Reiniciar lanzador",
-  "status_restarting": "Reiniciando el lanzador. Si el navegador muestra un diálogo de confirmación, permítalo…",
-  "status_restart_timeout": "No se pudo confirmar el reinicio. Inicie el lanzador manualmente.",
-  "label_dev_mode": "Modo de desarrollo (QGIS Live Harness)",
-  "live_session_active": "Sesión de desarrollo activa (PID {pid})",
-  "live_session_none": "Sin sesión de desarrollo"
+  "status_server_stopped_close": "El servidor se ha detenido. Reinicie el lanzador o cierre esta pestaña."
 }

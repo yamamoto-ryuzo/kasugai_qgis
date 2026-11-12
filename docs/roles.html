@@ -12,7 +12,7 @@
   <div class="container">
     <header>
       <h1>QGIS Launcher (qgis_launcher) <span class="version-badge">v2.4.1</span></h1>
-      <p><strong>QGIS / QField 起動ランチャー</strong> — Web UI・HTTP API・CLI で動作する Rust(Axum) 製デスクトップランチャーのドキュメント</p>
+      <p><strong>QGIS / QField 起動ランチャー</strong> — Web UI・HTTP API で動作する Rust(Axum) 製デスクトップランチャーのドキュメント</p>
     </header>
     <main>
 <section>
@@ -139,12 +139,11 @@ XML）を渡します。QGIS4.0 未満はサポートしません。</p>
 <ol type="1">
 <li><code>qgis_settings.json</code> の <code>profile</code>
 が空でない場合はそれを使用</li>
-<li>そうでなければ CLI の <code>--profile</code> 引数</li>
 <li>それでも無ければ <code>default</code> を使用</li>
 </ol></li>
 <li><p>QGIS 実行ファイルパスの優先順位（重要）:</p>
 <ol type="1">
-<li>CLI 引数 <code>--qgis_executable</code>（明示指定）</li>
+<li>Web UI で選択した実行ファイルパス（起動要求に含まれる）</li>
 <li><code>qgis_settings.json</code> の <code>qgis_executable</code>
 フィールド</li>
 <li>レジストリやファイル関連付けからの自動検出（<code>find_qgis_path_from_registry()</code>）</li>
@@ -156,9 +155,7 @@ XML）を渡します。QGIS4.0 未満はサポートしません。</p>
 class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cd</span> qgis_launcher</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>cargo build <span class="op">--</span>release</span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co"># ランチャー（デフォルトは Web UI を起動）</span></span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>cargo run <span class="op">--</span>release</span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="co"># CLI モードで即座に起動</span></span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>cargo run <span class="op">--</span>release <span class="op">--</span> <span class="op">--</span>cli</span></code></pre></div>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>cargo run <span class="op">--</span>release</span></code></pre></div>
 <ul>
 <li>備考: <code>Cargo.toml</code> は
 <code>axum</code>、<code>tokio</code>、<code>tower-http</code>

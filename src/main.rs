@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::os::windows::process::CommandExt;
 use std::os::windows::fs::MetadataExt;
-use std::net::TcpStream;
+
 use std::sync::{Arc, Mutex};
 use serde::{Deserialize, Serialize};
 use winreg::enums::*;
@@ -120,10 +120,6 @@ pub struct QgisSettings {
     /// qgislocalsync.config が存在する場合はそちらを優先して読み込む。
     #[serde(default)]
     pub local_sync: Option<LocalSyncConfig>,
-    /// 開発モード: QGIS Live Harness の環境変数を QGIS 起動時に注入する。
-    /// harness は KASUGAI_HARNESS_DIR または exe 祖先の qgis-plugin/ から検出する。
-    #[serde(default)]
-    pub dev_mode: Option<bool>,
 }
 
 impl Default for QgisSettings {
@@ -144,7 +140,6 @@ impl Default for QgisSettings {
             update_check: None,
             api_server_port: None,
             local_sync: None,
-            dev_mode: None,
         }
     }
 }
@@ -196,31 +191,6 @@ fn get_default_settings_dir() -> String {
 
 // debug logging to file removed
 
-/// 文字列から最初に現れる連続する数字列を抜き出してメジャーバージョンとする。
-/// 例: "QGIS 4.0.0" -> Some("4")
-fn extract_major(s: &str) -> Option<String> {
-    let bs = s.as_bytes();
-    let mut i = 0usize;
-    while i < bs.len() {
-        let c = bs[i] as char;
-        if c.is_ascii_digit() {
-            let start = i;
-            i += 1;
-            while i < bs.len() {
-                let c2 = bs[i] as char;
-                if c2.is_ascii_digit() {
-                    i += 1;
-                } else {
-                    break;
-                }
-            }
-            return Some(String::from_utf8_lossy(&bs[start..i]).to_string());
-        }
-        i += 1;
-    }
-    None
-}
-
 /// 文字列中から先頭に現れる数字ドット区切りのセグメントを抽出し、
 /// 最大3セグメント (major, minor, patch) を返す。
 /// 例: "4.0.0-Norrköping" -> vec!["4","0","0"]
@@ -262,46 +232,16 @@ fn parse_version_parts(s: &str) -> Vec<String> {
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    /// スタートアップに登録する
-
-    /// 適用する環境設定プロファイル名
-    #[arg(short, long, default_value = "geo_custom")]
-    profile: String,
-
-    /// コマンドラインモードで QGIS を起動する
-    #[arg(long, default_value_t = false)]
-    cli: bool,
-
-    /// 検出されるQGIS一覧を出力して終了する（デバッグ用）
-    #[arg(long, default_value_t = false)]
-    list_qgis: bool,
-
-    /// API サーバーモードで動作する（Tauri サイドカー用）
-    #[arg(long, default_value_t = false)]
-    server: bool,
-
     /// API サーバーが待ち受けるポート（未指定時は qgis_settings.json の api_server_port、それも未指定時は 8500）
     #[arg(long)]
     port: Option<u16>,
-
-    /// 起動後に WebView2 ウィンドウで UI を開く(--server と併用時も有効)
-    #[arg(long, default_value_t = false)]
-    open_browser: bool,
 
     /// 更新チェックを完全に無効化する（更新直後の再起動時に使用し、更新ループを防ぐ）
     #[arg(long, default_value_t = false)]
     no_update_check: bool,
 
-    /// QGISの実行ファイルパス（指定がなければ自動検出）
-    #[arg(long)]
-    qgis_executable: Option<String>,
-
-    /// 開発モードで QGIS を起動する（QGIS Live Harness の環境変数を注入）
-    #[arg(long, default_value_t = false)]
-    dev: bool,
-
-    /// カスタムプロトコル (kasugai-qgis://) から起動された場合に渡される URI。
-    /// サーバーモードで起動するためのトリガーとしてのみ使用し、内容は参照しない。
+    /// 外部プロセスからのヘッドレス起動トリガーとして渡される URI。
+    /// 内容は参照しない。
     #[arg(value_name = "URI")]
     uri: Option<String>,
 }
@@ -1197,24 +1137,9 @@ fn verify_sha256(path: &std::path::Path, expected: &str) -> Result<(), String> {
 fn main() {
     let args = Args::parse();
 
-    // カスタムプロトコル経由の起動をログに残す（URI 自体はトリガーとしてのみ使用）
+    // URI 位置引数つき起動をログに残す（URI 自体はヘッドレス化トリガーとしてのみ使用）
     if let Some(uri) = &args.uri {
-        println!("プロトコル起動: {}", uri);
-    }
-
-    // デバッグ: 検出される QGIS 一覧を出力して終了
-    if args.list_qgis {
-        if let Some(reg) = find_qgis_path_from_registry() {
-            println!("Registry default path: {}", reg);
-        } else {
-            println!("Registry default path: <none>");
-        }
-        let avail = get_available_qgis_versions();
-        println!("Detected QGIS installations (count={}):", avail.len());
-        for (n, p) in avail {
-            println!("- {} => {}", n, p);
-        }
-        return;
+        println!("URI 起動（ヘッドレス）: {}", uri);
     }
 
     // 実行ファイルのフォルダをカレントディレクトリに設定する
@@ -1264,103 +1189,21 @@ fn main() {
     }
     reconcile_update_state();
 
-    let profile_to_use = if !settings.profile.trim().is_empty() {
-        settings.profile.clone()
-    } else if !args.profile.trim().is_empty() {
-        args.profile.clone()
-    } else {
-        "default".to_string()
-    };
-
-    if !args.cli || args.open_browser || args.server {
-        // 残ったブラウザタブからの再起動に備え、カスタムプロトコルを登録しておく
-        register_protocol_handler();
-        let server_port = args.port.unwrap_or(settings.api_server_port.unwrap_or(8500));
-        mount_drive_mappings(&settings.drive_mappings, &settings, None);
-        copy_profiles_at_startup(&resolved_settings_dir, None);
-        run_local_sync(&settings, &project_root_dir, None);
-        // kasugai-qgis:// からの起動(uri 引数あり)は残ったタブ/pane 自身が
-        // /health をポーリングして復帰する方式なので、ここではウィンドウを開かず
-        // ヘッドレスサーバーとしてのみ動く
-        let headless = !args.open_browser && (args.server || args.uri.is_some());
-        if headless {
-            // ヘッドレス API サーバーモード(KASUGAI など外部連携用)
-            run_api_server_sync(server_port, &resolved_settings_dir, &project_root_dir, update_check_enabled);
-        } else {
-            // GUI モード: axum をバックグラウンドで動かし、UI は WebView2 ウィンドウで表示
-            run_gui_server(server_port, resolved_settings_dir, project_root_dir, update_check_enabled);
-        }
-        return;
-    }
-
-
-    // CLI モードでも配布プロファイルをシードする。
-    // 未シード環境で --profile が空プロファイルを指すのを防ぐ
+    let server_port = args.port.unwrap_or(settings.api_server_port.unwrap_or(8500));
+    mount_drive_mappings(&settings.drive_mappings, &settings, None);
     copy_profiles_at_startup(&resolved_settings_dir, None);
-
-    // KASUGAI/yr-qgis-launcher 方式のローカル自動同期（CLI モード）
     run_local_sync(&settings, &project_root_dir, None);
-
-    // CLI 起動
-    let mut qgis_exe = if let Some(exe) = &args.qgis_executable {
-        exe.clone()
-    } else if let Some(exe) = &settings.qgis_executable {
-        // 設定に残っているパスが実際に存在するか確認する
-        if PathBuf::from(exe).exists() {
-            exe.clone()
-        } else {
-            "".to_string()
-        }
+    // URI 位置引数つき起動は外部プロセス（KASUGAI 埋め込みペイン等）からの
+    // 呼び出しを想定しているため、ここではウィンドウを開かず
+    // ヘッドレスサーバーとしてのみ動く
+    let headless = args.uri.is_some();
+    if headless {
+        // ヘッドレス API サーバー（外部プロセス連携用）
+        run_api_server_sync(server_port, &resolved_settings_dir, &project_root_dir, update_check_enabled);
     } else {
-        "".to_string()
-    };
-
-    // CLI/非GUI 時: qgis_exe が指定されていない場合、プロジェクトのバージョンに合う
-    // インストール済み QGIS を自動選択する。選択はあくまでフォールバックで、明示指定が優先。
-    // プロジェクト候補: current_project を優先し、なければ project_path[0]
-    if args.qgis_executable.is_none() {
-        let proj_candidate = settings.current_project.as_deref()
-            .filter(|s| !s.is_empty())
-            .map(|s| s.to_string())
-            .or_else(|| settings.project_path.first().cloned());
-        if let Some(proj) = proj_candidate {
-            let effective = if PathBuf::from(&proj).is_absolute() {
-                proj.clone()
-            } else {
-                PathBuf::from(&settings_dir).join(&proj).to_string_lossy().to_string()
-            };
-            if let Some(ver) = get_project_file_version(&effective) {
-                let proj_major = ver.split('.').next().unwrap_or("").to_lowercase();
-                let avail = get_available_qgis_versions();
-                if let Some((_name, path)) = find_matching_available_for_project(&ver, &avail) {
-                    if qgis_exe.is_empty() {
-                        qgis_exe = path;
-                    } else {
-                        // 既に設定値がある場合、設定されている実行ファイルパスのメジャーを抽出して
-                        // プロジェクトのメジャーと比較し、異なれば上書きする
-                        let ql = qgis_exe.to_lowercase();
-                        let ql_major = extract_major(&ql).unwrap_or_default();
-                        if ql_major != proj_major {
-                            qgis_exe = path;
-                        }
-                    }
-                } else {
-                    // プロジェクトのバージョンに一致する QGIS が見つからない場合は
-                    // メッセージを出してシステム既定（.qgs 関連付け）にフォールバックする
-                    println!(
-                        "プロジェクトファイルのバージョン {} に一致する QGIS が見つかりませんでした。システム既定の QGIS で起動します。",
-                        ver
-                    );
-                    qgis_exe = String::new();
-                }
-            }
-        }
+        // GUI モード: axum をバックグラウンドで動かし、UI は WebView2 ウィンドウで表示
+        run_gui_server(server_port, resolved_settings_dir, project_root_dir, update_check_enabled);
     }
-
-    let userrole = settings.userrole.as_deref().unwrap_or("Viewer").to_string();
-    let dev_mode = args.dev || settings.dev_mode.unwrap_or(false);
-    println!("起動: プロファイル '{}' でQGISを起動します...", profile_to_use);
-    launch_qgis(&profile_to_use, &settings.project_path, &project_root_dir, &qgis_exe, &userrole, dev_mode);
 }
 
 /// コマンド文字列から最初のトークン（実行ファイルパス）を取り出す。
@@ -1382,46 +1225,6 @@ fn extract_first_command_token(s: &str) -> Option<&str> {
     } else {
         // 非クォート: 最初の空白まで
         s.split_whitespace().next()
-    }
-}
-
-/// カスタムプロトコル `kasugai-qgis:` を HKCU\Software\Classes に登録する。
-/// サーバー停止後に残ったブラウザタブから、URI 遷移でランチャーを再起動するために使用する。
-/// HKCU 配下のため管理者権限は不要。起動のたびに現在の EXE パスで上書きし、
-/// バージョンアップや移動にも追従する。失敗しても起動は継続する。
-fn register_protocol_handler() {
-    let exe = match env::current_exe() {
-        Ok(p) => p,
-        Err(e) => {
-            eprintln!("プロトコル登録: exe パス取得失敗: {}", e);
-            return;
-        }
-    };
-    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    let base = match hkcu.create_subkey(r"Software\Classes\kasugai-qgis") {
-        Ok((k, _)) => k,
-        Err(e) => {
-            eprintln!("プロトコル登録失敗 (Software\\Classes\\kasugai-qgis): {}", e);
-            return;
-        }
-    };
-    if let Err(e) = base.set_value("", &"URL:Kasugai QGIS Launcher".to_string()) {
-        eprintln!("プロトコル登録失敗 (既定値): {}", e);
-        return;
-    }
-    if let Err(e) = base.set_value("URL Protocol", &"".to_string()) {
-        eprintln!("プロトコル登録失敗 (URL Protocol): {}", e);
-        return;
-    }
-    match base.create_subkey(r"shell\open\command") {
-        Ok((cmd, _)) => {
-            // URI は "%1" として渡す。Args の位置引数 uri が受け取る（内容は参照しない）。
-            let command = format!("\"{}\" \"%1\"", exe.display());
-            if let Err(e) = cmd.set_value("", &command) {
-                eprintln!("プロトコル登録失敗 (command): {}", e);
-            }
-        }
-        Err(e) => eprintln!("プロトコル登録失敗 (shell\\open\\command): {}", e),
     }
 }
 
@@ -1998,117 +1801,7 @@ fn resolve_project_to_file(path_str: &str, settings_dir: &str) -> Option<PathBuf
     None
 }
 
-/// QGIS Live Harness のルートを検出する。
-/// KASUGAI_HARNESS_DIR 環境変数、または exe の祖先ディレクトリで
-/// `qgis-plugin/qgis_live_driver/metadata.txt` を持つものを探す。
-fn detect_harness_root() -> Option<PathBuf> {
-    let is_harness = |p: &PathBuf| {
-        p.join("qgis-plugin")
-            .join("qgis_live_driver")
-            .join("metadata.txt")
-            .exists()
-    };
-    if let Ok(dir) = env::var("KASUGAI_HARNESS_DIR") {
-        let p = PathBuf::from(dir);
-        if is_harness(&p) {
-            return Some(p);
-        }
-    }
-    if let Ok(exe) = env::current_exe() {
-        for anc in exe.ancestors() {
-            if is_harness(&anc.to_path_buf()) {
-                return Some(anc.to_path_buf());
-            }
-        }
-    }
-    None
-}
-
-/// 指定プロファイルの python/plugins が dev 配置(junction)かを判定する。
-/// harness の verify-in-qgis.ps1 と同じ規則:
-/// qgis-plugin/<id>(metadata.txt 持ち)がプロファイル側に junction で配置され、
-/// 実体dirが1つも無い場合のみ dev モードとみなす。
-fn is_junction_deploy(harness_root: &PathBuf, profile_name: &str) -> bool {
-    const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x400;
-    let plugins_src = harness_root.join("qgis-plugin");
-    let plugins_root = PathBuf::from(env::var("APPDATA").unwrap_or_default())
-        .join("QGIS")
-        .join("QGIS4")
-        .join("profiles")
-        .join(profile_name)
-        .join("python")
-        .join("plugins");
-    let mut saw_junction = false;
-    let mut saw_dir = false;
-    if let Ok(entries) = fs::read_dir(&plugins_src) {
-        for entry in entries.flatten() {
-            let src = entry.path();
-            if !src.is_dir() || !src.join("metadata.txt").exists() {
-                continue;
-            }
-            let dst = plugins_root.join(entry.file_name());
-            if let Ok(meta) = fs::symlink_metadata(&dst) {
-                if meta.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0 {
-                    saw_junction = true;
-                } else {
-                    saw_dir = true;
-                }
-            }
-        }
-    }
-    saw_junction && !saw_dir
-}
-
-/// 開発モード時に QGIS プロセスへ注入する環境変数を構築する。
-/// scripts/verify-in-qgis.ps1 と同じ値を使い、npm run live:* / MCP から
-/// 起動済み QGIS を発見・制御できるようにする。
-fn build_dev_env(profile_name: &str) -> HashMap<String, String> {
-    let mut envs = HashMap::new();
-    let set_default = |envs: &mut HashMap<String, String>, key: &str, val: String| {
-        // 既に環境変数があればそちらを優先する
-        match env::var(key) {
-            Ok(v) if !v.trim().is_empty() => {}
-            _ => {
-                envs.insert(key.to_string(), val);
-            }
-        }
-    };
-    set_default(&mut envs, "QTWEBENGINE_REMOTE_DEBUGGING", "9222".to_string());
-    set_default(
-        &mut envs,
-        "QTWEBENGINE_CHROMIUM_FLAGS",
-        "--disable-gpu --no-sandbox --disable-gpu-compositing".to_string(),
-    );
-    envs.insert("WEBENGINE_AUTOOPEN".to_string(), "1".to_string());
-
-    match detect_harness_root() {
-        Some(harness) => {
-            let test_results = harness.join("test-results");
-            envs.insert(
-                "WEBENGINE_LIVE_DIR".to_string(),
-                test_results.join("live").to_string_lossy().to_string(),
-            );
-            envs.insert(
-                "WEBENGINE_LOG_PATH".to_string(),
-                test_results.join("plugin_load.log").to_string_lossy().to_string(),
-            );
-            if is_junction_deploy(&harness, profile_name) {
-                envs.insert(
-                    "WEBENGINE_DEV_SRC".to_string(),
-                    harness.to_string_lossy().to_string(),
-                );
-            } else {
-                println!("devモード(junction配置)以外のため WEBENGINE_DEV_SRC 未設定(配置済み実体dirが動作)");
-            }
-        }
-        None => {
-            eprintln!("QGIS Live Harness が見つかりません。KASUGAI_HARNESS_DIR で指定できます。");
-        }
-    }
-    envs
-}
-
-fn launch_qgis(profile_name: &str, project_paths: &[String], project_root: &str, exe_path: &str, role: &str, dev_mode: bool) {
+fn launch_qgis(profile_name: &str, project_paths: &[String], project_root: &str, exe_path: &str, role: &str) {
     // QGISのパスを決定（プロファイルコピーは EXE 起動時に完了済み）
     let qgis_path = if exe_path.is_empty() {
         match find_qgis_path_from_registry() {
@@ -2130,9 +1823,6 @@ fn launch_qgis(profile_name: &str, project_paths: &[String], project_root: &str,
 
     // --globalsettingsfile: userrole を QGIS グローバル変数として渡すための ini を生成
     let global_settings_ini: Option<PathBuf> = write_global_settings_ini(role);
-
-    // 開発モード: QGIS Live Harness 連携用の環境変数
-    let dev_env = if dev_mode { build_dev_env(profile_name) } else { HashMap::new() };
 
     // 実行フォルダ/ini/startup.py のパスを取得（存在する場合のみ --code に渡す）
     let startup_script: Option<PathBuf> = env::current_exe().ok()
@@ -2159,9 +1849,6 @@ fn launch_qgis(profile_name: &str, project_paths: &[String], project_root: &str,
         }
         cmd.creation_flags(CREATE_NO_WINDOW);
         cmd.env("PORTAL_USERROLE", role);
-        for (k, v) in &dev_env {
-            cmd.env(k, v);
-        }
         cmd.arg("--profile").arg(profile_name);
         if let Some(ref ini) = customization_ini {
             cmd.arg("--customizationfile").arg(ini);
@@ -2434,55 +2121,6 @@ fn get_project_file_version(path: &str) -> Option<String> {
     }
 }
 
-/// 指定されたプロジェクトのバージョン文字列に一致する
-/// `get_available_qgis_versions()` のエントリを返す。
-/// マッチはまず major.minor の部分一致を試し、次に major のみでフォールバックする。
-fn find_matching_available_for_project(project_ver: &str, available: &Vec<(String, String)>) -> Option<(String, String)> {
-    let pv = project_ver.trim();
-    if pv.is_empty() { return None; }
-
-    // 正規化して numeric parts を取得
-    let pv_parts = parse_version_parts(pv);
-    if pv_parts.is_empty() { return available.first().cloned(); }
-
-    // まず major.minor の完全一致を試す（両方存在する場合）
-    if pv_parts.len() >= 2 {
-        let target_major = &pv_parts[0];
-        let target_minor = &pv_parts[1];
-        for (name, path) in available {
-            let combined = format!("{} {}", name, path);
-            let av_parts = parse_version_parts(&combined);
-            if av_parts.len() >= 2 && &av_parts[0] == target_major && &av_parts[1] == target_minor {
-                return Some((name.clone(), path.clone()));
-            }
-        }
-    }
-
-    // 次に major の一致を試す
-    let target_major = &pv_parts[0];
-    for (name, path) in available {
-        let combined = format!("{} {}", name, path);
-        let av_parts = parse_version_parts(&combined);
-        if !av_parts.is_empty() && &av_parts[0] == target_major {
-            return Some((name.clone(), path.clone()));
-        }
-    }
-
-    // 最後に以前の文字列包含フォールバック（互換性保護）
-    let cand = target_major.to_lowercase();
-    for (name, path) in available {
-        let name_l = name.to_lowercase();
-        let path_l = path.to_lowercase();
-        if name_l.contains(&cand) || path_l.contains(&cand) {
-            return Some((name.clone(), path.clone()));
-        }
-    }
-    
-    // 一致するQGISが見つからなかった場合は None を返す（自動選択しない）
-    None
-}
-
-
 
 #[derive(Clone)]
 struct AppState {
@@ -2512,69 +2150,27 @@ async fn ui_handler() -> Html<&'static str> {
 
 fn run_api_server_sync(port: u16, settings_dir: &str, project_root_dir: &str, update_check_enabled: bool) {
     let rt = tokio::runtime::Runtime::new().unwrap();
-    rt.block_on(run_api_server(port, settings_dir, project_root_dir, update_check_enabled));
+    rt.block_on(run_api_server(port, settings_dir, project_root_dir, update_check_enabled, None));
 }
 
 /// GUI モード: axum サーバーをバックグラウンドスレッドで起動し、
 /// メインスレッドでは WebView2 ウィンドウのイベントループを回す。
 /// tao/wry のイベントループはメインスレッドでしか動かないためこの構成。
-/// WebView2 Runtime が無い環境では既定ブラウザへのフォールバックで代替する。
 fn run_gui_server(port: u16, settings_dir: String, project_root_dir: String, update_check_enabled: bool) {
+    let (ready_tx, ready_rx) = std::sync::mpsc::channel::<()>();
     std::thread::spawn(move || {
         let rt = tokio::runtime::Runtime::new().unwrap();
-        rt.block_on(run_api_server(port, &settings_dir, &project_root_dir, update_check_enabled));
+        rt.block_on(run_api_server(port, &settings_dir, &project_root_dir, update_check_enabled, Some(ready_tx)));
     });
 
-    if !wait_for_server_ready(port) {
+    // ポート bind 完了（奪取リトライ込みで最悪30秒強）の通知を待つ
+    if ready_rx.recv_timeout(std::time::Duration::from_secs(90)).is_err() {
         eprintln!("サーバーが起動しませんでした (port {})", port);
         std::process::exit(1);
     }
 
-    if webview2_runtime_available() {
-        open_webview_window(port);
-        // open_webview_window はイベントループのため戻らない
-    } else {
-        // WebView2 Runtime 非搭載環境への最終フォールバック
-        let _ = opener::open(&format!("http://127.0.0.1:{}/", port));
-        loop {
-            std::thread::park();
-        }
-    }
-}
-
-fn wait_for_server_ready(port: u16) -> bool {
-    let url = format!("http://127.0.0.1:{}/health", port);
-    for _ in 0..120 {
-        if reqwest::blocking::get(&url)
-            .map(|r| r.status().is_success())
-            .unwrap_or(false)
-        {
-            return true;
-        }
-        std::thread::sleep(std::time::Duration::from_millis(500));
-    }
-    false
-}
-
-/// WebView2 Runtime (Evergreen) がインストールされているかをレジストリで確認する
-fn webview2_runtime_available() -> bool {
-    const CLIENT_ID: &str = "{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}";
-    for root in [HKEY_LOCAL_MACHINE, HKEY_CURRENT_USER] {
-        for prefix in [
-            r"SOFTWARE\Microsoft\EdgeUpdate\Clients",
-            r"SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients",
-        ] {
-            let path = format!(r"{}\{}", prefix, CLIENT_ID);
-            if let Ok(key) = RegKey::predef(root).open_subkey(&path) {
-                if let Ok(pv) = key.get_value::<String, _>("pv") {
-                    if !pv.is_empty() && pv != "0.0.0.0" {
-                        return true;
-                    }
-                }
-            }
-        }
-    }
-    false
+    open_webview_window(port);
+    // open_webview_window はイベントループのため戻らない
 }
 
 fn open_webview_window(port: u16) {
@@ -2600,7 +2196,13 @@ fn open_webview_window(port: u16) {
     let _webview = WebViewBuilder::new_with_web_context(&mut web_context)
         .with_url(&format!("http://127.0.0.1:{}/", port))
         .build(&window)
-        .expect("failed to create WebView2");
+        .unwrap_or_else(|e| {
+            eprintln!(
+                "WebView2 の起動に失敗しました: {}\nWebView2 Runtime (Evergreen) をインストールしてください。",
+                e
+            );
+            std::process::exit(1);
+        });
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
@@ -2615,7 +2217,7 @@ fn open_webview_window(port: u16) {
     });
 }
 
-async fn run_api_server(port: u16, settings_dir: &str, project_root_dir: &str, update_check_enabled: bool) {
+async fn run_api_server(port: u16, settings_dir: &str, project_root_dir: &str, update_check_enabled: bool, ready_tx: Option<std::sync::mpsc::Sender<()>>) {
     let state = AppState {
         settings_dir: settings_dir.to_string(),
         project_root_dir: project_root_dir.to_string(),
@@ -2641,7 +2243,6 @@ async fn run_api_server(port: u16, settings_dir: &str, project_root_dir: &str, u
         .route("/update/apply", post(update_apply_handler))
         .route("/api/v1/server/stop", post(stop_server))
         .route("/api/v1/server/info", get(server_info))
-        .route("/live-sessions", get(live_sessions_handler))
         .route("/version", get(version_handler))
         .layer(CorsLayer::permissive())
         .with_state(state);
@@ -2678,6 +2279,8 @@ async fn run_api_server(port: u16, settings_dir: &str, project_root_dir: &str, u
 
     let local_addr = listener.local_addr().unwrap();
     println!("{}", serde_json::json!({ "port": local_addr.port() }));
+    // GUI スレッドへ bind 完了を通知（ヘッドレス時は None）
+    if let Some(tx) = ready_tx { let _ = tx.send(()); }
     axum::serve(listener, app).await.unwrap();
 }
 
@@ -2735,89 +2338,6 @@ async fn server_info(State(state): State<AppState>) -> Json<serde_json::Value> {
     }))
 }
 
-/// qgis_live_driver の接続情報レジストリディレクトリ。
-/// ドライバ側の QGIS_LIVE_REGISTRY と同じ規則（既定 ~/.qgis-live）。
-fn live_registry_dir() -> PathBuf {
-    if let Ok(d) = env::var("QGIS_LIVE_REGISTRY") {
-        let t = d.trim();
-        if !t.is_empty() {
-            return PathBuf::from(t);
-        }
-    }
-    let home = env::var("USERPROFILE")
-        .or_else(|_| env::var("HOME"))
-        .unwrap_or_default();
-    PathBuf::from(home).join(".qgis-live")
-}
-
-/// ~/.qgis-live/<pid>-qgis_live_driver.json を列挙し、
-/// http_port への TCP 接続可否で生存判定した一覧を返す。
-fn list_live_sessions() -> Vec<serde_json::Value> {
-    let mut out = Vec::new();
-    if let Ok(entries) = fs::read_dir(live_registry_dir()) {
-        for entry in entries.flatten() {
-            let name = entry.file_name().to_string_lossy().to_string();
-            if !name.ends_with("-qgis_live_driver.json") {
-                continue;
-            }
-            let Ok(text) = fs::read_to_string(entry.path()) else { continue };
-            let Ok(mut v) = serde_json::from_str::<serde_json::Value>(&text) else { continue };
-            let alive = v
-                .get("http_port")
-                .and_then(|p| p.as_u64())
-                .map(|port| {
-                    format!("127.0.0.1:{}", port)
-                        .parse()
-                        .map(|a: std::net::SocketAddr| {
-                            TcpStream::connect_timeout(&a, std::time::Duration::from_millis(200)).is_ok()
-                        })
-                        .unwrap_or(false)
-                })
-                .unwrap_or(false);
-            if !alive {
-                // 死んだセッションのレジストリを掃除する。
-                // 起動直後のポートバインド待ちを誤削除しないよう十分古いものだけ消す
-                let stale = v
-                    .get("started")
-                    .and_then(|s| s.as_f64())
-                    .map(|s| {
-                        let now = std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .map(|d| d.as_secs_f64())
-                            .unwrap_or(0.0);
-                        now - s > 120.0
-                    })
-                    .unwrap_or(false);
-                if stale {
-                    let _ = fs::remove_file(entry.path());
-                    continue;
-                }
-            }
-            if let Some(obj) = v.as_object_mut() {
-                // セッションの認証トークンは API 応答に載せない
-                obj.remove("token");
-                obj.insert("alive".to_string(), serde_json::Value::Bool(alive));
-                obj.insert("registry_file".to_string(), serde_json::Value::String(name));
-            }
-            out.push(v);
-        }
-    }
-    out.sort_by(|a, b| {
-        b.get("started")
-            .and_then(|x| x.as_f64())
-            .partial_cmp(&a.get("started").and_then(|x| x.as_f64()))
-            .unwrap_or(std::cmp::Ordering::Equal)
-    });
-    out
-}
-
-async fn live_sessions_handler() -> Json<serde_json::Value> {
-    let sessions = tokio::task::spawn_blocking(list_live_sessions)
-        .await
-        .unwrap_or_default();
-    Json(serde_json::Value::Array(sessions))
-}
-
 async fn version_handler() -> Json<serde_json::Value> {
     Json(serde_json::json!({ "version": env!("CARGO_PKG_VERSION") }))
 }
@@ -2841,8 +2361,6 @@ struct LaunchRequest {
     project_paths: Vec<String>,
     executable: String,
     role: String,
-    #[serde(default)]
-    dev_mode: bool,
 }
 
 async fn launch_handler(State(state): State<AppState>, Json(req): Json<LaunchRequest>) -> Result<Json<serde_json::Value>, StatusCode> {
@@ -2851,9 +2369,8 @@ async fn launch_handler(State(state): State<AppState>, Json(req): Json<LaunchReq
     let project_paths = req.project_paths;
     let executable = req.executable;
     let role = req.role;
-    let dev_mode = req.dev_mode;
     tokio::task::spawn_blocking(move || {
-        launch_qgis(&profile, &project_paths, &project_root_dir, &executable, &role, dev_mode);
+        launch_qgis(&profile, &project_paths, &project_root_dir, &executable, &role);
     })
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;

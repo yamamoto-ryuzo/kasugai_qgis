@@ -12,7 +12,7 @@
   <div class="container">
     <header>
       <h1>QGIS Launcher (qgis_launcher) <span class="version-badge">v2.4.1</span></h1>
-      <p><strong>QGIS / QField 起動ランチャー</strong> — Web UI・HTTP API・CLI で動作する Rust(Axum) 製デスクトップランチャーのドキュメント</p>
+      <p><strong>QGIS / QField 起動ランチャー</strong> — Web UI・HTTP API で動作する Rust(Axum) 製デスクトップランチャーのドキュメント</p>
     </header>
     <main>
 <section>
@@ -29,22 +29,17 @@ rclone の起動は ローカルの <code>qgis_launcher</code>
 Google Drive for Desktop
 など、ローカルフォルダとして同期されるすべてのクラウドストレージに対応します。</p>
 <h3 id="ドライブ構成と役割box-の例">ドライブ構成と役割（BOX の例）</h3>
-<pre><code>BOX Drive (BOX:\Geo_Portal = %USERPROFILE%\Box\Geo_Portal)
-    │
-    │  robocopy /MIR（起動時に自動実行）
-    │  ← BOX → ローカルの一方向コピー
-    ▼
-ローカルキャッシュ (C:\qgis_cache\master)
-    │
-    │  subst
-    ▼
-  Q:  参照用・高速読み取り専用
+<pre class="mermaid">flowchart TD
+    B1["BOX Drive<br/>BOX:\Geo_Portal<br/>（%USERPROFILE%\Box\Geo_Portal）"] -- "robocopy /MIR（起動時に自動実行）<br/>BOX → ローカルの一方向コピー" --> C["ローカルキャッシュ<br/>C:\qgis_cache\master"]
+    C -- "subst" --> Q["Q: ドライブ<br/>参照用・高速読み取り専用"]
+    B2["BOX Drive<br/>BOX:\Geo_Portal<br/>（%USERPROFILE%\Box\Geo_Portal）"] -- "subst" --> R["R: ドライブ<br/>編集用・BOX Drive アプリが<br/>BOX へ自動同期"]
 
-BOX Drive (BOX:\Geo_Portal = %USERPROFILE%\Box\Geo_Portal)
-    │
-    │  subst
-    ▼
-  R:  編集用・BOX Drive アプリが BOX へ自動同期</code></pre>
+    classDef cloud fill:#e3f0fb,stroke:#2b6cb0,color:#1a2230
+    classDef cache fill:#fdf0d5,stroke:#b7791f,color:#1a2230
+    classDef drive fill:#e9f7ee,stroke:#2e9e56,color:#1a2230
+    class B1,B2 cloud
+    class C cache
+    class Q,R drive</pre>
 <table>
 <thead>
 <tr>
@@ -241,5 +236,9 @@ href="settings.html#ユーザーごとの設定オーバーライドqgis_setting
 </section>
     </main>
   </div>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@12.2.0/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, securityLevel: 'strict', theme: 'default' });
+  </script>
 </body>
 </html>

@@ -75,11 +75,5 @@
   "status_stop_sent": "Demande d'arrêt envoyée au serveur",
   "status_reloaded": "Rechargé",
   "status_server_unreachable": "Impossible de se connecter au serveur. Le lanceur a peut-être quitté. ({msg})",
-  "status_server_stopped_close": "Le serveur est arrêté. Redémarrez le lanceur ou fermez cet onglet.",
-  "btn_restart_launcher": "Redémarrer le lanceur",
-  "status_restarting": "Redémarrage du lanceur. Si le navigateur affiche une confirmation, autorisez-la…",
-  "status_restart_timeout": "Le redémarrage n'a pas pu être confirmé. Veuillez démarrer le lanceur manuellement.",
-  "label_dev_mode": "Mode développement (QGIS Live Harness)",
-  "live_session_active": "Session de développement active (PID {pid})",
-  "live_session_none": "Aucune session de développement"
+  "status_server_stopped_close": "Le serveur est arrêté. Redémarrez le lanceur ou fermez cet onglet."
 }

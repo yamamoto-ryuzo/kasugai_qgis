@@ -12,7 +12,7 @@
   <div class="container">
     <header>
       <h1>QGIS Launcher (qgis_launcher) <span class="version-badge">v2.4.1</span></h1>
-      <p><strong>QGIS / QField 起動ランチャー</strong> — Web UI・HTTP API・CLI で動作する Rust(Axum) 製デスクトップランチャーのドキュメント</p>
+      <p><strong>QGIS / QField 起動ランチャー</strong> — Web UI・HTTP API で動作する Rust(Axum) 製デスクトップランチャーのドキュメント</p>
     </header>
     <main>
 <section>
@@ -20,72 +20,69 @@
 <p><code>qgis_launcher.exe</code> が実行されてから QGIS
 が起動するまでの内部処理を、実装（<code>src/main.rs</code>）に沿って図解します。</p>
 <h3
-id="全体シーケンス起動モード分岐">図1: 全体シーケンス（起動～モード分岐）</h3>
+id="全体シーケンス">図1: 全体シーケンス（起動～初期化）</h3>
 <pre class="mermaid">flowchart TD
-    A(["qgis_launcher.exe 起動"]) --> B["CLI 引数をパース<br/>--profile / --cli / --list-qgis / --server / --port<br/>--open-browser / --no-update-check / --qgis-executable<br/>--dev / 位置引数 URI（kasugai-qgis:）"]
-    B --> C{"--list-qgis ?"}
-    C -- "はい" --> C1["検出した QGIS 一覧を出力して終了"]
-    C -- "いいえ" --> D["カレントディレクトリを EXE 所在フォルダへ変更"]
+    A(["qgis_launcher.exe 起動"]) --> B["CLI 引数をパース<br/>--port / --no-update-check<br/>位置引数 URI（ヘッドレス起動トリガー）"]
+    B --> D["カレントディレクトリを EXE 所在フォルダへ変更"]
     D --> E["設定読込（3段マージ・後勝ち）<br/>① qgis_settings.json（ベース）<br/>② qgis_settings_override.json（全ユーザー強制）<br/>③ qgis_settings_USERNAME.json（最終適用）"]
     E --> F["project_root 解決<br/>未指定 → 設定ファイル所在フォルダ<br/>project_root 内に別 qgis_settings.json が<br/>存在すればそちらを正として再読込"]
     F --> G["更新状態の照合（reconcile_update_state）<br/>%LOCALAPPDATA%\kasugai_qgis\update_state.json<br/>試行済みの目標バージョンに到達していれば記録クリア"]
-    G --> H["プロファイル決定<br/>settings.profile → CLI --profile（既定 geo_custom）→ default"]
-    H --> I{"起動モード判定"}
-    I -- "--cli" --> J["CLI モードへ（図3）"]
-    I -- "GUI / サーバ<br/>（--cli 無し or --open-browser or --server）" --> K["サーバモードへ（図2）"]
+    G --> K["起動処理へ（図2）"]
 
-    classDef profile fill:#e9f7ee,stroke:#2e9e56,color:#1a2230
-    class H profile</pre>
-<h3 id="サーバ--gui-モードの起動シーケンス">図2: サーバ / GUI
-モードの起動シーケンス</h3>
+    classDef profile fill:#e9f7ee,stroke:#2e9e56,color:#1a2230</pre>
+<h3 id="起動シーケンス">図2: 起動シーケンス</h3>
 <pre class="mermaid">flowchart TD
-    S(["サーバモード入り口"]) --> P1["register_protocol_handler<br/>kasugai-qgis: を HKCU\Software\Classes に登録<br/>（停止後に残ったブラウザタブからの再起動用。<br/>失敗しても起動は継続）"]
-    P1 --> P2["待受ポート決定<br/>--port → api_server_port → 8500"]
-    P2 --> P3["mount_drive_mappings<br/>・mode=subst: robocopy_src があれば先に robocopy /MIR で<br/>  local_cache へ同期 → subst でドライブ割当<br/>・mode=sync: rclone sync → subst<br/>・mode=mount: rclone mount（要 WinFsp）"]
-    P3 --> P4["copy_profiles_at_startup<br/>起動フォルダの profiles\ 直下を<br/>%APPDATA%\QGIS\QGIS{major}\ へコピー<br/>（既存はスキップ）"]
+    S(["起動処理入り口"]) --> P2["待受ポート決定<br/>--port → api_server_port → 8500"]
+    P2 --> P3["mount_drive_mappings<br/>subst を先に処理（rclone 不要）<br/>sync/mount は rclone.exe 検出後に処理<br/>（未検出時はスキップ）"]
+    P3 --> P3A["mode=subst（既定）: subst_drive<br/>・local_cache 必須（未指定はエラーでスキップ）<br/>・robocopy_src 指定時は先に robocopy で<br/>  local_cache へミラーリング<br/>  （/MIR /MT:8 /R:1 /W:0、robocopy_exclude は /XD 除外）<br/>・既存割当は subst /D で解除 → 500ms 待機<br/>・subst drive=local_cache でドライブ割当"]
+    P3 --> P3B["mode=sync: sync_drive<br/>・remote と local_cache が必須<br/>  （local_cache フォルダは自動作成）<br/>・rclone sync remote → local_cache（変更分のみ）<br/>・既存割当は subst /D で解除 → 500ms 待機<br/>・subst drive=local_cache でドライブ割当"]
+    P3 --> P3C["mode=mount: mount_drive（要 WinFsp）<br/>・remote 必須<br/>・既存マウントは mountvol /D で解除 → 500ms 待機<br/>・rclone mount remote drive --no-console<br/>  をバックグラウンドで spawn<br/>・read_only → --read-only<br/>  vfs_cache_* / vfs_write_back をオプション透過<br/>・ドライブ出現を最大30秒ポーリング<br/>  （タイムアウトでも起動は続行）"]
+    P3A --> P4["copy_profiles_at_startup<br/>起動フォルダの profiles\ 直下を<br/>%APPDATA%\QGIS\QGIS{major}\ へコピー<br/>（既存はスキップ）"]
+    P3B --> P4
+    P3C --> P4
     P4 --> P5["run_local_sync<br/>qgislocalsync.config ＞ local_sync の順で設定解決<br/>SYNC_SRC → SYNC_DST を robocopy /MIR<br/>QField* / QGIS* / portable_profile は<br/>バージョン文字列比較で差分がある場合のみ同期"]
-    P5 --> Q{"ヘッドレス?<br/>--server または URI 起動<br/>（--open-browser 無し）"}
-    Q -- "はい" --> R1["run_api_server_sync<br/>axum サーバを同一スレッドで起動"]
+    P5 --> Q{"ヘッドレス?<br/>URI 起動"}
+    Q -- "はい（開発用）" --> R1["run_api_server_sync<br/>axum サーバを同一スレッドで起動"]
     Q -- "いいえ" --> R2["run_gui_server<br/>axum をバックグラウンドスレッドで起動"]
-    R2 --> R3["wait_for_server_ready<br/>GET /health を最大60秒ポーリング"]
-    R3 --> R4{"WebView2 Runtime<br/>インストール済み?<br/>（EdgeUpdate レジストリ確認）"}
-    R4 -- "あり" --> R5["wry/tao の WebView2 ウィンドウに<br/>http://127.0.0.1:PORT/ を表示<br/>（ユーザーデータは %LOCALAPPDATA%\kasugai_qgis\webview2）"]
-    R4 -- "なし" --> R6["既定ブラウザで URL を開く（フォールバック）"]
-    R1 --> T["axum ルート群<br/>GET / → Web UI（public/index.html 埋込）<br/>GET /health /settings /qgis /profiles /projects<br/>/progress /project-version /update /version /live-sessions<br/>GET /i18n.js /i18n/*file /favicon.ico<br/>POST /settings /launch /reset /update/apply<br/>POST /api/v1/server/stop  GET /api/v1/server/info"]
+    R2 --> R3["bind 完了通知を待機<br/>mpsc チャネル recv（最大90秒）"]
+    R3 --> R4["wry/tao の WebView2 ウィンドウに<br/>http://127.0.0.1:PORT/ を表示<br/>（ユーザーデータは %LOCALAPPDATA%\kasugai_qgis\webview2。<br/>Runtime 非搭載時はエラー終了）"]
+    R1 --> T["axum ルート群（両モード共通）<br/>GET / → Web UI（public/index.html 埋込）<br/>GET /health /settings /qgis /profiles /projects<br/>/progress /project-version /update /version<br/>GET /i18n.js /i18n/*file /favicon.ico<br/>POST /settings /launch /reset /update/apply<br/>POST /api/v1/server/stop  GET /api/v1/server/info"]
+    R2 -- "共通 axum サーバ" --> T
     T --> U{"ポート bind"}
     U -- "競合" --> U1["既存インスタンスの /health 応答を確認 →<br/>POST /api/v1/server/stop → 解放待ち → 再 bind"]
     U1 --> U2["127.0.0.1:PORT で待受開始"]
     U -- "成功" --> U2
-    U2 -. "ブラウザ上で操作" .-> V{"Web UI からの要求"}
+    U2 -. "WebView2 ウィンドウ / ブラウザで操作" .-> V{"Web UI からの要求"}
     V -- "POST /launch" --> W["QGIS 起動処理へ（図3）"]
     V -- "POST /reset" --> Y["プロファイル強制更新へ（図5）"]
     V -- "GET /update / POST /update/apply" --> X["自動更新処理へ（図4）"]
 
     classDef profile fill:#e9f7ee,stroke:#2e9e56,color:#1a2230
-    class P4 profile</pre>
+    classDef drive fill:#e3f0fb,stroke:#2b6cb0,color:#1a2230
+    classDef dev fill:#ffffff,stroke:#94a3b8,color:#475569
+    class P4,Y profile
+    class P3,P3A,P3B,P3C drive
+    class Q,R1 dev</pre>
 <blockquote>
-<p><code>kasugai-qgis:</code> プロトコル経由の起動:
-サーバー停止後に残ったブラウザタブが <code>kasugai-qgis://open</code>
-へ遷移すると、EXE が URI
-位置引数付きで再起動しヘッドレスサーバとして立ち上がります。タブ側は
-<code>/health</code> をポーリングして復帰を検出します。</p>
+<p>URI 位置引数付きの起動（開発用）:
+外部プロセスが <code>qgis_launcher.exe
+&lt;URI&gt;</code> を spawn すると、ウィンドウを開かずヘッドレスサーバとして立ち上がります。
+URI の内容は参照されません。現在の利用者は <code>run.py</code>
+の開発フローのみで、ブラウザから <code>http://127.0.0.1:8500/</code>
+にアクセスして Playwright 検証を行います。KASUGAI
+等が埋め込みペインで利用する場合の経路としても残しています。</p>
 </blockquote>
-<h3 id="qgis-起動処理launch_qgis--cli-モードと-post-launch-共通">図3: QGIS
-起動処理（launch_qgis — CLI モードと POST /launch 共通）</h3>
+<h3 id="qgis-起動処理launch_qgis--post-launch">図3: QGIS
+起動処理（launch_qgis — POST /launch）</h3>
 <pre class="mermaid">flowchart TD
-    A(["launch_qgis(profile, project_paths, exe, role, dev_mode)"]) --> B["QGIS 実行ファイルの決定（優先順位）<br/>1. CLI --qgis-executable（明示指定）<br/>2. settings.qgis_executable（実在確認あり）<br/>3. CLI 時: プロジェクトの version 属性に合致する<br/>   インストール済み QGIS を自動選択<br/>  （major.minor 一致 → major 一致 → 文字列包含の順）<br/>4. レジストリの .qgs 関連付けから検出"]
+    A(["launch_qgis(profile, project_paths, exe, role)"]) --> B["QGIS 実行ファイルの決定（優先順位）<br/>1. POST /launch の executable（Web UI の選択）<br/>2. 未指定時: レジストリの .qgs 関連付けから検出"]
     B --> C{"実行ファイルが見つかった?"}
     C -- "いいえ" --> C1["エラーを出力して起動中止"]
     C -- "はい" --> D["ロール制御ファイル準備<br/>・--customizationfile ini/ROLE.xml<br/>  （QGIS4 用・ファイル存在時のみ）<br/>・ini/qgis_global_settings.ini を生成<br/>   [Variables] userrole=ROLE<br/>・--code ini/startup.py（ファイル存在時のみ）"]
     D --> E["子プロセスへ環境変数を注入<br/>PORTAL_USERROLE=ROLE"]
-    E --> F{"dev_mode?<br/>--dev or settings.dev_mode"}
-    F -- "はい" --> F1["QGIS Live Harness 用環境変数を注入<br/>QTWEBENGINE_REMOTE_DEBUGGING=9222<br/>QTWEBENGINE_CHROMIUM_FLAGS（--disable-gpu 等）<br/>WEBENGINE_AUTOOPEN=1<br/>WEBENGINE_LIVE_DIR / WEBENGINE_LOG_PATH<br/>WEBENGINE_DEV_SRC（junction 配置時のみ）"]
-    F -- "いいえ" --> G["project_path 各エントリを解決<br/>・.qgs/.qgz → そのファイル<br/>・フォルダ → 直下の .qgs/.qgz の先頭<br/>・解決不可 → プロジェクト無しで起動"]
-    F1 --> G
+    E --> G["project_path 各エントリを解決<br/>・.qgs/.qgz → そのファイル<br/>・フォルダ → 直下の .qgs/.qgz の先頭<br/>・解決不可 → プロジェクト無しで起動"]
     G --> H["qgis.exe / qgis.bat を spawn<br/>--profile PROFILE<br/>+ --customizationfile / --globalsettingsfile / --code<br/>+ プロジェクトパス（位置引数）<br/>.bat/.cmd は cmd.exe /C 経由"]
-    H --> I{"呼出し経路"}
-    I -- "POST /launch" --> I1["応答返却後 500ms で<br/>ランチャーサーバを自動停止"]
-    I -- "--cli" --> I2["ランチャー終了"]</pre>
+    H --> I1["応答返却後 500ms で<br/>ランチャーサーバを自動停止"]</pre>
 <h3 id="自動更新フローget-update--post-updateapply">図4: 自動更新フロー（GET
 /update ・ POST /update/apply）</h3>
 <pre class="mermaid">flowchart TD

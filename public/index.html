@@ -51,8 +51,6 @@
     #lang-select { margin-left: auto; width: auto; padding: 2px 8px; }
     .checkbox-label { display: flex; align-items: center; gap: 8px; font-weight: normal; }
     .checkbox-label input[type="checkbox"] { width: auto; }
-    #live-status { font-size: 0.85em; color: #64748b; margin: 4px 0 0 0; }
-    #live-status.active { color: #15803d; }
   </style>
 </head>
 <body>
@@ -94,9 +92,6 @@
 
     <label data-i18n="label_qgis_version">QGIS バージョン</label>
     <select id="qgis"></select>
-
-    <label class="checkbox-label"><input type="checkbox" id="dev-mode"> <span data-i18n="label_dev_mode">開発モード（QGIS Live Harness）</span></label>
-    <div id="live-status"></div>
 
     <div class="row">
       <button id="reset" data-i18n="btn_reset_profile">プロファイルを初期化</button>
@@ -180,9 +175,6 @@
   </div>
 
   <div id="status"></div>
-  <div id="restart-box" style="display:none; margin: 8px 0;">
-    <button id="restart-launcher" data-i18n="btn_restart_launcher">ランチャーを再起動</button>
-  </div>
 
   <div id="progress-modal" class="modal-overlay">
     <div class="modal">
@@ -220,8 +212,6 @@
         res = await fetch(path, opts);
       } catch (e) {
         // サーバー停止・接続拒否などネットワークレベルの失敗（Failed to fetch 等）
-        const box = $('restart-box');
-        if (box) box.style.display = 'block';
         throw new Error(t('status_server_unreachable', { msg: e.message }));
       }
       if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
@@ -239,7 +229,7 @@
       $('profile').value = currentSettings.profile || '';
       $('role').value = currentSettings.userrole || 'Viewer';
       $('qgis').value = currentSettings.qgis_executable || '';
-      $('dev-mode').checked = !!currentSettings.dev_mode;
+
       $('project-root').value = currentSettings.project_root || '';
       $('port-setting').value = window.location.port || '8500';
       loadRawSettings();
@@ -511,7 +501,6 @@
         s.userrole = $('role').value;
         s.current_project = $('project-select').value || null;
         s.qgis_executable = $('qgis').value || null;
-        s.dev_mode = $('dev-mode').checked;
         await api('POST', '/settings', s);
         status(t('status_saved_launch'), 'ok');
       } catch (e) {
@@ -547,25 +536,6 @@
       }
     }
 
-    // カスタムプロトコル kasugai-qgis: でランチャーの新しいインスタンスを起動する。
-    // サーバーが復旧したらこのタブをリロードして UI を復帰させる。
-    async function restartLauncher() {
-      const box = $('restart-box');
-      if (box) box.style.display = 'none';
-      window.location.href = 'kasugai-qgis://restart';
-      const st = $('status');
-      if (st) status(t('status_restarting'), 'ok');
-      for (let i = 0; i < 90; i++) {
-        await new Promise(r => setTimeout(r, 1000));
-        try {
-          const res = await fetch('/health', { cache: 'no-store' });
-          if (res.ok) { location.reload(); return; }
-        } catch (e) { /* まだ起動していない */ }
-      }
-      if (st) status(t('status_restart_timeout'), 'err');
-      if (box) box.style.display = 'block';
-    }
-
     // サーバー停止後にタブを閉じる。OS から開かれたタブは window.close() が
     // ブロックされることが多いため、閉じられなければ案内画面に置き換える。
     function closeTabAfterServerStop() {
@@ -576,16 +546,7 @@
         const h = document.createElement('h2');
         h.style.color = '#15803d';
         h.textContent = t('status_server_stopped_close');
-        const btn = document.createElement('button');
-        btn.style.cssText = 'padding:8px 16px;cursor:pointer;background-color:#22c55e;color:#ffffff;border:none;border-radius:6px;margin-top:16px;';
-        btn.textContent = t('btn_restart_launcher');
-        btn.addEventListener('click', () => {
-          btn.disabled = true;
-          btn.textContent = t('status_restarting');
-          restartLauncher();
-        });
         div.appendChild(h);
-        div.appendChild(btn);
         document.body.innerHTML = '';
         document.body.appendChild(div);
       }, 1400);
@@ -597,8 +558,7 @@
           profile: $('profile').value,
           project_paths: [$('project-select').value].filter(x => x),
           executable: $('qgis').value,
-          role: $('role').value,
-          dev_mode: $('dev-mode').checked
+          role: $('role').value
         };
         const res = await api('POST', '/launch', body);
         status(t('status_launched'), 'ok');
@@ -769,27 +729,6 @@
       closeTabAfterServerStop();
     }
 
-    // QGIS Live Driver の稼働セッションを表示する。
-    // ~/.qgis-live/<pid>-qgis_live_driver.json のレジストリをサーバー経由で読む。
-    async function refreshLiveStatus() {
-      const el = $('live-status');
-      if (!el) return;
-      try {
-        const sessions = await api('GET', '/live-sessions');
-        const alive = (sessions || []).filter(s => s.alive);
-        if (alive.length > 0) {
-          el.textContent = t('live_session_active', { pid: alive.map(s => s.pid).join(', ') });
-          el.className = 'active';
-        } else {
-          el.textContent = t('live_session_none');
-          el.className = '';
-        }
-      } catch (e) {
-        el.textContent = '';
-        el.className = '';
-      }
-    }
-
     async function reloadAll() {
       await loadSettings();
       await Promise.all([loadProfiles(), loadProjects(), loadQgis()]);
@@ -809,7 +748,6 @@
     $('save-port').addEventListener('click', savePort);
     $('save-project-root').addEventListener('click', saveProjectRoot);
     $('stop-server').addEventListener('click', stopServer);
-    $('restart-launcher').addEventListener('click', restartLauncher);
     $('project-select').addEventListener('change', checkProjectVersion);
     $('tab-raw').addEventListener('change', (e) => { if (e.target.id !== 'raw-settings') updateFromForm(); });
 
@@ -828,7 +766,6 @@
     // 動的に生成される要素（data-i18n 付き）を再描画して翻訳を反映する
     window.onLanguageChanged = () => {
       renderRawForm();
-      refreshLiveStatus();
       if (latestUpdate && $('update-banner').classList.contains('active')) {
         showUpdateBanner(latestUpdate);
       }
@@ -864,8 +801,6 @@
       } catch (e) {
         status(t('status_server_unreachable', { msg: e.message }), 'err');
       }
-      refreshLiveStatus();
-      setInterval(refreshLiveStatus, 15000);
       try {
         const v = await api('GET', '/version');
         setVersion(v.version);

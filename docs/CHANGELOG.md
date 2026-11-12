@@ -5,6 +5,18 @@
 ### Fixed
 - 配布プロファイルのコピー元を `project_root` 基準から `resolved_settings_dir`（実効 `qgis_settings.json` のあるディレクトリ＝インストール先）へ統一。`project_root` をプロジェクト用ドライブ等の別ディレクトリに設定している環境で `<project_root>\profiles` が見つからずシードがスキップされ、`--profile` が空の新規プロファイルを指していた問題を修正（`GET /profiles` の列挙元と一致させた）。`POST /reset` の再コピー元も同様に統一
 
+### Changed
+- GUI 起動時のサーバー起動待ちを `GET /health` ポーリング（最大60秒）から mpsc チャネルによる bind 完了通知（最大90秒）へ変更。同一プロセス内のスレッド間起動なのに HTTP ポーリングしていた冗長さを解消し、ポート奪取リトライ込みの待ち時間にも余裕を持たせた
+- GUI 表示を WebView2 専用に変更し、既定ブラウザへのフォールバックを廃止（`opener` 依存・WebView2 Runtime 検出ロジックを削除。Runtime 非搭載時はエラーメッセージを出して終了）
+
+### Removed
+- CLI モード（`--cli`）を廃止。CLI 起動専用だった `--profile` / `--qgis-executable` / `--dev` 引数もあわせて削除し、QGIS の起動は Web UI / HTTP API（`POST /launch`）経路に統一
+- ヘッドレス API サーバーモード専用の `--server` 引数を廃止。通常起動は常に WebView2 ウィンドウを開き、ヘッドレス起動は URI 位置引数に統一
+- `kasugai-qgis:` カスタムプロトコル（HKCU レジストリ登録・「停止後に残ったブラウザタブからの再起動」経路）を廃止。Web UI の「ランチャーを再起動」ボタンとプロトコル遷移・`/health` ポーリング復帰ロジックも削除。外部からの起動は呼び出し側が `qgis_launcher.exe <URI>` を spawn する方式に統一（URI 位置引数はヘッドレス化トリガーとして存続）
+- デバッグ用の `--list-qgis` 引数を廃止（検出一覧は Web UI / `GET /qgis` で確認可能）
+- `--open-browser` 引数を廃止（GUI 起動が既定動作のため no-op 化していた。インストーラーのショートカット・完了ページ・更新後再起動からも除去）
+- QGIS Live Harness 連携の開発モード（`dev_mode` 設定・起動タブの「開発モード」チェックボックス・`WEBENGINE_*` 環境変数注入）と `GET /live-sessions`（稼働セッション表示）を廃止。harness 連携は手動で環境変数を設定して行う運用とする
+
 ## [2.3.0] - 2026-10-22
 
 ### Changed

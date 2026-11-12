@@ -12,7 +12,7 @@
   <div class="container">
     <header>
       <h1>QGIS Launcher (qgis_launcher) <span class="version-badge">v2.4.1</span></h1>
-      <p><strong>QGIS / QField 起動ランチャー</strong> — Web UI・HTTP API・CLI で動作する Rust(Axum) 製デスクトップランチャーのドキュメント</p>
+      <p><strong>QGIS / QField 起動ランチャー</strong> — Web UI・HTTP API で動作する Rust(Axum) 製デスクトップランチャーのドキュメント</p>
     </header>
     <main>
       <section>
@@ -28,7 +28,7 @@ src="https://yamamoto-ryuzo.github.io/kasugai_qgis/images/qgis_launcher_info.png
 alt="alt text" /></p>
 <blockquote>
 <p><strong>v2.0.0 以降</strong>: FLTK GUI は削除され、Web
-UI（ブラウザ）+ AXUM HTTP API
+UI（WebView2）+ AXUM HTTP API
 に移行しました。本ドキュメントの画面イメージは旧 FLTK 版のものです。</p>
 </blockquote>
       </section>
@@ -40,8 +40,8 @@ UI（ブラウザ）+ AXUM HTTP API
 Version）に基づいて QGIS / QField
 を起動するデスクトップランチャーです。設定は
 <code>qgis_settings.json</code>（構造は
-<code>QgisSettings</code>）に保存され、Web UIまたは CLI
-モードで操作できます。</li>
+<code>QgisSettings</code>）に保存され、Web UI
+で操作できます。</li>
 </ul>
 <h3 id="メイン要素">メイン要素</h3>
 <ul>
@@ -110,8 +110,6 @@ Version）に基づいて QGIS / QField
 を解析してバージョン情報を抽出します。</li>
 <li>解析結果キャッシュ:
 取得したバージョン文字列は内部キャッシュに保存し、ファイルの最終更新時刻が変わらない限り再解析しません（表示の高速化）。</li>
-<li>CLI モード（<code>--cli</code>）: Web UI
-を起動せず設定に基づいて直接 QGIS を起動します。</li>
 <li>Web UI: デフォルトでは簡易 Web UIを起動します。Web UI
 はプルダウンでプロファイル、プロジェクト、QGIS
 バージョンを選択して「Launch QGIS」で起動します。プロファイル候補は
@@ -138,8 +136,7 @@ QGIS」ボタン押下前）。コピー先にファイルが既に存在する�
 <li><strong>Web UI の挙動</strong>: Web UI
 で起動した場合、起動処理（<code>SUBST</code>
 によるドライブ割当てやプロファイルの配布コピー）はバックグラウンドで実行され、モーダルの進捗ウィンドウ（メッセージ
-+ プログレスバー）で進捗を確認できます。CLI
-起動では従来どおりコンソールログのみが出力されます。</li>
++ プログレスバー）で進捗を確認できます。</li>
 <li><strong>備考</strong>: プロファイルの初期化（配布コピー）は設定で
 <code>project_root</code>
 が指定されている場合はそのディレクトリを基準に行われます。未指定時は設定ファイル所在フォルダ（通常は
@@ -169,13 +166,6 @@ Profiles）」を使うか、コピー先の該当ファイルを削除してか
 UI の「Reset Profiles」ボタン（<code>POST /reset</code>）を使うと、
 <code>%APPDATA%\QGIS\QGIS{major}\</code> 配下の既存プロファイルを削除してから配布プロファイルを再コピーし、最新状態へ強制更新できます（処理の流れは <a href="startup.html#図5-プロファイル強制更新フロー">図5</a>
 参照）。実行中はメッセージとプログレスバーを備えたモーダル風ウィンドウで進捗を確認でき、完了すると自動で閉じてメインウィンドウに結果が表示されます。大量のファイル削除／コピーを伴う処理のため、完了まで時間がかかる場合があります。</p>
-<h3 id="cli-モード">CLI モード</h3>
-<ul>
-<li><code>--cli</code> を指定すると Web UI を起動せずに CLI
-モードで動作します。</li>
-<li>現状、<code>Reset Profiles</code> は Web UI
-操作用の機能として提供しています（Web UI 起動時に利用可能）。</li>
-</ul>
 </section>
     </main>
   </div>

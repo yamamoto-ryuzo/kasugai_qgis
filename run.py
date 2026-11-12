@@ -303,8 +303,9 @@ def open_browser_when_ready(port):
 
 def cargo_run(extra=None):
     extra = extra or []
-    if "--server" not in extra:
-        extra = ["--server", *extra]
+    # URI 位置引数でヘッドレス起動（内容は参照されないヘッドレストリガー）
+    if not any("headless:" in a for a in extra):
+        extra = ["headless://dev", *extra]
     open_browser_when_ready(get_port(extra))
     return subprocess.run(["cargo", "run", "--", *extra], cwd=ROOT).returncode
 
@@ -390,8 +391,9 @@ def build_installer():
 
 def run_release(extra=None):
     extra = extra or []
-    if "--server" not in extra:
-        extra = ["--server", *extra]
+    # URI 位置引数でヘッドレス起動（内容は参照されないヘッドレストリガー）
+    if not any("headless:" in a for a in extra):
+        extra = ["headless://dev", *extra]
     open_browser_when_ready(get_port(extra))
     exe = ROOT / "target" / "release" / f"{APP_NAME}.exe"
     if not exe.exists():

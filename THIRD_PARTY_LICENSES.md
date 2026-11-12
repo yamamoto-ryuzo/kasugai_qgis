@@ -41,11 +41,10 @@ GNU General Public License v3.0 (GPL-3.0-only) — [LICENSE](LICENSE)
 | reqwest | MIT / Apache-2.0 | HTTP クライアント（更新チェック・ダウンロード） |
 | wry | Apache-2.0 / MIT | WebView2 ウィンドウ（GUI モード） |
 | tao | Apache-2.0 / MIT | ウィンドウ・イベントループ |
-| winreg | MIT | レジストリ参照（QGIS 検出・WebView2 確認） |
+| winreg | MIT | レジストリ参照（QGIS 検出） |
 | mslnk | MIT | ショートカット解決 |
 | quick-xml | MIT | .qgs プロジェクト解析 |
 | zip | Apache-2.0 / MIT | .qgz（ZIP）展開読み取り |
-| opener | MIT | 既定ブラウザ起動（フォールバック） |
 | sha2 | MIT / Apache-2.0 | 更新インストーラの SHA-256 検証 |
 
 各クレートのライセンス本文は crates.io / docs.rs の当該パッケージページ、または `cargo license` 等の出力で確認できます。
@@ -58,7 +57,7 @@ GNU General Public License v3.0 (GPL-3.0-only) — [LICENSE](LICENSE)
 | QField | GPL v2 以降 | 同上 |
 | rclone | MIT | `drive_mappings` の `sync`/`mount` モード利用時のみ必要 |
 | WinFsp | GPL v3 / 商用 | `mode=mount`（rclone mount）利用時のみ必要 |
-| WebView2 Runtime | Microsoft プロプライエタリ（無償） | GUI モード利用時に必要。未導入時は既定ブラウザにフォールバック |
+| WebView2 Runtime | Microsoft プロプライエタリ（無償） | GUI モード利用時に必要。未導入時は起動エラー |
 
 ## 同梱 QGIS プラグイン
 

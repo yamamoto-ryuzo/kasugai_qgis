@@ -48,7 +48,6 @@ SetCompressor /SOLID lzma
 !define MUI_FINISHPAGE_TEXT "kasugai は、このコンピュータにインストールされました。$\r$\n「完了」をクリックしてセットアップを閉じます。"
 !define MUI_FINISHPAGE_TEXT_LARGE
 !define MUI_FINISHPAGE_RUN "$INSTDIR\qgis_launcher.exe"
-!define MUI_FINISHPAGE_RUN_PARAMETERS "--open-browser"
 !define MUI_FINISHPAGE_RUN_TEXT "kasugai を実行(R)"
 !define MUI_FINISHPAGE_RUN_CHECKED
 !define MUI_FINISHPAGE_SHOWREADME
@@ -106,7 +105,7 @@ Section "MainSection" SecMain
 
   ; スタートメニューショートカット
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
-  CreateShortcut "$SMPROGRAMS\${PRODUCT_NAME}\kasugai_qgis.lnk" "$INSTDIR\qgis_launcher.exe" "--open-browser" "$INSTDIR\qgis_launcher.exe" 0 SW_SHOWNORMAL "" "" "$INSTDIR"
+  CreateShortcut "$SMPROGRAMS\${PRODUCT_NAME}\kasugai_qgis.lnk" "$INSTDIR\qgis_launcher.exe" "" "$INSTDIR\qgis_launcher.exe" 0 SW_SHOWNORMAL "" "" "$INSTDIR"
 !endif
 
   ; 古いバックアップを削除
@@ -124,7 +123,7 @@ SectionEnd
 ; --no-update-check を必ず付けて起動する。
 Function .onInstSuccess
   ${If} ${Silent}
-    Exec '"$INSTDIR\qgis_launcher.exe" --open-browser --no-update-check'
+    Exec '"$INSTDIR\qgis_launcher.exe" --no-update-check'
   ${EndIf}
 FunctionEnd
 
@@ -156,7 +155,7 @@ FunctionEnd
 
 ; 完了ページの「デスクトップショートカットを作成する」チェックボックスが選択されたときの処理
 Function CreateDesktopShortcut
-  CreateShortcut "$DESKTOP\kasugai_qgis.lnk" "$INSTDIR\qgis_launcher.exe" "--open-browser" "$INSTDIR\qgis_launcher.exe" 0 SW_SHOWNORMAL "" "" "$INSTDIR"
+  CreateShortcut "$DESKTOP\kasugai_qgis.lnk" "$INSTDIR\qgis_launcher.exe" "" "$INSTDIR\qgis_launcher.exe" 0 SW_SHOWNORMAL "" "" "$INSTDIR"
 FunctionEnd
 
 ; アンインストール（全体版のみ）

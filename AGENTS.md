@@ -4,21 +4,19 @@ AI エージェントがこのリポジトリで作業する際のルール。
 
 ## プロジェクト概要
 
-- Rust (Axum) 製の QGIS ランチャー。`--server` で HTTP API サーバー（既定ポート 8500）と Web UI を提供する
+- Rust (Axum) 製の QGIS ランチャー。HTTP API サーバー（既定ポート 8500）と Web UI を提供する
 - Web UI は `public/index.html`。`include_str!` で EXE に埋め込まれるため、UI 変更の反映には再ビルドが必要
-- GUI 起動（`--open-browser` / 引数なし）では axum をバックグラウンドスレッドで立て、メインスレッドの wry/tao イベントループで WebView2 ウィンドウに `http://127.0.0.1:<port>/` を表示する。`--server`（KASUGAI連携）と `kasugai-qgis:` プロトコル起動（uri 位置引数）はヘッドレスのまま。WebView2 Runtime 非搭載時のみ既定ブラウザへフォールバック
+- GUI 起動（引数なし）では axum をバックグラウンドスレッドで立て、メインスレッドの wry/tao イベントループで WebView2 ウィンドウに `http://127.0.0.1:<port>/` を表示する。URI 位置引数を渡すとヘッドレス（外部プロセス連携用）。GUI 表示は WebView2 専用で、Runtime 非搭載時はエラー終了
 - バージョンは `Cargo.toml` が唯一の正。`run.py` が `setup.nsi` / `update.json` / `qgis_settings.json` に自動同期する
 
 ## QGIS Live Harness 連携
 
 - `scripts/sync_bundle_plugins.py` が `qgis-plugin/<id>` を正本として `download/profiles/*/profiles/*/python/plugins/<id>` の同梱プラグインをミラー同期する（`run.py --build` でも自動実行、`run.py --sync-plugins` で単独実行）。正本は `KASUGAI_HARNESS_DIR` → 兄弟リポジトリ `../qgis_live_harness/qgis-plugin` の順で解決する。バンドル側に既存のプラグインのみが対象で、サードパーティ製は触らない
-- `dev_mode` 設定（起動タブの「開発モード」チェックボックス、または CLI `--dev`）で QGIS 起動時に `QTWEBENGINE_*` / `WEBENGINE_*` を注入する。harness ルートは `KASUGAI_HARNESS_DIR` または exe 祖先の `qgis-plugin/qgis_live_driver/metadata.txt` から検出し、`WEBENGINE_DEV_SRC` は junction 配置（dev モード）の確定時のみ立てる
-- `GET /live-sessions` が `~/.qgis-live/<pid>-qgis_live_driver.json` レジストリを列挙し、http_port への TCP 接続可否で稼働中の開発セッションを返す（`token` は応答に含めない）。起動タブに稼働中 PID を表示する
 
 ## ビルド・実行
 
 - 型チェック: `cargo check`
-- 開発実行（サーバーモード + ブラウザ自動オープン）: `python run.py`
+- 開発実行（ヘッドレス起動 + ブラウザ自動オープン）: `python run.py`
 - リリース一式ビルド: `python run.py --build`
 - バージョンアップ + リリースビルド: `python run.py --bump X.Y.Z`
 - git タグ作成: `python run.py --tag`
@@ -26,7 +24,7 @@ AI エージェントがこのリポジトリで作業する際のルール。
 ## テスト
 
 - **Web UI の動作確認は必ず Playwright で行うこと**
-  - `python run.py`（または `cargo run -- --server`）でサーバーを起動し、`http://127.0.0.1:8500/` に対して Playwright でブラウザ操作・検証を行う
+  - `python run.py`（または `cargo run`）でサーバーを起動し、`http://127.0.0.1:8500/` に対して Playwright でブラウザ操作・検証を行う
   - 確認対象の例: タブ切り替え、各フォームの表示順・初期値、起動/保存ボタンの挙動、ステータス表示
   - 目視やスクリーンショット貼り付けだけで完了とせず、Playwright による操作で実際の挙動を検証する
 - API 単体の確認は `curl` 等で `/health`, `/settings`, `/launch` などを叩いてもよいが、UI に関わる変更は Playwright での確認を必須とする
