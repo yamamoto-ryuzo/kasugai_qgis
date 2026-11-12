@@ -86,9 +86,34 @@ class LegendViewBridge:
         },
         "registerCurrentLayer": {
             "description":
-                "選択中レイヤを legend_* プロジェクト変数として登録する"
-                "(登録ボタン相当)。",
-            "example": {"method": "registerCurrentLayer", "args": []},
+                "アクティブレイヤを legend_* プロジェクト変数として登録する"
+                "(登録ボタン相当)。priorityで変数値(表示優先度)を指定可。",
+            "example": {"method": "registerCurrentLayer", "args": [1]},
+        },
+        "registerLayer": {
+            "description":
+                "指定レイヤを legend_* プロジェクト変数として登録する。"
+                "layer_id省略時はアクティブレイヤ。",
+            "example": {"method": "registerLayer", "args": [None, 1]},
+        },
+        "setLegendVariable": {
+            "description":
+                "legend_* プロジェクト変数の値を編集する"
+                "(変数一覧ダイアログのEdit相当)。",
+            "example": {"method": "setLegendVariable",
+                        "args": ["legend_層_市区町村", "2"]},
+        },
+        "deleteLegendVariable": {
+            "description":
+                "legend_* プロジェクト変数を削除する"
+                "(変数一覧ダイアログのDelete相当)。",
+            "example": {"method": "deleteLegendVariable",
+                        "args": ["legend_層_市区町村"]},
+        },
+        "refresh": {
+            "description":
+                "凡例対象コンボを再構築する(レイヤ/変数変更の反映用)。",
+            "example": {"method": "refresh", "args": []},
         },
         "legendVariables": {
             "description":
@@ -326,15 +351,78 @@ class LegendViewBridge:
         return self._ok({"layer": layer.name() if layer is not None else None,
                          "datasetIndex": dock.comboBox.currentIndex()})
 
-    def registerCurrentLayer(self):
-        """選択中レイヤを legend_* プロジェクト変数として登録する。"""
+    def registerCurrentLayer(self, priority=None):
+        """アクティブレイヤを legend_* プロジェクト変数として登録する。"""
+        return self.registerLayer(None, priority)
+
+    def registerLayer(self, layer_id=None, priority=None):
+        """指定レイヤを legend_* プロジェクト変数として登録する。"""
         dock, err = self._require_dock()
         if err:
             return err
-        if dock.currentLayer is None:
-            return self._err("no layer selected")
+        p = self._plugin
+        if layer_id is not None:
+            layer = QgsProject.instance().mapLayer(str(layer_id))
+            if layer is None:
+                return self._err(f"layer not found: {layer_id!r}")
+            p.iface.setActiveLayer(layer)
+        if priority is not None:
+            try:
+                dock.prioritySpinBox.setValue(int(priority))
+            except Exception:  # nosec B110  # 設計上の許容
+                pass
+        if p.iface.activeLayer() is None:
+            return self._err("no active layer to register")
         dock.registerCurrentLayer()
         return self.legendVariables()
+
+    def setLegendVariable(self, name, value):
+        """legend_* プロジェクト変数の値を設定する。"""
+        name = str(name or "").strip()
+        if not name.startswith("legend_"):
+            name = "legend_" + name
+        ecs = QgsExpressionContextUtils.projectScope(QgsProject.instance())
+        if name not in list(ecs.variableNames()):
+            return self._err(f"variable not found: {name!r} "
+                             "(use registerLayer to create)")
+        QgsExpressionContextUtils.setProjectVariable(
+            QgsProject.instance(), name, "" if value is None else str(value))
+        self._refresh_combo()
+        return self.legendVariables()
+
+    def deleteLegendVariable(self, name):
+        """legend_* プロジェクト変数を削除する。"""
+        name = str(name or "").strip()
+        if not name.startswith("legend_"):
+            name = "legend_" + name
+        ecs = QgsExpressionContextUtils.projectScope(QgsProject.instance())
+        if name not in list(ecs.variableNames()):
+            return self._err(f"variable not found: {name!r}")
+        try:
+            QgsExpressionContextUtils.removeProjectVariable(
+                QgsProject.instance(), name)
+        except Exception:
+            QgsProject.instance().removeEntry('LegendView', name)
+        self._refresh_combo()
+        return self.legendVariables()
+
+    def _refresh_combo(self):
+        """凡例対象コンボを再構築する。"""
+        dock = self._dock()
+        if dock is not None:
+            try:
+                dock.comboBox.clear()
+                dock.comboDataSet()
+            except Exception:  # nosec B110  # 設計上の許容
+                pass
+
+    def refresh(self):
+        """凡例対象コンボを再構築する。"""
+        dock, err = self._require_dock()
+        if err:
+            return err
+        self._refresh_combo()
+        return self.listDatasets()
 
     def legendVariables(self):
         """legend_* プロジェクト変数の一覧を返す。"""

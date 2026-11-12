@@ -9,7 +9,7 @@
         begin                : 2025-10-05
         git sha              : $Format:%H$
         copyright            : (C) 2025 by yamamoto-ryuzo
-        email                : 
+        email                :
  ***************************************************************************/
 
 /***************************************************************************
@@ -21,40 +21,20 @@
  *                                                                         *
  ***************************************************************************/
 """
-from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, Qt, QUrl, QThread, pyqtSignal, QObject
+from qgis.PyQt.QtCore import QCoreApplication, Qt, QUrl, QThread, pyqtSignal, QObject
 
-# Qt6 enum compatibility shim: some enums are scoped under classes in Qt6
-# (for example DockWidgetArea). Provide legacy attribute names if missing so
-# code using Qt.LeftDockWidgetArea continues to work on both Qt5 and Qt6.
-try:
-    if not hasattr(Qt, 'LeftDockWidgetArea'):
-        try:
-            Qt.LeftDockWidgetArea = Qt.DockWidgetArea.LeftDockWidgetArea
-            Qt.RightDockWidgetArea = Qt.DockWidgetArea.RightDockWidgetArea
-        except Exception:
-            pass
-except Exception:
-    pass
 from qgis.PyQt.QtGui import QIcon, QDesktopServices, QClipboard
-from qgis.PyQt.QtWidgets import QAction, QMessageBox, QApplication, QDockWidget
+from qgis.PyQt.QtWidgets import QAction, QMessageBox, QApplication, QDockWidget, QToolBar
 from qgis.core import QgsProject, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsPointXY, QgsRectangle
-try:
-    from qgis.core import qgsfunction
-except Exception:
-    qgsfunction = None
 
-from qgis.gui import QgsMapCanvas
 
 # --- 標準ライブラリのインポート（欠落しているため追加）
 import os
-import re
 import urllib.parse
-import math
 import json
-import traceback
 
-# Optional components: if UI/webmap modules are not present, provide safe defaults
-# Try to import optional UI and webmap generator modules; fall back safely when absent.
+# Optional components: if the panel module is not present, provide safe defaults
+# Try to import the optional UI module; fall back safely when absent.
 try:
     from .panel import GeoWebViewPanel  # type: ignore
     PANEL_AVAILABLE = True
@@ -69,29 +49,7 @@ except Exception:
     except Exception:
         PANEL_IMPORT_ERROR = 'Failed to capture panel import error.'
 
-try:
-    from .webmap_generator import QMapWebMapGenerator  # type: ignore
-    WEBMAP_AVAILABLE = True
-except Exception:
-    QMapWebMapGenerator = None
-    WEBMAP_AVAILABLE = False
-
-# ユーザー関数定義（デコレータでの自動登録は import 時に QGIS の内部で
-# Cレベルの処理を行うため、環境によってはプロセスがクラッシュすることがある。
-# 安全性のためここではデコレータを使わず通常の関数として定義する。必要なら
-# プラグイン初期化時に明示的に登録処理を行う。）
-def my_custom_function(value1, value2, feature, parent):
-    """単純なサンプル関数（登録は行わない）
-
-    NOTE: QGIS の qgsfunction デコレータでの自動登録はここでは行いません。
-    もしプラグイン実行環境でユーザー関数の登録が必要であれば、
-    initGui() 内など安全なタイミングで登録処理を追加してください。
-    """
-    try:
-        return value1 + value2
-    except Exception:
-        # 安全に失敗して None を返すだけにする
-        return None
+from .i18n_json import install_translator
 
 
 class NavigationSignals(QObject):
@@ -112,46 +70,14 @@ class GeoWebView:
         """
         self.iface = iface
         self.plugin_dir = os.path.dirname(__file__)
-        
-        # 翻訳の初期化 - QGISの言語設定を自動検出
-        self.translator = None
-        locale = QSettings().value('locale/userLocale')
-        if locale:
-            # QGISのロケール設定から言語コードを取得（例: 'ja_JP' -> 'ja'）
-            locale_code = locale[0:2] if len(locale) >= 2 else 'en'
-        else:
-            # デフォルトは英語
-            locale_code = 'en'
-        
-        # 対応言語リスト
-        supported_languages = ['en', 'fr', 'de', 'es', 'it', 'pt', 'ja', 'zh', 'ru', 'hi']
-        
-        # 対応していない言語の場合は英語にフォールバック
-        if locale_code not in supported_languages:
-            locale_code = 'en'
-        
-        # 翻訳ファイルのパス
-        locale_path = os.path.join(
-            self.plugin_dir,
-            'i18n',
-            'geo_webview_{}.qm'.format(locale_code))
 
-        # 翻訳ファイルが存在する場合はロード
-        if os.path.exists(locale_path):
-            self.translator = QTranslator()
-            if self.translator.load(locale_path):
-                QCoreApplication.installTranslator(self.translator)
-                print(f"翻訳ファイルをロードしました: {locale_path}")
-            else:
-                print(f"警告: 翻訳ファイルのロードに失敗しました: {locale_path}")
-                self.translator = None
-        else:
-            print(f"情報: 翻訳ファイルが見つかりません（英語をデフォルト使用）: {locale_path}")
+        # 翻訳の初期化 - i18n/<lang>.json をQGISの言語設定に合わせて載せる
+        self.translator = install_translator(self.plugin_dir)
 
         # プラグインの宣言
         self.actions = []
         self.menu = self.tr(u'&geo_webview')
-        
+
         # パネル（ドックウィジェット）
         self.panel = None
 
@@ -161,31 +87,18 @@ class GeoWebView:
         # 要求元URLを受け取ってUIを更新するハンドラを接続
         try:
             self.navigation_signals.request_origin_changed.connect(self.handle_request_origin_changed)
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
-
-        # WebMap生成器の初期化
-        if WEBMAP_AVAILABLE and QMapWebMapGenerator:
-            # pass plugin instance (self) so the generator can reuse
-            # plugin utilities like _estimate_zoom_from_scale when available
-            try:
-                self.webmap_generator = QMapWebMapGenerator(self)
-            except Exception:
-                # fallback to passing iface if plugin instance cannot be used
-                self.webmap_generator = QMapWebMapGenerator(self.iface)
-        else:
-            self.webmap_generator = None
 
         # HTTPサーバーマネージャー
         from .server_manager import GeoWebViewServerManager
 
         self.server_manager = GeoWebViewServerManager(
-            self.iface, 
-            self.navigation_signals, 
-            self.webmap_generator,
+            self.iface,
+            self.navigation_signals,
             self  # メインプラグインインスタンスを渡す
         )
-        
+
         # 後方互換性のための一時的な属性（削除予定）
         # server_portアトリビュートエラーを回避
         self.server_port = 8089
@@ -195,6 +108,9 @@ class GeoWebView:
 
         # 最終的に受信した要求元のURLを保持（パネル未生成時のフォールバック用）
         self._last_request_origin = None
+
+        # AI/外部制御用ブリッジ(initGuiで実体を設定)
+        self.bridge = None
 
     def handle_request_origin_changed(self, origin):
         """サーバから受け取った完全URLをパネルのlineEdit_navigateにセットする
@@ -207,7 +123,7 @@ class GeoWebView:
             if self.panel and hasattr(self.panel, 'lineEdit_navigate'):
                 try:
                     self.panel.lineEdit_navigate.setText(origin)
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
             # If external control is enabled, automatically navigate to the origin URL
             try:
@@ -217,20 +133,20 @@ class GeoWebView:
                             # perform navigation automatically
                             if origin:
                                 self.navigate_to_permalink(origin)
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         # defensive: ignore any navigation errors here
                         pass
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
-        except Exception:
+        except Exception:  # nosec B110  # 設計上の許容
             pass
 
     def tr(self, message):
         """翻訳を取得
-        
+
         Args:
             message: 翻訳対象のメッセージ
-            
+
         Returns:
             翻訳されたメッセージ
         """
@@ -246,12 +162,12 @@ class GeoWebView:
             from qgis.core import QgsMessageLog, Qgis
             lvl = str(level).lower()
             if lvl == 'warning':
-                sev = Qgis.Warning
+                sev = Qgis.MessageLevel.Warning
             elif lvl == 'critical':
-                sev = Qgis.Critical
+                sev = Qgis.MessageLevel.Critical
             else:
                 # treat everything else as info (including 'debug')
-                sev = Qgis.Info
+                sev = Qgis.MessageLevel.Info
             try:
                 QgsMessageLog.logMessage(str(message), 'geo_webview', sev)
             except Exception:
@@ -260,20 +176,20 @@ class GeoWebView:
         except Exception:
             try:
                 print(message)
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
 
     def add_action(
-        self,
-        icon_path,
-        text,
-        callback,
-        enabled_flag=True,
-        add_to_menu=True,
-        add_to_toolbar=True,
-        status_tip=None,
-        whats_this=None,
-        parent=None):
+            self,
+            icon_path,
+            text,
+            callback,
+            enabled_flag=True,
+            add_to_menu=True,
+            add_to_toolbar=True,
+            status_tip=None,
+            whats_this=None,
+            parent=None):
         """ツールバーアイコンやメニューアイテムを追加
 
         Args:
@@ -302,8 +218,8 @@ class GeoWebView:
             action.setWhatsThis(whats_this)
 
         if add_to_toolbar:
-            # このプラグイン専用のツールバーに追加
-            self.iface.addToolBarIcon(action)
+            # 共有ツールバーGeoSuiteに追加
+            self._geo_toolbar().addAction(action)
 
         if add_to_menu:
             self.iface.addPluginToMenu(
@@ -314,10 +230,25 @@ class GeoWebView:
 
         return action
 
+    def _geo_toolbar(self, ensure_visible=True):
+        """GeoSuite共有ツールバーをfind-or-createで返す。
+
+        項目追加経路では可視状態を保証する(個別利用=ドライバ非稼働でも
+        ツールバーが表示されるように)。unload時のremoveAction経路では
+        ensure_visible=Falseを渡して非表示のままにする。
+        """
+        tb = self.iface.mainWindow().findChild(QToolBar, "GeoSuite")
+        if tb is None:
+            tb = self.iface.addToolBar("GeoSuite")
+            tb.setObjectName("GeoSuite")
+        if ensure_visible:
+            tb.setVisible(True)
+        return tb
+
     def initGui(self):
         """プラグインのGUI要素を作成（プラグイン読み込み時に呼ばれる）"""
         icon_path = os.path.join(self.plugin_dir, 'icon.png')
-        
+
         # パネル版のアクション
         if PANEL_AVAILABLE:
             self.add_action(
@@ -338,14 +269,86 @@ class GeoWebView:
             try:
                 if 'PANEL_IMPORT_ERROR' in globals() and PANEL_IMPORT_ERROR:
                     print(f"QMapPermalink: panel import error details:\n{PANEL_IMPORT_ERROR}")
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
 
         # HTTPサーバーを起動
         self.server_manager.start_http_server()
 
+        # AI/外部制御用ブリッジ。qgis_live_driver の bridge_call コマンドが
+        # qgis.utils.plugins['geo_webview'].bridge をプロセス内で直接呼ぶため、
+        # ファイルJSONL/REST/MCP(qgis_bridge_call)の全経路から制御できる
+        try:
+            from .bridge import GeoWebViewBridge
+            self.bridge = GeoWebViewBridge(self)
+        except Exception:
+            self.bridge = None
+
         # 初回起動フラグ
         self.first_start = True
+
+        # プロジェクト保存時の自動再エクスポート(#61)。opt-in:
+        # QSettings kasugai_auto_export=True のとき、保存直後に
+        # kasugaiExport(open_app=True) 相当を実行して Canvas へ即時反映する。
+        # layerStyleChanged まで追うと過剰再出力になるため保存のみをフックする
+        self._auto_export_connected = False
+        try:
+            from qgis.core import QgsProject
+            QgsProject.instance().projectSaved.connect(
+                self._on_project_saved)
+            self._auto_export_connected = True
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+
+        # ライブ双方向連携: レイヤ編集・スタイル変更を差分エクスポートして
+        # Canvas へ即時反映する監視。kasugai_live_sync=True で有効化
+        # (bridge liveSyncStart/Stop からも切替可)
+        try:
+            from .live_sync import LiveSyncController, live_enabled
+            self._live_sync = LiveSyncController(self)
+            if live_enabled():
+                self._live_sync.attach()
+        except Exception:  # nosec B110  # 設計上の許容
+            self._live_sync = None
+
+    def _on_project_saved(self):
+        """projectSaved フック。自動再エクスポートが有効なら再出力する。"""
+        try:
+            from qgis.PyQt.QtCore import QSettings
+            on = QSettings('GeoWebView', 'geo_webview').value(
+                'kasugai_auto_export', False)
+            if str(on).lower() not in ('true', '1', 'yes'):
+                return
+        except Exception:  # nosec B110  # 設計上の許容
+            return
+        # 保存処理の直後に遅延実行(保存中の再帰・ブロックを避ける)
+        try:
+            from qgis.PyQt.QtCore import QTimer
+            QTimer.singleShot(800, self._run_auto_export)
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+
+    def _run_auto_export(self):
+        """自動再エクスポート本体(bridge 経由で登録・switchProject まで行う)。"""
+        try:
+            if self.bridge is not None:
+                self.bridge.kasugaiExport(open_app=True)
+        except Exception:  # nosec B110  # 自動化失敗は無視(次の保存で再試行)
+            pass
+
+    def open_dialog(self):
+        """live driver の open_plugin から呼ばれる互換フック。
+
+        パネルを開く(トグルではなく冪等に表示状態にする)。
+        """
+        if self.panel is None:
+            self.toggle_panel()
+        elif not self.panel.isVisible():
+            self.panel.show()
+
+    def run(self):
+        """run() 互換エントリ: open_dialog と同じ(パネルを開く)。"""
+        self.open_dialog()
 
     def toggle_panel(self):
         """パネルの表示/非表示を切り替え"""
@@ -356,71 +359,167 @@ class GeoWebView:
                 self.tr("Panel functionality is not available.")
             )
             return
-            
+
         try:
             if self.panel is None:
                 # パネル利用可能性をデバッグ
                 self.iface.messageBar().pushMessage(
-                    "QMap Permalink", 
-                    f"PANEL_AVAILABLE: {PANEL_AVAILABLE}, GeoWebViewPanel: {GeoWebViewPanel}", 
+                    "QMap Permalink",
+                    f"PANEL_AVAILABLE: {PANEL_AVAILABLE}, GeoWebViewPanel: {GeoWebViewPanel}",
                     duration=5
                 )
-                
+
                 # パネルを作成
-                print("パネル作成開始...")
+                print("Creating panel...")
                 self.panel = GeoWebViewPanel(self.iface.mainWindow())
-                print("パネル作成完了")
-                
+                print("Panel created")
+
                 # パネルのボタンにイベントを接続
-                print("ボタンイベント接続開始...")
+                print("Connecting button events...")
                 self.panel.pushButton_generate.clicked.connect(self.on_generate_clicked_panel)
                 self.panel.pushButton_navigate.clicked.connect(self.on_navigate_clicked_panel)
                 self.panel.pushButton_copy.clicked.connect(self.on_copy_clicked_panel)
-                if hasattr(self.panel, 'pushButton_open'):
-                    self.panel.pushButton_open.clicked.connect(self.on_open_clicked_panel)
-                    print("pushButton_open接続成功: on_open_clicked_panel")
-                    self._qgis_log('[DEBUG] pushButton_open connected to on_open_clicked_panel', 'INFO')
-                else:
-                    print("警告: pushButton_openが見つかりません")
-                    self._qgis_log('[DEBUG] WARNING: pushButton_open not found', 'WARNING')
-                
-                # Google Maps/Earthボタンのイベントを接続
-                if hasattr(self.panel, 'pushButton_google_maps'):
-                    self.panel.pushButton_google_maps.clicked.connect(self.on_google_maps_clicked_panel)
-                    print("Google Mapsボタン接続成功")
-                if hasattr(self.panel, 'pushButton_google_earth'):
-                    self.panel.pushButton_google_earth.clicked.connect(self.on_google_earth_clicked_panel)
-                    print("Google Earthボタン接続成功")
-                
-                # MapLibreボタンのイベントを接続
-                if hasattr(self.panel, 'pushButton_maplibre'):
-                    print(f"MapLibreボタン発見: {self.panel.pushButton_maplibre}")
-                    self.panel.pushButton_maplibre.clicked.connect(self.on_maplibre_clicked_panel)
-                    # ボタンを有効化
-                    self.panel.pushButton_maplibre.setEnabled(True)
-                    print("MapLibreボタン接続成功")
-                else:
-                    print("警告: pushButton_maplibre が見つかりません")
-                
+
+                # KASUGAI Canvas エクスポートボタンのイベントを接続
+                _exp_btn = getattr(
+                    self.panel, 'pushButton_kasugai_export', None)
+                if _exp_btn is not None:
+                    _exp_btn.clicked.connect(
+                        lambda checked=False: self.on_kasugai_export_clicked())
+                    print("KASUGAI export button connected")
+
+                # 出力フォルダ(.kasc/DATA/<engine>.html)を開くボタン
+                _folder_btn = getattr(
+                    self.panel, 'pushButton_kasugai_folder', None)
+                if _folder_btn is not None:
+                    _folder_btn.clicked.connect(
+                        lambda checked=False: self.on_kasugai_open_folder())
+
+                # エクスポート物をZIPダウンロードするボタン(ブラウザ経由)
+                _zip_btn = getattr(
+                    self.panel, 'pushButton_kasugai_zip', None)
+                if _zip_btn is not None:
+                    _zip_btn.clicked.connect(
+                        lambda checked=False: self.on_kasugai_zip_clicked())
+
+                # ドキュメントサイト(GitHub Pages)を開くヘルプボタン
+                _help_btn = getattr(
+                    self.panel, 'pushButton_kasugai_help', None)
+                if _help_btn is not None:
+                    _help_btn.clicked.connect(
+                        lambda checked=False: self.on_kasugai_help_clicked())
+
+                # 保存先表示ボタン: クリックでフォルダ選択して出力先変更、
+                # ↺で既定(Canvasインストール先/<ドキュメント>)に戻す
+                _outdir_btn = getattr(
+                    self.panel, 'pushButton_kasugai_outdir', None)
+                if _outdir_btn is not None:
+                    _outdir_btn.clicked.connect(
+                        lambda checked=False: self.on_kasugai_outdir_browse())
+                _outdir_reset = getattr(
+                    self.panel, 'pushButton_kasugai_outdir_reset', None)
+                if _outdir_reset is not None:
+                    _outdir_reset.clicked.connect(
+                        lambda checked=False: self.on_kasugai_outdir_reset())
+                self.update_kasugai_outdir_display()
+                try:
+                    QgsProject.instance().fileNameChanged.connect(
+                        lambda *a: self.update_kasugai_outdir_display())
+                except Exception:  # nosec B110  # 設計上の許容
+                    pass
+
+                # Web配信: 選択エンジンでエクスポート→登録→ブラウザ起動するボタン。
+                # 3系統: Canvas登録(主プレイヤー)/ローカルHTTP即表示/サーバレスWEB
+                for _btn_name, _route in (
+                        ('pushButton_kasugai_launch', 'kasugai'),
+                        ('pushButton_kasugai_launch_hosted', 'hosted')):
+                    _btn = getattr(self.panel, _btn_name, None)
+                    if _btn is not None:
+                        _btn.clicked.connect(
+                            lambda checked=False, r=_route:
+                            self.on_kasugai_launch_clicked(r))
+                        print(f"KASUGAI launch button connected: {_btn_name}")
+
+                # エンジン選択コンボ: 前回値の復元と保存
+                _engine_combo = getattr(
+                    self.panel, 'comboBox_engine', None)
+                if _engine_combo is not None:
+                    try:
+                        from qgis.PyQt.QtCore import QSettings
+                        _saved = str(QSettings('GeoWebView', 'geo_webview').value(
+                            'kasugai_engine', '') or '')
+                        _idx = _engine_combo.findData(_saved) if _saved else -1
+                        _engine_combo.blockSignals(True)
+                        _engine_combo.setCurrentIndex(_idx if _idx >= 0 else 0)
+                        _engine_combo.blockSignals(False)
+                        _engine_combo.currentIndexChanged.connect(
+                            self.on_engine_combo_changed)
+                    except Exception:  # nosec B110  # 設計上の許容
+                        pass
+
+                # CDN(ホスト版エンジン)選択コンボ: 前回値の復元と保存。
+                # ▶ WebView / auto・/kasugai の hosted フォールバックが使う
+                _hosted_combo = getattr(
+                    self.panel, 'comboBox_hosted', None)
+                if _hosted_combo is not None:
+                    try:
+                        from qgis.PyQt.QtCore import QSettings
+                        _saved = str(QSettings('GeoWebView', 'geo_webview').value(
+                            'kasugai_hosted_channel', '') or '').strip() or 'stable'
+                        _hosted_combo.blockSignals(True)
+                        _hosted_combo.setCurrentText(_saved)
+                        _hosted_combo.blockSignals(False)
+                        _hosted_combo.currentTextChanged.connect(
+                            self.on_hosted_combo_changed)
+                    except Exception:  # nosec B110  # 設計上の許容
+                        pass
+
                 # Check Access ボタンのイベントを接続
                 if hasattr(self.panel, 'pushButton_check_access'):
                     self.panel.pushButton_check_access.clicked.connect(self.on_check_access_clicked)
-                
+
+                # テーマ保存ボタンのイベントを接続
+                if getattr(self.panel, 'pushButton_save_theme', None) is not None:
+                    self.panel.pushButton_save_theme.clicked.connect(
+                        self.on_save_theme_clicked_panel)
+
+                # 共有/プレゼンテーション/MAC認証のイベントを接続
+                try:
+                    if getattr(self.panel, 'pushButton_present', None) is not None:
+                        self.panel.pushButton_present.clicked.connect(
+                            self.on_present_clicked_panel)
+                    if getattr(self.panel, 'comboBox_received', None) is not None:
+                        self.panel.comboBox_received.currentIndexChanged.connect(
+                            self.on_received_selected)
+                        # 受領履歴を定期ポーリングしてコンボを更新
+                        from qgis.PyQt.QtCore import QTimer
+                        self._received_timer = QTimer(self.panel)
+                        self._received_timer.setInterval(3000)
+                        self._received_timer.timeout.connect(
+                            self._refresh_received_history)
+                        self._received_timer.start()
+                    self._init_mac_auth_ui()
+                except Exception as e:
+                    self._qgis_log(
+                        f'[DEBUG] sharing UI wiring failed: {e}', 'WARNING')
+
                 # 標準ポートボタンのイベントを接続
                 if hasattr(self.panel, 'pushButton_port_80'):
                     self.panel.pushButton_port_80.clicked.connect(lambda: self.on_standard_port_clicked(80))
                 if hasattr(self.panel, 'pushButton_port_443'):
                     self.panel.pushButton_port_443.clicked.connect(lambda: self.on_standard_port_clicked(443))
-                
-                print("ボタンイベント接続完了")
-                
+
+                print("Button events connected")
+
                 # HTTPサーバーの状態を更新
-                print("サーバー状態取得開始...")
+                print("Getting server status...")
                 server_running = self.server_manager.is_server_running()
                 server_port = self.server_manager.get_server_port() or 8089
-                print(f"サーバー状態: running={server_running}, port={server_port}")
-                print("パネル更新開始...")
-                self.panel.update_server_status(server_port, server_running)
+                print(f"Server status: running={server_running}, port={server_port}")
+                print("Updating panel...")
+                self.panel.update_server_status(
+                    server_port, server_running,
+                    network_url=self.server_manager.get_network_url())
                 # パネルのトグルチェックボックスをサーバー制御に接続
                 try:
                     def _toggle_server(checked: bool):
@@ -431,22 +530,24 @@ class GeoWebView:
                                 try:
                                     if hasattr(self.panel, 'spinBox_port') and self.panel.spinBox_port is not None:
                                         port = self.panel.spinBox_port.value()
-                                except Exception:
+                                except Exception:  # nosec B110  # 設計上の許容
                                     pass
                                 self.server_manager.start_http_server(port)
                             else:
                                 self.server_manager.stop_http_server()
                             # 更新後の状態をラベルに反映
                             pr = self.server_manager.get_server_port() or 8089
-                            self.panel.update_server_status(pr, self.server_manager.is_server_running())
+                            self.panel.update_server_status(
+                                pr, self.server_manager.is_server_running(),
+                                network_url=self.server_manager.get_network_url())
                         except Exception as e:
-                            print(f"サーバートグルエラー: {e}")
+                            print(f"Server toggle error: {e}")
 
                     # set_server_toggle_handler はパネル側で提供
                     if hasattr(self.panel, 'set_server_toggle_handler'):
                         self.panel.set_server_toggle_handler(_toggle_server)
                         # 初期状態を反映（checkbox自体は update_server_status で同期済み）
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
                 # External control handler: when enabled, apply last received origin (if any)
                 try:
@@ -460,9 +561,9 @@ class GeoWebView:
 
                     if hasattr(self.panel, 'set_external_control_handler'):
                         self.panel.set_external_control_handler(_external_control_toggled)
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
-                
+
                 # Port change handler: restart server with new port when changed
                 try:
                     def _port_changed(new_port: int):
@@ -473,16 +574,18 @@ class GeoWebView:
                                 reply = QMessageBox.question(
                                     self.iface.mainWindow(),
                                     self.tr("geo_webview"),
-                                    self.tr(f"サーバーを停止してポート {new_port} で再起動しますか？"),
-                                    QMessageBox.Yes | QMessageBox.No,
-                                    QMessageBox.No
+                                    self.tr("Stop the server and restart it on port {0}?").format(new_port),
+                                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                                    QMessageBox.StandardButton.No
                                 )
-                                if reply == QMessageBox.Yes:
+                                if reply == QMessageBox.StandardButton.Yes:
                                     self.server_manager.stop_http_server()
                                     self.server_manager.start_http_server(new_port)
                                     # 更新後の状態をパネルに反映
                                     pr = self.server_manager.get_server_port() or new_port
-                                    self.panel.update_server_status(pr, self.server_manager.is_server_running())
+                                    self.panel.update_server_status(
+                                        pr, self.server_manager.is_server_running(),
+                                        network_url=self.server_manager.get_network_url())
                             else:
                                 # サーバーが停止中の場合は、次回起動時に新しいポートを使用
                                 self.server_manager.preferred_port = new_port
@@ -491,7 +594,7 @@ class GeoWebView:
 
                     if hasattr(self.panel, 'set_port_change_handler'):
                         self.panel.set_port_change_handler(_port_changed)
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
 
                 # If external control is already checked at panel creation, apply last origin
@@ -500,25 +603,25 @@ class GeoWebView:
                         if self._last_request_origin:
                             try:
                                 self.navigate_to_permalink(self._last_request_origin)
-                            except Exception:
+                            except Exception:  # nosec B110  # 設計上の許容
                                 pass
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
-                print("パネル更新完了")
-                
+                print("Panel updated")
+
                 # テーマ一覧を更新
                 self.update_theme_list()
-                
+
                 # QGISのメインウィンドウの左側にドッキング
-                self.iface.addDockWidget(Qt.LeftDockWidgetArea, self.panel)
-                
+                self.iface.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.panel)
+
                 # 既存の左側パネルがあればタブ化
                 self._try_tabify_with_existing_panels()
-                
+
                 # デバッグメッセージ
                 self.iface.messageBar().pushMessage(
-                    self.tr("geo_webview"), 
-                    self.tr("Panel created successfully."), 
+                    self.tr("geo_webview"),
+                    self.tr("Panel created successfully."),
                     duration=3
                 )
             else:
@@ -527,123 +630,15 @@ class GeoWebView:
                     self.panel.hide()
                 else:
                     self.panel.show()
-                    
+
         except Exception as e:
             import traceback
             error_details = traceback.format_exc()
-            print(f"パネル作成エラーの詳細:\n{error_details}")
+            print(f"Panel creation error details:\n{error_details}")
             QMessageBox.critical(
                 self.iface.mainWindow(),
                 self.tr("geo_webview"),
                 self.tr("Failed to create panel: {error}").format(error=str(e))
-            )
-
-    def on_open_clicked_panel(self):
-        """パネルの 'Open' ボタンが押されたときにOpenLayersマップを生成して保存"""
-        try:
-            self._qgis_log('[OpenLayers] Starting HTML generation...', 'INFO')
-            
-            # サーバーポート取得
-            port = self.server_manager.get_server_port() or 8089
-            self._qgis_log(f'[OpenLayers] Server port: {port}', 'INFO')
-            
-            # ナビゲーションデータを構築
-            from .scale_zoom import estimate_zoom_from_scale
-            canvas = self.iface.mapCanvas()
-            center = canvas.center()
-            scale = canvas.scale()
-            
-            self._qgis_log(f'[OpenLayers] Canvas center: {center.x()}, {center.y()}, scale: {scale}', 'INFO')
-            
-            # EPSG:3857に変換
-            from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject
-            canvas_crs = canvas.mapSettings().destinationCrs()
-            target_crs = QgsCoordinateReferenceSystem('EPSG:3857')
-            
-            if canvas_crs.authid() != 'EPSG:3857':
-                transform = QgsCoordinateTransform(canvas_crs, target_crs, QgsProject.instance())
-                center_3857 = transform.transform(center)
-                self._qgis_log(f'[OpenLayers] Transformed to EPSG:3857: {center_3857.x()}, {center_3857.y()}', 'INFO')
-            else:
-                center_3857 = center
-                self._qgis_log('[OpenLayers] Already in EPSG:3857', 'INFO')
-            
-            # ナビゲーションデータ作成
-            # テーマとブックマークを収集
-            try:
-                themes_list = self._collect_themes()
-            except Exception:
-                themes_list = []
-            try:
-                bookmarks_list = self._collect_bookmarks_epsg3857()
-            except Exception:
-                bookmarks_list = []
-
-            navigation_data = {
-                'x': center_3857.x(),
-                'y': center_3857.y(),
-                'scale': scale,
-                'rotation': canvas.rotation(),
-                'crs': 'EPSG:3857',
-                'bookmarks': bookmarks_list,
-                'themes': themes_list,
-            }
-            self._qgis_log(f"[OpenLayers] Themes collected: {len(themes_list)}", 'INFO')
-            self._qgis_log(f"[OpenLayers] Bookmarks collected: {len(bookmarks_list)}", 'INFO')
-            
-            self._qgis_log('[OpenLayers] Generating HTML content...', 'INFO')
-            
-            # OpenLayersのHTMLを生成
-            html_content = self.webmap_generator.generate_wms_based_html_page(
-                navigation_data,
-                image_width=800,
-                image_height=600,
-                server_port=port
-            )
-            
-            self._qgis_log(f'[OpenLayers] HTML generated, length: {len(html_content)} chars', 'INFO')
-            
-            # ファイルに保存
-            from .webmap_generator import save_openlayers_html_to_file
-            self._qgis_log('[OpenLayers] Saving HTML to file...', 'INFO')
-            
-            html_path = save_openlayers_html_to_file(html_content, port)
-            
-            self._qgis_log(f'[OpenLayers] HTML saved to: {html_path}', 'INFO')
-            
-            if not html_path or not os.path.exists(html_path):
-                error_msg = f"Failed to save OpenLayers HTML. Path: {html_path}"
-                self._qgis_log(f'[OpenLayers] ERROR: {error_msg}', 'CRITICAL')
-                QMessageBox.critical(
-                    self.iface.mainWindow(),
-                    self.tr("Error"),
-                    self.tr(error_msg)
-                )
-                return
-            
-            # 保存されたHTMLファイルを簡易HTTPサーバ経由でブラウザで開く（file:// 由来のCORS問題を回避）
-            try:
-                html_dir = os.path.dirname(html_path)
-                url = self._serve_static_and_get_url(html_dir)
-                import webbrowser
-                self._qgis_log(f'[OpenLayers] Opening in browser: {url}', 'INFO')
-                webbrowser.open(url)
-                self._qgis_log('[OpenLayers] Successfully opened in browser', 'INFO')
-            except Exception:
-                # フォールバック: 直接 file:// で開く
-                import webbrowser
-                file_url = f"file:///{html_path.replace(os.sep, '/')}"
-                self._qgis_log(f'[OpenLayers] Fallback opening (file://): {file_url}', 'WARNING')
-                webbrowser.open(file_url)
-            
-        except Exception as e:
-            import traceback
-            error_details = traceback.format_exc()
-            self._qgis_log(f'[OpenLayers] ERROR: {error_details}', 'CRITICAL')
-            QMessageBox.warning(
-                self.iface.mainWindow(), 
-                self.tr('geo_webview'), 
-                self.tr(f'Error opening OpenLayers: {str(e)}\n\nSee QGIS log for details.')
             )
 
     def _collect_themes(self):
@@ -706,80 +701,16 @@ class GeoWebView:
                     p = t.transform(QgsPointXY(cx, cy))
                     tx, ty = p.x(), p.y()
                 out.append({'name': name, 'x': float(tx), 'y': float(ty)})
-            except Exception:
+            except Exception:  # nosec B112  # 設計上の許容
                 continue
         return out
-
-    def _serve_static_and_get_url(self, folder_path: str, preferred_port: int = 8091) -> str:
-        """指定フォルダを簡易HTTPサーバで配信し、index.html のURLを返す。
-
-        - Python 標準の SimpleHTTPRequestHandler を使用（別スレッドで起動）
-        - 既にサーバが起動済みの場合は再利用し、最新のフォルダを配信する
-        """
-        try:
-            import threading
-            import socket
-            from http.server import SimpleHTTPRequestHandler
-            from socketserver import TCPServer
-            import functools
-
-            # 既存サーバの停止（フォルダを切り替えるため）
-            try:
-                if hasattr(self, '_static_server') and self._static_server:
-                    self._static_server.shutdown()
-                    self._static_server.server_close()
-                    self._static_server = None
-            except Exception:
-                pass
-
-            # 使用可能なポートを検索
-            port = None
-            for p in range(preferred_port, preferred_port + 20):
-                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                    s.settimeout(0.2)
-                    try:
-                        s.bind(('127.0.0.1', p))
-                        port = p
-                        break
-                    except Exception:
-                        continue
-            if port is None:
-                port = preferred_port
-
-            # ディレクトリを指定してハンドラ生成（chdir不要）
-            # ヘッダに charset=UTF-8 を付与して文字化けを防止
-            class UTF8Handler(SimpleHTTPRequestHandler):
-                extensions_map = SimpleHTTPRequestHandler.extensions_map.copy()
-                extensions_map.update({
-                    '.html': 'text/html; charset=UTF-8',
-                    '.htm': 'text/html; charset=UTF-8',
-                    '.css': 'text/css; charset=UTF-8',
-                    '.js': 'application/javascript; charset=UTF-8',
-                })
-
-            handler = functools.partial(UTF8Handler, directory=folder_path)
-
-            class ReuseTCPServer(TCPServer):
-                allow_reuse_address = True
-
-            server = ReuseTCPServer(('127.0.0.1', port), handler)
-            self._static_server = server
-
-            t = threading.Thread(target=server.serve_forever, name='StaticHTTP', daemon=True)
-            t.start()
-            self._static_server_thread = t
-
-            return f"http://127.0.0.1:{port}/index.html"
-        except Exception as e:
-            self._qgis_log(f"[OpenLayers] Static HTTP server failed: {e}", 'WARNING')
-            raise
 
     def _try_tabify_with_existing_panels(self):
         """既存の左側パネルがあればタブ化を試行"""
         try:
             # QGISメインウィンドウから左側ドックエリアのウィジェットを取得
             main_window = self.iface.mainWindow()
-            
+
             # よく使われるパネル名のリスト（優先順位順）
             preferred_panels = [
                 'Layers',           # レイヤーパネル
@@ -789,14 +720,14 @@ class GeoWebView:
                 'Processing',       # プロセシングツールボックス
                 'History',          # 履歴パネル
             ]
-            
+
             target_panel = None
-            
+
             # 優先パネルから検索
             for panel_name in preferred_panels:
                 for widget in main_window.findChildren(QDockWidget):
-                    if (widget != self.panel and 
-                        main_window.dockWidgetArea(widget) == Qt.LeftDockWidgetArea and
+                    if (widget != self.panel and
+                        main_window.dockWidgetArea(widget) == Qt.DockWidgetArea.LeftDockWidgetArea and
                         widget.isVisible() and
                         (panel_name.lower() in widget.objectName().lower() or
                          panel_name.lower() in widget.windowTitle().lower())):
@@ -804,41 +735,41 @@ class GeoWebView:
                         break
                 if target_panel:
                     break
-            
+
             # 優先パネルが見つからない場合は左側の最初のパネルを使用
             if not target_panel:
                 for widget in main_window.findChildren(QDockWidget):
-                    if (widget != self.panel and 
-                        main_window.dockWidgetArea(widget) == Qt.LeftDockWidgetArea and
-                        widget.isVisible()):
+                    if (widget != self.panel and
+                        main_window.dockWidgetArea(widget) == Qt.DockWidgetArea.LeftDockWidgetArea and
+                            widget.isVisible()):
                         target_panel = widget
                         break
-            
+
             # タブ化実行
             if target_panel:
                 main_window.tabifyDockWidget(target_panel, self.panel)
-                
+
                 # QMapPermalinkパネルをアクティブにする
                 self.panel.raise_()
-                
+
                 self.iface.messageBar().pushMessage(
-                    self.tr("geo_webview"), 
-                    self.tr("Tabified with '{panel_name}' panel.").format(panel_name=target_panel.windowTitle()), 
+                    self.tr("geo_webview"),
+                    self.tr("Tabified with '{panel_name}' panel.").format(panel_name=target_panel.windowTitle()),
                     duration=3
                 )
             else:
                 self.iface.messageBar().pushMessage(
-                    self.tr("geo_webview"), 
-                    self.tr("Displayed as an independent panel on the left side."), 
+                    self.tr("geo_webview"),
+                    self.tr("Displayed as an independent panel on the left side."),
                     duration=3
                 )
-                
+
         except Exception as e:
             # タブ化に失敗しても継続
-            print(f"パネルのタブ化でエラー: {e}")
+            print(f"Panel tabify error: {e}")
             self.iface.messageBar().pushMessage(
-                self.tr("geo_webview"), 
-                self.tr("Panel displayed on the left side."), 
+                self.tr("geo_webview"),
+                self.tr("Panel displayed on the left side."),
                 duration=3
             )
 
@@ -846,259 +777,46 @@ class GeoWebView:
         """プラグインのアンロード時の処理"""
         # HTTPサーバーを停止
         self.server_manager.stop_http_server()
-        # 静的配信サーバを停止
-        try:
-            if hasattr(self, '_static_server') and self._static_server:
-                self._static_server.shutdown()
-                self._static_server.server_close()
-                self._static_server = None
-        except Exception:
-            pass
-        
+
         # パネルを削除
         if self.panel is not None:
             self.iface.removeDockWidget(self.panel)
             self.panel = None
-        
+
         # シグナルを切断
         if hasattr(self, 'navigation_signals'):
             self.navigation_signals.navigate_requested.disconnect()
-        
+
         for action in self.actions:
             self.iface.removePluginMenu(
                 self.tr(u'&geo_webview'),
                 action)
-            self.iface.removeToolBarIcon(action)
+            self._geo_toolbar(ensure_visible=False).removeAction(action)
 
+        # 自動再エクスポートのシグナル接続を解除
+        if getattr(self, '_auto_export_connected', False):
+            try:
+                from qgis.core import QgsProject
+                QgsProject.instance().projectSaved.disconnect(
+                    self._on_project_saved)
+            except Exception:  # nosec B110  # 設計上の許容
+                pass
+            self._auto_export_connected = False
 
-
-
-
-
-        
-    # 純粋にHTTPサーバー関連のメソッドは qmap_permalink_server_manager.py に移動しました
-    # _build_google_maps_url, _build_google_earth_url, _estimate_zoom_from_scale, _convert_to_wgs84 は
-    # メインファイルでも使用されるため、こちらに残しています
-
-
-
-    def _build_google_maps_url(self, navigation_data):
-        """ナビゲーションデータからGoogle Maps用URLを生成
-
-        Google Maps用は zoom が必要。zoom が与えられなければ scale から推定する。
-        最終フォールバックは zoom=16 とする。
-        """
+        # ライブ連携の監視を停止
         try:
-            if navigation_data.get('type') == 'coordinates':
-                lat, lon = self._resolve_coordinates(navigation_data)
-                if lat is None or lon is None:
-                    return None
-                # zoom が無ければ scale から推定し、無ければデフォルト16を使う
-                zoom_value = navigation_data.get('zoom')
-                if zoom_value is None:
-                    zoom_value = self._estimate_zoom_from_scale(navigation_data.get('scale'))
-                if zoom_value is None:
-                    zoom_value = 16.0
-                # 小数点レベルのズームをサポート（最大2桁まで）
-                zoom_formatted = f"{float(zoom_value):.2f}".rstrip('0').rstrip('.')
-                return f"https://www.google.co.jp/maps/@{lat:.6f},{lon:.6f},{zoom_formatted}z"
+            if getattr(self, '_live_sync', None) is not None:
+                self._live_sync.detach()
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+        self._live_sync = None
 
-            if navigation_data.get('type') == 'location':
-                lat = navigation_data.get('lat')
-                lon = navigation_data.get('lon')
-                zoom_value = navigation_data.get('zoom')
-
-                if lat is None or lon is None:
-                    try:
-                        decoded = urllib.parse.unquote(navigation_data['location'])
-                        data = json.loads(decoded)
-                    except Exception:
-                        data = {}
-
-                    if data:
-                        center_lat = data.get('center_wgs84_lat')
-                        center_lon = data.get('center_wgs84_lon')
-                        if center_lat is not None and center_lon is not None:
-                            lat = float(center_lat)
-                            lon = float(center_lon)
-                        else:
-                            center_x = data.get('center_x')
-                            center_y = data.get('center_y')
-                            crs_authid = data.get('center_crs') or data.get('crs')
-                            if center_x is not None and center_y is not None and crs_authid:
-                                lat, lon = self._convert_to_wgs84(center_x, center_y, crs_authid)
-                        if zoom_value is None:
-                            zoom_value = self._estimate_zoom_from_scale(data.get('scale'))
-
-                if (lat is None or lon is None) and navigation_data.get('center_x') is not None:
-                    crs_authid = navigation_data.get('crs')
-                    lat, lon = self._convert_to_wgs84(
-                        navigation_data.get('center_x'),
-                        navigation_data.get('center_y'),
-                        crs_authid,
-                    )
-
-                if lat is None or lon is None:
-                    return None
-
-                if zoom_value is None:
-                    zoom_value = 16.0
-
-                # 小数点レベルのズームをサポート（最大2桁まで）
-                zoom_formatted = f"{float(zoom_value):.2f}".rstrip('0').rstrip('.')
-                return f"https://www.google.co.jp/maps/@{lat:.6f},{lon:.6f},{zoom_formatted}z"
-
-        except Exception:
-            return None
-
-        return None
-
-    def _build_google_earth_url(self, navigation_data):
-        """ナビゲーションデータからGoogle Earth用URLを生成
-
-        Google Earth Web版用のURL形式: https://earth.google.com/web/@lat,lon,altitude,heading,tilt,roll
-        Google Mapsと同じスケール変換を使用してより正確な高度を計算します。
-        """
-        try:
-            if navigation_data.get('type') == 'coordinates':
-                lat, lon = self._resolve_coordinates(navigation_data)
-                if lat is None or lon is None:
-                    return None
-                
-                # Google Mapsと同じズームレベル推定を使用
-                zoom_value = navigation_data.get('zoom')
-                if zoom_value is None:
-                    zoom_value = self._estimate_zoom_from_scale(navigation_data.get('scale'))
-                if zoom_value is None:
-                    zoom_value = 16.0
-                
-                # Google Earth用の正確なパラメータ計算（実測値に基づく）
-                # 実測分析: 1:15695スケール → 距離5554m、高度22m
-                if navigation_data.get('scale'):
-                    scale_value = navigation_data['scale']
-                else:
-                    # ズームレベルからスケールを逆算
-                    estimated_scale = self._estimate_scale_from_zoom(zoom_value)
-                    scale_value = estimated_scale
-                
-                # 実測データに基づくGoogle Earth用パラメータ計算
-                # 実測値: 1:15695スケール → 高度32m、距離160699m、1y角度
-                if scale_value:
-                    # 実測基準値
-                    reference_scale = 15695.0
-                    reference_altitude = 32.03670052  # 実測高度
-                    reference_distance = 160699.35527964  # 実測距離
-                    
-                    # スケールに比例した高度計算（実測データベース）
-                    altitude = reference_altitude * (scale_value / reference_scale) ** 0.5
-                    altitude = max(10.0, min(2000.0, altitude))
-                    
-                    # スケールに比例した距離計算（実測データベース）
-                    distance = reference_distance * (scale_value / reference_scale)
-                    distance = max(100.0, min(500000.0, distance))
-                else:
-                    altitude = 100.0
-                    distance = 50000.0
-                
-                # 実測に基づくGoogle Earth URL形式（1y角度で適切な表示）
-                return f"https://earth.google.com/web/@{lat:.6f},{lon:.6f},{altitude:.8f}a,{distance:.8f}d,1y,0h,0t,0r"
-
-            if navigation_data.get('type') == 'location':
-                lat = navigation_data.get('lat')
-                lon = navigation_data.get('lon')
-                zoom_value = navigation_data.get('zoom')
-
-                if lat is None or lon is None:
-                    try:
-                        decoded = urllib.parse.unquote(navigation_data['location'])
-                        data = json.loads(decoded)
-                    except Exception:
-                        data = {}
-
-                    if data:
-                        center_lat = data.get('center_wgs84_lat')
-                        center_lon = data.get('center_wgs84_lon')
-                        if center_lat is not None and center_lon is not None:
-                            lat = float(center_lat)
-                            lon = float(center_lon)
-                        else:
-                            center_x = data.get('center_x')
-                            center_y = data.get('center_y')
-                            crs_authid = data.get('center_crs') or data.get('crs')
-                            if center_x is not None and center_y is not None and crs_authid:
-                                lat, lon = self._convert_to_wgs84(center_x, center_y, crs_authid)
-                        if zoom_value is None:
-                            zoom_value = self._estimate_zoom_from_scale(data.get('scale'))
-
-                if (lat is None or lon is None) and navigation_data.get('center_x') is not None:
-                    crs_authid = navigation_data.get('crs')
-                    lat, lon = self._convert_to_wgs84(
-                        navigation_data.get('center_x'),
-                        navigation_data.get('center_y'),
-                        crs_authid,
-                    )
-
-                if lat is None or lon is None:
-                    return None
-
-                if zoom_value is None:
-                    zoom_value = 16.0
-
-                # Google Earth用の正確なパラメータ計算（実測值に基づく）
-                scale_value = navigation_data.get('scale')
-                if not scale_value and 'location' in navigation_data:
-                    try:
-                        decoded = urllib.parse.unquote(navigation_data['location'])
-                        data = json.loads(decoded)
-                        scale_value = data.get('scale')
-                    except Exception:
-                        pass
-                
-                if scale_value:
-                    # 実測データに基づくGoogle Earth用パラメータ計算
-                    # 実測値: 1:15695スケール → 高度32m、距離160699m、1y角度
-                    reference_scale = 15695.0
-                    reference_altitude = 32.03670052  # 実測高度
-                    reference_distance = 160699.35527964  # 実測距離
-                    
-                    # スケールに比例した高度計算（実測データベース）
-                    altitude = reference_altitude * (scale_value / reference_scale) ** 0.5
-                    altitude = max(10.0, min(2000.0, altitude))
-                    
-                    # スケールに比例した距離計算（実測データベース）
-                    distance = reference_distance * (scale_value / reference_scale)
-                    distance = max(100.0, min(500000.0, distance))
-                else:
-                    altitude = 100.0
-                    distance = 50000.0
-                
-                # 実測に基づくGoogle Earth URL形式（1y角度で適切な表示）
-                return f"https://earth.google.com/web/@{lat:.6f},{lon:.6f},{altitude:.8f}a,{distance:.8f}d,1y,0h,0t,0r"
-
-        except Exception:
-            return None
-
-        return None
-
-    def _resolve_coordinates(self, navigation_data):
-        """ナビゲーションデータからWGS84座標を求める"""
-        lat = navigation_data.get('lat')
-        lon = navigation_data.get('lon')
-        if lat is not None and lon is not None:
-            return float(lat), float(lon)
-
-        x = navigation_data.get('x')
-        y = navigation_data.get('y')
-        crs_authid = navigation_data.get('crs')
-        if x is None or y is None or crs_authid is None:
-            return None, None
-
-        return self._convert_to_wgs84(x, y, crs_authid)
-
+        # AI/外部制御用ブリッジを解除
+        self.bridge = None
 
     def _estimate_zoom_from_scale(self, scale):
-        """スケール値からGoogle Maps用ズームレベルを推定（連続値対応改良版）
-        
+        """スケール値からWebマップ用ズームレベルを推定（連続値対応改良版）
+
         固定テーブル方式をベースに、テーブル間の中間値を線形補間で計算し、
         小数点レベルでの詳細なズームレベル推定を可能にします。
         """
@@ -1111,260 +829,18 @@ class GeoWebView:
             try:
                 if not scale:
                     return 16.0
-            except Exception:
+            except Exception:  # nosec B110  # 設計上の許容
                 pass
             return 16.0
 
-    def _zoom_to_earth_distance(self, zoom_level):
-        """ズームレベルからGoogle Earth用の適切な距離を計算
-        
-        Args:
-            zoom_level: ズームレベル（小数点可）
-            
-        Returns:
-            距離（メートル）
-        """
-        if zoom_level is None:
-            return 5000
-            
-        try:
-            z = float(zoom_level)
-            # ズームレベルに対応する距離テーブル
-            zoom_distances = {
-                0: 20000000, 1: 10000000, 2: 5000000, 3: 2000000, 4: 1000000,
-                5: 500000, 6: 200000, 7: 100000, 8: 50000, 9: 20000,
-                10: 10000, 11: 5000, 12: 2000, 13: 1000, 14: 500,
-                15: 200, 16: 100, 17: 50, 18: 20, 19: 10, 20: 5
-            }
-            
-            # 最も近い整数ズームレベルの距離を使用
-            rounded_zoom = max(0, min(20, round(z)))
-            return zoom_distances.get(rounded_zoom, 5000)
-            
-        except (ValueError, TypeError):
-            return 5000
-
-    def _parse_google_maps_at_url(self, url):
-        """Google Maps の @lat,lon,XXXm または @lat,lon,ZZz 形式を解析する
-
-        戻り値: {'lat': float, 'lon': float, 'zoom': float or None, 'scale': float or None}
-        解析できなければ None を返す。
-        """
-        try:
-            parsed = urllib.parse.urlparse(url)
-            path = parsed.path or ''
-
-            # Quick direct match: @lat,lon,NNNm (common simple form). This handles
-            # cases like '/@35.6778996,139.6960404,883m/' quickly without token-splitting.
-            try:
-                m_quick = re.search(r'@([-0-9.]+),([-0-9.]+),([0-9.]+)m(?=[/,%s]|$)' % (r'\s'), url)
-                if m_quick:
-                    lat = float(m_quick.group(1))
-                    lon = float(m_quick.group(2))
-                    map_width_m = float(m_quick.group(3))
-                    return {'lat': lat, 'lon': lon, 'zoom': None, 'scale': None, 'map_width_m': map_width_m}
-            except Exception:
-                # ignore and continue with the more flexible parser below
-                pass
-
-            # パス中の @lat,lon[,rest] を探す（rest は省略可能）
-            m = re.search(r'@([-0-9.]+),([-0-9.]+)(?:,([^/\s]+))?', path)
-            if not m:
-                # 一部の Google URL はパスではなく完全URLに @ を含むことがある
-                # その場合は raw URL 全体を検索する
-                m = re.search(r'@([-0-9.]+),([-0-9.]+)(?:,([^/\s]+))?', url)
-            if not m:
-                return None
-
-            lat = float(m.group(1))
-            lon = float(m.group(2))
-            rest = m.group(3) if m.lastindex and m.lastindex >= 3 else None
-
-            zoom = None
-            scale = None
-            map_width_m = None
-
-            # rest の例: '220m', '16z', '16.00z', '15.5z', '220m,15z' など
-            # 複数トークンがある場合は順序に依存せず 'm' と 'z' を探索する
-            if rest:
-                # split by comma and inspect each token
-                tokens = [t.strip() for t in rest.split(',') if t.strip()]
-                for tok in tokens:
-                    m2 = re.match(r'^([0-9.]+)(m|z)?', tok, re.IGNORECASE)
-                    if not m2:
-                        continue
-                    try:
-                        val = float(m2.group(1))
-                    except Exception:
-                        continue
-                    suf = (m2.group(2) or '').lower()
-
-                    # if suffix is 'z' or absent, treat as zoom
-                    if suf == 'z' or suf == '':
-                        # prefer first zoom seen
-                        if zoom is None:
-                            try:
-                                zoom = float(val)
-                                try:
-                                    scale = self._estimate_scale_from_zoom(zoom)
-                                except Exception:
-                                    scale = None
-                            except Exception:
-                                zoom = None
-                    elif suf == 'm':
-                        # prefer first map_width_m seen
-                        if map_width_m is None:
-                            try:
-                                map_width_m = float(val)
-                            except Exception:
-                                map_width_m = None
-
-            result = {'lat': lat, 'lon': lon, 'zoom': zoom, 'scale': scale}
-            # attach map_width_m if set
-            try:
-                if 'map_width_m' in locals() and map_width_m is not None:
-                    result['map_width_m'] = map_width_m
-            except Exception:
-                pass
-            return result
-        except Exception:
-            return None
-
-    def _parse_google_earth_url(self, url):
-        """Google Earth Web の @lat,lon,altitudea,distanced,... 形式を解析する
-
-        戻り値: {'lat': float, 'lon': float, 'zoom': float, 'scale': float, 'altitude': float, 'distance': float}
-        解析できなければ None を返す。
-        """
-        try:
-            # 例: https://earth.google.com/web/@35.80234294,139.52998754,48.51663142a,501601.82953767d,1y,...
-            # Capture optional 'y' token which Google Earth uses (e.g. '1y')
-            # Format examples:
-            #  - @lat,lon,altitudea,distanced,1y,...
-            #  - @lat,lon,altitudea,distanced,...
-            m = re.search(r'@([-0-9.]+),([-0-9.]+),([0-9.]+(?:\.[0-9]+)?)a,([0-9.]+(?:\.[0-9]+)?)d(?:,([0-9.]+(?:\.[0-9]+)?)y)?', url)
-            if not m:
-                return None
-
-            lat = float(m.group(1))
-            lon = float(m.group(2))
-            altitude = float(m.group(3))
-            distance = float(m.group(4))
-
-            y_token = None
-            try:
-                if m.lastindex and m.lastindex >= 5 and m.group(5):
-                    y_token = float(m.group(5))
-            except Exception:
-                y_token = None
-
-            zoom_est = None
-            scale_est = None
-            try:
-                # If an explicit distance token is present, invert the same model
-                # used in _build_google_earth_url. That builder uses a sqrt scaling
-                # (distance = reference_distance * sqrt(scale / reference_scale)),
-                # so the algebraic inverse is: scale = reference_scale * (distance / reference_distance) ** 2
-                if distance is not None and float(distance) > 0:
-                    try:
-                        d = float(distance)
-                        reference_scale = 15695.0
-                        reference_distance = 160699.35527964
-                        if reference_distance != 0:
-                            scale_est = float(reference_scale * (d / reference_distance) ** 2)
-                        else:
-                            scale_est = None
-                        if scale_est and scale_est > 0:
-                            zoom_est = float(self._estimate_zoom_from_scale(scale_est))
-                        else:
-                            zoom_est = None
-                    except Exception:
-                        scale_est = None
-                        zoom_est = None
-                elif y_token and y_token > 0:
-                    # Defensive fallback: interpret y_token as meters-per-pixel (m/px)
-                    try:
-                        dpi = float(self._get_screen_dpi())
-                    except Exception:
-                        dpi = 96.0
-                    scale_candidate = float(y_token) * float(dpi) / 0.0254
-                    if scale_candidate > 50.0 and scale_candidate < 100000000.0:
-                        scale_est = float(scale_candidate)
-                        zoom_est = float(self._estimate_zoom_from_scale(scale_est))
-                    else:
-                        scale_est = None
-                        zoom_est = None
-                else:
-                    zoom_est = None
-                    scale_est = None
-            except Exception:
-                zoom_est = None
-                scale_est = None
-
-            return {'lat': lat, 'lon': lon, 'zoom': zoom_est, 'scale': scale_est, 'altitude': altitude, 'distance': distance}
-        except Exception:
-            return None
-
-    def _extract_altitude_from_earth_url(self, url):
-        """Google Earth Web の URL から altitude（高度, メートル）を抽出するヘルパー。
-
-        Google Earth の URL では高度と距離が `...,{altitude}a,{distance}d,...` のように表現されることが多いです。
-        この関数は altitude 部分を見つけて float で返します。
-
-        Args:
-            url (str): Google Earth の @... 形式を含む URL
-
-        Returns:
-            float: altitude（メートル）
-
-        Raises:
-            ValueError: 高度が見つからない場合
-        """
-        try:
-            # よくある形式: @lat,lon,altitudea,distanced,...
-            m = re.search(r'@[-0-9.]+,[-0-9.]+,(-?[0-9.]+)a,([0-9.]+)d', url)
-            if not m:
-                # 別の形式やマイナスゼロなども考慮して柔軟に検索
-                m2 = re.search(r',(-?[0-9.]+)a,([0-9.]+)d', url)
-                if not m2:
-                    raise ValueError("Altitude not found in URL")
-                return float(m2.group(1))
-            return float(m.group(1))
-        except Exception as e:
-            raise ValueError(f"Altitude extraction failed: {e}")
-
-    def _estimate_ground_resolution_from_altitude(self, altitude_meters, latitude_deg, pixel_angle_deg=0.00028):
-        """与えられた高度（m）と中心緯度（度）から概算の地上解像度（メートル/ピクセル）を計算する。
-
-        注記: この計算はおおよその概算であり、実際の表示スケールはモニタ解像度、表示領域のピクセル数、投影
-        の影響などに依存します。ここでは単純化した幾何学モデルを用いて m/px の見積もりを返します。
-
-        Args:
-            altitude_meters (float): カメラ/観測点の高度（メートル）
-            latitude_deg (float): 地表の中心緯度（度）
-            pixel_angle_deg (float): 画面上1ピクセルが占める角度（度）。デフォルトは 0.00028deg（概算）
-
-        Returns:
-            float: 推定される地上解像度（メートル/ピクセル）
-        """
-        try:
-            earth_radius = 6371000.0
-            r = float(earth_radius) + float(altitude_meters)
-            pixel_angle_rad = math.radians(float(pixel_angle_deg))
-            lat_correction = math.cos(math.radians(float(latitude_deg)))
-            ground_resolution = r * pixel_angle_rad * lat_correction
-            return float(ground_resolution)
-        except Exception:
-            return None
-
     def _estimate_scale_from_zoom(self, zoom_level):
         """ズームレベルからスケール値を逆算（小数点対応版）
-        
+
         小数点レベルのズームレベルにも対応し、線形補間でスケール値を計算します。
-        
+
         Args:
             zoom_level: ズームレベル（小数点可）
-            
+
         Returns:
             推定スケール値
         """
@@ -1374,296 +850,13 @@ class GeoWebView:
         except Exception:
             return 20000.0
 
-    def _convert_to_wgs84(self, x, y, source_crs_authid):
-        """任意座標をWGS84へ変換"""
-        try:
-            source_crs = QgsCoordinateReferenceSystem(str(source_crs_authid))
-            if not source_crs.isValid():
-                return None, None
-            target_crs = QgsCoordinateReferenceSystem("EPSG:4326")
-            transform = QgsCoordinateTransform(source_crs, target_crs, QgsProject.instance())
-            point = transform.transform(QgsPointXY(float(x), float(y)))
-            return float(point.y()), float(point.x())
-        except Exception:
-            return None, None
-
-    def _convert_wgs84_to_crs(self, lat, lon, target_crs_authid):
-        """WGS84 座標 (lat, lon) を target CRS の座標に変換して返す (x, y) 形式
-
-        Returns (x, y) or (None, None) on error.
-        """
-        try:
-            source_crs = QgsCoordinateReferenceSystem('EPSG:4326')
-            target_crs = QgsCoordinateReferenceSystem(str(target_crs_authid))
-            if not target_crs.isValid():
-                return None, None
-            transform = QgsCoordinateTransform(source_crs, target_crs, QgsProject.instance())
-            pt = transform.transform(QgsPointXY(float(lon), float(lat)))
-            return float(pt.x()), float(pt.y())
-        except Exception:
-            return None, None
-
-    def _compute_scale_from_map_width(self, center_lat, map_width_m, target_crs_authid=None):
-        """地球上の map_width_m (表示横幅メートル) を QGIS の scale に換算する簡易計算
-
-        アプローチ:
-        - WGS84 の中心緯度から経度方向の地球上の長さ（1度あたりのメートル）を計算
-        - 表示横幅 map_width_m を度に変換し、目的座標系での地図単位とピクセル幅からスケールを推定
-        - ここでは簡易的に: scale = (map_width_map_units) / (map_units_per_pixel) を目標とするが、
-          map_units_per_pixel は実行時のキャンバスから取得する必要があるため、呼び出し側で最終換算を行う。
-
-        Returns estimated_scale_meters_per_map_unit (approx) or None.
-        """
-        try:
-            # Earth radius approximation
-            R = 6378137.0
-            # length of one degree longitude at given latitude
-            lat_rad = math.radians(float(center_lat))
-            meters_per_deg_lon = (math.pi / 180.0) * R * math.cos(lat_rad)
-            # map_width_m divided by meters_per_deg_lon -> degrees of longitude
-            deg_width = float(map_width_m) / meters_per_deg_lon if meters_per_deg_lon != 0 else None
-            return {'deg_width': deg_width, 'meters_per_deg_lon': meters_per_deg_lon}
-        except Exception:
-            return None
-
-    def _compute_scale_from_map_width_with_dpi(self, center_lat, map_width_m, canvas, dpi=96):
-        """Compute map scale denominator (approx) from desired map width in meters, using canvas size and DPI.
-
-        Returns scale_denominator (e.g. 10000 for 1:10000) or None.
-        """
-        try:
-            dest_crs = canvas.mapSettings().destinationCrs()
-            # compute deg width and meters per degree at center
-            info = self._compute_scale_from_map_width(center_lat, map_width_m, dest_crs.authid())
-            if not info or not info.get('deg_width'):
-                return None
-            deg_width = info['deg_width']
-            # convert deg left/right to destination CRS map units
-            try:
-                # get canvas center in dest CRS and transform to WGS84
-                center_map = canvas.extent().center()
-                wgs_lat, wgs_lon = self._convert_to_wgs84(center_map.x(), center_map.y(), dest_crs.authid())
-                if wgs_lat is None or wgs_lon is None:
-                    return None
-            except Exception:
-                return None
-
-            lon_center = wgs_lon
-            lon_left = lon_center - deg_width / 2.0
-            lon_right = lon_center + deg_width / 2.0
-            x_left, y_left = self._convert_wgs84_to_crs(wgs_lat, lon_left, dest_crs.authid())
-            x_right, y_right = self._convert_wgs84_to_crs(wgs_lat, lon_right, dest_crs.authid())
-            if x_left is None or x_right is None:
-                return None
-            map_width_map_units = abs(x_right - x_left)
-
-            canvas_width_px = canvas.size().width()
-            if canvas_width_px <= 0:
-                return None
-
-            desired_map_units_per_pixel = map_width_map_units / float(canvas_width_px)
-
-            # Preferred method: use current canvas.mapUnitsPerPixel() and canvas.scale() to compute new scale
-            try:
-                current_map_units_per_pixel = canvas.mapUnitsPerPixel()
-                current_scale = canvas.scale()
-                if current_map_units_per_pixel and current_scale:
-                    # scale is proportional to mapUnitsPerPixel, so we can scale by the ratio
-                    scale_denominator = float(current_scale) * (desired_map_units_per_pixel / float(current_map_units_per_pixel))
-                    if scale_denominator > 0:
-                        return float(scale_denominator)
-            except Exception:
-                # Fall back to DPI-based conversion below
-                pass
-
-            # Fallback: Convert meters per pixel to scale denominator using DPI
-            meters_per_pixel = map_width_map_units / float(canvas_width_px)
-            scale_denominator = meters_per_pixel * float(dpi) / 0.0254
-            if scale_denominator <= 0:
-                return None
-            return float(scale_denominator)
-        except Exception:
-            return None
-
-
-    def _get_screen_dpi(self):
-        """Attempt to obtain the current screen DPI via Qt (logical or physical DPI).
-
-        Returns a float DPI value. Falls back to 96.0 if no reliable value can be obtained.
-        """
-        try:
-            # Prefer the QApplication primary screen if available
-            app = QApplication.instance()
-            screen = None
-            if app:
-                try:
-                    screen = app.primaryScreen()
-                except Exception:
-                    screen = None
-
-            # Fallback: try to get the main window's screen
-            if not screen:
-                try:
-                    mw = getattr(self, 'iface', None) and self.iface.mainWindow()
-                    if mw:
-                        screen = mw.screen()
-                except Exception:
-                    screen = None
-
-            if screen:
-                # Prefer logical DPI (accounts for OS scaling). Try several getters defensively.
-                try:
-                    dpi = screen.logicalDotsPerInch()
-                    if dpi and dpi > 0:
-                        return float(dpi)
-                except Exception:
-                    pass
-                try:
-                    dpi = screen.logicalDotsPerInchX()
-                    if dpi and dpi > 0:
-                        return float(dpi)
-                except Exception:
-                    pass
-                try:
-                    dpi = screen.physicalDotsPerInch()
-                    if dpi and dpi > 0:
-                        return float(dpi)
-                except Exception:
-                    pass
-        except Exception:
-            pass
-        # final fallback
-        return 96.0
-
-
-    def _set_extent_for_map_width(self, center_lat, center_lon, map_width_m, canvas):
-        """Set the canvas extent so that the horizontal map width (in meters) is approximately map_width_m.
-
-        Approach:
-        - Compute degree longitude width at center latitude from map_width_m.
-        - Convert left/right WGS84 points to destination CRS (map units) and compute map width in map units.
-        - Use canvas aspect ratio to compute map height in map units.
-        - Build QgsRectangle around center in destination CRS and setExtent.
-
-        Returns True on success, False on failure.
-        """
-        try:
-            # destination CRS of canvas
-            dest_crs = canvas.mapSettings().destinationCrs()
-
-            # meters per degree longitude at latitude
-            R = 6378137.0
-            lat_rad = math.radians(float(center_lat))
-            meters_per_deg_lon = (math.pi / 180.0) * R * math.cos(lat_rad)
-            if meters_per_deg_lon == 0:
-                return False
-
-            deg_width = float(map_width_m) / meters_per_deg_lon
-
-            lon_left = float(center_lon) - deg_width / 2.0
-            lon_right = float(center_lon) + deg_width / 2.0
-
-            # convert center and left/right to destination CRS
-            cx, cy = self._convert_wgs84_to_crs(float(center_lat), float(center_lon), dest_crs.authid())
-            lx, ly = self._convert_wgs84_to_crs(float(center_lat), lon_left, dest_crs.authid())
-            rx, ry = self._convert_wgs84_to_crs(float(center_lat), lon_right, dest_crs.authid())
-            if cx is None or lx is None or rx is None:
-                return False
-
-            map_width_map_units = abs(rx - lx)
-            # Diagnostic logging
-            try:
-                print(f"_set_extent_for_map_width diagnostics: center=({center_lat},{center_lon}), deg_width={deg_width}, meters_per_deg_lon={meters_per_deg_lon}, x_left={lx}, x_right={rx}, map_width_map_units={map_width_map_units}")
-                try:
-                    self.iface.messageBar().pushMessage("QMap Permalink", f"set_extent diagnostics: map_width_map_units={map_width_map_units}, cw={cw}, ch={ch}", duration=6)
-                except Exception:
-                    pass
-            except Exception:
-                pass
-            if map_width_map_units <= 0:
-                return False
-
-            # use canvas aspect ratio to compute map height in map units
-            cw = float(canvas.size().width())
-            ch = float(canvas.size().height())
-            if cw <= 0 or ch <= 0:
-                return False
-            aspect = ch / cw
-            map_height_map_units = map_width_map_units * aspect
-
-            half_w = map_width_map_units / 2.0
-            half_h = map_height_map_units / 2.0
-
-            extent = QgsRectangle(cx - half_w, cy - half_h, cx + half_w, cy + half_h)
-
-            canvas.setDestinationCrs(dest_crs)
-            canvas.setExtent(extent)
-            canvas.refresh()
-            return True
-        except Exception:
-            return False
-
-    def _compute_scale_from_map_width_at_center(self, center_lat, center_lon, map_width_m, canvas):
-        """Estimate a scale denominator by computing target map units width around center and
-        using current canvas.mapUnitsPerPixel() or fallback to meters-per-pixel + DPI method.
-
-        Returns scale_denominator (float) or None.
-        """
-        try:
-            dest_crs = canvas.mapSettings().destinationCrs()
-            # meters per degree lon at latitude
-            R = 6378137.0
-            lat_rad = math.radians(float(center_lat))
-            meters_per_deg_lon = (math.pi / 180.0) * R * math.cos(lat_rad)
-            if meters_per_deg_lon == 0:
-                return None
-
-            deg_width = float(map_width_m) / meters_per_deg_lon
-
-            lon_left = float(center_lon) - deg_width / 2.0
-            lon_right = float(center_lon) + deg_width / 2.0
-
-            x_left, y_left = self._convert_wgs84_to_crs(float(center_lat), lon_left, dest_crs.authid())
-            x_right, y_right = self._convert_wgs84_to_crs(float(center_lat), lon_right, dest_crs.authid())
-            if x_left is None or x_right is None:
-                return None
-
-            map_width_map_units = abs(x_right - x_left)
-
-            # prefer to use current mapUnitsPerPixel and current scale
-            try:
-                current_map_units_per_pixel = canvas.mapUnitsPerPixel()
-                current_scale = canvas.scale()
-                if current_map_units_per_pixel and current_scale:
-                    target_map_units_per_pixel = map_width_map_units / float(canvas.size().width())
-                    scale_denominator = float(current_scale) * (target_map_units_per_pixel / float(current_map_units_per_pixel))
-                    if scale_denominator > 0:
-                        return float(scale_denominator)
-            except Exception:
-                pass
-
-            # fallback to DPI method
-            try:
-                dpi = float(self._get_screen_dpi())
-            except Exception:
-                dpi = 96.0
-            meters_per_pixel = map_width_map_units / float(canvas.size().width())
-            scale_denominator = meters_per_pixel * dpi / 0.0254
-            if scale_denominator > 0:
-                return float(scale_denominator)
-            return None
-        except Exception:
-            return None
-
-
-    
     def generate_permalink(self, include_theme=True, specific_theme=None):
         """現在の地図ビューからパーマリンクを生成
-        
+
         Args:
             include_theme (bool): テーマ情報を含めるかどうか
             specific_theme (str): 指定するテーマ名（None の場合は現在の状態を使用）
-        
+
         Returns:
             パーマリンクURL文字列（HTTP形式）
         """
@@ -1674,14 +867,11 @@ class GeoWebView:
         scale = canvas.scale()
         # 回転角度（度）
         rotation = canvas.rotation() if hasattr(canvas, 'rotation') else 0.0
-        map_units_per_pixel = canvas.mapUnitsPerPixel()
+        _ = canvas.mapUnitsPerPixel()
         center_point = QgsPointXY(
             (extent.xMinimum() + extent.xMaximum()) / 2.0,
             (extent.yMinimum() + extent.yMaximum()) / 2.0,
         )
-
-        # スケールからズームレベルを推定（Web標準対応でより正確）
-        zoom_level = self._estimate_zoom_from_scale(scale)
 
         # 基本パラメータを構築
         x_val = f"{center_point.x():.6f}"
@@ -1693,15 +883,15 @@ class GeoWebView:
             # 万が一 scale が取得できなければ、ズームレベルから推定して scale を算出（逆算は簡易）
             # ここでは推定値として 1000 を入れておく
             scale_val = 1000.0
-        
+
         # 基本URL構築（OpenLayersページ生成用）
         server_port = self.server_manager.get_server_port() or 8089
-        
+
         permalink_url = (
             f"http://localhost:{server_port}/qgis-map?x={x_val}&y={y_val}"
             f"&scale={scale_val:.1f}&crs={crs_id}&rotation={rotation:.2f}"
         )
-        
+
         # テーマ情報を追加（オプション）
         if include_theme and specific_theme:
             # シンプルなテーマ名をパラメータに追加
@@ -1710,29 +900,24 @@ class GeoWebView:
 
         # MapLibre 用のスタイルはクライアント側で個別に取得・注入するため、
         # パーマリンクに typename を付与する処理は行わない（削除）。
-        
+
         return permalink_url
 
     def navigate_to_permalink(self, permalink_url):
         """パーマリンクURLから地図ビューに移動
-        
+
         Args:
             permalink_url: パーマリンクURL
         """
         try:
-            # Normalize: if the input lacks a URL scheme but looks like a host/path (e.g. "google.co.jp/.." or "www.google.co.jp/.."),
-            # try to prepend https:// so urllib.parse can parse netloc/path correctly. This also allows handling inputs
-            # like 'google.co.jp/maps/@lat,lon,...' which users may paste without scheme.
             parsed_temp = urllib.parse.urlparse(permalink_url)
-            # If the input lacks a URL scheme, only auto-prepend 'https://' when it appears to be an
-            # internal qgis-map request (contains 'qgis-map?'). Otherwise keep the raw string and
-            # allow Google @-style detection below to run. This avoids accidentally treating arbitrary
-            # host/path strings as full URLs and respects the user's instruction.
+            # スキーム省略の内部 qgis-map リクエスト（'qgis-map?' を含む）には
+            # https:// を補って urlparse できるようにする。それ以外は生の
+            # 文字列のまま扱う
             if not parsed_temp.scheme:
                 if 'qgis-map?' in permalink_url:
                     try:
-                        permalink_url_with_scheme = 'https://' + permalink_url
-                        parsed_url = urllib.parse.urlparse(permalink_url_with_scheme)
+                        parsed_url = urllib.parse.urlparse('https://' + permalink_url)
                     except Exception:
                         parsed_url = parsed_temp
                 else:
@@ -1740,147 +925,21 @@ class GeoWebView:
             else:
                 parsed_url = parsed_temp
 
-            # If still no recognizable scheme but the string contains a Google/Earth @-format, try parsing it directly
-            if not parsed_url.scheme:
-                # Prefer Google Earth Web format first
-                try:
-                    parsed_earth = self._parse_google_earth_url(permalink_url)
-                    if parsed_earth:
-                        try:
-                            # parsed_earth includes estimated scale/zoom when possible
-                            self.navigate_to_coordinates(parsed_earth['lon'], parsed_earth['lat'], parsed_earth.get('scale'), parsed_earth.get('zoom'), 'EPSG:4326')
-                            try:
-                                dbg = f"Parsed Google Earth @ data: {parsed_earth}"
-                                print(dbg)
-                                self.iface.messageBar().pushMessage("QMap Permalink", dbg, duration=5)
-                            except Exception:
-                                pass
-                            return
-                        except Exception:
-                            raise
-                except Exception:
-                    # ignore and fall back to maps parsing
-                    pass
-
-                if self._parse_google_maps_at_url(permalink_url):
-                    parsed_google = self._parse_google_maps_at_url(permalink_url)
-                    if parsed_google:
-                        try:
-                            self.navigate_to_coordinates(parsed_google['lon'], parsed_google['lat'], parsed_google.get('scale'), parsed_google.get('zoom'), 'EPSG:4326')
-                            return
-                        except Exception as e:
-                            raise
-
-            # HTTP形式のURLを処理（新しいWMS形式と古い形式の両方をサポート）
+            # HTTP形式のURLを処理（/qgis-map形式と旧/wms形式の両方をサポート）
             # NOTE: 以前は 'http://localhost:' で始まるURLのみ内部ナビゲーションと見なしていましたが
             # ローカルネットワークのIPやホスト名から来る場合も利用されるため、ホスト名に依存せず
             # スキームが http(s) でパスに /wms または /qgis-map を含む場合は内部ナビゲーションとして扱います。
             scheme = (parsed_url.scheme or '').lower()
-            scheme = (parsed_url.scheme or '').lower()
             path = parsed_url.path or ''
 
-            # If the URL is an HTTP(S) URL that targets internal endpoints OR contains a Google @lat,lon pattern,
-            # handle it internally (do not require opening a browser).
-            contains_google_at = False
-            try:
-                if '@' in path or '@' in parsed_url.query:
-                    contains_google_at = True
-            except Exception:
-                contains_google_at = False
-
-            if scheme in ('http', 'https') and (('/wms' in path or '/qgis-map' in path) or contains_google_at):
+            if scheme in ('http', 'https') and ('/wms' in path or '/qgis-map' in path):
                 # HTTP URLから直接実行（ブラウザを経由しない）
-                # If this is a Google @ style URL, try parsing coordinates first
-                if contains_google_at:
-                    # Try Google Earth Web format first
-                    parsed_earth = None
-                    try:
-                        parsed_earth = self._parse_google_earth_url(permalink_url)
-                    except Exception:
-                        parsed_earth = None
-
-                    if parsed_earth:
-                        # Use estimated scale/zoom from Earth distance -> zoom inversion
-                        try:
-                            dbg = f"Parsed Google Earth @ data: {parsed_earth}"
-                            print(dbg)
-                            try:
-                                self.iface.messageBar().pushMessage("QMap Permalink", dbg, duration=5)
-                            except Exception:
-                                pass
-                            self.navigate_to_coordinates(parsed_earth['lon'], parsed_earth['lat'], parsed_earth.get('scale'), parsed_earth.get('zoom'), 'EPSG:4326')
-                            return
-                        except Exception as e:
-                            print(f"navigate_to_coordinates with parsed Earth data failed: {e}")
-
-                    # Fallback to Google Maps @ parser
-                    parsed_google = self._parse_google_maps_at_url(permalink_url)
-                    # Debug: inform if parser found a map_width_m
-                    try:
-                        if parsed_google and parsed_google.get('map_width_m') is not None:
-                            dbg = f"Detected map_width_m: {parsed_google.get('map_width_m')} (lat={parsed_google.get('lat')}, lon={parsed_google.get('lon')})"
-                            print(dbg)
-                            try:
-                                self.iface.messageBar().pushMessage("QMap Permalink", dbg, duration=5)
-                            except Exception:
-                                pass
-                        else:
-                            # also print parsed_google for visibility
-                            dbg = f"Parsed Google @ data: {parsed_google}"
-                            print(dbg)
-                    except Exception:
-                        pass
-                    if parsed_google:
-                        # If map_width_m was provided (e.g. '1763m'), use a single, reliable path:
-                        # compute a scale based on center and apply it via navigate_to_coordinates.
-                        map_width_m = parsed_google.get('map_width_m')
-                        if map_width_m:
-                            try:
-                                canvas = self.iface.mapCanvas()
-                                self.iface.messageBar().pushMessage("QMap Permalink", "試行: 中心ベースでスケールを計算します...", duration=3)
-                                computed_scale = self._compute_scale_from_map_width_at_center(parsed_google['lat'], parsed_google['lon'], map_width_m, canvas)
-                                print(f"computed_scale from center: {computed_scale}")
-                                if computed_scale:
-                                    try:
-                                        self.navigate_to_coordinates(parsed_google['lon'], parsed_google['lat'], computed_scale, None, 'EPSG:4326')
-                                        self.iface.messageBar().pushMessage(
-                                            "QMap Permalink",
-                                            f"計算したスケールを適用しました（幅約 {map_width_m}m、1:{int(computed_scale)}）。",
-                                            duration=3
-                                        )
-                                        return
-                                    except Exception as e:
-                                        print(f"navigate_to_coordinates with computed scale failed: {e}")
-                                else:
-                                    # Could not compute scale: fall back to center-only move and inform user
-                                    try:
-                                        canvas = self.iface.mapCanvas()
-                                        dest_crs = canvas.mapSettings().destinationCrs()
-                                        cx, cy = self._convert_wgs84_to_crs(parsed_google['lat'], parsed_google['lon'], dest_crs.authid())
-                                        if cx is not None and cy is not None:
-                                            canvas.setCenter(QgsPointXY(float(cx), float(cy)))
-                                            canvas.refresh()
-                                            self.iface.messageBar().pushMessage(
-                                                "QMap Permalink",
-                                                f"座標 ({parsed_google['lon']:.6f}, {parsed_google['lat']:.6f}) に移動しました（スケールは維持されました）。",
-                                                duration=3
-                                            )
-                                            return
-                                    except Exception:
-                                        pass
-                            except Exception as e:
-                                print(f"map_width handling failed: {e}")
-
-                        # Fallback: Use parsed scale/zoom if map_width_m wasn't provided or handling failed
-                        self.navigate_to_coordinates(parsed_google['lon'], parsed_google['lat'], parsed_google.get('scale'), parsed_google.get('zoom'), 'EPSG:4326')
-                        return
-
                 params = urllib.parse.parse_qs(parsed_url.query)
 
                 # パラメータをナビゲーションデータへ変換して処理（location または coordinates をサポート）
                 try:
                     navigation_data = self.server_manager._build_navigation_data_from_params(params)
-                except ValueError as e:
+                except ValueError:
                     raise
 
                 if navigation_data.get('type') == 'location':
@@ -1897,14 +956,14 @@ class GeoWebView:
                     # 直接移動を実行（scale を優先）
                     self.navigate_to_coordinates(x, y, scale, zoom, crs, rotation, theme_info)
                 else:
-                    raise ValueError("HTTP URLのパラメータからナビゲーションデータを生成できませんでした。")
-                    
+                    raise ValueError(self.tr("Could not build navigation data from the HTTP URL parameters."))
+
             # 従来のカスタムプロトコル形式も維持
             elif permalink_url.startswith('qgis-permalink://'):
                 encoded_data = permalink_url[17:]  # "qgis-permalink://"を除去
                 json_data = urllib.parse.unquote(encoded_data)
                 permalink_data = json.loads(json_data)
-                
+
                 # 座標系とextentを復元
                 crs = QgsCoordinateReferenceSystem(permalink_data['crs'])
                 extent = QgsRectangle(
@@ -1913,32 +972,32 @@ class GeoWebView:
                     permalink_data['x_max'],
                     permalink_data['y_max']
                 )
-                
+
                 # マップキャンバスに適用
                 canvas = self.iface.mapCanvas()
                 canvas.setDestinationCrs(crs)
                 canvas.setExtent(extent)
                 canvas.refresh()
-                
+
                 self.iface.messageBar().pushMessage(
-                    "QMap Permalink", 
-                    "パーマリンクから地図ビューに移動しました。", 
+                    "QMap Permalink",
+                    self.tr("Moved the map view from the permalink."),
                     duration=3
                 )
-                
+
             else:
-                raise ValueError("サポートされていないパーマリンクURL形式です。")
-                
+                raise ValueError(self.tr("Unsupported permalink URL format."))
+
         except Exception as e:
             QMessageBox.warning(
                 self.iface.mainWindow(),
-                "QMap Permalink エラー",
-                f"パーマリンクの処理中にエラーが発生しました：\n{str(e)}"
+                self.tr("QMap Permalink Error"),
+                self.tr("An error occurred while processing the permalink:\n{0}").format(e)
             )
-    
+
     def navigate_from_http(self, location_data):
         """HTTP経由でのナビゲーション処理
-        
+
         Args:
             location_data: エンコードされた位置データ
         """
@@ -1946,7 +1005,7 @@ class GeoWebView:
             # URLデコードしてJSONパース
             json_data = urllib.parse.unquote(location_data)
             permalink_data = json.loads(json_data)
-            
+
             # 座標系とextentを復元
             crs = QgsCoordinateReferenceSystem(permalink_data['crs'])
             extent = QgsRectangle(
@@ -1955,28 +1014,28 @@ class GeoWebView:
                 permalink_data['x_max'],
                 permalink_data['y_max']
             )
-            
+
             # マップキャンバスに適用
             canvas = self.iface.mapCanvas()
             canvas.setDestinationCrs(crs)
             canvas.setExtent(extent)
             canvas.refresh()
-            
+
             self.iface.messageBar().pushMessage(
-                "QMap Permalink", 
-                "HTTP経由で地図ビューに移動しました。", 
+                "QMap Permalink",
+                self.tr("Moved the map view via HTTP."),
                 duration=3
             )
-            
+
         except Exception as e:
-            raise Exception(f"HTTP地図移動の処理中にエラーが発生しました: {str(e)}")
-    
+            raise Exception(self.tr("An error occurred while processing the HTTP map move: {0}").format(e))
+
     def navigate_to_coordinates(self, x, y, scale, zoom, crs_auth_id, rotation=None, theme_info=None):
         """座標指定でのナビゲーション処理
-        
+
         Args:
             x: 経度またはX座標
-            y: 緯度またはY座標  
+            y: 緯度またはY座標
             zoom: ズームレベル
             crs_auth_id: 座標系ID (例: "EPSG:4326")
             rotation: 回転角度（度）
@@ -2021,10 +1080,9 @@ class GeoWebView:
 
             # 保存: 元の destination CRS を退避
             try:
-                original_dest_crs = canvas.mapSettings().destinationCrs()
+                _ = canvas.mapSettings().destinationCrs()
             except Exception:
-                original_dest_crs = None
-
+                _ = None
 
             # キャンバスの destination CRS を切り替えずに適用する実装
             # 手順:
@@ -2064,7 +1122,7 @@ class GeoWebView:
                             ty + half_height
                         )
                         canvas.setExtent(extent)
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
 
                 # scale 適用: canvas.zoomScale はキャンバスCRS単位のスケール分母を期待する
@@ -2082,19 +1140,18 @@ class GeoWebView:
                             # scale_val がすでに分母 (1:scale_val) であれば、canvas.zoomScale に直接渡すのが正しい。
                             # ここでは安全のため、現在の scale を維持する手順を試みる（大きな変更を避ける）
                             canvas.zoomScale(float(scale_val))
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
 
                 # rotation があれば適用
                 if rotation is not None:
                     try:
                         canvas.setRotation(float(rotation))
-                    except Exception:
+                    except Exception:  # nosec B110  # 設計上の許容
                         pass
 
                 # 最後にリフレッシュ
                 canvas.refresh()
-
 
             except Exception:
                 # 最後のフォールバック: 直接 extent を設定
@@ -2108,7 +1165,7 @@ class GeoWebView:
                         float(y) + half_height
                     )
                     canvas.setExtent(extent)
-                except Exception:
+                except Exception:  # nosec B110  # 設計上の許容
                     pass
 
             # テーマ情報がある場合は適用
@@ -2117,31 +1174,31 @@ class GeoWebView:
                 try:
                     theme_applied = self._apply_theme_from_permalink(theme_info)
                     if theme_applied:
-                        print("テーマが正常に適用されました")
+                        print("Theme applied successfully")
                 except Exception as e:
-                    print(f"テーマ適用エラー: {e}")
-            
+                    print(f"Theme apply error: {e}")
+
             canvas.refresh()
-            
+
             # メッセージを表示
-            message = f"座標 ({x:.6f}, {y:.6f}) に移動しました。"
+            message = self.tr("Moved to coordinates ({0:.6f}, {1:.6f}).").format(x, y)
             if theme_applied:
-                message += " テーマも復元されました。"
-            
+                message += self.tr(" The theme was also restored.")
+
             self.iface.messageBar().pushMessage(
-                "QMap Permalink", 
-                message, 
+                "QMap Permalink",
+                message,
                 duration=3
             )
-            
+
         except Exception as e:
-            raise Exception(f"座標移動の処理中にエラーが発生しました: {str(e)}")
+            raise Exception(self.tr("An error occurred while processing the coordinate move: {0}").format(e))
 
     # パネル用のイベントハンドラ
 
     def handle_navigation_request(self, navigation_data):
         """HTTPリクエストからのナビゲーション要求を安全に処理（メインスレッドで実行）
-        
+
         Args:
             navigation_data: ナビゲーション情報を含む辞書
         """
@@ -2161,52 +1218,51 @@ class GeoWebView:
                 theme_info = navigation_data.get('theme_info')
                 # scale を優先して渡す（None の場合は zoom を使う）
                 self.navigate_to_coordinates(x, y, scale, zoom, crs, rotation, theme_info)
-                
-            print(f"ナビゲーション完了: {navigation_data['type']}")
-            
+
+            print(f"Navigation done: {navigation_data['type']}")
+
         except Exception as e:
-            print(f"ナビゲーション処理エラー: {e}")
+            print(f"Navigation error: {e}")
             self.iface.messageBar().pushMessage(
-                "QMap Permalink エラー", 
-                f"ナビゲーション処理中にエラーが発生しました: {str(e)}", 
+                self.tr("QMap Permalink Error"),
+                self.tr("An error occurred while processing navigation: {0}").format(e),
                 duration=5
             )
-    
-
 
     # パネル用のイベントハンドラ
+
     def on_generate_clicked_panel(self):
         """パネル版：パーマリンク生成ボタンがクリックされた時の処理"""
         try:
             # ドロップダウンの選択からテーマ設定を判定
             include_theme = False
             specific_theme = None
-            
+
             if hasattr(self.panel, 'comboBox_themes'):
                 selected_option = self.panel.comboBox_themes.currentText()
-                
-                if selected_option == "-- No Theme (Position Only) --":
+
+                if self.panel.comboBox_themes.currentData() == "__no_theme__":
                     include_theme = False
                     specific_theme = None
                 elif selected_option:  # 実際のテーマ名が選択された場合
                     include_theme = True
                     specific_theme = selected_option
-            
+
             permalink = self.generate_permalink(include_theme=include_theme, specific_theme=specific_theme)
             self.panel.lineEdit_permalink.setText(permalink)
-            
+
             # ナビゲート用の欄にも同じURLを自動設定
             self.panel.lineEdit_navigate.setText(permalink)
-            
+
             # メッセージにテーマ情報の有無を含める
             if include_theme and specific_theme:
                 message = self.tr("Permalink with theme '{theme}' generated successfully.").format(theme=specific_theme)
             else:
                 message = self.tr("Permalink (position only) generated successfully.")
-            
+
             self.iface.messageBar().pushMessage(
-                self.tr("geo_webview"), 
-                message, 
+                self.tr("geo_webview"),
+                message,
                 duration=3
             )
         except Exception as e:
@@ -2226,31 +1282,13 @@ class GeoWebView:
                 self.tr("Please enter a permalink URL.")
             )
             return
-        # If the user pasted a raw Google @-style path like '/@lat,lon,1763m/' or
-        # '@lat,lon,1763m' (possibly without scheme), prefer to treat it as an
-        # internal Google-style navigation and pass directly to the internal
-        # parser/navigator. This avoids panel-level heuristics opening a browser
-        # or rejecting the input before the plugin can parse map_width (m) etc.
-        try:
-            if '@' in permalink_url and self._parse_google_maps_at_url(permalink_url):
-                # Delegate to the central navigate_to_permalink which contains the
-                # canonical handling for Google @-style strings (including map_width -> scale).
-                try:
-                    self.navigate_to_permalink(permalink_url)
-                    return
-                except Exception:
-                    # Fall through to the normal handling below on error
-                    pass
-        except Exception:
-            # Be defensive: ignore parser errors here and continue with regular flow
-            pass
         # Parse URL and decide:
         # - If it's an http(s) URL pointing to localhost and contains
         #   internal endpoints (/wms or /qgis-map), route to internal navigation.
         # - Otherwise, open external http(s) URLs in the default browser.
         try:
             parsed = urllib.parse.urlparse(permalink_url)
-            path = parsed.path or ''
+            _ = parsed.path or ''
 
             # Prioritize internal qgis-map regardless of scheme: if the input contains '/qgis-map' or 'qgis-map?'
             # treat it as an internal request and hand off to navigate_to_permalink.
@@ -2259,29 +1297,8 @@ class GeoWebView:
                 self.navigate_to_permalink(permalink_url)
                 return
 
-            # If the URL is a Google Maps URL, try to parse the @lat,lon,... form and navigate internally
-            lowered_url = permalink_url.lower()
-            # Simplified Google detection: if the input contains a coordinate-style '/@' path,
-            # a '/maps/' path segment, or the string 'google.' treat it as a Google Maps URL.
-            # This keeps the logic simple and ensures inputs like 'maps/@35.8080979,...' are
-            # correctly routed.
-            # Simplify Google detection: only treat strings that contain an @lat,lon pattern
-            # (e.g. @35.8080979,139.5289801) as Google @-style input.
-            if re.search(r'@[-0-9.]+,[-0-9.]+', lowered_url):
-                try:
-                    self.navigate_to_permalink(permalink_url)
-                    return
-                except Exception as e:
-                    QMessageBox.critical(
-                        self.iface.mainWindow(),
-                        self.tr("QMap Permalink"),
-                        self.tr("Failed to navigate to Google Maps URL: {error}").format(error=str(e))
-                    )
-                    return
-
-            # (Old HTTP-specific handling removed: navigation now prioritizes '/qgis-map' earlier,
-            # and Google @-style URLs are handled above. External HTTP(S) links are not opened by
-            # Navigate; use the Open button.)
+            # (Old HTTP-specific handling removed: navigation now prioritizes '/qgis-map' earlier.
+            # External HTTP(S) links are not opened by Navigate; use the Open button.)
 
         except Exception:
             # Parsing failed — do NOT fallback to internal navigation for HTTP(S).
@@ -2296,51 +1313,44 @@ class GeoWebView:
                 return
             # Otherwise allow non-http schemes to be handled by the existing fallback
 
-        # Strict mode: if the input was not recognized as qgis-map or Google @-style,
+        # Strict mode: if the input was not recognized as qgis-map,
         # show an error and do not attempt fallback navigation.
         QMessageBox.critical(
             self.iface.mainWindow(),
             self.tr("QMap Permalink"),
-            self.tr("Navigate supports only internal 'qgis-map' links or Google @-style URLs (e.g. /@lat,lon,220m/).")
+            self.tr("Navigate supports only internal 'qgis-map' links.")
         )
 
     def on_copy_clicked_panel(self):
         """パネル版：コピーボタンがクリックされた時の処理"""
-        print("コピーボタンがクリックされました")
-        
+        print("Copy button clicked")
+
         # パーマリンクテキストを取得
         if not hasattr(self.panel, 'lineEdit_permalink') or self.panel.lineEdit_permalink is None:
-            print("エラー: lineEdit_permalink が見つかりません")
+            print("Error: lineEdit_permalink not found")
             QMessageBox.warning(
                 self.iface.mainWindow(),
                 "geo_webview",
-                "パーマリンク入力フィールドが見つかりません。"
+                self.tr("The permalink input field was not found.")
             )
             return
-            
+
         permalink_url = self.panel.lineEdit_permalink.text().strip()
-        print(f"パーマリンクURL: {permalink_url}")
-        
+        print(f"Permalink URL: {permalink_url}")
+
         if not permalink_url:
             QMessageBox.warning(
                 self.iface.mainWindow(),
                 "geo_webview",
-                "コピーできるパーマリンクがありません。"
+                self.tr("There is no permalink to copy.")
             )
             return
-            
+
         clipboard = QApplication.clipboard()
-        
-        # Qt5/Qt6互換性: QClipboard.Mode.Clipboard (Qt6) vs QClipboard.Clipboard (Qt5)
-        try:
-            # Qt6
-            clipboard_mode = QClipboard.Mode.Clipboard
-            selection_mode = QClipboard.Mode.Selection if clipboard.supportsSelection() else None
-        except AttributeError:
-            # Qt5
-            clipboard_mode = QClipboard.Clipboard
-            selection_mode = QClipboard.Selection if clipboard.supportsSelection() else None
-        
+
+        clipboard_mode = QClipboard.Mode.Clipboard
+        selection_mode = QClipboard.Mode.Selection if clipboard.supportsSelection() else None
+
         success = False
         for _ in range(3):
             clipboard.setText(permalink_url, mode=clipboard_mode)
@@ -2353,283 +1363,601 @@ class GeoWebView:
             QThread.msleep(50)
 
         if success:
-            print("クリップボードへのコピー成功")
+            print("Clipboard copy succeeded")
             self.iface.messageBar().pushMessage(
                 "geo_webview",
-                "パーマリンクをクリップボードにコピーしました。",
+                self.tr("Copied the permalink to the clipboard."),
                 duration=3
             )
         else:
-            print("クリップボードへのコピー失敗")
+            print("Clipboard copy failed")
             QMessageBox.warning(
                 self.iface.mainWindow(),
                 "geo_webview",
-                "クリップボードへのコピーに失敗しました。手動でコピーしてください。"
+                self.tr("Failed to copy to the clipboard. Please copy it manually.")
             )
 
-    
-
-    def on_google_maps_clicked_panel(self):
-        """パネル版：Google Mapsボタンがクリックされた時の処理"""
+    def on_kasugai_open_folder(self):
+        """KASUGAI 出力フォルダ(.kasc/DATA/<engine>.html/index.html が
+        出力される場所)を OS のファイルマネージャで開く。"""
         try:
-            # パーマリンクが存在しない場合は自動生成
-            permalink_text = ''
-            if hasattr(self.panel, 'lineEdit_permalink') and self.panel.lineEdit_permalink is not None:
-                permalink_text = self.panel.lineEdit_permalink.text().strip() or ''
-            
-            if not permalink_text:
-                # パーマリンクが無い場合は自動生成
-                try:
-                    permalink_text = self.generate_permalink(include_theme=False)
-                    # 生成したパーマリンクをパネルに設定
-                    if hasattr(self.panel, 'lineEdit_permalink') and self.panel.lineEdit_permalink is not None:
-                        self.panel.lineEdit_permalink.setText(permalink_text)
-                except Exception as e:
-                    self.iface.messageBar().pushMessage(
-                        "geo_webview", f"パーマリンク自動生成エラー: {str(e)}", duration=5
-                    )
-                    return
-            
-            # 現在の地図ビューから直接ナビゲーションデータを作成
-            canvas = self.iface.mapCanvas()
-            extent = canvas.extent()
-            crs = canvas.mapSettings().destinationCrs()
-            scale = canvas.scale()
-            
-            # 中心点を計算
-            center_x = extent.center().x()
-            center_y = extent.center().y()
-            
-            # WGS84座標に変換
-            lat, lon = self._convert_to_wgs84(center_x, center_y, crs.authid())
-            
-            if lat is None or lon is None:
-                self.iface.messageBar().pushMessage(
-                    "QMap Permalink", "座標変換に失敗しました。", duration=3
-                )
-                return
-            
-            # HTTPレスポンス用と同じ形式のナビゲーションデータを作成
-            navigation_data = {
-                'type': 'coordinates',
-                'x': center_x,
-                'y': center_y,
-                'lat': lat,
-                'lon': lon,
-                'scale': scale,
-                'crs': crs.authid(),
-                'zoom': self._estimate_zoom_from_scale(scale)
-            }
-            
-            # HTTPレスポンスと同じメソッドでGoogle Maps URLを生成
-            google_maps_url = self._build_google_maps_url(navigation_data)
-            if google_maps_url:
-                QDesktopServices.openUrl(QUrl(google_maps_url))
-                self.iface.messageBar().pushMessage(
-                    "QMap Permalink", "Google Mapsで開きました。", duration=3
-                )
+            from . import kasugai_export
+            out_dir = kasugai_export.preferred_output_dir()
+            os.makedirs(out_dir, exist_ok=True)
+            QDesktopServices.openUrl(
+                QUrl.fromLocalFile(os.path.abspath(out_dir)))
         except Exception as e:
             self.iface.messageBar().pushMessage(
-                "QMap Permalink", f"Google Maps起動エラー: {str(e)}", duration=5
-            )
+                "geo_webview",
+                self.tr("Failed to open export folder: {0}").format(e),
+                duration=5)
 
-    def on_google_earth_clicked_panel(self):
-        """パネル版：Google Earthボタンがクリックされた時の処理"""
+    def update_kasugai_outdir_display(self):
+        """パネルの保存先表示を現在の出力先に合わせる。"""
         try:
-            # パーマリンクが存在しない場合は自動生成
-            permalink_text = ''
-            if hasattr(self.panel, 'lineEdit_permalink') and self.panel.lineEdit_permalink is not None:
-                permalink_text = self.panel.lineEdit_permalink.text().strip() or ''
-            
-            if not permalink_text:
-                # パーマリンクが無い場合は自動生成
-                try:
-                    permalink_text = self.generate_permalink(include_theme=False)
-                    # 生成したパーマリンクをパネルに設定
-                    if hasattr(self.panel, 'lineEdit_permalink') and self.panel.lineEdit_permalink is not None:
-                        self.panel.lineEdit_permalink.setText(permalink_text)
-                except Exception as e:
-                    self.iface.messageBar().pushMessage(
-                        "geo_webview", f"パーマリンク自動生成エラー: {str(e)}", duration=5
-                    )
-                    return
-            
-            # 現在の地図ビューから直接ナビゲーションデータを作成
-            canvas = self.iface.mapCanvas()
-            extent = canvas.extent()
-            crs = canvas.mapSettings().destinationCrs()
-            scale = canvas.scale()
-            
-            # 中心点を計算
-            center_x = extent.center().x()
-            center_y = extent.center().y()
-            
-            # WGS84座標に変換
-            lat, lon = self._convert_to_wgs84(center_x, center_y, crs.authid())
-            
-            if lat is None or lon is None:
-                self.iface.messageBar().pushMessage(
-                    "QMap Permalink", "座標変換に失敗しました。", duration=3
-                )
+            from . import kasugai_export
+            setter = getattr(self.panel, 'set_kasugai_outdir', None)
+            if setter is not None:
+                setter(kasugai_export.preferred_output_dir())
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+
+    def on_kasugai_outdir_browse(self):
+        """保存先表示のクリック — フォルダ選択でエクスポート出力先を変更。
+        選択は kasugai_output_path に保存され既定(Canvasインストール先/
+        <ドキュメント>)より優先される。"""
+        try:
+            from qgis.PyQt.QtWidgets import QFileDialog
+            from . import kasugai_export
+            folder = QFileDialog.getExistingDirectory(
+                self.iface.mainWindow(),
+                self.tr("Select Export Destination Folder"),
+                kasugai_export.preferred_output_dir())
+            if not folder:
                 return
-            
-            # HTTPレスポンス用と同じ形式のナビゲーションデータを作成
-            navigation_data = {
-                'type': 'coordinates',
-                'x': center_x,
-                'y': center_y,
-                'lat': lat,
-                'lon': lon,
-                'scale': scale,
-                'crs': crs.authid(),
-                'zoom': self._estimate_zoom_from_scale(scale)
-            }
-            
-            # HTTPレスポンスと同じメソッドでGoogle Earth URLを生成
-            google_earth_url = self._build_google_earth_url(navigation_data)
-            if google_earth_url:
-                QDesktopServices.openUrl(QUrl(google_earth_url))
-                self.iface.messageBar().pushMessage(
-                    "QMap Permalink", "Google Earthで開きました。", duration=3
-                )
+            kasugai_export.set_output_dir(folder)
+            self.update_kasugai_outdir_display()
+            self.iface.messageBar().pushMessage(
+                "geo_webview",
+                self.tr("Export destination set to {0}").format(folder),
+                duration=5)
         except Exception as e:
             self.iface.messageBar().pushMessage(
-                "QMap Permalink", f"Google Earth起動エラー: {str(e)}", duration=5
-            )
-    
-    def on_maplibre_clicked_panel(self):
-        """パネル版：MapLibreボタンがクリックされた時の処理"""
+                "geo_webview",
+                self.tr("Failed to set export destination: {0}").format(e),
+                duration=5)
+
+    def on_kasugai_outdir_reset(self):
+        """保存先を既定(Canvasインストール先/<ドキュメント>)に戻す。"""
         try:
-            # HTTPサーバーが起動しているか確認
+            from . import kasugai_export
+            kasugai_export.set_output_dir('')
+            self.update_kasugai_outdir_display()
+            self.iface.messageBar().pushMessage(
+                "geo_webview",
+                self.tr("Export destination reset to the default"),
+                duration=5)
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+
+    def on_kasugai_export_clicked(self):
+        """パネル版：KASUGAI エクスポートボタン — 表示中レイヤを
+        KASUGAI Canvasプロジェクト(.kasc+DATA/+エンジン起動HTML)として
+        出力するだけの簡易経路。Canvas 起動・プロジェクト登録は行わず、
+        出力物は 📁 ボタンの出力フォルダか index.html から開く。
+        Canvas 連携での起動は GET /kasugai / bridge kasugaiExport 経由。"""
+        try:
+            from . import kasugai_export
+            result = kasugai_export.export_kasugai_project(
+                self.iface,
+                out_dir=kasugai_export.preferred_output_dir())
+            n_layers = len(result.get('layers') or [])
+            n_tiles = len(result.get('tiles') or [])
+            if not n_layers and not n_tiles:
+                self.iface.messageBar().pushMessage(
+                    "geo_webview",
+                    self.tr("No visible vector/tile layers to export."),
+                    duration=5)
+                return
+            self.iface.messageBar().pushMessage(
+                "geo_webview",
+                self.tr("Exported KASUGAI project to {0} "
+                        "({1} layers, {2} tiles). "
+                        "Open the .kasc file in KASUGAI Canvas.").format(
+                    result['dir'], n_layers, n_tiles),
+                duration=8)
+        except Exception as e:
+            self.iface.messageBar().pushMessage(
+                "geo_webview",
+                self.tr("KASUGAI export error: {0}").format(e),
+                duration=5)
+
+    def on_kasugai_zip_clicked(self):
+        """エクスポート物一式を kasugai_canvas.zip としてブラウザで
+        ダウンロードする。/export-data/kasugai_canvas.zip はZIP未生成でも
+        その場で固めて返すため、常に直近エクスポートの最新内容になる。"""
+        try:
             if not self.server_manager.is_server_running():
                 self.iface.messageBar().pushMessage(
-                    "geo_webview", "HTTPサーバーが起動していません。サーバーを起動してください。", duration=5
-                )
+                    "geo_webview",
+                    self.tr("The HTTP server is not running. Please start the server."),
+                    duration=5)
                 return
-            
-            # 現在のサーバーポートを取得
-            server_port = self.server_manager.get_server_port() or 8089
-            
-            # パーマリンクテキストを取得
-            permalink_text = ''
-            if hasattr(self.panel, 'lineEdit_permalink') and self.panel.lineEdit_permalink is not None:
-                permalink_text = self.panel.lineEdit_permalink.text() or ''
-            
-            # パーマリンクがない場合は自動生成
-            if not permalink_text:
-                # パーマリンクが無い場合は自動生成
-                try:
-                    permalink_text = self.generate_permalink(include_theme=False)
-                    # 生成したパーマリンクをパネルに設定
-                    if hasattr(self.panel, 'lineEdit_permalink') and self.panel.lineEdit_permalink is not None:
-                        self.panel.lineEdit_permalink.setText(permalink_text)
-                except Exception as e:
-                    self.iface.messageBar().pushMessage(
-                        "geo_webview", f"パーマリンク自動生成エラー: {str(e)}", duration=5
-                    )
-                    return
-            
-            # パーマリンクのパラメータを解析
-            from urllib.parse import parse_qs, urlparse
-            params = {}
-            if permalink_text:
-                try:
-                    parsed = urlparse(permalink_text)
-                    query_params = parse_qs(parsed.query)
-                    # x, y, scale, crs, rotation パラメータを抽出
-                    for key in ['x', 'y', 'scale', 'crs', 'rotation']:
-                        if key in query_params and query_params[key]:
-                            params[key] = query_params[key][0]
-                except Exception:
-                    pass
-            
-            # MapLibre URLを生成（パラメータ付き）
-            maplibre_url = f"http://localhost:{server_port}/maplibre"
-            if params:
-                param_parts = []
-                for key in ['x', 'y', 'scale', 'crs', 'rotation']:
-                    if key in params:
-                        param_parts.append(f'{key}={params[key]}')
-                if param_parts:
-                    maplibre_url = maplibre_url + '?' + '&'.join(param_parts)
-            
-            # ブラウザで開く
-            QDesktopServices.openUrl(QUrl(maplibre_url))
-            self.iface.messageBar().pushMessage(
-                "geo_webview", "MapLibreで開きました。", duration=3
-            )
+            from . import kasugai_export
+            port = self.server_manager.get_server_port() or 8089
+            zip_name = kasugai_export.export_zip_name()
+            QDesktopServices.openUrl(QUrl(
+                'http://localhost:{0}/export-data/{1}'.format(
+                    port, zip_name)))
         except Exception as e:
             self.iface.messageBar().pushMessage(
-                "geo_webview", f"MapLibre起動エラー: {str(e)}", duration=5
-            )
-    
+                "geo_webview",
+                self.tr("ZIP download error: {0}").format(e), duration=5)
+
+    # geo_webview ドキュメントサイト(GitHub Pages。docs/geo_webview/ を公開)
+    DOCS_URL = ('https://yamamoto-ryuzo.github.io/'
+                'qgis_live_harness/geo_webview/')
+
+    def on_kasugai_help_clicked(self):
+        """ドキュメントサイト(GitHub Pages)をブラウザで開く。"""
+        QDesktopServices.openUrl(QUrl(self.DOCS_URL))
+
+    def on_engine_combo_changed(self, index):
+        """Web配信パネルのエンジン選択を QSettings に保存する。"""
+        try:
+            from qgis.PyQt.QtCore import QSettings
+            combo = getattr(self.panel, 'comboBox_engine', None)
+            if combo is None:
+                return
+            engine = combo.itemData(index) or 'cesium'
+            QSettings('GeoWebView', 'geo_webview').setValue(
+                'kasugai_engine', engine)
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+
+    def on_hosted_combo_changed(self, text):
+        """Web配信パネルのCDN(ホスト版チャンネル)選択を QSettings に保存する。
+
+        'stable'/'unstable' または末尾'/'のカスタムベースURLを取る。
+        hosted_engine_base() が起動時に読むため即時反映される。
+        """
+        try:
+            from qgis.PyQt.QtCore import QSettings
+            QSettings('GeoWebView', 'geo_webview').setValue(
+                'kasugai_hosted_channel',
+                str(text or '').strip() or 'stable')
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+
+    def on_kasugai_launch_clicked(self, route='auto'):
+        """パネル版：選択エンジンで エクスポート→登録→ブラウザ起動 まで
+        一発で行う。bridge の kasugaiExport(open_app=True) を利用する。
+        route は 'kasugai'(Canvas登録=主プレイヤー) / 'local'(本サーバの
+        ローカルHTTP配信で即表示) / 'hosted'(サーバレスWEB=ホスト版
+        エンジン) / 'auto'(3段フォールバック)。
+        'kasugai'(「▶ Canvas」ボタン)は再エクスポートせず既存の出力物
+        だけを使い、未出力ならエクスポートを促すメッセージを出す。"""
+        try:
+            engine = 'cesium'
+            combo = getattr(self.panel, 'comboBox_engine', None)
+            if combo is not None and combo.currentData():
+                engine = combo.currentData()
+            if route == 'kasugai':
+                # Canvas 未検出時はインストール導線(セットアップ/ZIP選択)へ。
+                # 検出処理の失敗のみ許容し、インストール導線自体の例外は
+                # 外側の except でユーザへ通知する
+                try:
+                    from . import kasugai_export
+                    installed = bool(
+                        kasugai_export.detect_kasugai()
+                        or kasugai_export.detect_kasugai_install_dir())
+                except Exception:  # nosec B110  # 検出失敗は従来挙動へ
+                    installed = True
+                if not installed:
+                    self._install_kasugai_then_launch(engine)
+                    return
+            if self.bridge is None:
+                from .bridge import GeoWebViewBridge
+                self.bridge = GeoWebViewBridge(self)
+            res = json.loads(
+                self.bridge.kasugaiExport(
+                    engine=engine, open_app=True, route=route,
+                    use_existing=(route == 'kasugai'))
+                or '{}')
+            if not res.get('ok'):
+                if res.get('code') == 'not_exported':
+                    self.iface.messageBar().pushMessage(
+                        "geo_webview",
+                        self.tr("The project has not been exported yet. "
+                                "Use the Export button to export it first."),
+                        duration=8)
+                    return
+                self.iface.messageBar().pushMessage(
+                    "geo_webview",
+                    self.tr("KASUGAI export failed: {0}").format(
+                        res.get('error', 'unknown error')),
+                    duration=6)
+                return
+            url = res.get('url')
+            if url:
+                self.iface.messageBar().pushMessage(
+                    "geo_webview",
+                    self.tr("Opened the project in {0} ({1}): {2}").format(
+                        engine, res.get('via') or '-', url),
+                    duration=8)
+            else:
+                route_reasons = {
+                    'kasugai': self.tr(
+                        "KASUGAI Canvas is not running (port 8510). "
+                        "Start the Canvas app and try again."),
+                    'local': self.tr(
+                        "Local delivery unavailable — the HTTP server is "
+                        "stopped or no installed Canvas web/ was found."),
+                    'hosted': self.tr(
+                        "Serverless delivery unavailable — the HTTP server "
+                        "must be running to serve DATA/."),
+                }
+                if route == 'kasugai':
+                    # エクスポート済みの出力物を使う経路なので
+                    # 「出力しました」は付けない
+                    msg = route_reasons['kasugai']
+                else:
+                    msg = self.tr("Exported to {0}. {1}").format(
+                        res.get('dir', ''),
+                        route_reasons.get(
+                            route,
+                            self.tr("No engine available — open the .kasc "
+                                    "file in KASUGAI Canvas.")))
+                self.iface.messageBar().pushMessage(
+                    "geo_webview", msg, duration=8)
+        except Exception as e:
+            self.iface.messageBar().pushMessage(
+                "geo_webview",
+                self.tr("KASUGAI launch error: {0}").format(e),
+                duration=5)
+
+    def _install_kasugai_then_launch(self, engine):
+        """Canvas 未検出時: インストール方法を選択→バックグラウンド実行→
+        通常起動フローへ合流する。
+
+        セットアップ(NSIS)は .kasc 関連付け・InstallLocation レジストリ
+        登録を行う通常インストール、ポータブルZIPは展開のみ
+        (関連付けなし)。ダウンロードとインストーラ待機は QgsTask で
+        GUI をブロックしない。
+        """
+        box = QMessageBox(
+            self.panel if self.panel is not None
+            else self.iface.mainWindow())
+        box.setWindowTitle(self.tr("Install KASUGAI Canvas"))
+        box.setIcon(QMessageBox.Icon.Question)
+        box.setText(self.tr(
+            "KASUGAI Canvas is not installed. Choose how to install it:"))
+        box.setInformativeText(self.tr(
+            "Setup: installs to the standard location with .kasc file "
+            "association and shortcuts (recommended).\n"
+            "Portable ZIP: just extracts the app — no file association."))
+        btn_setup = box.addButton(
+            self.tr("Setup (.kasc association)"),
+            QMessageBox.ButtonRole.AcceptRole)
+        btn_zip = box.addButton(
+            self.tr("Portable ZIP"),
+            QMessageBox.ButtonRole.AcceptRole)
+        box.addButton(QMessageBox.StandardButton.Cancel)
+        box.setDefaultButton(btn_setup)
+        # exec() のモーダルだと背面に隠れた際に他ウィンドウへの入力を
+        # 全てブロックして「閉じられない」状態になるため、open() の
+        # 非モーダル + buttonClicked シグナルで処理する
+        self._install_box = box
+
+        def _picked(btn):
+            self._install_box = None
+            if btn is btn_setup:
+                self._run_kasugai_install('setup')
+            elif btn is btn_zip:
+                self._run_kasugai_install('zip')
+
+        box.buttonClicked.connect(_picked)
+        box.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+        box.open()
+        box.raise_()
+        box.activateWindow()
+
+    def _run_kasugai_install(self, mode):
+        """インストールを QgsTask で実行し、段階別進捗ダイアログを表示する。"""
+        from qgis.core import Qgis
+        # 実行中は進捗を表示し続ける。DL+ウィザード待機は数十秒かかる
+        # 場合があり、無通知だと「何も起きない」ように見える。
+        # 共有stateをワーカが progress_cb で更新し、QTimer が GUI 側で
+        # ラベル+バーを逐次反映する(段階ごとの経過表示)
+        from qgis.PyQt.QtWidgets import QProgressDialog
+        from qgis.PyQt.QtCore import QTimer
+        from qgis.core import QgsMessageLog
+        try:
+            if getattr(self, '_install_progress', None) is not None:
+                self._install_progress.close()
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+        parent = self.panel if self.panel is not None \
+            else self.iface.mainWindow()
+        progress = QProgressDialog(parent)
+        progress.setWindowTitle(self.tr("Install KASUGAI Canvas"))
+        progress.setCancelButton(None)
+        progress.setWindowModality(Qt.WindowModality.NonModal)
+        progress.setMinimumDuration(0)
+        progress.setRange(0, 100)
+        progress.setValue(0)
+        self._install_progress = progress
+        state = {'stage': 'download', 'done': 0, 'total': 0,
+                 'cancelled': False}
+        progress.canceled.connect(
+            lambda: state.__setitem__('cancelled', True))
+        _labels = {
+            'dl_setup': self.tr(
+                "Downloading the installer... {0:.1f} MB"),
+            'dl_zip': self.tr(
+                "Downloading KASUGAI Canvas... {0:.1f} MB"),
+            'wizard': self.tr(
+                "Waiting for the setup wizard — it opens in a separate "
+                "window. Respond to it (check behind windows and "
+                "security prompts)."),
+            'extract': self.tr("Extracting files..."),
+        }
+
+        def _tick():
+            fin = state.get('fin')
+            if fin is not None:
+                timer.stop()
+                _done(fin['exc'], fin['res'])
+                return
+            st = state['stage']
+            if st == 'download':
+                total = state['total'] or 0
+                mb = state['done'] / 1048576.0
+                progress.setValue(
+                    min(int(state['done'] * 90 / total), 89)
+                    if total else 5)
+                progress.setLabelText(
+                    _labels['dl_setup' if mode == 'setup' else 'dl_zip']
+                    .format(mb))
+            elif st == 'wizard':
+                progress.setValue(90)
+                progress.setLabelText(_labels['wizard'])
+            elif st == 'extract':
+                progress.setValue(92)
+                progress.setLabelText(_labels['extract'])
+
+        timer = QTimer(progress)
+        timer.setInterval(250)
+        timer.timeout.connect(_tick)
+        timer.start()
+        self._install_timer = timer
+        _tick()
+        progress.show()
+        QgsMessageLog.logMessage(
+            'KASUGAI Canvas install started (mode={0})'.format(mode),
+            'geo_webview', Qgis.MessageLevel.Info)
+
+        def _cb(stage, done=0, total=0):
+            state['stage'] = stage
+            state['done'] = done
+            state['total'] = total
+
+        def _work(task):
+            from . import kasugai_export
+            if mode == 'setup':
+                return kasugai_export.install_kasugai_setup(
+                    progress_cb=_cb, cancel=state)
+            return kasugai_export.install_kasugai(
+                progress_cb=_cb, cancel=state)
+
+        def _done(exc, dest=None):
+            try:
+                if self._install_timer is not None:
+                    self._install_timer.stop()
+            except Exception:  # nosec B110  # 設計上の許容
+                pass
+            self._install_timer = None
+            try:
+                if self._install_progress is not None:
+                    self._install_progress.close()
+            except Exception:  # nosec B110  # 設計上の許容
+                pass
+            self._install_progress = None
+            if exc is not None or not dest:
+                err = str(exc) if exc else 'install failed'
+                if state.get('cancelled'):
+                    QgsMessageLog.logMessage(
+                        'KASUGAI Canvas install cancelled by user',
+                        'geo_webview', Qgis.MessageLevel.Info)
+                    self.iface.messageBar().pushMessage(
+                        "geo_webview",
+                        self.tr("KASUGAI Canvas install cancelled."),
+                        level=Qgis.MessageLevel.Info, duration=5)
+                    return
+                QgsMessageLog.logMessage(
+                    'KASUGAI Canvas install failed: {0}'.format(err),
+                    'geo_webview', Qgis.MessageLevel.Warning)
+                self.iface.messageBar().pushMessage(
+                    "geo_webview",
+                    self.tr("KASUGAI Canvas install failed: {0}").format(err),
+                    level=Qgis.MessageLevel.Warning, duration=10)
+                return
+            self.iface.messageBar().pushMessage(
+                "geo_webview",
+                self.tr("Installed KASUGAI Canvas to {0}.").format(dest),
+                duration=5)
+            try:
+                self.panel.update_canvas_launch_state()
+            except Exception:  # nosec B110  # 設計上の許容
+                pass
+            # 通常起動フローへ合流(登録・ブラウザ起動。未出力時は案内)
+            self.on_kasugai_launch_clicked('kasugai')
+
+        try:
+            from qgis.core import QgsApplication, QgsTask
+            task = QgsTask.fromFunction(
+                'Install KASUGAI Canvas', _work, on_finished=_done)
+            progress.canceled.connect(task.cancel)
+            QgsApplication.taskManager().addTask(task)
+        except Exception as e:
+            # QgsTask が使えない環境では Python スレッドへフォールバック
+            # (旧QGIS互換)。完了は _tick が state['fin'] を検出して
+            # GUI スレッドで _done を呼ぶ(GUI をブロックしない)
+            QgsMessageLog.logMessage(
+                'KASUGAI Canvas install task failed to start: {0}'.format(e),
+                'geo_webview', Qgis.MessageLevel.Warning)
+            import threading
+
+            def _bg():
+                try:
+                    res = _work(None)
+                    state['fin'] = {'exc': None, 'res': res}
+                except Exception as e2:  # nosec B110  # _done が通知
+                    state['fin'] = {'exc': e2, 'res': None}
+            threading.Thread(target=_bg, daemon=True).start()
+
+    def on_present_clicked_panel(self):
+        """プレゼンテーション共有ページ(/present)をブラウザで開く。
+
+        共有前提のためLAN IPのURLを優先し、クリップボードへもコピーする
+        (LAN IPが取れない環境ではlocalhostへフォールバック)。
+        """
+        try:
+            if not self.server_manager.is_server_running():
+                self.iface.messageBar().pushMessage(
+                    "geo_webview",
+                    self.tr("The HTTP server is not running. Please start the server."),
+                    duration=5)
+                return
+            port = self.server_manager.get_server_port() or 8089
+            url = self.server_manager.get_network_url('/present') or \
+                f"http://localhost:{port}/present"
+            QDesktopServices.openUrl(QUrl(url))
+            try:
+                QApplication.clipboard().setText(url)
+            except Exception:  # nosec B110  # 設計上の許容
+                pass
+            self.iface.messageBar().pushMessage(
+                "geo_webview",
+                self.tr("Opened the presentation share page. Share URL (copied to clipboard): {0}").format(url),
+                duration=5)
+        except Exception as e:
+            self.iface.messageBar().pushMessage(
+                "geo_webview",
+                self.tr("Presentation launch error: {0}").format(e), duration=5)
+
+    def on_received_selected(self, index):
+        """受領履歴コンボの選択をナビゲート欄へコピーする。"""
+        try:
+            combo = getattr(self.panel, 'comboBox_received', None)
+            if combo is None or index <= 0:
+                return
+            url = combo.itemData(index)
+            if url and getattr(self.panel, 'lineEdit_navigate', None) is not None:
+                self.panel.lineEdit_navigate.setText(url)
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+
+    def _refresh_received_history(self):
+        """サーバが受領したパーマリンク履歴をパネルのコンボへ反映する。"""
+        try:
+            combo = getattr(self.panel, 'comboBox_received', None)
+            if combo is None or self.server_manager is None:
+                return
+            entries = list(getattr(
+                self.server_manager, 'received_history', []) or [])
+            self.panel.update_received_history(entries)
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+
+    def _init_mac_auth_ui(self):
+        """MACアドレス認証UIをQSettingsから初期化し変更を保存する。"""
+        try:
+            from qgis.PyQt.QtCore import QSettings
+            s = QSettings('GeoWebView', 'geo_webview')
+            cb = getattr(self.panel, 'checkBox_mac_auth', None)
+            le = getattr(self.panel, 'lineEdit_mac_auth', None)
+            if cb is not None:
+                enabled = str(
+                    s.value('mac_auth_enabled', 'false')).lower() in (
+                        '1', 'true', 'yes', 'on')
+                cb.blockSignals(True)
+                cb.setChecked(enabled)
+                cb.blockSignals(False)
+                cb.stateChanged.connect(
+                    lambda state: s.setValue(
+                        'mac_auth_enabled', 'true' if state else 'false'))
+            if le is not None:
+                le.setText(str(s.value('mac_auth_allowed', '') or ''))
+                le.editingFinished.connect(
+                    lambda: s.setValue(
+                        'mac_auth_allowed', le.text() or ''))
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+
     def on_check_access_clicked(self):
         """外部アクセス診断ボタンがクリックされた時の処理"""
         try:
             # 診断を実行
             result = self.server_manager.check_external_access()
-            
+
             # 結果をダイアログで表示
             from qgis.PyQt.QtWidgets import QMessageBox, QTextEdit, QVBoxLayout, QDialog, QPushButton
-            
+
             dialog = QDialog(self.iface.mainWindow())
-            dialog.setWindowTitle("外部アクセス診断")
+            dialog.setWindowTitle(self.tr("External Access Diagnostics"))
             dialog.setMinimumWidth(600)
             dialog.setMinimumHeight(400)
-            
+
             layout = QVBoxLayout()
-            
+
             # 診断結果をテキストエリアに表示
             text_edit = QTextEdit()
             text_edit.setReadOnly(True)
             text_edit.setPlainText(result['message'])
             layout.addWidget(text_edit)
-            
+
             # ファイアウォール警告がある場合、ルール追加ボタンを表示
             if result.get('firewall_warning') and result.get('port'):
-                firewall_btn = QPushButton(f"ファイアウォールルールを追加 (ポート {result['port']}) - 管理者権限が必要")
+                firewall_btn = QPushButton(self.tr("Add firewall rule (port {0}) - administrator rights required").format(result['port']))
+
                 def add_firewall_rule():
                     # 確認メッセージを表示
                     from qgis.PyQt.QtWidgets import QMessageBox
-                    
-                    # Qt5/Qt6互換性のためStandardButtonを取得
-                    try:
-                        Yes = QMessageBox.StandardButton.Yes
-                        No = QMessageBox.StandardButton.No
-                    except AttributeError:
-                        Yes = QMessageBox.Yes
-                        No = QMessageBox.No
-                    
+
+                    Yes = QMessageBox.StandardButton.Yes
+                    No = QMessageBox.StandardButton.No
+
                     reply = QMessageBox.question(
                         dialog,
-                        "管理者権限の昇格",
-                        f"ポート {result['port']} を許可するファイアウォールルールを追加します。\n\n"
-                        "この操作には管理者権限が必要です。\n"
-                        "Windowsのユーザーアカウント制御(UAC)ダイアログが表示されます。\n\n"
-                        "続行しますか?",
+                        self.tr("Administrator Elevation"),
+                        self.tr("A firewall rule will be added to allow port {0}.\n\n"
+                                "This operation requires administrator rights.\n"
+                                "The Windows User Account Control (UAC) dialog will be shown.\n\n"
+                                "Continue?").format(result['port']),
                         Yes | No,
                         No
                     )
-                    
+
                     if reply != Yes:
                         return
-                    
+
                     # ボタンを一時的に無効化
                     firewall_btn.setEnabled(False)
-                    firewall_btn.setText("実行中...")
+                    firewall_btn.setText(self.tr("Running..."))
                     QApplication.processEvents()  # UI更新
-                    
+
                     # ファイアウォールルールを追加(管理者権限昇格を試みる)
                     rule_result = self.server_manager.add_firewall_rule(result['port'], request_elevation=True)
-                    
+
                     # ボタンを再度有効化
                     firewall_btn.setEnabled(True)
-                    firewall_btn.setText(f"ファイアウォールルールを追加 (ポート {result['port']}) - 管理者権限が必要")
-                    
+                    firewall_btn.setText(self.tr("Add firewall rule (port {0}) - administrator rights required").format(result['port']))
+
                     if rule_result['success']:
                         QMessageBox.information(
                             dialog,
-                            "成功",
+                            self.tr("Success"),
                             rule_result['message']
                         )
                         # 再診断して結果を更新
@@ -2637,127 +1965,103 @@ class GeoWebView:
                         text_edit.setPlainText(new_result['message'])
                         # ボタンを無効化
                         firewall_btn.setEnabled(False)
-                        firewall_btn.setText("ルールを追加済み")
+                        firewall_btn.setText(self.tr("Rule added"))
                     elif rule_result.get('admin_required'):
                         # 管理者権限の昇格がキャンセルされた場合
                         from qgis.PyQt.QtWidgets import QTextEdit as AdminTextEdit
                         admin_dialog = QDialog(dialog)
-                        admin_dialog.setWindowTitle("手動での実行が必要")
+                        admin_dialog.setWindowTitle(self.tr("Manual execution required"))
                         admin_dialog.setMinimumWidth(500)
                         admin_dialog.setMinimumHeight(200)
-                        
+
                         admin_layout = QVBoxLayout()
-                        
+
                         admin_text = AdminTextEdit()
                         admin_text.setReadOnly(True)
                         admin_text.setPlainText(rule_result['message'])
                         admin_layout.addWidget(admin_text)
-                        
+
                         # コマンドをコピーするボタン
-                        copy_cmd_btn = QPushButton("コマンドをコピー")
+                        copy_cmd_btn = QPushButton(self.tr("Copy command"))
+
                         def copy_command():
                             QApplication.clipboard().setText(rule_result.get('command', ''))
                             self.iface.messageBar().pushMessage(
-                                "QMap Permalink", "コマンドをコピーしました", duration=2
+                                "QMap Permalink", self.tr("Copied the command"), duration=2
                             )
                         copy_cmd_btn.clicked.connect(copy_command)
                         admin_layout.addWidget(copy_cmd_btn)
-                        
-                        admin_close_btn = QPushButton("閉じる")
+
+                        admin_close_btn = QPushButton(self.tr("Close"))
                         admin_close_btn.clicked.connect(admin_dialog.accept)
                         admin_layout.addWidget(admin_close_btn)
-                        
+
                         admin_dialog.setLayout(admin_layout)
-                        
-                        # Qt5/Qt6互換性
-                        try:
-                            if hasattr(admin_dialog, 'exec'):
-                                admin_dialog.exec()
-                            else:
-                                admin_dialog.exec_()
-                        except Exception:
-                            admin_dialog.exec_()
+
+                        admin_dialog.exec()
                     else:
                         QMessageBox.warning(
                             dialog,
-                            "エラー",
+                            self.tr("Error"),
                             rule_result['message']
                         )
-                
+
                 firewall_btn.clicked.connect(add_firewall_rule)
                 layout.addWidget(firewall_btn)
-            
+
             # URLをコピーするボタン(ローカルネットワークURLがある場合)
             if result.get('local_network_url'):
-                copy_btn = QPushButton(f"ネットワークURLをコピー ({result['local_network_url']})")
+                copy_btn = QPushButton(self.tr("Copy network URL ({0})").format(result['local_network_url']))
+
                 def copy_url():
                     QApplication.clipboard().setText(result['local_network_url'])
                     self.iface.messageBar().pushMessage(
-                        "QMap Permalink", "URLをコピーしました", duration=2
+                        "QMap Permalink", self.tr("Copied the URL"), duration=2
                     )
                 copy_btn.clicked.connect(copy_url)
                 layout.addWidget(copy_btn)
-            
+
             # 閉じるボタン
-            close_btn = QPushButton("閉じる")
+            close_btn = QPushButton(self.tr("Close"))
             close_btn.clicked.connect(dialog.accept)
             layout.addWidget(close_btn)
-            
+
             dialog.setLayout(layout)
-            
-            # Qt5/Qt6互換性: exec_() (Qt5) または exec() (Qt6)
-            try:
-                if hasattr(dialog, 'exec'):
-                    dialog.exec()
-                else:
-                    dialog.exec_()
-            except Exception:
-                dialog.exec_()
-            
+
+            dialog.exec()
+
         except Exception as e:
             QMessageBox.warning(
                 self.iface.mainWindow(),
                 "QMap Permalink",
-                f"診断エラー: {str(e)}"
+                self.tr("Diagnostics error: {0}").format(e)
             )
-    
+
     def on_standard_port_clicked(self, port):
         """標準ポートボタンがクリックされた時の処理
-        
+
         Args:
             port: 設定するポート番号 (80 or 443)
         """
         try:
             if not self.panel or not hasattr(self.panel, 'spinBox_port'):
                 return
-            
+
             # 管理者権限が必要な警告を表示
             from qgis.PyQt.QtWidgets import QMessageBox
-            
-            warning_msg = f"ポート {port} は標準ポートです。\n\n"
+
+            warning_msg = self.tr("Port {0} is a standard port.\n\n").format(port)
             if port == 80:
-                warning_msg += "このポートでサーバーを起動するには管理者権限が必要です。\n"
+                warning_msg += self.tr("Administrator rights are required to start the server on this port.\n")
             elif port == 443:
-                warning_msg += "このポートでサーバーを起動するには管理者権限が必要です。\n"
-                warning_msg += "また、HTTPSには証明書が必要です（現在未対応）。\n"
-            
-            warning_msg += f"\nポート番号を {port} に設定しますか？"
-            
-            # Qt5/Qt6互換性: StandardButtonの取得
-            try:
-                # Qt6
-                if hasattr(QMessageBox, 'StandardButton'):
-                    Yes = QMessageBox.StandardButton.Yes
-                    No = QMessageBox.StandardButton.No
-                # Qt5
-                else:
-                    Yes = QMessageBox.Yes
-                    No = QMessageBox.No
-            except Exception:
-                # フォールバック
-                Yes = 0x00004000  # QMessageBox.Yes in Qt5
-                No = 0x00010000   # QMessageBox.No in Qt5
-            
+                warning_msg += self.tr("Administrator rights are required to start the server on this port.\n")
+                warning_msg += self.tr("HTTPS also requires a certificate (not currently supported).\n")
+
+            warning_msg += self.tr("\nSet the port number to {0}?").format(port)
+
+            Yes = QMessageBox.StandardButton.Yes
+            No = QMessageBox.StandardButton.No
+
             reply = QMessageBox.question(
                 self.iface.mainWindow(),
                 "QMap Permalink",
@@ -2765,175 +2069,44 @@ class GeoWebView:
                 Yes | No,
                 No
             )
-            
+
             if reply == Yes:
                 # スピンボックスの値を更新
                 self.panel.spinBox_port.setValue(port)
-                
+
                 self.iface.messageBar().pushMessage(
                     "QMap Permalink",
-                    f"ポート番号を {port} に設定しました。管理者権限でQGISを再起動してサーバーを起動してください。",
+                    self.tr("Port number set to {0}. Please restart QGIS with administrator rights and start the server.").format(port),
                     duration=5
                 )
         except Exception as e:
             QMessageBox.warning(
                 self.iface.mainWindow(),
                 "QMap Permalink",
-                f"ポート設定エラー: {str(e)}"
+                self.tr("Port configuration error: {0}").format(e)
             )
 
     # テーマ関連のメソッド群
-    
-    def _get_current_theme_info(self):
-        """現在のテーマ情報を取得（無効化 - 複雑すぎるため）
-        
-        Returns:
-            None: 常にNoneを返す（機能無効化）
-        """
-        # 複雑すぎて安定しないため、この機能を無効化
-        return None
-        try:
-            from qgis.core import QgsProject, QgsMapThemeCollection
-            
-            project = QgsProject.instance()
-            if not project:
-                return None
-                
-            theme_collection = project.mapThemeCollection()
-            if not theme_collection:
-                return None
-            
-            # 現在のレイヤー状態を取得
-            layer_states = self._get_current_layer_states()
-            
-            # アクティブなテーマがあるかチェック
-            current_theme = self._detect_current_theme(theme_collection, layer_states)
-            
-            theme_info = {
-                'version': '1.0',
-                'current_theme': current_theme,
-                'layer_states': layer_states,
-                'available_themes': theme_collection.mapThemes()
-            }
-            
-            return theme_info
-            
-        except ImportError:
-            # QGISが利用できない環境
-            return None
-        except Exception as e:
-            print(f"テーマ情報取得エラー: {e}")
-            return None
-    
-    def _get_current_layer_states(self):
-        """現在のレイヤー状態を取得
-        
-        Returns:
-            dict: レイヤー状態情報
-        """
-        try:
-            from qgis.core import QgsProject, QgsLayerTreeLayer, QgsLayerTreeGroup
-            
-            project = QgsProject.instance()
-            root = project.layerTreeRoot()
-            
-            layer_states = {}
-            
-            def collect_layer_info(node, path=""):
-                """レイヤーノードから情報を再帰的に収集"""
-                if isinstance(node, QgsLayerTreeLayer):
-                    layer = node.layer()
-                    if layer:
-                        layer_id = layer.id()
-                        layer_states[layer_id] = {
-                            'name': layer.name(),
-                            'visible': node.isVisible(),
-                            'expanded': node.isExpanded(),
-                            'opacity': getattr(layer, 'opacity', lambda: 1.0)(),
-                            'path': path,
-                            'type': layer.type().name if hasattr(layer.type(), 'name') else str(layer.type())
-                        }
-                        
-                        # スタイル情報も含める（可能であれば）
-                        if hasattr(layer, 'styleManager'):
-                            try:
-                                current_style = layer.styleManager().currentStyle()
-                                layer_states[layer_id]['current_style'] = current_style
-                                layer_states[layer_id]['available_styles'] = layer.styleManager().styles()
-                            except:
-                                pass
-                                
-                elif isinstance(node, QgsLayerTreeGroup):
-                    group_path = f"{path}/{node.name()}" if path else node.name()
-                    layer_states[f"group:{node.name()}"] = {
-                        'name': node.name(),
-                        'type': 'group',
-                        'visible': node.isVisible(),
-                        'expanded': node.isExpanded(),
-                        'path': path
-                    }
-                    
-                    # 子要素を再帰的に処理
-                    for child in node.children():
-                        collect_layer_info(child, group_path)
-            
-            # ルートから開始
-            for child in root.children():
-                collect_layer_info(child)
-            
-            return layer_states
-            
-        except Exception as e:
-            print(f"レイヤー状態取得エラー: {e}")
-            return {}
-    
-    def _detect_current_theme(self, theme_collection, current_layer_states):
-        """現在の状態に最も近いテーマを検出
-        
-        Args:
-            theme_collection: QgsMapThemeCollection
-            current_layer_states: 現在のレイヤー状態
-            
-        Returns:
-            str or None: テーマ名、または一致するものがない場合はNone
-        """
-        try:
-            available_themes = theme_collection.mapThemes()
-            
-            for theme_name in available_themes:
-                # テーマの状態と現在の状態を比較
-                # 実際の詳細比較は複雑になるため、簡単な一致判定を行う
-                
-                # ここでは簡単な実装として、テーマ名による判定のみ行う
-                # 実際の実装では、レイヤーの表示状態やスタイルを詳細に比較する必要がある
-                pass
-            
-            # 簡略化：現在は常にNoneを返す（完全一致の検出は複雑なため）
-            return None
-            
-        except Exception as e:
-            print(f"テーマ検出エラー: {e}")
-            return None
-    
+
     def _apply_theme_from_permalink(self, theme_name):
         """パーマリンクからテーマを復元・適用
-        
+
         Args:
             theme_name (str): テーマ名
-            
+
         Returns:
             bool: 適用成功かどうか
         """
         try:
             from qgis.core import QgsProject, QgsLayerTreeModel
-            
+
             if not theme_name or not isinstance(theme_name, str):
                 return False
-            
+
             project = QgsProject.instance()
             if not project:
                 return False
-            
+
             # 指定されたテーマを適用
             theme_collection = project.mapThemeCollection()
             if theme_name in theme_collection.mapThemes():
@@ -2941,50 +2114,179 @@ class GeoWebView:
                 model = QgsLayerTreeModel(root)
                 theme_collection.applyTheme(theme_name, root, model)
                 return True
-            
+
             return False
-            
+
         except ImportError:
             # QGISが利用できない環境
             return False
         except Exception as e:
-            print(f"テーマ適用エラー: {e}")
+            print(f"Theme apply error: {e}")
             return False
-    
+
+    def save_current_as_theme(self, theme_name):
+        """現在のレイヤツリー状態(表示/非表示・現行スタイル)を
+        マップテーマとしてプロジェクトへ保存する。
+
+        Args:
+            theme_name (str): 保存するテーマ名
+
+        Returns:
+            dict: {"ok": bool, "overwritten": bool, "error": str|None}
+        """
+        from qgis.core import QgsProject, QgsLayerTreeModel
+
+        theme_name = (theme_name or "").strip()
+        if not theme_name:
+            return {"ok": False, "overwritten": False,
+                    "error": "theme name is empty"}
+
+        project = QgsProject.instance()
+        if project is None:
+            return {"ok": False, "overwritten": False,
+                    "error": "no project"}
+
+        try:
+            collection = project.mapThemeCollection()
+            root = project.layerTreeRoot()
+            # 実際のレイヤツリービューのモデルを使い、
+            # 現在のチェック状態・スタイルを採取する
+            model = None
+            try:
+                model = self.iface.layerTreeView().layerTreeModel()
+            except Exception:
+                model = None
+            if model is None:
+                model = QgsLayerTreeModel(root)
+
+            record = collection.createThemeFromCurrentState(root, model)
+            existed = theme_name in collection.mapThemes()
+            collection.insert(theme_name, record)
+            # .qgs への永続化を促す
+            project.setDirty(True)
+
+            # パネルの一覧を更新し、保存したテーマを選択状態にする
+            self.update_theme_list()
+            if self.panel and getattr(self.panel, 'comboBox_themes', None) is not None:
+                cmb = self.panel.comboBox_themes
+                idx = cmb.findText(theme_name)
+                if idx >= 0:
+                    cmb.setCurrentIndex(idx)
+
+            return {"ok": True, "overwritten": existed, "error": None}
+        except Exception as e:
+            return {"ok": False, "overwritten": False, "error": str(e)}
+
+    def delete_theme(self, theme_name):
+        """マップテーマをプロジェクトから削除する。
+
+        Returns:
+            dict: {"ok": bool, "error": str|None}
+        """
+        from qgis.core import QgsProject
+
+        theme_name = (theme_name or "").strip()
+        if not theme_name:
+            return {"ok": False, "error": "theme name is empty"}
+
+        project = QgsProject.instance()
+        if project is None:
+            return {"ok": False, "error": "no project"}
+
+        try:
+            collection = project.mapThemeCollection()
+            if theme_name not in collection.mapThemes():
+                return {"ok": False,
+                        "error": f"theme not found: {theme_name}"}
+            collection.removeMapTheme(theme_name)
+            project.setDirty(True)
+
+            self.update_theme_list()
+            return {"ok": True, "error": None}
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
+
+    def on_save_theme_clicked_panel(self):
+        """テーマ保存ボタン: 現在の表示状態をマップテーマとして保存"""
+        if not self.panel:
+            return
+
+        name_edit = getattr(self.panel, 'lineEdit_theme_name', None)
+        theme_name = (name_edit.text() or "").strip() if name_edit else ""
+
+        if not theme_name:
+            self.iface.messageBar().pushMessage(
+                "QMap Permalink",
+                self.tr("Theme name is empty."),
+                duration=3
+            )
+            return
+
+        # 同名テーマがあれば上書き確認(ユーザー操作起因のためmodal可)
+        from qgis.core import QgsProject
+        collection = QgsProject.instance().mapThemeCollection()
+        if theme_name in collection.mapThemes():
+            from qgis.PyQt.QtWidgets import QMessageBox
+            reply = QMessageBox.question(
+                self.iface.mainWindow(),
+                "QMap Permalink",
+                self.tr("Theme '{theme}' already exists. Overwrite?").format(
+                    theme=theme_name),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+
+        result = self.save_current_as_theme(theme_name)
+        if result.get("ok"):
+            if result.get("overwritten"):
+                msg = self.tr("Theme '{theme}' overwritten.").format(
+                    theme=theme_name)
+            else:
+                msg = self.tr("Theme '{theme}' saved.").format(
+                    theme=theme_name)
+            self.iface.messageBar().pushMessage(
+                "QMap Permalink", msg, duration=3)
+        else:
+            self.iface.messageBar().pushMessage(
+                "QMap Permalink",
+                self.tr("Theme save failed: {error}").format(
+                    error=result.get("error")),
+                duration=5
+            )
 
     def update_theme_list(self):
         """パネルのテーマ一覧を更新"""
         if not self.panel or not hasattr(self.panel, 'comboBox_themes'):
             return
-            
+
         try:
-            from qgis.core import QgsProject, QgsMapThemeCollection
-            
+            from qgis.core import QgsProject
+
             project = QgsProject.instance()
             if not project:
                 return
-                
+
             theme_collection = project.mapThemeCollection()
             if not theme_collection:
                 return
-            
+
             # コンボボックスをクリア
             self.panel.comboBox_themes.clear()
-            
+
             # システムオプションを追加
-            self.panel.comboBox_themes.addItem("-- No Theme (Position Only) --")
-            
+            self.panel.comboBox_themes.addItem(self.tr("-- No Theme (Position Only) --"), "__no_theme__")
+
             # 利用可能なテーマを追加
             available_themes = theme_collection.mapThemes()
             for theme_name in sorted(available_themes):
                 self.panel.comboBox_themes.addItem(theme_name)
-                
-            print(f"テーマ一覧を更新: {len(available_themes)} テーマが見つかりました")
-            
+
+            print(f"Theme list updated: {len(available_themes)} themes found")
+
         except ImportError:
             # QGISが利用できない環境
-            print("QGIS環境が利用できません")
+            print("QGIS environment is not available")
         except Exception as e:
-            print(f"テーマ一覧更新エラー: {e}")
-
-
+            print(f"Theme list update error: {e}")

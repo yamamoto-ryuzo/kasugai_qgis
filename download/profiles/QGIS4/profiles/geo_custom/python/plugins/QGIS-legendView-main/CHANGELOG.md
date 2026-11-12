@@ -5,6 +5,29 @@ All notable changes to the QGIS Legend View plugin will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.7] - 2026-11-12
+
+### Fixed
+- 個別利用時にGeoSuiteツールバーが表示されない不具合を修正。
+  `_geo_toolbar()` に `ensure_visible` 引数を追加し、項目追加経路では
+  ツールバーの可視状態を保証するようにした(ドライバ非稼働の個別利用では
+  表示を強制する経路が無く、保存済みウィンドウ状態等でツールバーが
+  非表示のままになり得た)。unload時のremoveAction経路は従来通り
+  表示状態を変更しない
+
+## [2.6.6] - 2026-10-27
+- bridge.py: legend_*変数の編集/削除(setLegendVariable/
+  deleteLegendVariable)・任意レイヤ登録(registerLayer)・コンボ再構築
+  (refresh)を追加し、変数ダイアログの全操作をbridge_callから可能にした
+
+## [2.6.5] - 2026-10-22
+
+### Fixed
+- i18n/ の de/es/fr/it/ja/zh に hi/pt/ru のみ存在した
+  LegendView コンテキスト4キー(&Legend View/Legend/
+  Other values/Symbol)の訳文を追加し、全言語で
+  カタログキー数を一致させた
+
 ## [2.6.4] - 2026-10-21
 
 ### Maintenance

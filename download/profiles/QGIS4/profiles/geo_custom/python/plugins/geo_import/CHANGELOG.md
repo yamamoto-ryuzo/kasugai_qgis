@@ -1,3 +1,8 @@
+2.10.10 個別利用時にGeoSuiteツールバーが表示されない不具合を修正
+- geo_import_main.py: GeoSuiteツールバーのfind-or-create後に
+  可視状態を保証するようにした(ドライバ非稼働の個別利用では
+  表示を強制する経路が無く、保存済みウィンドウ状態等でツールバーが
+  非表示のままになり得た)
 2.10.9 bridge経由のAI操作を全機能へ拡張
 - bridge.py: ページング(nextPage/prevPage/gotoPage)・カテゴリフィルタ
   (listGroups/checkGroups)・形式フィルタ(formatFilter)・ローカルキャッシュ

@@ -1,4 +1,10 @@
 {
+  "LegendView": {
+    "&Legend View": "&Vista de leyenda",
+    "Legend": "Leyenda",
+    "Other values": "Otros valores",
+    "Symbol": "Símbolo"
+  },
   "LegendViewDockWidget": {
     "Close": "Cerrar",
     "Confirm delete": "Confirmar eliminación",

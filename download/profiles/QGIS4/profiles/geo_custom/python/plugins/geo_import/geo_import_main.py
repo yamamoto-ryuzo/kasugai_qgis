@@ -42,10 +42,12 @@ class GeoImport:
         self.actions = []
         self.menu = QCoreApplication.translate('GeoImport', u'&geo_import')
         # 共有ツールバーGeoSuiteに集約(無ければ作成)
+        # 個別利用=ドライバ非稼働でもツールバーが表示されるよう可視状態を保証する
         self.toolbar = self.iface.mainWindow().findChild(QToolBar, u'GeoSuite')
         if self.toolbar is None:
             self.toolbar = self.iface.addToolBar(u'GeoSuite')
             self.toolbar.setObjectName(u'GeoSuite')
+        self.toolbar.setVisible(True)
 
         # AI/外部制御用ブリッジ。qgis_live_driver の bridge_call コマンドが
         # qgis.utils.plugins['geo_import'].bridge をプロセス内で直接呼ぶため、

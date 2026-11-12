@@ -1439,7 +1439,6 @@ class GeoSearchBridge:
         ViewFields/group 等)。由来はタブの _source で決まり、
         project variable / setting.json / geo_search_json へ書き戻す。
         """
-        import os
         from qgis.core import QgsProject, QgsExpressionContextUtils
         from .utils import set_project_variable
         entry = self._find_tab(tab)

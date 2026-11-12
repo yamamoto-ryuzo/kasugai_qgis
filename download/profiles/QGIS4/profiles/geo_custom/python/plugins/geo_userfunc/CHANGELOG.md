@@ -1,5 +1,14 @@
 # CHANGELOG — geo_userfunc
 
+## 1.0.7
+
+- 個別利用時にGeoSuiteツールバーが表示されない不具合を修正。
+  `_geo_toolbar()` に `ensure_visible` 引数を追加し、項目追加経路では
+  ツールバーの可視状態を保証するようにした(ドライバ非稼働の個別利用では
+  表示を強制する経路が無く、保存済みウィンドウ状態等でツールバーが
+  非表示のままになり得た)。unload時のremoveAction経路は従来通り
+  表示状態を変更しない
+
 ## 1.0.6
 
 - bridge.py: URLからの関数取得(fetchFromUrl)・sources.json管理

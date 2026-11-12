@@ -8,5 +8,5 @@ extend-ignore = E501, W503, W504
 # (pyperclip contains Python 2 compatibility branches such as 'unicode';
 # defusedxml wraps stdlib xml.* with unused-looking imports by design).
 per-file-ignores =
-    pyperclip/__init__.py: F821
-    defusedxml/*.py: F401,F403,F405,E731,F841
+    pyperclip/__init__.py: F401,F821
+    defusedxml/*.py: E402,F401,F403,F405,E731,F841

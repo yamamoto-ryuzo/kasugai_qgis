@@ -1,4 +1,10 @@
 {
+  "LegendView": {
+    "&Legend View": "&图例视图",
+    "Legend": "图例",
+    "Other values": "其他值",
+    "Symbol": "符号"
+  },
   "LegendViewDockWidget": {
     "Close": "关闭",
     "Confirm delete": "确认删除",

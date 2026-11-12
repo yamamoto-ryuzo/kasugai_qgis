@@ -1,3 +1,10 @@
+# V4.4.8 個別利用時にGeoSuiteツールバーが表示されない不具合を修正
+- plugin.py: `_geo_toolbar()` に `ensure_visible` 引数を追加し、
+  項目追加経路ではツールバーの可視状態を保証するようにした
+  (ドライバ非稼働の個別利用では表示を強制する経路が無く、
+  保存済みウィンドウ状態等でツールバーが非表示のままになり得た)。
+  unload時のremoveAction経路は従来通り表示状態を変更しない
+
 # V4.4.7 bridge経由のAI操作を全機能へ拡張
 - bridge.py: 設定ダイアログ(openSettings)・タブ設定の書込み
   (setTabSetting/addTab)・結果ダイアログのページ移動(resultPage)・

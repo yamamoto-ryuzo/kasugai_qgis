@@ -3,6 +3,13 @@
 バージョン表記: VA.B.C
 - 例: V2.0.0（A=2, B=0, C=0）
 
+## V2.9.6 個別利用時にGeoSuiteツールバーが表示されない不具合を修正
+- plugin.py: `_geo_toolbar()` に `ensure_visible` 引数を追加し、
+  項目追加経路ではツールバーの可視状態を保証するようにした
+  (ドライバ非稼働の個別利用では表示を強制する経路が無く、
+  保存済みウィンドウ状態等でツールバーが非表示のままになり得た)。
+  unload時のremoveAction経路は従来通り表示状態を変更しない
+
 ## V2.9.5 bridge経由のAI操作を全機能へ拡張
 - bridge.py: 標準レイアウト(listStandardLayouts/addStandardLayout)・
   再読込(refresh)・レイアウト情報(layoutInfo)・保存済みプロパティ一覧

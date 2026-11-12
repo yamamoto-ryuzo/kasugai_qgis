@@ -327,12 +327,19 @@ class GeoReport:
 
         return action
 
-    def _geo_toolbar(self):
-        """GeoSuite共有ツールバーをfind-or-createで返す。"""
+    def _geo_toolbar(self, ensure_visible=True):
+        """GeoSuite共有ツールバーをfind-or-createで返す。
+
+        項目追加経路では可視状態を保証する(個別利用=ドライバ非稼働でも
+        ツールバーが表示されるように)。unload時のremoveAction経路では
+        ensure_visible=Falseを渡して非表示のままにする。
+        """
         tb = self.iface.mainWindow().findChild(QToolBar, "GeoSuite")
         if tb is None:
             tb = self.iface.addToolBar("GeoSuite")
             tb.setObjectName("GeoSuite")
+        if ensure_visible:
+            tb.setVisible(True)
         return tb
 
     def initGui(self):
@@ -373,7 +380,7 @@ class GeoReport:
             self.iface.removePluginMenu(
                 self.menu,
                 action)
-            self._geo_toolbar().removeAction(action)
+            self._geo_toolbar(ensure_visible=False).removeAction(action)
 
         # パネルを削除
         if self.dock_widget:

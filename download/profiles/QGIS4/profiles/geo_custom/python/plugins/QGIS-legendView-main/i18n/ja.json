@@ -1,4 +1,10 @@
 {
+  "LegendView": {
+    "&Legend View": "&レジェンドビュー",
+    "Legend": "凡例",
+    "Other values": "その他の値",
+    "Symbol": "シンボル"
+  },
   "LegendViewDockWidget": {
     "Close": "閉じる",
     "Confirm delete": "削除の確認",

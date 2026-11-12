@@ -78,12 +78,19 @@ class plugin(object):
             except Exception:  # nosec B110  # 設計上の許容
                 pass
 
-    def _geo_toolbar(self):
-        """GeoSuite共有ツールバーをfind-or-createで返す。"""
+    def _geo_toolbar(self, ensure_visible=True):
+        """GeoSuite共有ツールバーをfind-or-createで返す。
+
+        項目追加経路では可視状態を保証する(個別利用=ドライバ非稼働でも
+        ツールバーが表示されるように)。unload時のremoveAction経路では
+        ensure_visible=Falseを渡して非表示のままにする。
+        """
         tb = self.iface.mainWindow().findChild(QToolBar, "GeoSuite")
         if tb is None:
             tb = self.iface.addToolBar("GeoSuite")
             tb.setObjectName("GeoSuite")
+        if ensure_visible:
+            tb.setVisible(True)
         return tb
 
     def initGui(self):
@@ -886,7 +893,7 @@ class plugin(object):
         except Exception:  # nosec B110  # 設計上の許容
             pass
         try:
-            self._geo_toolbar().removeAction(self.action)
+            self._geo_toolbar(ensure_visible=False).removeAction(self.action)
             self.iface.removePluginMenu(self.tr("Geo Search"), self.action)
         except Exception:  # nosec B110  # 設計上の許容
             pass
@@ -926,7 +933,7 @@ class plugin(object):
             if hasattr(self, 'additive_theme_action') and self.additive_theme_action is not None:
                 try:
                     try:
-                        self._geo_toolbar().removeAction(self.additive_theme_action)
+                        self._geo_toolbar(ensure_visible=False).removeAction(self.additive_theme_action)
                     except Exception:  # nosec B110  # 設計上の許容
                         pass
                 except Exception:  # nosec B110  # 設計上の許容

@@ -189,12 +189,19 @@ class LegendView:
 
         return action
 
-    def _geo_toolbar(self):
-        """GeoSuite共有ツールバーをfind-or-createで返す。"""
+    def _geo_toolbar(self, ensure_visible=True):
+        """GeoSuite共有ツールバーをfind-or-createで返す。
+
+        項目追加経路では可視状態を保証する(個別利用=ドライバ非稼働でも
+        ツールバーが表示されるように)。unload時のremoveAction経路では
+        ensure_visible=Falseを渡して非表示のままにする。
+        """
         tb = self.iface.mainWindow().findChild(QtWidgets.QToolBar, "GeoSuite")
         if tb is None:
             tb = self.iface.addToolBar("GeoSuite")
             tb.setObjectName("GeoSuite")
+        if ensure_visible:
+            tb.setVisible(True)
         return tb
 
     def initGui(self):
@@ -237,7 +244,7 @@ class LegendView:
             self.iface.removePluginMenu(
                 self.tr(u'&Legend View'),  # Default to English, will be translated
                 action)
-            self._geo_toolbar().removeAction(action)
+            self._geo_toolbar(ensure_visible=False).removeAction(action)
         # No custom toolbar to remove - actions live on shared GeoSuite toolbar
 
     # --------------------------------------------------------------------------

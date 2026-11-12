@@ -512,7 +512,6 @@ class GeoReportBridge:
 
     def addStandardLayout(self, name=None):
         """標準レイアウトテンプレートをプロジェクトへ追加する。"""
-        import glob
         from qgis.core import QgsReadWriteContext, QgsPrintLayout
         from qgis.PyQt.QtXml import QDomDocument
         qpt_files = self._composer_qpt_files()

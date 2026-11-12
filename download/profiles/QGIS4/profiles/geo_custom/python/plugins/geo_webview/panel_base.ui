@@ -7,11 +7,11 @@
     <x>0</x>
     <y>0</y>
     <width>300</width>
-    <height>400</height>
+    <height>380</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>QMap Permalink Panel</string>
+   <string notr="true">geo_webview Panel</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="margin">
@@ -21,9 +21,286 @@
     <number>6</number>
    </property>
    <item>
+    <widget class="QGroupBox" name="groupBox_webdist">
+     <property name="title">
+      <string>Web Distribution (Serverless)</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_webdist">
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_webdist_info">
+        <item>
+         <widget class="QLabel" name="label_webdist_info">
+          <property name="text">
+           <string>Export the project as a .kasc+DATA/ package. Engine launcher HTMLs and kasugai_canvas.zip (Re:Earth geo_suite 'qgis:' import) are also written. It plays on Cesium / MapLibre / OpenLayers / Leaflet / GSI Maps / Navara — upload with the engine to a static host for serverless delivery.</string>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">color: #666;</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_webdist_info">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButton_kasugai_help">
+          <property name="text">
+           <string notr="true">?</string>
+          </property>
+          <property name="toolTip">
+           <string>Open the geo_webview documentation site in the browser</string>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">border:1px solid #bbb; border-radius:9px; font-weight:bold; color:#2c5ea8; background:#f7f9fb;</string>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>20</width>
+            <height>20</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>20</width>
+            <height>20</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_kasugai_save">
+        <item>
+         <widget class="QPushButton" name="pushButton_kasugai_export">
+          <property name="text">
+           <string>Export</string>
+          </property>
+          <property name="toolTip">
+           <string>Export visible layers as a KASUGAI Canvas project (.kasc + DATA/ + engine launcher HTMLs) — files only</string>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>25</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButton_kasugai_outdir">
+          <property name="text">
+           <string notr="true">…</string>
+          </property>
+          <property name="toolTip">
+           <string>Export destination folder — click to choose a different folder</string>
+          </property>
+          <property name="flat">
+           <bool>true</bool>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">text-align:left; padding:1px 4px; border:1px solid #ccc; border-radius:3px;</string>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>25</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButton_kasugai_outdir_reset">
+          <property name="text">
+           <string notr="true">↺</string>
+          </property>
+          <property name="toolTip">
+           <string>Reset to the default destination (KASUGAI Canvas install or Documents)</string>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>24</width>
+            <height>25</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>28</width>
+            <height>25</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButton_kasugai_folder">
+          <property name="text">
+           <string>📁</string>
+          </property>
+          <property name="toolTip">
+           <string>Open the export folder (.kasc / DATA/ / engine launchers)</string>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>28</width>
+            <height>25</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>32</width>
+            <height>25</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_kasugai_hosted">
+        <item>
+         <widget class="QLabel" name="label_hosted">
+          <property name="text">
+           <string>CDN:</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QComboBox" name="comboBox_hosted">
+          <property name="editable">
+           <bool>true</bool>
+          </property>
+          <property name="toolTip">
+           <string>Hosted engine channel used by ▶ WebView — 'stable'/'unstable' (kasugai-canvas-web stages) or a custom base URL ending with '/'</string>
+          </property>
+          <item>
+           <property name="text">
+            <string notr="true">stable</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string notr="true">unstable</string>
+           </property>
+          </item>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButton_kasugai_zip">
+          <property name="text">
+           <string>ZIP</string>
+          </property>
+          <property name="toolTip">
+           <string>Download the export package as kasugai_canvas_&lt;channel&gt;.zip in the browser — generated on demand at download time (requires the HTTP server running). The filename follows the CDN combo channel. For static-host deployment and Re:Earth geo_suite 'qgis:' import</string>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>25</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_kasugai_launch">
+        <item>
+         <widget class="QLabel" name="label_engine">
+          <property name="text">
+           <string>Engine:</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QComboBox" name="comboBox_engine">
+          <property name="toolTip">
+           <string>Engine used by the Open button (the exported package plays on all engines)</string>
+          </property>
+          <item>
+           <property name="text">
+            <string notr="true">Cesium (3D)</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string notr="true">MapLibre</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string notr="true">OpenLayers</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string notr="true">Leaflet</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string notr="true">GSI Maps</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string notr="true">Navara</string>
+           </property>
+          </item>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButton_kasugai_launch_hosted">
+          <property name="text">
+           <string>&#9654; WebView</string>
+          </property>
+          <property name="toolTip">
+           <string>Open via serverless WEB delivery — hosted engine (GitHub Pages, channel = CDN combo) + this server's data delivery (no Canvas install needed; requires internet + HTTP server running)</string>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>25</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButton_kasugai_launch">
+          <property name="text">
+           <string>&#9654; Canvas</string>
+          </property>
+          <property name="toolTip">
+           <string>Open the exported project in KASUGAI Canvas (main integrated player) — registers the existing .kasc with a running Canvas (port 8510) and switches to it. Requires a prior export (Export button)</string>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>25</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
     <widget class="QGroupBox" name="groupBox_server">
      <property name="title">
-      <string>HTTP Server Status</string>
+      <string>HTTP Server</string>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_server">
       <item>
@@ -32,7 +309,7 @@
          <string>HTTP Server: Running on http://localhost:8089</string>
         </property>
         <property name="styleSheet">
-         <string>color: green; font-weight: bold;</string>
+         <string notr="true">color: green; font-weight: bold;</string>
         </property>
         <property name="wordWrap">
          <bool>true</bool>
@@ -41,6 +318,19 @@
       </item>
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout_port">
+        <item>
+         <widget class="QCheckBox" name="checkBox_server_toggle">
+          <property name="text">
+           <string>Enable</string>
+          </property>
+          <property name="checked">
+           <bool>false</bool>
+          </property>
+          <property name="toolTip">
+           <string>Start/stop the embedded HTTP server (/kasugai, /export-data/, /present, /screenshot)</string>
+          </property>
+         </widget>
+        </item>
         <item>
          <widget class="QLabel" name="label_port">
           <property name="text">
@@ -130,224 +420,182 @@
     </widget>
    </item>
    <item>
-    <widget class="QGroupBox" name="groupBox_generate">
-     <property name="title">
-      <string>Generate Permalink</string>
+    <widget class="QTabWidget" name="tabWidget_main">
+     <property name="currentIndex">
+      <number>0</number>
      </property>
-     <layout class="QVBoxLayout" name="verticalLayout_generate">
-      <item>
-       <widget class="QLabel" name="label_generate_info">
-        <property name="text">
-         <string>Generate a permalink for the current map view</string>
-        </property>
-        <property name="wordWrap">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="label_theme_selection">
-        <property name="text">
-         <string>Theme/Layer State:</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QComboBox" name="comboBox_themes">
-        <property name="toolTip">
-         <string>Select theme option: no theme (position only) or specific theme</string>
-        </property>
-        <item>
+     <widget class="QWidget" name="tab_theme">
+      <attribute name="title">
+       <string>Theme</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_tab_theme">
+       <item>
+        <widget class="QLabel" name="label_theme_selection">
          <property name="text">
-          <string>-- No Theme (Position Only) --</string>
+          <string>Theme/Layer State:</string>
          </property>
-        </item>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="pushButton_generate">
-        <property name="text">
-         <string>Generate Permalink</string>
-        </property>
-        <property name="minimumSize">
-         <size>
-          <width>0</width>
-          <height>30</height>
-         </size>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="QGroupBox" name="groupBox_permalink">
-     <property name="title">
-      <string>Current Permalink</string>
-     </property>
-     <layout class="QVBoxLayout" name="verticalLayout_permalink">
-      <item>
-       <widget class="QLineEdit" name="lineEdit_permalink">
-        <property name="placeholderText">
-         <string>Generated permalink will appear here</string>
-        </property>
-        <property name="readOnly">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_permalink">
-        <item>
-         <widget class="QPushButton" name="pushButton_copy">
-            <property name="text">
-               <string>URLCopy</string>
-            </property>
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>25</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pushButton_open">
-            <property name="text">
-               <string>OpenLayers</string>
-            </property>
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>25</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-   <item>
-    <widget class="QPushButton" name="pushButton_maplibre">
-     <property name="text">
-      <string>MapLibre</string>
-     </property>
-     <property name="minimumSize">
-      <size>
-       <width>0</width>
-       <height>25</height>
-      </size>
-     </property>
-    </widget>
-   </item>
-       </layout>
-      </item>
-      <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_external_buttons">
-        <item>
-         <widget class="QPushButton" name="pushButton_google_maps">
+        </widget>
+       </item>
+       <item>
+        <widget class="QComboBox" name="comboBox_themes">
+         <property name="toolTip">
+          <string>Select theme option: no theme (position only) or specific theme</string>
+         </property>
+         <item>
           <property name="text">
-           <string>🗺️ Google Maps</string>
+           <string>-- No Theme (Position Only) --</string>
           </property>
-          <property name="enabled">
-           <bool>true</bool>
-          </property>
-          <property name="minimumSize">
-           <size>
-            <width>100</width>
-            <height>25</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>120</width>
-            <height>25</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pushButton_google_earth">
-          <property name="text">
-           <string>🌍 Google Earth</string>
-          </property>
-          <property name="enabled">
-           <bool>true</bool>
-          </property>
-          <property name="minimumSize">
-           <size>
-            <width>100</width>
-            <height>25</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>120</width>
-            <height>25</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="QGroupBox" name="groupBox_navigate">
-     <property name="title">
-      <string>Navigate to Location</string>
-     </property>
-     <layout class="QVBoxLayout" name="verticalLayout_navigate">
-      <item>
-       <widget class="QLabel" name="label_navigate_info">
-        <property name="text">
-         <string>Enter a permalink to navigate</string>
-        </property>
-        <property name="wordWrap">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-  <item>
-   <layout class="QHBoxLayout" name="horizontalLayout_navigate_input">
-    <item>
-     <widget class="QLineEdit" name="lineEdit_navigate">
-      <property name="placeholderText">
-       <string>Paste permalink here</string>
-      </property>
+         </item>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_theme_save">
+         <item>
+          <widget class="QLineEdit" name="lineEdit_theme_name">
+           <property name="placeholderText">
+            <string>New theme name</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButton_save_theme">
+           <property name="toolTip">
+            <string>Save the current layer visibility and styles as a map theme</string>
+           </property>
+           <property name="text">
+            <string>Save Theme</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_generate">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>10</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
      </widget>
-    </item>
-   </layout>
-  </item>
-  <item>
-   <layout class="QHBoxLayout" name="horizontalLayout_navigate_buttons">
-    <item>
-     <widget class="QPushButton" name="pushButton_paste">
-      <property name="text">
-       <string>Paste</string>
-      </property>
-      <property name="minimumSize">
-       <size>
-    <width>60</width>
-    <height>25</height>
-       </size>
-      </property>
+     <widget class="QWidget" name="tab_permalink">
+      <attribute name="title">
+       <string>Permalink</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_tab_permalink">
+       <item>
+        <widget class="QPushButton" name="pushButton_generate">
+         <property name="text">
+          <string>Generate Permalink</string>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>24</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_permalink">
+         <item>
+          <widget class="QLineEdit" name="lineEdit_permalink">
+           <property name="placeholderText">
+            <string>Generated permalink will appear here</string>
+           </property>
+           <property name="readOnly">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButton_copy">
+           <property name="text">
+             <string>URLCopy</string>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>22</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_navigate_info">
+         <property name="text">
+          <string>Enter a permalink to navigate</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_navigate">
+         <item>
+          <widget class="QLineEdit" name="lineEdit_navigate">
+           <property name="placeholderText">
+            <string>Paste permalink here</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButton_paste">
+           <property name="text">
+            <string>Paste</string>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>40</width>
+             <height>22</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButton_navigate">
+           <property name="text">
+            <string>Navigate</string>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>22</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_permalink">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>10</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
      </widget>
-    </item>
-    <item>
-     <widget class="QPushButton" name="pushButton_navigate">
-      <property name="text">
-       <string>Navigate</string>
-      </property>
-      <property name="minimumSize">
-       <size>
-    <width>0</width>
-    <height>30</height>
-       </size>
-      </property>
+     <widget class="QWidget" name="tab_share">
+      <attribute name="title">
+       <string>Share</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_tab_share">
+       <!-- panel.py がここへ groupBox_sharing を動的追加する -->
+      </layout>
      </widget>
-    </item>
-   </layout>
-  </item>
-     </layout>
     </widget>
    </item>
    <item>
@@ -358,57 +606,60 @@
      <property name="sizeHint" stdset="0">
       <size>
        <width>20</width>
-       <height>40</height>
+       <height>10</height>
       </size>
      </property>
     </spacer>
    </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_bottom">
      <item>
-      <layout class="QHBoxLayout" name="horizontalLayout_bottom">
-       <item>
-        <widget class="QCheckBox" name="checkBox_server_toggle">
-         <property name="text">
-           <string>HTTP Server: Enable</string>
-         </property>
-         <property name="checked">
-           <bool>false</bool>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QCheckBox" name="checkBox_external_control">
-         <property name="text">
-          <string>External Control</string>
-         </property>
-         <property name="checked">
-          <bool>false</bool>
-         </property>
-         <property name="toolTip">
-          <string>When enabled, map view can be updated by external URLs</string>
-         </property>
-        </widget>
-       </item>
-          <item>
-           <widget class="QPushButton" name="pushButton_settings">
-            <property name="toolTip">
-             <string>Open plugin settings</string>
-            </property>
-            <property name="minimumSize">
-             <size>
-              <width>35</width>
-              <height>25</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>35</width>
-              <height>25</height>
-             </size>
-            </property>
-           </widget>
-          </item>
-      </layout>
+      <widget class="QCheckBox" name="checkBox_external_control">
+       <property name="text">
+        <string>External Control</string>
+       </property>
+       <property name="checked">
+        <bool>false</bool>
+       </property>
+       <property name="toolTip">
+        <string>When enabled, map view can be updated by external URLs</string>
+       </property>
+      </widget>
      </item>
+     <item>
+      <spacer name="horizontalSpacer_bottom">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButton_settings">
+       <property name="toolTip">
+        <string>Open plugin settings</string>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>35</width>
+         <height>25</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>35</width>
+         <height>25</height>
+        </size>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
   </layout>
  </widget>
  <resources/>
