@@ -1,12 +1,15 @@
 """配布バンドルのプラグインを qgis-plugin リポジトリと同期する。
 
-このリポジトリが <harness>/qgis-plugin/kasugai_qgis に配置されている場合、
-兄弟ディレクトリ qgis-plugin/<id> を正本として、
+qgis-plugin/<id> を正本として、
 download/profiles/*/profiles/*/python/plugins/<id> へミラーコピーする。
+正本の解決順:
+  1. KASUGAI_HARNESS_DIR 環境変数 → <dir>/qgis-plugin
+  2. <harness>/qgis-plugin/kasugai_qgis 配置（親ディレクトリ名が qgis-plugin）
+  3. 兄弟リポジトリ <親>/qgis_live_harness/qgis-plugin（単体 clone 配置）
 
-- 同期対象: バンドル側に既に存在し、かつ兄弟ディレクトリに metadata.txt を持つ
+- 同期対象: バンドル側に既に存在し、かつ正本側に metadata.txt を持つ
   プラグインのみ（サードパーティ製や同梱専用プラグインは触らない）
-- 正本の定義: harness git（このリポジトリの2階層上）が追跡するファイル。
+- 正本の定義: harness git が追跡するファイル。
   untracked なワーキングツリー残留物（__pycache__、実行時キャッシュ、
   プロファイルコピーが junction 越しに注入した旧版ファイル等）は含めない。
   git が使えない環境（単体 clone）では rglob + 除外リストで近似する
@@ -20,16 +23,29 @@ download/profiles/*/profiles/*/python/plugins/<id> へミラーコピーする�
 
 import argparse
 import filecmp
+import os
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-# kasugai_qgis の1階層上が qgis-plugin ディレクトリ（= プラグイン群の正本）、
-# その1階層上が harness リポジトリルート
-PLUGIN_SRC_ROOT = ROOT.parent
-HARNESS_ROOT = ROOT.parent.parent
+
+
+def _resolve_harness():
+    """(qgis-plugin 正本ディレクトリ, harness ルート) を返す。見つからなければ (None, None)。"""
+    env = os.environ.get("KASUGAI_HARNESS_DIR")
+    if env and (Path(env) / "qgis-plugin").is_dir():
+        return Path(env) / "qgis-plugin", Path(env)
+    if ROOT.parent.name == "qgis-plugin":
+        return ROOT.parent, ROOT.parent.parent
+    qp = ROOT.parent / "qgis_live_harness" / "qgis-plugin"
+    if qp.is_dir():
+        return qp, qp.parent
+    return None, None
+
+
+PLUGIN_SRC_ROOT, HARNESS_ROOT = _resolve_harness()
 PROFILES_ROOT = ROOT / "download" / "profiles"
 
 EXCLUDE_DIRS = {
@@ -60,7 +76,12 @@ def git_tracked_files(src: Path):
     git が使えない／リポジトリ外なら None。追跡対象が1件も無ければ
     空リスト（= 正本に含めるべきファイルが無い、ではなくフォールバックへ）。
     """
-    rel = src.relative_to(HARNESS_ROOT)
+    if HARNESS_ROOT is None:
+        return None
+    try:
+        rel = src.relative_to(HARNESS_ROOT)
+    except ValueError:
+        return None
     try:
         r = subprocess.run(
             ["git", "-C", str(HARNESS_ROOT), "ls-files", "-z", "--", str(rel)],
@@ -176,7 +197,8 @@ def main() -> int:
     synced = skipped = 0
     found_src = False
 
-    for plugins_dir in find_bundle_plugin_dirs():
+    plugin_dirs = find_bundle_plugin_dirs() if PLUGIN_SRC_ROOT is not None else ()
+    for plugins_dir in plugin_dirs:
         for dst in sorted(plugins_dir.iterdir()):
             if not dst.is_dir():
                 continue
@@ -198,8 +220,8 @@ def main() -> int:
             synced += 1
 
     if not found_src:
-        print("同期対象なし: 兄弟ディレクトリに repo 管理プラグインが見つかりません"
-              "（単体 clone の場合は正常）")
+        print("同期対象なし: qgis-plugin 正本が見つかりません"
+              "（KASUGAI_HARNESS_DIR で harness ルートを指定できます）")
         return 0
 
     verb = "同期予定" if args.check else "同期完了"

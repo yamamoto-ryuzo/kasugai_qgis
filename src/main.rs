@@ -121,7 +121,7 @@ pub struct QgisSettings {
     #[serde(default)]
     pub local_sync: Option<LocalSyncConfig>,
     /// 開発モード: QGIS Live Harness の環境変数を QGIS 起動時に注入する。
-    /// このリポジトリが <harness>/qgis-plugin/kasugai_qgis に配置されている場合に有効。
+    /// harness は KASUGAI_HARNESS_DIR または exe 祖先の qgis-plugin/ から検出する。
     #[serde(default)]
     pub dev_mode: Option<bool>,
 }

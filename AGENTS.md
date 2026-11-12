@@ -11,7 +11,7 @@ AI エージェントがこのリポジトリで作業する際のルール。
 
 ## QGIS Live Harness 連携
 
-- このリポジトリが `<harness>/qgis-plugin/kasugai_qgis` に置かれている場合、`scripts/sync_bundle_plugins.py` が兄弟ディレクトリ `qgis-plugin/<id>` を正本として `download/profiles/*/profiles/*/python/plugins/<id>` の同梱プラグインをミラー同期する（`run.py --build` でも自動実行、`run.py --sync-plugins` で単独実行）。バンドル側に既存のプラグインのみが対象で、サードパーティ製は触らない
+- `scripts/sync_bundle_plugins.py` が `qgis-plugin/<id>` を正本として `download/profiles/*/profiles/*/python/plugins/<id>` の同梱プラグインをミラー同期する（`run.py --build` でも自動実行、`run.py --sync-plugins` で単独実行）。正本は `KASUGAI_HARNESS_DIR` → `<harness>/qgis-plugin/kasugai_qgis` 配置 → 兄弟リポジトリ `../qgis_live_harness/qgis-plugin` の順で解決する。バンドル側に既存のプラグインのみが対象で、サードパーティ製は触らない
 - `dev_mode` 設定（起動タブの「開発モード」チェックボックス、または CLI `--dev`）で QGIS 起動時に `QTWEBENGINE_*` / `WEBENGINE_*` を注入する。harness ルートは `KASUGAI_HARNESS_DIR` または exe 祖先の `qgis-plugin/qgis_live_driver/metadata.txt` から検出し、`WEBENGINE_DEV_SRC` は junction 配置（dev モード）の確定時のみ立てる
 - `GET /live-sessions` が `~/.qgis-live/<pid>-qgis_live_driver.json` レジストリを列挙し、http_port への TCP 接続可否で稼働中の開発セッションを返す（`token` は応答に含めない）。起動タブに稼働中 PID を表示する
 
