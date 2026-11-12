@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.5.3] - 2026-11-13
+
+### Changed
+- 配布プロファイル（`download/profiles/QGIS4/profiles/geo_custom`）を現行プロファイルへ更新。qfieldsync・Qgis2threejs を新規同梱し、QGIS4.ini のプラグイン有効フラグを更新（qgis_live_driver/geo_excel/geo_userfunc が新規インストール時から有効になる）
+
 ## [2.5.2] - 2026-11-13
 
 ### Fixed
