@@ -1,0 +1,64 @@
+# -*- coding: utf-8 -*-
+# (C) 2015 Minoru Akagi
+# SPDX-License-Identifier: GPL-2.0-or-later
+# begin: 2015-03-02
+
+# general
+PLUGIN_NAME = "Qgis2threejs"
+PLUGIN_VERSION = "3.3"
+PLUGIN_VERSION_INT = 30300
+
+# web engine view
+WEBENGINE_INPROCESS_WEBGL_AVAILABLE = False
+
+# dem layer
+GRID_DEM_OUTPUT_MODE = "grid"       # "grid" or "mesh"
+
+# vector layer
+FEATURES_PER_BLOCK = 500    # max number of features in a data block
+
+# threading
+RUN_BLDR_IN_BKGND = True    # If True, builders run in a worker thread
+
+# processing export
+P_OPEN_DIRECTORY = True
+
+# debugging and testing
+DEBUG_MODE = 0
+                # 0: No debug output
+                # 1: Output debug information to log panel and/or JS console
+                # 2: Same as 1, plus JSON schema validation
+                # 3: Same as 2, plus write debug information to log files
+
+ENABLE_TESTING = bool(DEBUG_MODE)       # or True
+IS_TESTING = False                      # logger configuration
+
+# help
+HELP_URL_BASE = "https://minorua.github.io/Qgis2threejs/help/"
+
+
+# default export settings
+class DEF_SETS:
+
+    TEMPLATE = "3DViewer.html"
+
+    # world
+    Z_EXAGGERATION = 1.0
+    Z_SHIFT = 0
+
+    CONTROLS = "Map"    # last selected one has priority
+
+    # dem
+    TEXTURE_SIZE = 1024
+    SIDE_COLOR = "#ccbbaa"
+    Z_BOTTOM = 0
+
+    # vector
+    LABEL_HEIGHT = 50
+    LABEL_COLOR = "#000000"
+    OTL_COLOR = "#ffffff"
+    BG_COLOR = "#b0ffffff"
+    CONN_COLOR = "#c0c0d0"
+
+    # animation
+    ANM_DURATION = 2000     # msec

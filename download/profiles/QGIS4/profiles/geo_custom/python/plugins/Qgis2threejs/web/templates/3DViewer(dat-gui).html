@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>${title}</title>
+<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+<base target="_blank">
+<link rel="icon" type="image/png" href="./Qgis2threejs.png">
+<link rel="stylesheet" type="text/css" href="./Qgis2threejs.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "./three/three.module.js",
+    "three/addons/": "./three/",
+    "lib/": "./"
+  }
+}
+</script>
+${scripts}
+<script defer src="./dat-gui/dat.gui.js"></script>
+</head>
+<body>
+<div id="view"></div>
+
+<!-- popup -->
+<div id="popup">
+  <div id="closebtn">&times;</div>
+  <div id="popupbar"></div>
+  <div id="popupbody">
+    <div id="popupcontent"></div>
+
+    <!-- query result -->
+    <div id="queryresult">
+      <table id="qr_coords_table">
+        <caption>Clicked coordinates <div id="zoomtopoint" class="action-zoom zoombtn"></div></caption>
+        <tr><td id="qr_coords"></td></tr>
+      </table>
+
+      <table id="qr_layername_table">
+        <caption>Layer <div id="zoomtolayer" class="action-zoom zoombtn"></div></caption>
+        <tr><td id="qr_layername"></td></tr>
+      </table>
+
+      <table id="qr_attrs_table">
+        <caption>Attributes</caption>
+      </table>
+
+      <!-- camera actions and measure tool -->
+      <div id="orbitbtn" class="action-btn action-orbit">Orbit</div>
+      <div id="measurebtn" class="action-btn">Measure distance</div>
+    </div>
+
+    <div id="help">
+      <h1>Current View URL</h1>
+      <div><input id="urlbox" type="text"></div>
+
+      <div id="usage">
+${usage}
+      </div>
+
+
+      <h1>About</h1>
+      <div id="about">
+        This page was made with <a href="https://www.qgis.org/">QGIS</a> and
+        <a href="https://github.com/minorua/Qgis2threejs">Qgis2threejs</a> plugin (version ${version}).
+
+        <div class="attribution">Powered by ${deps}.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- progress bar -->
+<div id="progress"><div id="progressbar"></div></div>
+
+<!-- header and footer -->
+<div id="header">${header}</div>
+<div id="footer">${footer}</div>
+
+<!-- animation -->
+<div id="narrativebox" class="ef1">
+  <div id="narbody">
+${narration}
+  </div>
+  <div id="nextbtn"></div>
+</div>
+
+<script type="module">
+import { app, conf, gui, modules } from "./Qgis2threejs.js";
+import "./gui_dat.js";
+${imports}
+
+${options}
+
+const container = document.getElementById("view")
+app.init(container);
+
+app.addEventListener("sceneLoaded", () => {
+  if (conf.gui.customPlane) {
+    // If not specified, z range of scene bounding box is used.
+    var zMin = undefined,
+        zMax = undefined;
+    gui.dat.initCustomPlaneFolder(zMin, zMax);
+  }
+});
+
+app.loadSceneFile("${scenefile}").then((scene) => {
+  app.start();
+  gui.dat.initLayersFolder(scene);
+});
+</script>
+</body>
+</html>

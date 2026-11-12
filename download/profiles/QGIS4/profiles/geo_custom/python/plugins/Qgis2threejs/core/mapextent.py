@@ -1,0 +1,357 @@
+# -*- coding: utf-8 -*-
+# (C) 2015 Minoru Akagi
+# SPDX-License-Identifier: GPL-2.0-or-later
+# begin: 2015-03-05
+
+from dataclasses import dataclass
+import math
+
+from qgis.core import QgsPointXY, QgsRectangle, QgsGeometry
+
+
+class MapExtent:
+
+    def __init__(self, center: QgsPointXY, width: float, height: float, rotation: float = 0):
+        self._center = center
+        self._width = width
+        self._height = height
+        self._rotation = rotation
+        self._updateDerived()
+
+    def __eq__(self, other):
+        if not isinstance(other, MapExtent):
+            return NotImplemented
+
+        return (
+            self._center == other._center
+            and self._width == other._width
+            and self._height == other._height
+            and self._rotation == other._rotation
+        )
+
+    def clone(self):
+        return MapExtent(self._center, self._width, self._height, self._rotation)
+
+    def _updateDerived(self):
+        self._unrotated_rect = self._unrotatedRect()
+
+    def _unrotatedRect(self):
+        center = self._center
+        half_width = self._width / 2
+        half_height = self._height / 2
+        return QgsRectangle(center.x() - half_width, center.y() - half_height,
+                            center.x() + half_width, center.y() + half_height)
+
+    @staticmethod
+    def rotatePoint(x, y, degrees, origin=None) -> tuple[float, float]:
+        """Rotate point around the origin"""
+        if origin:
+            x = x - origin.x()
+            y = y - origin.y()
+
+        theta = degrees * math.pi / 180
+        c = math.cos(theta)
+        s = math.sin(theta)
+
+        # rotate counter-clockwise
+        xd = x * c - y * s
+        yd = x * s + y * c
+
+        if origin:
+            return xd + origin.x(), yd + origin.y()
+        return xd, yd
+
+    @staticmethod
+    def rotateQgsPoint(pt, degrees, origin=None):
+        x, y = MapExtent.rotatePoint(pt.x(), pt.y(), degrees, origin)
+        return QgsPointXY(x, y)
+
+    def normalizePoint(self, x, y):
+        """Normalize given point. In result, lower-left is (0, 0) and upper-right is (1, 1)."""
+        if self._rotation:
+            x, y = MapExtent.rotatePoint(x, y, -self._rotation, self._center)
+        rect = self._unrotated_rect
+        return ((x - rect.xMinimum()) / rect.width(),
+                (y - rect.yMinimum()) / rect.height())
+
+    def scale(self, s):
+        self._width *= s
+        self._height *= s
+        self._updateDerived()
+        return self
+
+    def rotate(self, degrees, origin=None):
+        """Rotate the center of extent around the origin
+        args:
+          degrees -- int/float (counter-clockwise)
+          origin  -- QgsPointXY
+        """
+        self._rotation += degrees
+        if origin is None:
+            return self
+        self._center = MapExtent.rotateQgsPoint(self._center, degrees, origin)
+        self._updateDerived()
+        return self
+
+    def point(self, nx, ny, y_inverted=False) -> tuple[float, float]:
+        """
+        args:
+          nx, ny     -- normalized x and y. 0 <= nx <= 1, 0 <= ny <= 1.
+          y_inverted -- If False, lower-left is (0, 0) and upper-right is (1, 1).
+                        Or else lower-left is (0, 1) and upper-right is (1, 0).
+        """
+        ur_rect = self._unrotated_rect
+        x = ur_rect.xMinimum() + nx * ur_rect.width()
+        if y_inverted:
+            y = ur_rect.yMaximum() - ny * ur_rect.height()
+        else:
+            y = ur_rect.yMinimum() + ny * ur_rect.height()
+        if self._rotation:
+            return self.rotatePoint(x, y, self._rotation, self._center)
+        return x, y
+
+    def subrectangle(self, norm_rect, y_inverted=False):
+        """
+        args:
+          norm_rect  -- QgsRectangle (0 <= xmin, 0 <= ymin, xmax <= 1, ymax <= 1)
+          y_inverted -- If True, lower-left is (0, 1) and upper-right is (1, 0).
+                        Or else lower-left is (0, 0) and upper-right is (1, 1).
+        """
+        ur_rect = self._unrotated_rect
+        xmin = ur_rect.xMinimum() + norm_rect.xMinimum() * ur_rect.width()
+        xmax = ur_rect.xMinimum() + norm_rect.xMaximum() * ur_rect.width()
+        if y_inverted:
+            ymin = ur_rect.yMaximum() - norm_rect.yMaximum() * ur_rect.height()
+            ymax = ur_rect.yMaximum() - norm_rect.yMinimum() * ur_rect.height()
+        else:
+            ymin = ur_rect.yMinimum() + norm_rect.yMinimum() * ur_rect.height()
+            ymax = ur_rect.yMinimum() + norm_rect.yMaximum() * ur_rect.height()
+
+        rect = QgsRectangle(xmin, ymin, xmax, ymax)
+        return MapExtent(rect.center(), rect.width(), rect.height()).rotate(self._rotation, self._center)
+
+    def square(self):
+        """square the extent"""
+        self._width = self._height = max(self._width, self._height)
+        self._updateDerived()
+        return self
+
+    @staticmethod
+    def fromRect(rect: QgsRectangle):
+        return MapExtent(rect.center(), rect.width(), rect.height())
+
+    @staticmethod
+    def fromMapSettings(mapSettings, square=False, ignoreRotation=False):
+        extent = mapSettings.visibleExtent()
+        rotation = 0 if ignoreRotation else mapSettings.rotation()
+        if rotation == 0:
+            e = MapExtent(extent.center(), extent.width(), extent.height())
+        else:
+            mupp = mapSettings.mapUnitsPerPixel()
+            canvas_size = mapSettings.outputSize()
+            e = MapExtent(extent.center(), mupp * canvas_size.width(), mupp * canvas_size.height(), rotation)
+
+        return e.square() if square else e
+
+    def toMapSettings(self, mapSettings=None):
+        if mapSettings is None:
+            from qgis.core import QgsMapSettings
+            mapSettings = QgsMapSettings()
+        mapSettings.setExtent(self._unrotated_rect)
+        mapSettings.setRotation(self._rotation)
+        return mapSettings
+
+    def boundingBox(self):
+        theta = self._rotation * math.pi / 180
+        c = abs(math.cos(theta))
+        s = abs(math.sin(theta))
+        hw = (self._width * c + self._height * s) / 2
+        hh = (self._width * s + self._height * c) / 2
+        return QgsRectangle(self._center.x() - hw, self._center.y() - hh,
+                            self._center.x() + hw, self._center.y() + hh)
+
+    def geotransform(self, cols, rows, is_grid_point=True):
+        center = self._center
+        ur_rect = self._unrotated_rect
+        rotation = self._rotation
+
+        segments_x = cols
+        segments_y = rows
+        if is_grid_point:
+            segments_x -= 1
+            segments_y -= 1
+
+        if rotation:
+            # rotate top-left corner of unrotated extent around center of extent counter-clockwise (map rotates clockwise)
+            rx, ry = self.rotatePoint(ur_rect.xMinimum(), ur_rect.yMaximum(), rotation, center)
+            res_lr = self._width / segments_x
+            res_ul = self._height / segments_y
+
+            theta = rotation * math.pi / 180
+            c = math.cos(theta)
+            s = math.sin(theta)
+            geotransform = [rx, res_lr * c, res_ul * s, ry, res_lr * s, -res_ul * c]
+            if is_grid_point:
+                # top-left corner of extent corresponds to center of top-left pixel.
+                geotransform[0] -= 0.5 * geotransform[1] + 0.5 * geotransform[2]
+                geotransform[3] -= 0.5 * geotransform[4] + 0.5 * geotransform[5]
+        else:
+            xres = self._width / segments_x
+            yres = self._height / segments_y
+            geotransform = [ur_rect.xMinimum(), xres, 0, ur_rect.yMaximum(), 0, -yres]
+            if is_grid_point:
+                geotransform[0] -= 0.5 * geotransform[1]
+                geotransform[3] -= 0.5 * geotransform[5]
+
+        return geotransform
+
+    def center(self) -> QgsPointXY:
+        return self._center
+
+    def width(self):
+        return self._width
+
+    def height(self):
+        return self._height
+
+    def rotation(self):
+        return self._rotation
+
+    def unrotatedRect(self):
+        return self._unrotated_rect
+
+    def toDict(self):
+        d = {
+            "cx": self._center.x(),
+            "cy": self._center.y(),
+            "width": self._width,
+            "height": self._height
+        }
+        if self._rotation:
+            d["rotation"] = self._rotation
+        return d
+
+    def geometry(self):
+        geom = QgsGeometry.fromRect(self._unrotated_rect)
+        if self._rotation:
+            geom.rotate(-self._rotation, self._center)
+        return geom
+
+    def vertices(self):
+        """return vertices of the rect clockwise"""
+        rect = self._unrotated_rect
+        pts = [QgsPointXY(rect.xMinimum(), rect.yMaximum()),
+               QgsPointXY(rect.xMaximum(), rect.yMaximum()),
+               QgsPointXY(rect.xMaximum(), rect.yMinimum()),
+               QgsPointXY(rect.xMinimum(), rect.yMinimum())]
+
+        if self._rotation:
+            return [self.rotateQgsPoint(pt, self._rotation, self._center) for pt in pts]
+
+        return pts
+
+    def __repr__(self):
+        return f"MapExtent(c:{self._center}, w:{self._width}, h:{self._height}, r:{self._rotation})"
+
+
+@dataclass
+class GridShape:
+    cols: int
+    rows: int
+
+
+class RegularGrid:
+
+    def __init__(self, rect: QgsRectangle, shape: GridShape):
+        """
+        rect: The rectangular extent covered by the grid.
+        shape: The number of grid points in each direction.
+        """
+        self.rect = rect
+        self.shape = shape
+
+    def xres(self):
+        return self.rect.width() / (self.shape.cols - 1)
+
+    def yres(self):
+        return self.rect.height() / (self.shape.rows - 1)
+
+    def intersection(self, rect: QgsRectangle):
+        r = self.rect.intersect(rect)
+        if r.isEmpty():
+            return None
+
+        xres, yres = self.xres(), self.yres()
+        xmin, ymin = self.rect.xMinimum(), self.rect.yMinimum()
+
+        col_min = math.ceil((r.xMinimum() - xmin) / xres)
+        col_max = math.floor((r.xMaximum() - xmin) / xres)
+        row_min = math.ceil((r.yMinimum() - ymin) / yres)
+        row_max = math.floor((r.yMaximum() - ymin) / yres)
+
+        if col_min > col_max or row_min > row_max:
+            return None
+
+        return RegularGrid(
+            QgsRectangle(
+                xmin + col_min * xres,
+                ymin + row_min * yres,
+                xmin + col_max * xres,
+                ymin + row_max * yres
+            ),
+            GridShape(
+                col_max - col_min + 1,
+                row_max - row_min + 1,
+            )
+        )
+
+
+@dataclass
+class ZRange:
+    zmin: float
+    zmax: float
+
+
+@dataclass
+class BoundingVolume:
+
+    xmin: float
+    ymin: float
+    zmin: float
+    xmax: float
+    ymax: float
+    zmax: float
+
+    def xSize(self):
+        return self.xmax - self.xmin
+
+    def ySize(self):
+        return self.ymax - self.ymin
+
+    def zSize(self):
+        return self.zmax - self.zmin
+
+    def toObbData(self):
+        hx = self.xSize() / 2
+        hy = self.ySize() / 2
+        hz = self.zSize() / 2
+
+        cx = self.xmin + hx
+        cy = self.ymin + hy
+        cz = self.zmin + hz
+
+        return [
+            cx, cy, cz,
+            hx, 0, 0,
+            0, hy, 0,
+            0, 0, hz
+        ]
+
+    @staticmethod
+    def fromExtent(extent: MapExtent, zmin, zmax):
+        rect = extent.unrotatedRect()
+        return BoundingVolume(rect.xMinimum(), rect.yMinimum(), zmin, rect.xMaximum(), rect.yMaximum(), zmax)
+
+    @staticmethod
+    def fromRect(rect: QgsRectangle, zrange: ZRange):
+        return BoundingVolume(rect.xMinimum(), rect.yMinimum(), zrange.zmin, rect.xMaximum(), rect.yMaximum(), zrange.zmax)

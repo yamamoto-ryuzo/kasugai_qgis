@@ -1,0 +1,653 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ProjectConfigurationWidgetBase</class>
+ <widget class="QWidget" name="ProjectConfigurationWidgetBase">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>737</width>
+    <height>570</height>
+   </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
+    <number>0</number>
+   </property>
+   <item>
+    <widget class="QScrollArea" name="scrollArea">
+     <property name="frameShape">
+      <enum>QFrame::NoFrame</enum>
+     </property>
+     <property name="widgetResizable">
+      <bool>true</bool>
+     </property>
+     <widget class="QWidget" name="scrollAreaWidgetContents">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>716</width>
+        <height>897</height>
+       </rect>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <item>
+        <widget class="QTabWidget" name="exportTypeTabs">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="currentIndex">
+          <number>0</number>
+         </property>
+         <widget class="QWidget" name="cloudExportTab">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <attribute name="title">
+           <string>QFieldCloud Packaging</string>
+          </attribute>
+          <layout class="QGridLayout" name="cloudExportLayout" columnstretch="1,0">
+           <item row="1" column="0" colspan="2">
+            <widget class="QLabel" name="cloudExportLabel">
+             <property name="font">
+              <font>
+               <italic>true</italic>
+              </font>
+             </property>
+             <property name="text">
+              <string>The map layers settings are used by QFieldCloud when packaging your project for QField. To allow editing while offline and synchronize changes to features  back to QFieldCloud, set the action to ‘offline editing’.</string>
+             </property>
+             <property name="wordWrap">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="0">
+            <layout class="QHBoxLayout" name="horizontalLayout">
+             <item>
+              <widget class="QCheckBox" name="forceAutoPush">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string>Automatically push pending changes on the following interval</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QgsSpinBox" name="forceAutoPushInterval">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                 <horstretch>1</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="suffix">
+                <string> minutes</string>
+               </property>
+               <property name="minimum">
+                <number>1</number>
+               </property>
+               <property name="maximum">
+                <number>2880</number>
+               </property>
+               <property name="value">
+                <number>30</number>
+               </property>
+               <property name="showClearButton">
+                <bool>true</bool>
+               </property>
+               <property name="clearValue">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </widget>
+         <widget class="QWidget" name="cableExportTab">
+          <attribute name="title">
+           <string>Cable Packaging</string>
+          </attribute>
+          <layout class="QGridLayout" name="cableExportLayout">
+           <item row="0" column="0">
+            <widget class="QLabel" name="cableExportLabel">
+             <property name="font">
+              <font>
+               <italic>true</italic>
+              </font>
+             </property>
+             <property name="text">
+              <string>The map layers settings are used when packaging your project intended for manually copying the generated project onto your devices manually via USB cable or other file sharing  mechanisms.</string>
+             </property>
+             <property name="wordWrap">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+         <widget class="QWidget" name="attachmentsDirectoriesTab">
+          <attribute name="title">
+           <string>Attachments and Directories</string>
+          </attribute>
+          <layout class="QGridLayout" name="attachmentsDirectoriesLayout" columnstretch="1,0">
+           <item row="0" column="0" colspan="2">
+            <widget class="QLabel" name="attachmentsDirectoriesLabel">
+             <property name="font">
+              <font>
+               <italic>true</italic>
+              </font>
+             </property>
+             <property name="text">
+              <string>When packaging a project, attachment and data directories are copied into the QField project. &lt;b&gt;Attachment&lt;/b&gt; directories should be tied to feature form attachment editor widgets while &lt;b&gt;data&lt;/b&gt; directories are used to package assets such as print layout,decoration images or QField project plugin files.</string>
+             </property>
+             <property name="wordWrap">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QgsSpinBox" name="maximumImageWidthHeight">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+               <horstretch>1</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="suffix">
+              <string> px</string>
+             </property>
+             <property name="minimum">
+              <number>0</number>
+             </property>
+             <property name="maximum">
+              <number>99999999</number>
+             </property>
+             <property name="value">
+              <number>0</number>
+             </property>
+             <property name="showClearButton">
+              <bool>true</bool>
+             </property>
+             <property name="clearValue">
+              <bool>false</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="maximumImageWidthHeightLabel">
+             <property name="text">
+              <string>Maximum allowed width or height (in pixels) of image attachments</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="customizeImageStampingLabel">
+             <property name="text">
+              <string>Customize image stamping details</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="1">
+            <widget class="QPushButton" name="customizeImageStampingButton">
+             <property name="text">
+              <string>Settings</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </widget>
+       </item>
+       <item>
+        <widget class="QgsCollapsibleGroupBox" name="generalSettingsGroupBox">
+         <property name="title">
+          <string>General Settings</string>
+         </property>
+         <property name="collapsed">
+          <bool>false</bool>
+         </property>
+         <property name="saveCollapsedState">
+          <bool>true</bool>
+         </property>
+         <layout class="QGridLayout" name="gridLayout_8" columnstretch="1,3">
+          <item row="0" column="0">
+           <widget class="QLabel" name="initialMapMode">
+            <property name="text">
+             <string>Initial map mode</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QComboBox" name="initialMapModeComboBox"/>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="labelInitialActiveLayer">
+            <property name="text">
+             <string>Initial active layer</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QgsMapLayerComboBox" name="initialActiveLayerComboBox"/>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="labelDigitizingLogsLayer">
+            <property name="text">
+             <string>Digitizing logs layer</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QgsMapLayerComboBox" name="digitizingLogsLayerComboBox"/>
+          </item>
+          <item row="3" column="0" colspan="2">
+           <widget class="QCheckBox" name="featureFormWizardModeCheckBox">
+            <property name="text">
+             <string>Enable QField feature forms' wizard mode</string>
+            </property>
+            <property name="toolTip">
+             <string>When enabled, QField will display root tabs of feature forms as
+a series of pages. This provides a simpler linear journey for users
+to fill forms, with constraints guiding the process along.</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="0">
+           <widget class="QLabel" name="customizeMapOverlayLabel">
+            <property name="text">
+             <string>Customize map overlay elements</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="1">
+           <widget class="QPushButton" name="customizeMapOverlayButton">
+            <property name="text">
+             <string>Settings</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QgsCollapsibleGroupBox" name="areaOfInterestBaseMapGroupBox">
+         <property name="title">
+          <string>Area of Interest and Base Map</string>
+         </property>
+         <property name="collapsed">
+          <bool>true</bool>
+         </property>
+         <layout class="QGridLayout" name="areaOfInterestBaseMapLayout">
+          <item row="0" column="0" colspan="2">
+           <widget class="QLabel" name="areaOfInterestLabel">
+            <property name="font">
+             <font>
+              <italic>true</italic>
+             </font>
+            </property>
+            <property name="text">
+             <string>The area of interest defines the part of a project that should be made available for offline use.</string>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="customAreaOfInterestLabel">
+            <property name="text">
+             <string>Area of interest</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0" colspan="2">
+           <widget class="QCheckBox" name="onlyOfflineCopyFeaturesInAoi">
+            <property name="text">
+             <string>When offlining layers, only copy features intersecting the area of interest</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0" colspan="2">
+           <widget class="QgsCollapsibleGroupBox" name="createBaseMapGroupBox">
+            <property name="title">
+             <string>Base Map</string>
+            </property>
+            <property name="checkable">
+             <bool>true</bool>
+            </property>
+            <property name="collapsed">
+             <bool>false</bool>
+            </property>
+            <property name="saveCollapsedState">
+             <bool>true</bool>
+            </property>
+            <layout class="QGridLayout" name="gridLayout">
+             <item row="0" column="0" colspan="2">
+              <widget class="QLabel" name="baseMapLabel">
+               <property name="font">
+                <font>
+                 <italic>true</italic>
+                </font>
+               </property>
+               <property name="text">
+                <string>A raster base map can be generated when triggering a cable packaging process. The generated raster will cover the project’s full extent or the customized area of interest defined above.</string>
+               </property>
+               <property name="wordWrap">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item row="9" column="1">
+              <widget class="QgsSpinBox" name="baseMapTilesMaxZoomLevelSpinBox">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="toolTip">
+                <string>This determines the maximum zoom level of the basemap tiles (mbtiles format), generated during cable export.</string>
+               </property>
+               <property name="maximum">
+                <number>20</number>
+               </property>
+               <property name="value">
+                <number>14</number>
+               </property>
+              </widget>
+             </item>
+             <item row="5" column="0">
+              <widget class="QLabel" name="baseMapTileSizeLabel">
+               <property name="text">
+                <string>Tile size</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item row="7" column="1">
+              <widget class="QgsSpinBox" name="baseMapTilesMinZoomLevelSpinBox">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="toolTip">
+                <string>This determines the minimum zoom level of the basemap tiles (mbtiles format), generated during cable export.</string>
+               </property>
+               <property name="maximum">
+                <number>20</number>
+               </property>
+               <property name="value">
+                <number>14</number>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <layout class="QHBoxLayout" name="horizontalLayout_1">
+               <item>
+                <widget class="QRadioButton" name="singleLayerRadioButton">
+                 <property name="text">
+                  <string>Single layer</string>
+                 </property>
+                 <attribute name="buttonGroup">
+                  <string notr="true">baseMapButtonGroup</string>
+                 </attribute>
+                </widget>
+               </item>
+               <item>
+                <widget class="QRadioButton" name="mapThemeRadioButton">
+                 <property name="text">
+                  <string>Map theme</string>
+                 </property>
+                 <attribute name="buttonGroup">
+                  <string notr="true">baseMapButtonGroup</string>
+                 </attribute>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item row="2" column="0">
+              <widget class="QLabel" name="baseMapMapThemeLabel">
+               <property name="text">
+                <string>Map Theme</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="1">
+              <widget class="QComboBox" name="mapThemeComboBox"/>
+             </item>
+             <item row="3" column="0">
+              <widget class="QLabel" name="baseMapLayerLabel">
+               <property name="text">
+                <string>Layer</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="1">
+              <widget class="QgsMapLayerComboBox" name="layerComboBox"/>
+             </item>
+             <item row="7" column="0">
+              <widget class="QLabel" name="baseMapTilesMinZoomLevelLabel">
+               <property name="text">
+                <string>Tiles min zoom level</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item row="9" column="0">
+              <widget class="QLabel" name="baseMapTilesMaxZoomLevelLabel">
+               <property name="text">
+                <string>Tiles max zoom level</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item row="5" column="1">
+              <widget class="QComboBox" name="baseMapTileSizeComboBox">
+               <item>
+                <property name="text">
+                 <string>256</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>512</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>1024</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QgsCollapsibleGroupBox" name="geofencingGroupBox">
+         <property name="title">
+          <string>Geofencing</string>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+         <property name="collapsed">
+          <bool>false</bool>
+         </property>
+         <property name="saveCollapsedState">
+          <bool>true</bool>
+         </property>
+         <layout class="QGridLayout" name="geofencingGridLayout" columnstretch="1,3">
+          <item row="2" column="1">
+           <widget class="QComboBox" name="geofencingBehaviorComboBox"/>
+          </item>
+          <item row="0" column="0" colspan="2">
+           <widget class="QLabel" name="geofencingIntroductionLabel">
+            <property name="font">
+             <font>
+              <italic>true</italic>
+             </font>
+            </property>
+            <property name="text">
+             <string>QField provides real-time feedback to users when their device position falls within or outside of areas defined by a selected polygon layer.</string>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="geofencingLayerLabel">
+            <property name="text">
+             <string>Geofencing areas layer</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QgsMapLayerComboBox" name="geofencingLayerComboBox"/>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="geofencingBehaviorLabel">
+            <property name="text">
+             <string>Geofencing behavior</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0" colspan="2">
+           <widget class="QCheckBox" name="geofencingShouldPreventDigitizingCheckBox">
+            <property name="text">
+             <string>Prevent digitizing when alerting</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QgsCollapsibleGroupBox" name="mapThemesGroupBox">
+         <property name="title">
+          <string>Map Themes Configuration</string>
+         </property>
+         <property name="checkable">
+          <bool>false</bool>
+         </property>
+         <property name="collapsed">
+          <bool>false</bool>
+         </property>
+         <property name="saveCollapsedState">
+          <bool>true</bool>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_8"/>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QgsCollapsibleGroupBox</class>
+   <extends>QGroupBox</extends>
+   <header>qgscollapsiblegroupbox.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>QgsMapLayerComboBox</class>
+   <extends>QComboBox</extends>
+   <header>qgsmaplayercombobox.h</header>
+  </customwidget>
+  <customwidget>
+   <class>QgsSpinBox</class>
+   <extends>QSpinBox</extends>
+   <header>qgsspinbox.h</header>
+  </customwidget>
+ </customwidgets>
+ <tabstops>
+  <tabstop>scrollArea</tabstop>
+  <tabstop>exportTypeTabs</tabstop>
+  <tabstop>maximumImageWidthHeight</tabstop>
+  <tabstop>areaOfInterestBaseMapGroupBox</tabstop>
+  <tabstop>onlyOfflineCopyFeaturesInAoi</tabstop>
+  <tabstop>createBaseMapGroupBox</tabstop>
+  <tabstop>singleLayerRadioButton</tabstop>
+  <tabstop>mapThemeRadioButton</tabstop>
+  <tabstop>layerComboBox</tabstop>
+  <tabstop>mapThemeComboBox</tabstop>
+  <tabstop>baseMapTilesMinZoomLevelSpinBox</tabstop>
+  <tabstop>baseMapTilesMaxZoomLevelSpinBox</tabstop>
+  <tabstop>geofencingGroupBox</tabstop>
+  <tabstop>geofencingLayerComboBox</tabstop>
+  <tabstop>geofencingBehaviorComboBox</tabstop>
+  <tabstop>geofencingShouldPreventDigitizingCheckBox</tabstop>
+  <tabstop>initialActiveLayerComboBox</tabstop>
+  <tabstop>digitizingLogsLayerComboBox</tabstop>
+ </tabstops>
+ <resources/>
+ <connections/>
+ <buttongroups>
+  <buttongroup name="baseMapButtonGroup"/>
+ </buttongroups>
+</ui>

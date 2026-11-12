@@ -1,0 +1,486 @@
+# -*- coding: utf-8 -*-
+# (C) 2016 Minoru Akagi
+# SPDX-License-Identifier: GPL-2.0-or-later
+# begin: 2016-02-10
+
+from functools import wraps
+from qgis.PyQt.QtCore import QEventLoop, QObject, QTimer, QThread, pyqtSignal, pyqtSlot
+from qgis.core import Qgis, QgsProject
+
+from .taskmanager import BuildLayerTask, BuildTileTask, Task, TaskManager
+from ..build.builder import ThreeJSBuilder
+from ..const import LayerType, ScriptFile
+from ..exportsettings import ExportSettings, Layer
+from ... import conf
+from ...conf import DEBUG_MODE
+from ...utils.js import hex_color, js_bool, pyobj2js
+from ...utils.logging import logger
+
+
+# decorator to skip method execution when the object the method belongs to is disabled
+def requires_enabled(func):
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        if not self._enabled:
+            return
+        return func(self, *args, **kwargs)
+    return wrapper
+
+
+class Q3DController(QObject):
+
+    # signals
+    statusMessage = pyqtSignal(str, int)         # message, timeout_ms
+    progressUpdated = pyqtSignal(int, int, str)  # current, total, msg
+
+    # signals - controller to builder
+    buildSceneRequest = pyqtSignal(ExportSettings)
+    buildLayerRequest = pyqtSignal(Layer, object, ExportSettings)
+    buildTileRequest = pyqtSignal(str, Layer, int, int, int, bool, ExportSettings)
+
+    quitRequest = pyqtSignal()                   # request the builder to move back to the main thread
+
+    def __init__(self, parent, settings, webPage, offScreen=False, useThread=False):
+        super().__init__(parent)
+
+        self.webPage = webPage
+        self.offScreen = offScreen
+        self._enabled = True
+        self._conns = []
+
+        # settings
+        if settings is None:
+            defaultSettings = {}
+            settings = ExportSettings()
+            settings.loadSettings(defaultSettings)
+
+            err_msg = settings.checkValidity()
+            if err_msg:
+                logger.warning("Invalid settings: " + err_msg)
+
+        self.settings = settings        # hold a reference to the original settings
+        self.settingsUpdated = True
+        self._settingsCopy = None
+
+        # builder and thread management
+        self.builder = ThreeJSBuilder(parent=None if useThread else self,
+                                      log=self.log,
+                                      isInUiThread=not useThread)
+        self.builder.setObjectName("threeJSBuilder")
+
+        self.thread = None
+        if useThread:
+            self.thread = QThread(self)
+            self.thread.setObjectName("builderThread")
+
+            # move builder to worker thread and start event loop
+            if DEBUG_MODE and self.builder.parent() is not None:
+                raise AssertionError("builder.parent() must be None")
+
+            self.builder.moveToThread(self.thread)
+            self.thread.start()
+
+        # task management
+        self.taskManager = TaskManager(self, settings)
+        self.taskManager.setObjectName("taskManager")
+
+        # connections
+        self.setupConnections()
+
+        # progress
+        self.currentProgress = -1
+
+    def teardown(self):
+        if not self.aborted:
+            self.abort()
+
+        self.taskManager.teardown()
+
+        if self.thread:
+            # Send a quit request to the builder so that it returns to the main thread.
+            self.quitRequest.connect(self.builder.quit)
+
+            loop = QEventLoop()
+            self.builder.readyToQuit.connect(loop.quit)
+            QTimer.singleShot(0, self.quitRequest.emit)   # emit quit request in next event loop
+            loop.exec()
+
+            # stop worker thread event loop
+            self.thread.quit()
+            self.thread.wait()
+
+            self.builder.deleteLater()
+
+    def setupConnections(self):
+        """Setup signal-slot connections between controller, builder, and 3D view interface."""
+        conns = ([
+            # web page -> controller
+            (self.webPage.loadFinished, self.pageLoaded),
+
+            # web bridge -> controller
+            (self.webPage.bridge.initialized, self.viewerInitialized),
+            (self.webPage.bridge.tileDataRequest, self.tileDataRequested),
+
+            # controller -> builder
+            (self.buildSceneRequest, self.builder.buildSceneSlot),
+            (self.buildLayerRequest, self.builder.buildLayerSlot),
+            (self.buildTileRequest, self.builder.buildTileSlot),
+
+            # task manager -> controller
+            (self.taskManager.executeTask, self.executeTask),
+            (self.taskManager.abortCurrentTask, self.abortCurrentTask),
+            (self.taskManager.allTasksFinalized, self.allTasksFinalized),
+
+            # builder -> controller
+            (self.builder.dataReady, self.appendDataToSendQueue),
+            (self.builder.progressUpdated, self.builderProgressUpdated),
+            (self.builder.taskWarning, self.showWarningMessage),
+
+            # builder -> task manager
+            (self.builder.taskCompleted, self.taskManager.taskCompleted),
+            (self.builder.taskFailed, self.taskManager.taskFailed),
+            (self.builder.taskAborted, self.taskManager.taskAborted)
+        ])
+
+        for sig, slo in conns:
+            self._conns.append(sig.connect(slo))
+
+    def teardownConnections(self):
+        for conn in self._conns:
+            self.disconnect(conn)
+
+        self._conns.clear()
+
+    @property
+    def enabled(self):
+        return self._enabled
+
+    @enabled.setter
+    def enabled(self, value):
+        if self._enabled == value:
+            return
+
+        self._enabled = value
+        self.taskManager.enabled = value
+
+    @property
+    def aborted(self):
+        return self.builder.aborted
+
+    @aborted.setter
+    def aborted(self, value):
+        self.builder.aborted = value
+
+    @pyqtSlot(bool)
+    def abort(self, clear_tasks=True, show_msg=False):
+        logger.debug(f"Controller: aborting. clear queue({clear_tasks})")
+
+        if clear_tasks:
+            self.taskManager.clearTaskQueue()
+            self.taskManager.taskSequenceStatus.reset()
+
+        if not self.aborted:
+            if show_msg:
+                self.showStatusMessage("Aborting processing...", timeout_ms=2000)
+
+            self.builder.abort()
+
+        self.webPage.sendQueue.clear()
+
+    def close(self):
+        self.enabled = False
+        self.abort()
+        self.taskManager.closeTaskQueue()
+
+    def pageLoaded(self, ok):
+        logger.debug("Page load finished.")
+
+        if self.webPage.url().scheme() != "file":
+            return
+
+        if not self.enabled:
+            self.clearStatusMessage()
+            return
+
+        self.taskManager.initialize()
+        self.webPage.sendQueue.clear()
+
+        configs = []
+        if self.settings.isOrthoCamera():
+            configs.append("conf.orthoCamera = true;")
+
+        p = self.settings.widgetProperties("NorthArrow")
+        if p.get("visible"):
+            configs.append("conf.northArrow.enabled = true;")
+            configs.append("conf.northArrow.color = {};".format(hex_color(p.get("color", 0), prefix="0x")))
+
+        if not self.settings.isNavigationEnabled():
+            configs.append("conf.navigation.enabled = false;")
+
+        if configs:
+            self.runScript("\n".join(configs))
+
+        ctrl = self.settings.controls()
+        if ctrl == "Map":
+            mods = [ScriptFile.FILES[ScriptFile.ORBITCONTROLS][0],
+                    ScriptFile.FILES[ScriptFile.MAPCONTROLS][0]]
+        else:
+            mods = [ScriptFile.FILES[ScriptFile.ORBITCONTROLS][0]]
+
+        self.runScript(f"init({js_bool(self.offScreen)}, {DEBUG_MODE}, {Qgis.QGIS_VERSION_INT}, {pyobj2js(mods, escape=True)})")
+
+    def viewerInitialized(self):
+        # labels
+        header = self.settings.headerLabel()
+        footer = self.settings.footerLabel()
+        if header or footer:
+            self.sendData({
+                "type": "labels",
+                "Header": header,
+                "Footer": footer
+            })
+        # crs check
+        if QgsProject.instance().crs().isGeographic():
+            self.webPage.showMessageBar("Please use a projected CRS instead of a geographic CRS to view the 3D scene.")
+
+        self.clearStatusMessage()
+
+        if self.enabled:
+            self.runScript("app.start()")
+            self.taskManager.addBuildSceneTask()
+
+    def tileDataRequested(self, url):
+        task = BuildTileTask.fromUrl(url, self.settings)
+        if task:
+            self.taskManager.addBuildTileTask(task)
+
+    def updateSettingsCopyIfNeeded(self):
+        if self.settings.isUpdated() or self._settingsCopy is None:
+            self._settingsCopy = self.settings.clone()
+            self.settings.clearUpdatedFlag()
+
+    @pyqtSlot(object)
+    def executeTask(self, task):
+        if not self._enabled:
+            return
+
+        self.aborted = False
+        logger.debug(f"Start task - {task}")
+
+        try:
+            match task:
+                case {"type": "script", "script": script}:      # RUN_SCRIPT
+                    self.runScript(script, callback=self.taskManager.taskFinalized)
+
+                case dict():    # SEND_DATA
+                    self.appendDataToSendQueue(data=task)
+                    self.taskManager.taskFinalized()
+
+                case BuildLayerTask():
+                    self.runBuildLayerTask(task)
+
+                case BuildTileTask():
+                    self.runBuildTileTask(task)
+
+                case Task.RELOAD_PAGE:
+                    self.webPage.reload()
+
+                case Task.BUILD_SCENE:
+                    self.buildScene()
+
+                case Task.UPDATE_SCENE_OPTS:
+                    self.updateSceneOptions(callback=self.taskManager.taskFinalized)
+
+                case _:
+                    logger.warning(f"Unknown task: {task}")
+
+        except Exception as _:
+            import traceback
+            logger.error(f"Error while processing task {task}:\n{traceback.format_exc()}")
+
+    @pyqtSlot()
+    def abortCurrentTask(self):
+        self.abort(clear_tasks=False)
+
+    @pyqtSlot()
+    def allTasksFinalized(self):
+        logger.debug("All tasks finalized.")
+
+        # send a special data item that represents the final item in a sequence of tasks.
+        self.appendDataToSendQueue({
+            "type": "signal",
+            "name": "queueCompleted",
+            "success": not self.taskManager.taskSequenceStatus.taskFailed,
+            "is_scene": self.taskManager.taskSequenceStatus.buildSceneStarted
+        })
+
+        self.taskManager.taskSequenceStatus.reset()
+
+    def buildScene(self):
+        self.updateSettingsCopyIfNeeded()
+        self.buildSceneRequest.emit(self._settingsCopy)
+        self.progress(msg="Building scene...")
+
+    def updateSceneOptions(self, callback=None):
+        sp = self.settings.sceneProperties()
+        lines = []
+
+        # outline effect
+        lines.append("setOutlineEffectEnabled({});".format(js_bool(sp.get("checkBox_Outline"))))
+
+        # update background color
+        params = "{}, 1".format(hex_color(sp.get("colorButton_Color", 0), prefix="0x")) if sp.get("radioButton_Color") else "0, 0"
+        lines.append("setBackgroundColor({});".format(params))
+
+        # coordinate display
+        lines.append("conf.coord.visible = {};".format(js_bool(self.settings.coordDisplay())))
+
+        latlon = self.settings.isCoordLatLon()
+        lines.append("conf.coord.latlon = {};".format(js_bool(latlon)))
+
+        if latlon:
+            self.loadScriptFiles([ScriptFile.PROJ4])
+
+        self.runScript("\n".join(lines), callback=callback)
+
+    def runBuildLayerTask(self, task: BuildLayerTask):
+        layer = task.layer
+        if not self.settings.getLayer(layer.layerId):
+            logger.info(f"Layer {layer.layerId} not found in settings. Ignored.")
+            return
+
+        if not layer.visible:
+            self.hideLayer(layer, callback=self.taskManager.taskFinalized)
+            return
+
+        self.taskManager.runningBuildLayerTask = task
+
+        files = []
+        if layer.type == LayerType.DEM:
+            if layer.properties.get("radioButton_Pyramid"):
+                files = [ScriptFile.TILES3D]
+
+        else:
+            objType = layer.properties.get("comboBox_ObjectType")
+            if layer.type == LayerType.POINT:
+                if objType == "3D Model":
+                    files = [ScriptFile.COLLADALOADER, ScriptFile.GLTFLOADER]
+
+            elif layer.type == LayerType.LINESTRING:
+                if objType == "Thick Line":
+                    files = [ScriptFile.MESHLINE]
+
+                elif objType == "Box":
+                    files = [ScriptFile.BUFGEOMUTILS]
+
+        if files:
+            self.loadScriptFiles(files, callback=lambda: self._buildLayer(layer, task.options))
+        else:
+            self._buildLayer(layer, task.options)
+
+    def _buildLayer(self, layer, options):
+        self.updateSettingsCopyIfNeeded()
+        self.buildLayerRequest.emit(layer, options, self._settingsCopy)
+        self.builderProgressUpdated(0, msg=f"Building {layer.name} layer...")
+
+        if len(self.settings.layers(export_only=True)) == 1:
+            self.taskManager.addRunScriptTask("adjustCameraPos()")
+
+    def runBuildTileTask(self, task: BuildTileTask):
+        self.buildTileRequest.emit(task.url, task.layer, task.level, task.x, task.y, task.onlyMaterial, self._settingsCopy)
+        self.builderProgressUpdated(0, msg=f"Building {task.layer.name} tiles...")
+
+    def hideLayer(self, layer, callback=None):
+        """hide layer and remove all objects from the layer"""
+        self.taskManager.removeBuildLayerTask(layer)        # abort if being processed and remove pending task for the layer
+
+        self.webPage.sendQueue.removeLayer(layer.jsLayerId)   # remove data related to layer from send queue
+
+        self.runScript(f"hideLayer({layer.jsLayerId}, true)", callback=callback)
+
+    def zoomToLayer(self, layer):
+        self.runScript(f"app.cameraAction.zoomToLayer(app.scene.mapLayers[{layer.jsLayerId}])",
+                       message=f'Zoom to layer "{layer.name}"')
+
+    # send queue management
+    @pyqtSlot(dict)
+    def appendDataToSendQueue(self, data):
+        if self.aborted:
+            if DEBUG_MODE:
+                logger.debug(f'Discarded {data.get("type")} data: processing aborted')
+            return
+
+        # if DEBUG_MODE and len(self.webPage.sendQueue) > 1:
+        #     logger.debug(f'Sending/loading data is busy. Added data: {data.get("type")}, Queue length: {len(self.webPage.sendQueue)}')
+
+        self.sendData(data, viaQueue=True)
+
+    # web page access methods
+    def updateWidget(self, name, properties):
+        if name == "NorthArrow":
+            self.runScript("setNorthArrowColor({})".format(properties.get("color", 0)))
+            self.runScript("setNorthArrowVisible({})".format(js_bool(properties.get("visible"))))
+
+        elif name == "Label":
+            self.sendData({
+                "type": "labels",
+                "Header": properties.get("Header", ""),
+                "Footer": properties.get("Footer", "")
+            })
+
+    def cameraState(self, flat=False):
+        return self.runScript("cameraState({})".format(1 if flat else 0), wait=True)
+
+    def setCameraState(self, state):
+        """set camera position and its target"""
+        self.sendData({
+            "type": "cameraState",
+            "state": state
+        })
+
+    def resetCameraState(self):
+        self.runScript("app.controls.reset()")
+
+    # messagebar, status, progress, and log
+    def showWarningMessage(self, target, msg):
+        self.webPage.showMessageBar(f"{target}: {msg}", timeout_ms=5000)
+
+    def showStatusMessage(self, msg, timeout_ms=0):
+        self.statusMessage.emit(msg, timeout_ms)
+
+    def clearStatusMessage(self):
+        self.statusMessage.emit("", 0)
+
+    def progress(self, current=0, total=100, msg=""):
+        self.progressUpdated.emit(current, total, msg)
+
+    def log(self, msg, warning=False):
+        if warning:
+            logger.warning(msg)
+        else:
+            logger.info(msg)
+
+    @pyqtSlot(int, int, str)
+    def builderProgressUpdated(self, current, total=100, msg=""):
+        total = total or 100
+        if self.taskManager.queuedBuildTaskCounter:
+            p = int((self.taskManager.dequeuedBuildTaskCounter - 1 + current / total) / self.taskManager.queuedBuildTaskCounter * 100)
+        else:
+            p = self.currentProgress
+
+        p = max(0, min(100, p))
+        if self.currentProgress != p or msg:
+            self.currentProgress = p
+            self.progressUpdated.emit(p, 100, msg)
+
+    @requires_enabled
+    def sendData(self, data, viaQueue=False):
+        self.webPage.sendData(data, viaQueue)
+
+    @requires_enabled
+    def runScript(self, string, message="", sourceID="controller.py", callback=None, wait=False):
+        return self.webPage.runScript(string, message, sourceID, callback, wait)
+
+    @requires_enabled
+    def loadScriptFiles(self, script_ids, callback=None):
+        self.webPage.loadScriptFiles(script_ids, callback=callback)

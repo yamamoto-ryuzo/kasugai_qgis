@@ -1,0 +1,48 @@
+# Mandatory items:
+
+[general]
+name=Qgis2threejs
+qgisMinimumVersion=4.0
+qgisMaximumVersion=4.99
+description=3D map visualization and web export powered by three.js JavaScript library
+about=This plugin visualizes DEM and vector data in 3D within web browsers. You can easily create various 3D objects, generate files for web publishing, and export 3D models in glTF format for 3DCG or 3D printing.
+version=3.3
+author=Minoru Akagi
+email=akaginch@gmail.com
+
+# Optional items:
+changelog=
+    Version 3.3
+    - Added pyramid tiles mode for DEMs
+    - Added double-click zooming toward a point in the scene
+    - Improved camera clipping plane calculations
+    - Introduced MapControls as the default navigation controls
+    - Renamed "Resampling Method" group to "DEM Structure"
+    - Renamed "Bilinear Resampling" to "Simple" and "Use Original DEM Values" to "Tiles"
+
+    Version 3.2.1
+    - Fixed camera near and far plane distance calculation by ignoring the Z extent
+
+    Version 3.2
+    - Added support for previewing scenes in an external web browser, even when WebEngineView is unavailable
+    - Added support for saving scenes in three.js JSON format
+    - Added WebP as a texture image format
+    - Added a flat shading option for DEMs and some vector object types
+    - Added Simple, Metal, and Clay to the available materials
+    - Compressed DEM data before export
+    - Converted JavaScript files to TypeScript
+    - Removed map rotation setting from the scene base extent settings
+    - Removed the Edges and Quad Wireframe options from the DEM Properties dialog
+
+# tags are comma separated with spaces allowed
+tags=3D,terrain,web,DEM,glTF,AR,narrative,story,animation
+
+category=Web
+homepage=https://github.com/minorua/Qgis2threejs
+tracker=https://github.com/minorua/Qgis2threejs/issues
+repository=https://github.com/minorua/Qgis2threejs
+icon=web/Qgis2threejs.png
+experimental=False
+
+# deprecated flag (applies to the whole plugin, not just a single version
+deprecated=False

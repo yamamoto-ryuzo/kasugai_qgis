@@ -1,0 +1,82 @@
+#debug {
+  font-size: xx-small;
+  position: absolute;
+  right: 5px;
+  bottom: 2px;
+  padding: 1px 2px;
+  background-color: rgba(255, 255, 255, 0.7);
+  pointer-events: none;
+}
+
+#msgbar {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 8px;
+  background-color: #f0f8ff;
+  font: 14px sans-serif;
+  text-align: center;
+  z-index: 9999;
+}
+
+#msgbar.success {
+  background-color: #2e7d32;
+  color: #fff;
+}
+
+#msgbar.warning {
+  background-color: #fc0;
+  color: #222;
+}
+
+#msgbar.error {
+  background-color: #c0392b;
+  color: #fff;
+}
+
+#msgbar.closed {
+  background-color: #555;
+  color: #fff;
+}
+
+#closemsgbar {
+  float: right;
+  color: #8e998a;
+  line-height: 16px;
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  text-align: center;
+  cursor: pointer;
+}
+
+#msgcontent {
+  padding: 0;
+}
+
+#msgcontent .msgtitle {
+  font-weight: bold;
+}
+
+#msgcontent .warning-icon {
+  color: #664d03;
+  margin-right: 0.4em;
+}
+
+#msgcontent ul {
+  margin: 0 5px;
+  display: inline-block;
+  text-align: left;
+}
+
+#testmarker {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: red;
+  pointer-events: none;
+  z-index: 1001;
+}

@@ -1,0 +1,631 @@
+# -*- coding: utf-8 -*-
+# (C) 2014 Minoru Akagi
+# SPDX-License-Identifier: GPL-2.0-or-later
+# begin: 2014-01-16
+
+import json
+import os
+
+from qgis.core import QgsApplication
+from qgis.PyQt.QtCore import QDir, QEventLoop, QFileInfo, QObject, QSize, QTimer
+from qgis.PyQt.QtGui import QImage, QPainter
+
+from ..build.builder import ThreeJSBuilder, LayerBuilderFactory
+from ..build.datamanager.image import ImageManager
+from ..build.vector.builder import VectorLayerBuilder
+from ..const import LayerType, ScriptFile
+from ..exportsettings import BuildDEMOptions, ExportSettings
+from ..storagelocation import StorageLocation
+from ..controller.controller import Q3DController
+from ...conf import DEBUG_MODE, PLUGIN_VERSION
+from ...gui.webview.const import WebViewType, WebViewMode
+from ...gui import webview
+from ...utils import file as file_utils, js as js_utils
+from ...utils.basic import pluginDir
+from ...utils.logging import logger
+
+
+TIMEOUT_MS = 30000      # timeout (ms) for page initialization
+
+
+class ExportCancelled(Exception):
+    pass
+
+
+class ThreeJSExporter(QObject):
+    """Exporter class for generating a set of files for a three.js-based 3D scene
+    viewable in external web browsers.
+    """
+
+    def __init__(self, parent=None, settings=None, progress=None, log=None):
+        super().__init__(parent)
+
+        self.settings = settings or ExportSettings()
+        self.imageManager = ImageManager(settings.mapSettings if settings else None)
+        self.modelManagers = []
+
+        self.progress = progress or self._progress
+        self.log = log or self._log
+
+        self._index = -1
+        self._aborted = False
+
+    def _progress(self, current=0, total=100, msg=""):
+        logger.info(f"[{current}/{total}] {msg}")
+
+    def _log(self, msg, warning=False):
+        if warning:
+            logger.warning(msg)
+        else:
+            logger.info(msg)
+
+    def warning_log(self, msg):
+        self.log(msg, warning=True)
+
+    @property
+    def aborted(self):
+        QgsApplication.processEvents()
+        return self._aborted
+
+    @aborted.setter
+    def aborted(self, value):
+        if self._aborted != value:
+            self._aborted = value
+            logger.debug(f"ThreeJSExporter: aborted={self._aborted}.")
+
+    def abort(self):
+        self.aborted = True
+
+    def loadSettings(self, filename=None):
+        self.settings.loadSettingsFromFile(filename)
+
+    def setMapSettings(self, settings):
+        self.settings.setMapSettings(settings)
+        self.imageManager.setBaseMapSettings(settings)
+
+    def export(self, filename=None, abortSignal=None):
+        if filename:
+            self.settings.setOutputFilename(filename)
+
+        config = self.settings.templateConfig()
+
+        # create output data directory if not exists
+        dataDir = self.settings.outputDataDirectory()
+        if not QDir(dataDir).exists():
+            QDir().mkpath(dataDir)
+
+        if abortSignal:
+            abortSignal.connect(self.abort)
+
+        # build the scene and its layers
+        data = self.buildScene(self.settings)
+
+        if abortSignal:
+            abortSignal.disconnect(self.abort)
+
+        if self.aborted:
+            raise ExportCancelled()
+
+        # animation and narration
+        if self.settings.isAnimationEnabled():
+            self.progress(90, msg="Animation and Narration")
+            data["animation"] = self.settings.animationData(export=True, warning_log=self.warning_log)
+
+        # write scene data
+        if self.settings.localMode:
+            with open(os.path.join(dataDir, "scene.js"), "w", encoding="utf-8") as f:
+                f.write("app.loadData(")
+                json.dump(data, f, indent=2)
+                f.write(");")
+        else:
+            with open(os.path.join(dataDir, "scene.json"), "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2 if DEBUG_MODE else None)
+
+        # controls usage
+        ctrl = self.settings.controls()
+        with open(pluginDir("web", "help", f"{ctrl}Controls.html"), "r", encoding="utf-8") as f:
+            usage_html = f.read()
+
+        # copy image files referenced in narration
+        narration_html = ""
+        if self.settings.isAnimationEnabled():
+            narration = self.settings.narrations(warning_log=self.warning_log)
+            narration_html = narration["html"]
+            if narration["files"]:
+                self.progress(93, msg="Copying image files used in narrative content...")
+
+                img_dir = os.path.join(self.settings.outputDataDirectory(), "img")
+                QDir().mkpath(img_dir)
+
+                for f in narration["files"]:
+                    if file_utils.copyFile(f, os.path.join(img_dir, os.path.basename(f)), overwrite=True):
+                        self.log("Copied {}.".format(f))
+                    else:
+                        self.log("Failed to copy {}.".format(f), warning=True)
+
+        self.progress(95, msg="Copying library files...")
+        file_utils.copyFiles(self.filesToCopy(), self.settings.outputDirectory())
+
+        # options in html file
+        options = []
+
+        # scene
+        sp = self.settings.sceneProperties()
+        if sp.get("radioButton_Color"):
+            options.append("conf.bgColor = {};".format(js_utils.hex_color(sp.get("colorButton_Color", 0), prefix="0x")))
+
+        if not self.settings.coordDisplay():
+            options.append("conf.coord.visible = false;")
+
+        if self.settings.isCoordLatLon():
+            options.append("conf.coord.latlon = true;")
+
+        # camera
+        if self.settings.isOrthoCamera():
+            options.append("conf.orthoCamera = true;")
+
+        # web export options
+        opts = self.settings.options()
+        if opts:
+            for key in opts:
+                options.append("conf.{} = {};".format(key, js_utils.pyobj2js(self.settings.option(key))))
+
+        # North arrow
+        p = self.settings.widgetProperties("NorthArrow")
+        if p.get("visible"):
+            options.append("conf.northArrow.enabled = true;")
+            options.append("conf.northArrow.color = {};".format(js_utils.hex_color(p.get("color", 0), prefix="0x")))
+
+        # read html template
+        with open(config["path"], "r", encoding="utf-8") as f:
+            html = f.read()
+
+        mapping = {
+            "title": self.settings.title(),
+            "options": "\n".join(options),
+            "scripts": self.scripts(),
+            "imports": self.imports(),
+            "scenefile": "./data/{}/scene.{}".format(self.settings.outputFileTitle(), "js" if self.settings.localMode else "json"),
+            "header": self.settings.headerLabel(),
+            "footer": self.settings.footerLabel(),
+            "narration": narration_html,
+            "usage": usage_html,
+            "version": PLUGIN_VERSION,
+            "deps": ", ".join([f"<a href=\"{d['url']}\">{d['name']}</a>" for d in self.dependencies()])
+        }
+        for key, value in mapping.items():
+            html = html.replace("${" + key + "}", value)
+
+        # write to html file
+        with open(self.settings.outputFileName(), "w", encoding="utf-8") as f:
+            f.write(html)
+
+        # create a windows batch file
+        tmpl_path = os.path.join(os.path.dirname(__file__), "local_server.bat.tmpl")
+        batch_path = os.path.join(self.settings.outputDirectory(), os.path.basename(self.settings.outputFileTitle()) + ".bat")
+        o4w_root = os.environ.get("OSGEO4W_ROOT", "C:\\OSGeo4W")
+
+        with open(tmpl_path, "r", encoding="utf-8") as f:
+            tmpl = f.read()
+
+        with open(batch_path, "w", encoding="utf-8") as f:
+            f.write(tmpl.format(o4w_root=o4w_root, file_title=self.settings.outputFileTitle()))
+
+    def nextLayerIndex(self):
+        self._index += 1
+        return self._index
+
+    def filesToCopy(self):
+        LIB = "web/js/lib"
+        THREE = LIB + "/three"
+
+        # three.js library
+        files = [{"dirs": [THREE]}]
+
+        # controls
+        ctrl = self.settings.controls()
+        ctrl_files = [THREE + "/controls/OrbitControls.js"]
+        if ctrl == "Map":
+            ctrl_files.append(THREE + "/controls/MapControls.js")
+
+        files.append({"files": ctrl_files, "dest": "three/controls"})
+
+        if self.settings.isNavigationEnabled():
+            files.append({"files": [THREE + "/helpers/ViewHelper.js"], "dest": "three/helpers"})
+
+        # outline effect
+        if self.settings.useOutlineEffect():
+            files.append({"files": [THREE + "/effects/OutlineEffect.js"], "dest": "three/effects"})
+
+        # template specific files
+        config = self.settings.templateConfig()
+        for f in config.get("files", "").strip().split(","):
+            p = f.split(">")
+            fs = {"files": [p[0]]}
+            if len(p) > 1:
+                fs["dest"] = p[1]
+            files.append(fs)
+
+        for d in config.get("dirs", "").strip().split(","):
+            p = d.split(">")
+            ds = {"dirs": [p[0]], "subdirs": True}
+            if len(p) > 1:
+                ds["dest"] = p[1]
+            files.append(ds)
+
+        # proj4js
+        if self.settings.isCoordLatLon():
+            files.append({"dirs": [LIB + "/proj4js"]})
+
+        # layer-specific dependencies
+        for layer in [lyr for lyr in self.settings.layers() if lyr.visible]:  # TODO: lyr.export
+            if layer.type == LayerType.DEM:
+                if layer.properties.get("radioButton_Pyramid"):
+                    files.append({"dirs": [LIB + "/3d-tiles-renderer"]})
+                    files.append({"files": [THREE + "/utils/BufferGeometryUtils.js"], "dest": "three/utils"})
+
+            elif layer.type == LayerType.LINESTRING:
+                match layer.properties.get("comboBox_ObjectType"):
+                    case "Thick Line":
+                        files.append({"dirs": [LIB + "/meshline"]})
+
+                    case "Box":
+                        files.append({"files": [THREE + "/utils/BufferGeometryUtils.js"], "dest": "three/utils"})
+
+        # model loades and model files
+        for manager in self.modelManagers:
+            files += manager.filesToCopy()
+
+        # animation
+        if self.settings.isAnimationEnabled():
+            files.append({"dirs": [LIB + "/tweenjs"]})
+
+        def unique(items):
+            result = []
+            for item in items:
+                if item not in result:
+                    result.append(item)
+            return result
+
+        return unique(files)
+
+    def scripts(self):
+        files = []
+
+        # html template config
+        config = self.settings.templateConfig()
+        s = config.get("scripts", "").strip()
+        if s:
+            for f in s.split(","):
+                files.append((f, ScriptFile.TYPE_NON_MODULE))
+
+        # proj4.js
+        if self.settings.isCoordLatLon():    # display coordinates in latitude and longitude format
+            files.append(ScriptFile.FILES[ScriptFile.PROJ4])
+
+        # animation
+        if self.settings.isAnimationEnabled():
+            files.append(ScriptFile.FILES[ScriptFile.TWEEN])
+
+        script = ""
+        for filepath, type in list(dict.fromkeys(files)):
+            if type == ScriptFile.TYPE_NON_MODULE:
+                if filepath.startswith("lib/"):
+                    filepath = "./" + filepath[4:]
+                script += f'<script defer src="{filepath}"></script>\n'
+
+            else:
+                raise
+
+        return script
+
+    def imports(self):
+        files = []
+
+        # controls
+        ctrl = self.settings.controls()
+        files.append(ScriptFile.FILES[ScriptFile.ORBITCONTROLS])
+        if ctrl == "Map":
+            files.append(ScriptFile.FILES[ScriptFile.MAPCONTROLS])
+
+        # view helper
+        if self.settings.isNavigationEnabled():
+            files.append(ScriptFile.FILES[ScriptFile.VIEWHELPER])
+
+        # outline effect
+        if self.settings.useOutlineEffect():
+            files.append(ScriptFile.FILES[ScriptFile.OUTLINE])
+
+        # layer-specific dependencies
+        for layer in [lyr for lyr in self.settings.layers() if lyr.visible]:
+            if layer.type == LayerType.DEM:
+                if layer.properties.get("radioButton_Pyramid"):
+                    files.append(ScriptFile.FILES[ScriptFile.TILES3D])
+
+            elif layer.type == LayerType.LINESTRING:
+                match layer.properties.get("comboBox_ObjectType"):
+                    case "Thick Line":
+                        files.append(ScriptFile.FILES[ScriptFile.MESHLINE])
+                    case "Box":
+                        files.append(ScriptFile.FILES[ScriptFile.BUFGEOMUTILS])
+
+        # model loaders
+        for manager in self.modelManagers:
+            files += manager.moduleFiles()
+
+        mod_num = 0
+        script = ""
+        for filepath, type in list(dict.fromkeys(files)):
+            obj = filepath.split("/")[-1].split(".")[0]
+
+            if type == ScriptFile.TYPE_CLASS:
+                script += f'import {{ {obj} }} from "{filepath}";\n'
+                script += f'modules["{obj}"] = {obj};\n'
+
+            elif type == ScriptFile.TYPE_NAMESPACE:
+                script += f'import * as MOD{mod_num} from "{filepath}";\n'
+                script += f'modules["{obj}"] = MOD{mod_num};\n'
+
+            else:
+                raise
+
+        return script
+
+    def dependencies(self):
+        with open(pluginDir("web/js/lib/index.json"), "r", encoding="utf-8") as f:
+            libs = json.load(f)
+
+        deps = ["three"]
+
+        config = self.settings.templateConfig()
+        dirs = config.get("dirs", "").strip()
+        if dirs:
+            for d in dirs.split(","):
+                name = d.split(">")[0].split("/")[-1]
+                if name:
+                    deps.append(name)
+
+        if self.settings.isCoordLatLon():
+            deps.append("proj4js")
+
+        if self.settings.isAnimationEnabled():
+            deps.append("tweenjs")
+
+        result = []
+        for lib in dict.fromkeys(deps):
+            if lib in libs:
+                result.append(libs[lib])
+
+            else:
+                logger.warning(f"Library '{lib}' is not defined in web/js/lib/index.json")
+
+        return result
+
+    def buildScene(self, settings):
+        builder = ThreeJSBuilder(self, self.progress, self.log, isInUiThread=False)
+        obj = builder.buildScene(settings)
+        obj["layers"] = self.buildLayers(settings)
+        return obj
+
+    def buildLayers(self, settings):
+        layers = []
+        layer_list = [layer for layer in settings.layers() if layer.visible]
+        layer_count = len(layer_list)
+        for i, layer in enumerate(layer_list):
+            if self.aborted:
+                raise ExportCancelled()
+
+            progress_start = i / layer_count * 90
+            progress_step = 90 / layer_count
+
+            self.progress(int(progress_start), msg=f"Building {layer.name} layer...")
+
+            def prog(current=0, total=100, msg=""):
+                self.progress(int(progress_start + current / total * progress_step), msg=msg)
+
+            obj = self.buildLayer(layer, settings, prog)
+            if obj:
+                layers.append(obj)
+
+        return layers
+
+    def buildLayer(self, layer, settings, progress=None):
+        title = js_utils.abchex(self.nextLayerIndex())
+
+        if settings.localMode:
+            assetDestination = None
+        else:
+            assetDestination = StorageLocation(
+                outputDir=settings.outputDataDirectory(),
+                baseUrl=f"./data/{settings.outputFileTitle()}/",
+                filePrefix=title
+            )
+
+        layer = layer.clone()
+        builder_cls = LayerBuilderFactory.get(layer.type, VectorLayerBuilder)
+        buildOptions = BuildDEMOptions(allMaterials=True)
+
+        builder = builder_cls(layer, settings, self.imageManager, buildOptions, assetDestination, progress=progress, log=self.log)
+        if builder_cls == VectorLayerBuilder:
+            self.modelManagers.append(builder.modelManager)
+
+        obj = builder.build()
+        if not obj:
+            return None
+
+        contents = []
+        for cont in builder.buildContents():
+            if self.aborted:
+                raise ExportCancelled()
+
+            if cont:
+                contents.append(cont)
+
+        obj.setdefault("body", {})["contents"] = contents
+        return obj
+
+
+class BridgeExporterBase:
+    """Base class for exporters that used by Processing algorithms."""
+
+    def __init__(self, settings=None):
+        self.isWebEngine = True
+
+        self.settings = settings.clone() if settings else ExportSettings()
+        self.settings.isPreview = True
+        self.settings.requiresJsonSerializable = True
+
+        self.view = webview.getWebViewClass(WebViewType.WEBENGINE, WebViewMode.SEPARATE)
+        self.page = webview.getWebPageClass(WebViewType.WEBENGINE, WebViewMode.SEPARATE)(self.view)
+        self.view.setPage(self.page)
+        self.view.show()
+
+        self.controller = Q3DController(parent=None, settings=self.settings, webPage=self.page, offScreen=True)
+        self.controller.statusMessage.connect(self.logStatusMessage)
+
+    def logStatusMessage(self, msg, _timeout):
+        logger.info(msg)
+
+    def loadSettings(self, filename=None):
+        self.settings.loadSettingsFromFile(filename)
+
+    def setMapSettings(self, settings):
+        self.settings.setMapSettings(settings)
+
+    def initWebPage(self, width, height, timeout=TIMEOUT_MS):
+        logger.info(f"The view size is set to {width}x{height} px.")
+
+        loop = QEventLoop()
+        self.page.bridge.initialized.connect(loop.quit)
+
+        timer = QTimer()
+        timer.setSingleShot(True)
+        timer.timeout.connect(loop.quit)
+
+        if self.isWebEngine:
+            self.view.setFixedSize(width, height)
+            url = self.page.url()
+
+        else:
+            self.page.setViewportSize(QSize(width, height))
+            url = self.page.mainFrame().url()
+
+        if url.isEmpty():
+            self.page.setup()
+        else:
+            self.page.reload()
+
+        timer.start(timeout)
+        loop.exec()
+
+        if not timer.isActive():
+            logger.warning("Web page initialization timed out.")
+
+    def buildSceneAndWaitForLoaded(self, timeout=TIMEOUT_MS, abortSignal=None):
+        loop = QEventLoop()
+        timer = QTimer()
+        timer.setSingleShot(True)
+
+        self.page.bridge.sceneLoaded.connect(loop.quit)
+
+        aborted = False
+        def abort():
+            nonlocal aborted
+            aborted = True
+            self.controller.builder.abort()
+            logger.info("Scene building aborted.")
+            loop.quit()
+
+        timer.timeout.connect(abort)
+        if abortSignal:
+            abortSignal.connect(abort)
+
+        self.controller.taskManager.addBuildSceneTask()
+
+        timer.start(timeout)
+        loop.exec()
+        timer.stop()
+
+        if abortSignal:
+            abortSignal.disconnect(abort)
+
+        return "canceled or timeout" if aborted else None
+
+    def mkdir(self, filename):
+        dir = QFileInfo(filename).dir()
+        if not dir.exists():
+            QDir().mkpath(dir.absolutePath())
+
+
+class ImageExporter(BridgeExporterBase):
+    """Exporter class for generating static image outputs of 3D scenes.
+
+    This exporter is used by a Processing algorithm.
+    """
+
+    def render(self, cameraState=None, abortSignal=None):
+        if self.page is None:
+            return QImage(), "Page not ready"
+
+        err = self.buildSceneAndWaitForLoaded(abortSignal=abortSignal)
+
+        if cameraState:
+            self.controller.setCameraState(cameraState)
+
+        if self.isWebEngine:
+            size = self.view.size()
+        else:
+            size = self.page.viewportSize()
+
+        logger.info("Rendering scene.")
+
+        image = QImage(size.width(), size.height(), QImage.Format.Format_ARGB32_Premultiplied)
+        painter = QPainter(image)
+
+        if self.isWebEngine:
+            self.page.requestRendering(waitUntilFinished=True)
+            self.view.render(painter)
+        else:
+            self.controller.runScript("app.render()")
+            self.page.mainFrame().render(painter)
+
+        painter.end()
+        return image, err
+
+    def export(self, filename, cameraState=None, abortSignal=None):
+        # prepare output directory
+        self.mkdir(filename)
+
+        image, err = self.render(cameraState, abortSignal)
+        image.save(filename)
+        logger.info(f"Image saved to {filename}.")
+
+        return err
+
+
+class ModelExporter(BridgeExporterBase):
+    """Exporter class for generating 3D model files in glTF format.
+
+    This exporter is used by a Processing algorithm.
+    """
+
+    def __init__(self, settings=None):
+        super().__init__(settings)
+
+    def initWebPage(self, width, height):
+        super().initWebPage(width, height)
+        self.controller.loadScriptFiles([ScriptFile.GLTFEXPORTER])
+
+    def export(self, filename, abortSignal=None):
+        if self.page is None:
+            return "page not ready"
+
+        # prepare output directory
+        self.mkdir(filename)
+
+        err = self.buildSceneAndWaitForLoaded(abortSignal=abortSignal)
+
+        # save model
+        self.controller.runScript("saveAsGLTF('{}')".format(filename.replace("\\", "\\\\")))
+
+        return err

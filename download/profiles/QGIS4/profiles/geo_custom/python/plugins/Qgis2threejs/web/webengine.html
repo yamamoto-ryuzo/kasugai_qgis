@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<!--Qgis2threejs 3D scene preview page for web engine view-->
+<title>WebEngine viewer</title>
+<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+<link rel="stylesheet" type="text/css" href="./css/Qgis2threejs.css">
+<link rel="stylesheet" type="text/css" href="./css/preview.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "./js/lib/three/three.module.js",
+    "three/addons/": "./js/lib/three/",
+    "lib/": "./js/lib/"
+  }
+}
+</script>
+<script type="module">
+  import * as exports from "./js/dist/preview.js";
+  Object.assign(globalThis, exports);
+</script>
+<script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+</head>
+<body>
+<div id="view"></div>
+
+<!-- popup -->
+<div id="popup">
+  <div id="closebtn">&times;</div>
+  <div id="popupbar"></div>
+  <div id="popupbody">
+    <div id="popupcontent"></div>
+
+    <!-- query result -->
+    <div id="queryresult">
+      <table id="qr_coords_table">
+        <caption>Clicked coordinates <div id="zoomtopoint" class="action-zoom zoombtn"></div></caption>
+        <tr><td id="qr_coords"></td></tr>
+      </table>
+
+      <table id="qr_layername_table">
+        <caption>Layer <div id="zoomtolayer" class="action-zoom zoombtn"></div></caption>
+        <tr><td id="qr_layername"></td></tr>
+      </table>
+
+      <!-- attributes -->
+      <table id="qr_attrs_table">
+        <caption>Attributes</caption>
+      </table>
+
+      <!-- camera actions and measure tool -->
+      <div id="orbitbtn" class="action-btn action-orbit">Orbit</div>
+      <div id="measurebtn" class="action-btn">Measure distance</div>
+    </div>
+
+    <div id="help">
+      <div id="usage"></div>
+
+      <h1>About</h1>
+      <div id="about">
+        This page was made with <a href="https://www.qgis.org/">QGIS</a> and
+        <a href="https://github.com/minorua/Qgis2threejs">Qgis2threejs</a> plugin.
+
+        <div class="attribution">Powered by <a href="https://threejs.org/">three.js</a>.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- progress bar -->
+<div id="progress"><div id="progressbar"></div></div>
+
+<!-- header and footer -->
+<div id="header"></div>
+<div id="footer"></div>
+
+<!-- animation -->
+<div id="narrativebox" class="ef1">
+  <div id="narbody"></div>
+  <div id="nextbtn"></div>
+</div>
+
+<div id="msgbar">
+  <div id="closemsgbar">&times;</div>
+  <div id="msgcontent"></div>
+</div>
+<div id="debug"><span id="fps"></span><span id="cameraInfo"></span></div>
+
+</body>
+</html>
