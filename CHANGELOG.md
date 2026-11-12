@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [2.5.0] - 2026-11-13
 
 ### Fixed
 - Web UI: `i18n.js` の読み込みに失敗した場合（サーバー再起動直後にキャッシュのページが描画された場合等）に初期化スクリプト全体が停止し、言語セレクタを含む全ドロップダウンが空になる問題を修正。`i18n.js` 未読込時は `/health` の復旧を待ってページを自動リロードし、初期データ読み込み（`initI18n` + `reloadAll`）も最大30回リトライするようにした
@@ -9,6 +9,7 @@
 ### Changed
 - GUI 起動時のサーバー起動待ちを `GET /health` ポーリング（最大60秒）から mpsc チャネルによる bind 完了通知（最大90秒）へ変更。同一プロセス内のスレッド間起動なのに HTTP ポーリングしていた冗長さを解消し、ポート奪取リトライ込みの待ち時間にも余裕を持たせた
 - GUI 表示を WebView2 専用に変更し、既定ブラウザへのフォールバックを廃止（`opener` 依存・WebView2 Runtime 検出ロジックを削除。Runtime 非搭載時はエラーメッセージを出して終了）
+- WebView2 ウィンドウを 1200×850 から 800×850 に縮小（コンテンツの max-width:720px に合わせ、右側の余白を解消）
 - `copy_profiles_at_startup` を簡素化: インストール済み QGIS のバージョン検出と `profiles\QGIS{major}\` ソース解決を廃止し、起動フォルダの `profiles\` 直下を `%APPDATA%\QGIS\` へそのままコピーする方式に変更（`profiles\QGIS4\` → `%APPDATA%\QGIS\QGIS4\`）。`startup.py` 掃除の走査先を `<ver>\profiles\<name>\python\startup.py`（QGIS が実際に読む階層）に修正
 - ドキュメントを `index.md` から `docs/` 配下の静的サイトへ移行（左サイドバーナビ + ページ分割 + Mermaid 起動フロー図）。ルート `index.html` は `docs/` へのリダイレクトに変更
 

@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [2.5.0] - 2026-11-13
 
 ### Fixed
 - 配布プロファイルのコピー元を `project_root` 基準から `resolved_settings_dir`（実効 `qgis_settings.json` のあるディレクトリ＝インストール先）へ統一。`project_root` をプロジェクト用ドライブ等の別ディレクトリに設定している環境で `<project_root>\profiles` が見つからずシードがスキップされ、`--profile` が空の新規プロファイルを指していた問題を修正（`GET /profiles` の列挙元と一致させた）。`POST /reset` の再コピー元も同様に統一
@@ -8,6 +8,7 @@
 ### Changed
 - GUI 起動時のサーバー起動待ちを `GET /health` ポーリング（最大60秒）から mpsc チャネルによる bind 完了通知（最大90秒）へ変更。同一プロセス内のスレッド間起動なのに HTTP ポーリングしていた冗長さを解消し、ポート奪取リトライ込みの待ち時間にも余裕を持たせた
 - GUI 表示を WebView2 専用に変更し、既定ブラウザへのフォールバックを廃止（`opener` 依存・WebView2 Runtime 検出ロジックを削除。Runtime 非搭載時はエラーメッセージを出して終了）
+- WebView2 ウィンドウを 1200×850 から 800×850 に縮小（コンテンツの max-width:720px に合わせ、右側の余白を解消）
 
 ### Removed
 - CLI モード（`--cli`）を廃止。CLI 起動専用だった `--profile` / `--qgis-executable` / `--dev` 引数もあわせて削除し、QGIS の起動は Web UI / HTTP API（`POST /launch`）経路に統一

@@ -2182,7 +2182,7 @@ fn open_webview_window(port: u16) {
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
         .with_title("Kasugai QGIS ランチャー")
-        .with_inner_size(tao::dpi::LogicalSize::new(1200.0, 850.0))
+        .with_inner_size(tao::dpi::LogicalSize::new(800.0, 850.0))
         .build(&event_loop)
         .expect("failed to create window");
 
