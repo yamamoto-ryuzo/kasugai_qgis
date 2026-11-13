@@ -1,5 +1,21 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- Web UI: 各要素にホバー時のポップアップ説明（ツールチップ）を追加。`i18n.js` に `data-i18n-title` 属性による title 属性の翻訳機能を追加し、全タブ・フォーム・ボタン（動的生成される drive_mappings パネル・path_aliases 行を含む）に説明文を設定
+- Web UI: フォルダパス入力欄に「参照…」ボタンを追加し、`GET /api/pick-folder`（`rfd` によるネイティブのフォルダ選択ダイアログ）でフォルダを選択可能に。対象は sync_src / sync_dst / local_cache / robocopy_src / project_root / パスエイリアス
+- Web UI: `GET /api/drive-letters` を追加し、drive_mappings の `drive` を未使用ドライブレターのドロップダウンで選択可能に（設定済みレターは使用中でも候補に残る）
+
+### Changed
+- Web UI: 未翻訳だった要素を i18n 化。詳細設定タブの各フィールドラベルと起動タブのロール選択肢（Viewer / Editor / Administrator）を10言語辞書に登録
+- Web UI: 表示文言の規約を統一。ナビゲーション（タブ・サブタブ）とフィールドラベルは自然な訳文のみを表示し、JSON キー名はツールチップ先頭の `key:` 表記で確認できるようにした
+- Web UI: `mode`（subst / sync / mount）をドロップダウン化し、`read_only` は mount 選択時のみ有効（他モードではグレーアウト）に変更。drive_mappings パネル内に subst 系と rclone 系フィールドの区切り線を追加
+- Web UI: path_aliases が空のとき空の入力行を1つ表示するように変更
+
+### Fixed
+- Web UI: drive 未入力のパネルでモード等を変更すると入力中の値が初期化される問題を、下書き（driveDrafts）として保持するよう修正
+
 ## [2.5.5] - 2026-11-13
 
 ### Fixed

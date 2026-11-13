@@ -72,6 +72,15 @@ function applyI18n() {
   document.querySelectorAll('[data-i18n-ph]').forEach(el => {
     el.setAttribute('placeholder', t(el.getAttribute('data-i18n-ph')));
   });
+  // ツールチップ（title 属性）の翻訳。data-i18n-args をテキストと共用する
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    let params;
+    const raw = el.getAttribute('data-i18n-args');
+    if (raw) {
+      try { params = JSON.parse(raw); } catch (e) { /* ignore */ }
+    }
+    el.setAttribute('title', t(el.getAttribute('data-i18n-title'), params));
+  });
 }
 
 async function initI18n() {

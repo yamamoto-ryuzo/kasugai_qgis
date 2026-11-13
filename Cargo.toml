@@ -20,6 +20,7 @@ reqwest = { version = "0.12", features = ["blocking", "json"] }
 sha2 = "0.10"
 wry = "0.57.0"
 tao = "0.37.1"
+rfd = "0.15"
 
 [build-dependencies]
 winres = "0.1.12"

@@ -2387,6 +2387,8 @@ async fn run_api_server(port: u16, settings_dir: &str, project_root_dir: &str, u
         .route("/project-version", get(project_version_handler))
         .route("/update", get(update_check_handler))
         .route("/update/apply", post(update_apply_handler))
+        .route("/api/pick-folder", get(pick_folder_handler))
+        .route("/api/drive-letters", get(drive_letters_handler))
         .route("/api/v1/server/stop", post(stop_server))
         .route("/api/v1/server/info", get(server_info))
         .route("/version", get(version_handler))
@@ -2486,6 +2488,31 @@ async fn server_info(State(state): State<AppState>) -> Json<serde_json::Value> {
 
 async fn version_handler() -> Json<serde_json::Value> {
     Json(serde_json::json!({ "version": env!("CARGO_PKG_VERSION") }))
+}
+
+/// ネイティブのフォルダ選択ダイアログを開き、選択されたパスを返す。
+/// キャンセル時は path=null を返す。
+async fn pick_folder_handler() -> Json<serde_json::Value> {
+    let path = tokio::task::spawn_blocking(|| rfd::FileDialog::new().pick_folder())
+        .await
+        .ok()
+        .flatten();
+    Json(serde_json::json!({
+        "path": path.map(|p| p.to_string_lossy().to_string())
+    }))
+}
+
+/// 現在使用中でないドライブレター一覧を返す（drive_mappings の選択肢用）
+async fn drive_letters_handler() -> Json<serde_json::Value> {
+    let available = tokio::task::spawn_blocking(|| {
+        ('A'..='Z')
+            .filter(|c| !PathBuf::from(format!("{}:\\", c)).exists())
+            .map(|c| format!("{}:", c))
+            .collect::<Vec<_>>()
+    })
+    .await
+    .unwrap_or_default();
+    Json(serde_json::json!({ "available": available }))
 }
 
 async fn progress_handler(State(state): State<AppState>) -> Json<serde_json::Value> {
