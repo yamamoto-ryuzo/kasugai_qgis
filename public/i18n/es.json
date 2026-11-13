@@ -159,7 +159,7 @@
   "label_alias_base": "Base del alias",
   "label_resolved": "Se resuelve en",
   "label_custom_aliases": "Alias personalizados (path_aliases en qgis_settings.json)",
-  "note_local_sync": "Al iniciar, el contenido de la carpeta de origen se replica en la de destino (robocopy /MIR; solo se copian los archivos modificados). Se omite si la carpeta de origen no existe.",
+  "note_local_sync": "Al iniciar, el contenido de la carpeta de origen se replica en la de destino (robocopy /MIR; solo se copian los archivos modificados). Se omite si la carpeta de origen no existe. Uso: asigne una letra de unidad al destino en «Asignación de unidades» (p. ej. Q:) y apunte las rutas de QGIS a esa unidad; aunque un usuario edite o agregue archivos por error, el próximo inicio los restablece al estado del origen (no guarde archivos propios en el destino).",
   "ph_sync_src": "p. ej. BOX:\\QGIS_dist (en blanco = usar project_root)",
   "ph_sync_dst": "p. ej. C:\\work\\qgis (en blanco = usar project_root)"
 }

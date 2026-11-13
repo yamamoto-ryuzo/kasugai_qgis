@@ -32,6 +32,17 @@ KASUGAI（yr-qgis-launcher）の <code>local-launcher.bat</code>
 で指定したトップレベルフォルダは同期から除外されます。</li>
 <li><code>SYNC_SRC</code> が存在しない場合は同期をスキップします。</li>
 </ul>
+<h3 id="推奨される使い方">推奨される使い方</h3>
+<p><code>SYNC_DST</code>（同期先）を「ドライブ割当」で
+subst によりドライブレター（例: <code>Q:</code>）に割り当て、
+QGIS プロジェクトや検索パスの参照先をそのドライブに指定します。</p>
+<ul>
+<li>ミラー同期のため、ユーザーが同期先の中身を誤って編集・追加・削除しても、
+次回起動時に同期元の状態へリセットされます。</li>
+<li>同期先には独自ファイルを置かないでください（ミラーで消去されます）。</li>
+<li>ドライブレター経由で参照することで、環境が異なる複数台でも
+同じパス（<code>Q:\...</code>）で設定を共有できます。</li>
+</ul>
 <h3
 id="設定ファイルqgislocalsyncconfig">設定ファイル（<code>qgislocalsync.config</code>）</h3>
 <div class="sourceCode" id="cb19"><pre

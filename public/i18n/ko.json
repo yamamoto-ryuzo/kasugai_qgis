@@ -159,7 +159,7 @@
   "label_alias_base": "별칭 기준",
   "label_resolved": "해석 결과",
   "label_custom_aliases": "사용자 지정 별칭(qgis_settings.json의 path_aliases)",
-  "note_local_sync": "시작 시 「원본」폴더의 내용을 「대상」폴더로 미러 동기화합니다(robocopy /MIR, 차이만 복사). 원본 폴더가 없으면 건너뜁니다.",
+  "note_local_sync": "시작 시 「원본」폴더의 내용을 「대상」폴더로 미러 동기화합니다(robocopy /MIR, 차이만 복사). 원본 폴더가 없으면 건너뜁니다. 사용법: 「드라이브 할당」에서 대상에 드라이브 문자(예: Q:)를 할당하고 QGIS 참조 경로를 해당 드라이브로 지정하면, 사용자가 실수로 편집하거나 파일을 추가해도 다음 시작 시 원본 상태로 초기화됩니다(대상에 개인 파일을 두지 마세요).",
   "ph_sync_src": "예: BOX:\\QGIS배포(공백 = project_root 사용)",
   "ph_sync_dst": "예: C:\\work\\qgis(공백 = project_root 사용)"
 }

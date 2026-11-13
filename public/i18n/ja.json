@@ -159,7 +159,7 @@
   "label_alias_base": "エイリアス基準",
   "label_resolved": "解決結果",
   "label_custom_aliases": "カスタムエイリアス（qgis_settings.json の path_aliases）",
-  "note_local_sync": "起動時に「同期元」から「同期先」へフォルダの中身をミラー同期（robocopy /MIR、差分のみコピー）します。同期元が存在しない場合はスキップされます。",
+  "note_local_sync": "起動時に「同期元」から「同期先」へフォルダの中身をミラー同期（robocopy /MIR、差分のみコピー）します。同期元が存在しない場合はスキップされます。使い方: 同期先を「ドライブ割当」でドライブレター（例: Q:）に割り当て、QGIS の参照パスをそのドライブにすると、ユーザーが誤って中身を編集・追加しても次回起動時に同期元の状態へリセットされます（同期先に独自ファイルは置かないでください）。",
   "ph_sync_src": "例: BOX:\\QGIS配布（空白 = project_root を使用）",
   "ph_sync_dst": "例: C:\\work\\qgis（空白 = project_root を使用）"
 }

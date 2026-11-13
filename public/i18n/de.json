@@ -159,7 +159,7 @@
   "label_alias_base": "Alias-Basis",
   "label_resolved": "Aufgelöst zu",
   "label_custom_aliases": "Benutzerdefinierte Aliase (path_aliases in qgis_settings.json)",
-  "note_local_sync": "Beim Start wird der Inhalt des Quellordners in den Zielordner gespiegelt (robocopy /MIR; nur geänderte Dateien werden kopiert). Übersprungen, wenn der Quellordner nicht existiert.",
+  "note_local_sync": "Beim Start wird der Inhalt des Quellordners in den Zielordner gespiegelt (robocopy /MIR; nur geänderte Dateien werden kopiert). Übersprungen, wenn der Quellordner nicht existiert. Verwendung: Weisen Sie dem Ziel in „Laufwerkszuordnung“ einen Laufwerksbuchstaben zu (z. B. Q:) und richten Sie QGIS-Pfade auf dieses Laufwerk – selbst wenn ein Benutzer Dateien versehentlich bearbeitet oder hinzufügt, werden sie beim nächsten Start auf den Quellzustand zurückgesetzt (eigene Dateien nicht im Ziel ablegen).",
   "ph_sync_src": "z. B. BOX:\\QGIS_dist (leer = project_root verwenden)",
   "ph_sync_dst": "z. B. C:\\work\\qgis (leer = project_root verwenden)"
 }

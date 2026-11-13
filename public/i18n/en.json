@@ -159,7 +159,7 @@
   "label_alias_base": "Alias base",
   "label_resolved": "Resolves to",
   "label_custom_aliases": "Custom aliases (path_aliases in qgis_settings.json)",
-  "note_local_sync": "At startup, the contents of the source folder are mirrored to the destination folder (robocopy /MIR; only changed files are copied). Skipped if the source folder does not exist.",
+  "note_local_sync": "At startup, the contents of the source folder are mirrored to the destination folder (robocopy /MIR; only changed files are copied). Skipped if the source folder does not exist. Usage: assign a drive letter to the destination in 'Drive mappings' (e.g. Q:) and point QGIS paths at that drive - even if a user accidentally edits or adds files there, the next startup resets them to the source state (do not keep your own files in the destination).",
   "ph_sync_src": "e.g. BOX:\\QGIS_dist (blank = use project_root)",
   "ph_sync_dst": "e.g. C:\\work\\qgis (blank = use project_root)"
 }
