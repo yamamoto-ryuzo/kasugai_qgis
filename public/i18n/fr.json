@@ -159,7 +159,8 @@
   "label_alias_base": "Base de l'alias",
   "label_resolved": "Résolu en",
   "label_custom_aliases": "Alias personnalisés (path_aliases dans qgis_settings.json)",
-  "note_local_sync": "Au démarrage, le contenu du dossier source est dupliqué vers la destination (robocopy /MIR ; seuls les fichiers modifiés sont copiés). Ignoré si le dossier source n'existe pas. Usage : attribuez une lettre de lecteur à la destination dans « Affectation des lecteurs » (ex. Q:) et pointez les chemins QGIS vers ce lecteur — même si un utilisateur modifie ou ajoute des fichiers par erreur, le prochain démarrage les réinitialise à l'état de la source (ne stockez pas vos propres fichiers dans la destination).",
+  "note_local_sync": "Au démarrage, le contenu du dossier source est dupliqué vers la destination (robocopy /MIR ; seuls les fichiers modifiés sont copiés). Ignoré si le dossier source n'existe pas.",
   "ph_sync_src": "ex. BOX:\\QGIS_dist (vide = utiliser project_root)",
-  "ph_sync_dst": "ex. C:\\work\\qgis (vide = utiliser project_root)"
+  "ph_sync_dst": "ex. C:\\work\\qgis (vide = utiliser project_root)",
+  "note_local_sync_usage": "Usage : attribuez une lettre de lecteur à la destination dans « Affectation des lecteurs » (ex. Q:) et pointez les chemins QGIS vers ce lecteur — même si un utilisateur modifie ou ajoute des fichiers par erreur, le prochain démarrage les réinitialise à l'état de la source (ne stockez pas vos propres fichiers dans la destination)."
 }

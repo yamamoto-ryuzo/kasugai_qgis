@@ -159,7 +159,8 @@
   "label_alias_base": "Base do alias",
   "label_resolved": "Resolve para",
   "label_custom_aliases": "Alias personalizados (path_aliases em qgis_settings.json)",
-  "note_local_sync": "Na inicialização, o conteúdo da pasta de origem é espelhado na pasta de destino (robocopy /MIR; apenas arquivos alterados são copiados). Ignorado se a pasta de origem não existir. Uso: atribua uma letra de unidade ao destino em «Mapeamento de unidades» (ex.: Q:) e aponte os caminhos do QGIS para essa unidade — mesmo que um usuário edite ou adicione arquivos por engano, a próxima inicialização os redefine para o estado da origem (não guarde arquivos próprios no destino).",
+  "note_local_sync": "Na inicialização, o conteúdo da pasta de origem é espelhado na pasta de destino (robocopy /MIR; apenas arquivos alterados são copiados). Ignorado se a pasta de origem não existir.",
   "ph_sync_src": "ex.: BOX:\\QGIS_dist (em branco = usar project_root)",
-  "ph_sync_dst": "ex.: C:\\work\\qgis (em branco = usar project_root)"
+  "ph_sync_dst": "ex.: C:\\work\\qgis (em branco = usar project_root)",
+  "note_local_sync_usage": "Uso: atribua uma letra de unidade ao destino em «Mapeamento de unidades» (ex.: Q:) e aponte os caminhos do QGIS para essa unidade — mesmo que um usuário edite ou adicione arquivos por engano, a próxima inicialização os redefine para o estado da origem (não guarde arquivos próprios no destino)."
 }

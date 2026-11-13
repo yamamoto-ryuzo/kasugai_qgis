@@ -132,7 +132,8 @@
     </div>
 
     <div id="sub-localsync" class="sub-tab-content active">
-      <p style="font-size: small; color: #64748b;" data-i18n="note_local_sync">起動時に「同期元」から「同期先」へフォルダの中身をミラー同期（robocopy /MIR、差分のみコピー）します。同期元が存在しない場合はスキップされます。使い方： 同期先を「ドライブ割当」でドライブレター（例: Q:）に割り当て、QGIS の参照パスをそのドライブにすると、ユーザーが誤って中身を編集・追加しても次回起動時に同期元の状態へリセットされます（同期先に独自ファイルは置かないでください）。</p>
+      <p style="font-size: small; color: #64748b;" data-i18n="note_local_sync">起動時に「同期元」から「同期先」へフォルダの中身をミラー同期（robocopy /MIR、差分のみコピー）します。同期元が存在しない場合はスキップされます。</p>
+      <p style="font-size: 1em; color: #b45309; font-weight: 500;" data-i18n="note_local_sync_usage">使い方： 同期先を「ドライブ割当」でドライブレター（例: Q:）に割り当て、QGIS の参照パスをそのドライブにすると、ユーザーが誤って中身を編集・追加しても次回起動時に同期元の状態へリセットされます（同期先に独自ファイルは置かないでください）。</p>
       <div class="sub-section">
         <label data-i18n="label_field_sync_src" data-i18n-title="tip_field_sync_src">同期元フォルダ</label><div class="browse-row"><input type="text" id="raw-sync_src" data-i18n-ph="ph_sync_src" data-i18n-title="tip_field_sync_src"><button type="button" class="browse-btn" onclick="pickFolder('raw-sync_src')" data-i18n="btn_browse" data-i18n-title="tip_btn_browse">参照…</button></div>
         <label data-i18n="label_field_sync_dst" data-i18n-title="tip_field_sync_dst">同期先フォルダ</label><div class="browse-row"><input type="text" id="raw-sync_dst" data-i18n-ph="ph_sync_dst" data-i18n-title="tip_field_sync_dst"><button type="button" class="browse-btn" onclick="pickFolder('raw-sync_dst')" data-i18n="btn_browse" data-i18n-title="tip_btn_browse">参照…</button></div>

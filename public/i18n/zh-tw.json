@@ -159,7 +159,8 @@
   "label_alias_base": "別名基準",
   "label_resolved": "解析結果",
   "label_custom_aliases": "自訂別名（qgis_settings.json 的 path_aliases）",
-  "note_local_sync": "啟動時將「來源」資料夾的內容鏡像到「目的地」資料夾（robocopy /MIR，僅複製差異）。來源資料夾不存在時跳過。用法：在「磁碟機指派」中為目的地指派磁碟機代號（如 Q:），並將 QGIS 的參照路徑指向該磁碟機——即使使用者誤編輯或新增了檔案，下次啟動時也會重置為來源的狀態（請勿在目的地中存放自己的檔案）。",
+  "note_local_sync": "啟動時將「來源」資料夾的內容鏡像到「目的地」資料夾（robocopy /MIR，僅複製差異）。來源資料夾不存在時跳過。",
   "ph_sync_src": "例：BOX:\\QGIS配佈（空白 = 使用 project_root）",
-  "ph_sync_dst": "例：C:\\work\\qgis（空白 = 使用 project_root）"
+  "ph_sync_dst": "例：C:\\work\\qgis（空白 = 使用 project_root）",
+  "note_local_sync_usage": "用法：在「磁碟機指派」中為目的地指派磁碟機代號（如 Q:），並將 QGIS 的參照路徑指向該磁碟機——即使使用者誤編輯或新增了檔案，下次啟動時也會重置為來源的狀態（請勿在目的地中存放自己的檔案）。"
 }
