@@ -40,7 +40,7 @@ id="全体シーケンス">図1: 全体シーケンス（起動～初期化）</
     P3A --> P4["copy_profiles_at_startup<br/>起動フォルダの profiles\ 直下を<br/>%APPDATA%\QGIS\QGIS{major}\ へコピー<br/>（既存はスキップ）"]
     P3B --> P4
     P3C --> P4
-    P4 --> P5["run_local_sync<br/>qgislocalsync.config ＞ local_sync の順で設定解決<br/>SYNC_SRC → SYNC_DST を robocopy /MIR<br/>QField* / QGIS* / portable_profile は<br/>バージョン文字列比較で差分がある場合のみ同期"]
+    P4 --> P5["run_local_sync<br/>qgislocalsync.config ＞ local_sync の順で設定解決<br/>SYNC_SRC → SYNC_DST を robocopy /MIR でミラー同期<br/>EXCLUDE_DIRS 指定フォルダを除外"]
     P5 --> Q{"ヘッドレス?<br/>URI 起動"}
     Q -- "はい（開発用）" --> R1["run_api_server_sync<br/>axum サーバを同一スレッドで起動"]
     Q -- "いいえ" --> R2["run_gui_server<br/>axum をバックグラウンドスレッドで起動"]

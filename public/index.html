@@ -49,6 +49,16 @@
     #update-banner.blocked { border-color: #ef4444; background: #fee2e2; }
     #update-banner .notes { font-size: 0.9em; color: #64748b; margin: 6px 0 0; white-space: pre-wrap; }
     #lang-select { margin-left: auto; width: auto; padding: 2px 8px; }
+    .help-link { margin-left: 8px; color: #2563eb; text-decoration: none; padding: 4px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: small; align-self: center; white-space: nowrap; }
+    .help-link:hover { background: #eff6ff; }
+    .cloud-head { display: flex; align-items: center; margin-bottom: 4px; }
+    .cloud-badge { font-size: x-small; padding: 1px 8px; border-radius: 4px; margin-left: 8px; }
+    .cloud-badge.ok { background: #22c55e; color: #ffffff; }
+    .cloud-badge.ng { background: #cbd5e1; color: #475569; }
+    .cloud-line { font-size: small; margin: 3px 0; }
+    .cloud-prep { color: #64748b; }
+    .cloud-line code { background: #f1f5f9; padding: 1px 4px; border-radius: 4px; }
+    .cloud-cand { margin: 2px 0 0; padding-left: 18px; }
     .checkbox-label { display: flex; align-items: center; gap: 8px; font-weight: normal; }
     .checkbox-label input[type="checkbox"] { width: auto; }
     .browse-row { display: flex; gap: 6px; align-items: center; }
@@ -74,6 +84,7 @@
     <button class="tab-button" data-tab="tab-raw" data-i18n="tab_raw" data-i18n-title="tip_tab_raw">詳細設定</button>
     <button class="tab-button" data-tab="tab-maint" data-i18n="tab_maint" data-i18n-title="tip_tab_maint">設定</button>
     <select id="lang-select" data-i18n-title="tip_lang_select" title="Language / 言語"></select>
+    <a id="help-link" class="help-link" href="#" onclick="openHelp(); return false;" data-i18n="btn_help" data-i18n-title="tip_btn_help">ヘルプ</a>
   </div>
 
   <div id="tab-launch" class="tab-content active">
@@ -121,13 +132,11 @@
     </div>
 
     <div id="sub-localsync" class="sub-tab-content active">
+      <p style="font-size: small; color: #64748b;" data-i18n="note_local_sync">起動時に「同期元」から「同期先」へフォルダの中身をミラー同期（robocopy /MIR、差分のみコピー）します。同期元が存在しない場合はスキップされます。</p>
       <div class="sub-section">
-        <label data-i18n="label_field_sync_src" data-i18n-title="tip_field_sync_src">同期元フォルダ</label><div class="browse-row"><input type="text" id="raw-sync_src" data-i18n-title="tip_field_sync_src"><button type="button" class="browse-btn" onclick="pickFolder('raw-sync_src')" data-i18n="btn_browse" data-i18n-title="tip_btn_browse">参照…</button></div>
-        <label data-i18n="label_field_sync_dst" data-i18n-title="tip_field_sync_dst">同期先フォルダ</label><div class="browse-row"><input type="text" id="raw-sync_dst" data-i18n-title="tip_field_sync_dst"><button type="button" class="browse-btn" onclick="pickFolder('raw-sync_dst')" data-i18n="btn_browse" data-i18n-title="tip_btn_browse">参照…</button></div>
-        <label data-i18n="label_field_qfield_version" data-i18n-title="tip_field_qfield_version">QField パッケージのバージョン</label><input type="text" id="raw-qfield_version" data-i18n-title="tip_field_qfield_version">
-        <label data-i18n="label_ls_qgis_version" data-i18n-title="tip_field_qgis_version">QGIS パッケージのバージョン</label><input type="text" id="raw-qgis_version" data-i18n-title="tip_field_qgis_version">
-        <label data-i18n="label_exclude_dirs" data-i18n-title="tip_field_exclude_dirs">除外フォルダ（改行区切り）</label><textarea id="raw-exclude_dirs" data-i18n-title="tip_field_exclude_dirs"></textarea>
-        <label data-i18n="label_field_portable_profile_version" data-i18n-title="tip_field_portable_profile_version">プロファイル同梱バージョン</label><input type="text" id="raw-portable_profile_version" data-i18n-title="tip_field_portable_profile_version">
+        <label data-i18n="label_field_sync_src" data-i18n-title="tip_field_sync_src">同期元フォルダ</label><div class="browse-row"><input type="text" id="raw-sync_src" data-i18n-ph="ph_sync_src" data-i18n-title="tip_field_sync_src"><button type="button" class="browse-btn" onclick="pickFolder('raw-sync_src')" data-i18n="btn_browse" data-i18n-title="tip_btn_browse">参照…</button></div>
+        <label data-i18n="label_field_sync_dst" data-i18n-title="tip_field_sync_dst">同期先フォルダ</label><div class="browse-row"><input type="text" id="raw-sync_dst" data-i18n-ph="ph_sync_dst" data-i18n-title="tip_field_sync_dst"><button type="button" class="browse-btn" onclick="pickFolder('raw-sync_dst')" data-i18n="btn_browse" data-i18n-title="tip_btn_browse">参照…</button></div>
+        <label data-i18n="label_exclude_dirs" data-i18n-title="tip_field_exclude_dirs">同期から除外するフォルダ（改行区切り）</label><textarea id="raw-exclude_dirs" data-i18n-title="tip_field_exclude_dirs"></textarea>
       </div>
     </div>
 
@@ -141,8 +150,8 @@
     </div>
 
     <div id="sub-aliases" class="sub-tab-content">
-      <div id="raw-aliases-list"></div>
-      <button type="button" id="raw-add-alias" data-i18n="btn_add_alias" data-i18n-title="tip_btn_add_alias">エイリアスを追加</button>
+      <p style="font-size: small; color: #64748b;" data-i18n="note_aliases">クラウドストレージのルートを短い名前（エイリアス）で参照する仕組みです。各パス欄で BOX:\xxx のように書けます。この PC で検出された実際のパスを表示しています。</p>
+      <div id="cloud-paths-list"></div>
     </div>
 
     <div id="sub-raw" class="sub-tab-content">
@@ -241,6 +250,17 @@
       }
     }
 
+    const DOCS_URL = 'https://yamamoto-ryuzo.github.io/kasugai_qgis/';
+    // ドキュメントサイトを既定ブラウザで開く。サーバー経由を優先し、
+    // 失敗時は window.open にフォールバック（ヘッドレス利用時も動作）。
+    async function openHelp() {
+      try {
+        const res = await api('GET', '/api/open-docs');
+        if (res && res.ok) return;
+      } catch (_) {}
+      window.open(DOCS_URL, '_blank');
+    }
+
     async function loadSettings() {
       currentSettings = await api('GET', '/settings');
       $('project-sources').value = (currentSettings.project_path || []).join('\n');
@@ -302,7 +322,7 @@
     });
 
     function esc(s) {
-      return s == null ? '' : String(s).replace(/"/g, '&quot;');
+      return s == null ? '' : String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
     function joinArr(arr) {
@@ -318,10 +338,7 @@
       const root = currentSettings.project_root || '';
       $('raw-sync_src').value = s.sync_src || root;
       $('raw-sync_dst').value = s.sync_dst || root;
-      $('raw-qfield_version').value = s.qfield_version || '';
-      $('raw-qgis_version').value = s.qgis_version || '';
       $('raw-exclude_dirs').value = joinArr(s.exclude_dirs);
-      $('raw-portable_profile_version').value = s.portable_profile_version || '';
     }
 
     // drive 未入力のパネルは drive_mappings に保存されないため、
@@ -356,48 +373,42 @@
       renderDrivePanel(1);
     }
 
-    function renderAliases() {
-      const c = $('raw-aliases-list');
-      c.innerHTML = '';
-      const aliases = currentSettings.path_aliases || {};
-      const entries = Object.entries(aliases);
-      // 未設定でも空の入力行を1つ表示する（名前が空なら保存対象外）
-      if (entries.length === 0) entries.push(['', '']);
-      let i = 0;
-      for (const [k, v] of entries) {
-        const div = document.createElement('div');
-        div.className = 'sub-array-item';
-        div.innerHTML = `
-          <label data-i18n="alias_name" data-i18n-title="tip_alias_name">名前</label><input type="text" id="raw-alias-${i}-key" value="${esc(k)}" data-i18n-title="tip_alias_name">
-          <label data-i18n="alias_path" data-i18n-title="tip_alias_path">パス</label><div class="browse-row"><input type="text" id="raw-alias-${i}-val" value="${esc(v)}" data-i18n-title="tip_alias_path"><button type="button" class="browse-btn" onclick="pickFolder('raw-alias-${i}-val')" data-i18n="btn_browse" data-i18n-title="tip_btn_browse">参照…</button></div>
-          <button type="button" class="raw-remove-alias" data-idx="${i}" data-i18n="btn_remove" data-i18n-title="tip_btn_remove">削除</button>
-        `;
-        c.appendChild(div);
-        i++;
+    // クラウドストレージのエイリアス基準と、この PC での実際の解決結果を表示する
+    async function renderCloudPaths() {
+      const list = $('cloud-paths-list');
+      if (!list) return;
+      let data;
+      try { data = await api('GET', '/api/cloud-paths'); } catch (e) { return; }
+      const badge = ok => `<span class="cloud-badge ${ok ? 'ok' : 'ng'}">${esc(t(ok ? 'label_detected' : 'label_not_detected'))}</span>`;
+      const rows = [];
+      for (const p of data.providers || []) {
+        let detail = '';
+        if (p.resolved) {
+          detail = `<div class="cloud-line">${esc(t('label_resolved'))}: <code>${esc(p.resolved)}</code></div>`;
+        } else if (p.candidates && p.candidates.length) {
+          detail = `<div class="cloud-line">${esc(t('label_resolved'))}:<ul class="cloud-cand">${p.candidates.map(c => `<li><code>${esc(c)}</code></li>`).join('')}</ul></div>`;
+        }
+        const aliasTxt = p.alias ? `<code>${esc(p.alias)}:\\…</code>` : '';
+        rows.push(`<div class="sub-array-item">
+          <div class="cloud-head"><strong>${esc(t('cloud_name_' + p.id))}</strong>${badge(!!p.exists)}</div>
+          <div class="cloud-line cloud-prep">${esc(t('cloud_prep_' + p.id))}</div>
+          <div class="cloud-line">${esc(t('label_alias_base'))}: ${aliasTxt} <code>${esc(p.base)}</code></div>
+          ${detail}
+        </div>`);
       }
-      c.querySelectorAll('.raw-remove-alias').forEach(b => {
-        b.addEventListener('click', () => {
-          const keys = Object.keys(currentSettings.path_aliases || {});
-          if (keys[b.dataset.idx] !== undefined) {
-            removeAliasByIndex(b.dataset.idx);
-            updateFromForm();
-          } else {
-            // 設定未保存の空行は DOM から除くだけ
-            b.closest('.sub-array-item').remove();
-          }
-        });
-      });
-    }
-
-    function removeAliasByIndex(idx) {
-      const keys = Object.keys(currentSettings.path_aliases || {});
-      if (keys[idx]) delete currentSettings.path_aliases[keys[idx]];
+      const custom = data.custom || [];
+      if (custom.length) {
+        rows.push(`<div class="sub-array-item"><strong>${esc(t('label_custom_aliases'))}</strong>` +
+          custom.map(a => `<div class="cloud-line"><code>${esc(a.name)}:</code> → <code>${esc(a.resolved || a.value)}</code> ${badge(a.exists)}</div>`).join('') +
+          '</div>');
+      }
+      list.innerHTML = rows.join('');
     }
 
     function renderRawForm() {
       renderLocalSync();
       renderDrives();
-      renderAliases();
+      renderCloudPaths();
       // 動的に生成した要素の data-i18n を反映する
       if (typeof applyI18n === 'function') applyI18n();
     }
@@ -407,10 +418,7 @@
       currentSettings.local_sync = {
         sync_src: $('raw-sync_src').value.trim() || root,
         sync_dst: $('raw-sync_dst').value.trim() || root,
-        qfield_version: $('raw-qfield_version').value || '',
-        qgis_version: $('raw-qgis_version').value || '',
-        exclude_dirs: splitArr($('raw-exclude_dirs').value),
-        portable_profile_version: $('raw-portable_profile_version').value || ''
+        exclude_dirs: splitArr($('raw-exclude_dirs').value)
       };
     }
 
@@ -453,20 +461,10 @@
       currentSettings.drive_mappings = drives;
     }
 
-    function collectAliases() {
-      const aliases = {};
-      document.querySelectorAll('#raw-aliases-list .sub-array-item').forEach(el => {
-        const key = el.querySelector('[id$="-key"]').value.trim();
-        const val = el.querySelector('[id$="-val"]').value.trim();
-        if (key) aliases[key] = val;
-      });
-      currentSettings.path_aliases = aliases;
-    }
-
     function collectRawForm() {
       collectLocalSync();
       collectDrives();
-      collectAliases();
+      // path_aliases は生 JSON 側でのみ編集し、currentSettings の値をそのまま維持する
     }
 
     function updateFromForm() {
@@ -482,13 +480,6 @@
       } catch (e) { /* 入力中は無視 */ }
     }
 
-    function addAliasItem() {
-      if (!currentSettings.path_aliases) currentSettings.path_aliases = {};
-      currentSettings.path_aliases[''] = '';
-      updateFromForm();
-    }
-
-    document.getElementById('raw-add-alias').addEventListener('click', addAliasItem);
     document.getElementById('raw-settings').addEventListener('blur', updateFromTextarea);
 
     async function loadProfiles() {

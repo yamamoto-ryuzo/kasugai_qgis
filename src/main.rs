@@ -56,15 +56,9 @@ pub struct LocalSyncConfig {
     pub sync_src: Option<String>,
     /// 同期先フォルダ（KASUGAI/yr-qgis-launcher の SYNC_DST に相当）
     pub sync_dst: Option<String>,
-    /// QField バージョン文字列（qgislocalsync.config の QFIELD_VERSION と等価）
-    pub qfield_version: Option<String>,
-    /// QGIS バージョン文字列（qgislocalsync.config の QGIS_VERSION と等価）
-    pub qgis_version: Option<String>,
     /// 除外フォルダ名リスト（qgislocalsync.config の EXCLUDE_DIRS と等価）
     #[serde(default)]
     pub exclude_dirs: Vec<String>,
-    /// ポータブルプロファイルのバージョン文字列（portable.ver 対応）
-    pub portable_profile_version: Option<String>,
 }
 
 impl Default for LocalSyncConfig {
@@ -72,10 +66,7 @@ impl Default for LocalSyncConfig {
         Self {
             sync_src: None,
             sync_dst: None,
-            qfield_version: None,
-            qgis_version: None,
             exclude_dirs: Vec::new(),
-            portable_profile_version: None,
         }
     }
 }
@@ -403,13 +394,6 @@ fn get_current_settings(custom_dir: &str) -> QgisSettings {
                         v["project_path"] = serde_json::Value::Array(vec![serde_json::Value::String(s.to_string())]);
                     }
                 }
-                // kasugai_qgis_version を数値でも受け付ける（文字列に正規化）
-                if let Some(ver) = v.get("kasugai_qgis_version") {
-                    if ver.is_number() {
-                        let s = ver.to_string();
-                        v["kasugai_qgis_version"] = serde_json::Value::String(s);
-                    }
-                }
                 match serde_json::from_value::<QgisSettings>(v) {
                     Ok(s) => return s,
                     Err(e) => eprintln!("qgis_settings.json の項目変換に失敗 ({}): {}", path.display(), e),
@@ -487,8 +471,6 @@ fn read_qgislocalsync_config(settings_dir: &str) -> Option<LocalSyncConfig> {
             match key {
                 "SYNC_SRC" => cfg.sync_src = Some(val.to_string()),
                 "SYNC_DST" => cfg.sync_dst = Some(val.to_string()),
-                "QFIELD_VERSION" => cfg.qfield_version = Some(val.to_string()),
-                "QGIS_VERSION" => cfg.qgis_version = Some(val.to_string()),
                 "EXCLUDE_DIRS" => {
                     cfg.exclude_dirs = val
                         .split_whitespace()
@@ -496,7 +478,6 @@ fn read_qgislocalsync_config(settings_dir: &str) -> Option<LocalSyncConfig> {
                         .filter(|s| !s.is_empty())
                         .collect();
                 }
-                "PORTABLE_PROFILE_VERSION" => cfg.portable_profile_version = Some(val.to_string()),
                 _ => {}
             }
         }
@@ -505,28 +486,22 @@ fn read_qgislocalsync_config(settings_dir: &str) -> Option<LocalSyncConfig> {
 }
 
 /// JSON 設定と `qgislocalsync.config` を統合する。
-/// まず settings_dir 内の qgislocalsync.config、または JSON の local_sync をベースとし、
-/// その SYNC_SRC 先にある qgislocalsync.config からバージョン情報を上書き取得する。
-/// これにより、サーバー側（SYNC_SRC）で qgislocalsync.config のバージョンを更新すると
-/// クライアント側でも Update 有効化を検知できる。
+/// settings_dir 内の qgislocalsync.config があればその値を優先し、
+/// 無い項目は JSON の local_sync をフォールバックする。
+/// さらに SYNC_SRC 側の qgislocalsync.config で exclude_dirs を上書きできる
+/// （配布元側で除外フォルダを管理したい場合用）。
 fn resolve_local_sync_config(settings: &QgisSettings, settings_dir: &str) -> Option<LocalSyncConfig> {
     let json_cfg = settings.local_sync.as_ref()?.clone();
     let mut file = read_qgislocalsync_config(settings_dir).unwrap_or_else(|| json_cfg.clone());
     // ローカルファイルが無い項目は JSON の local_sync をフォールバック
     if file.sync_src.is_none() { file.sync_src = json_cfg.sync_src.clone(); }
     if file.sync_dst.is_none() { file.sync_dst = json_cfg.sync_dst.clone(); }
-    if file.qfield_version.is_none() { file.qfield_version = json_cfg.qfield_version.clone(); }
-    if file.qgis_version.is_none() { file.qgis_version = json_cfg.qgis_version.clone(); }
     if file.exclude_dirs.is_empty() { file.exclude_dirs = json_cfg.exclude_dirs.clone(); }
-    if file.portable_profile_version.is_none() { file.portable_profile_version = json_cfg.portable_profile_version.clone(); }
 
-    // サーバー側（SYNC_SRC）の qgislocalsync.config からバージョン情報を上書き
+    // SYNC_SRC 側の qgislocalsync.config で exclude_dirs を上書き可能
     if let Some(src) = file.sync_src.as_ref() {
         let src_path = expand_env_vars(&resolve_path(src, &settings.path_aliases));
         if let Some(server_cfg) = read_qgislocalsync_config(&src_path) {
-            if server_cfg.qfield_version.is_some() { file.qfield_version = server_cfg.qfield_version; }
-            if server_cfg.qgis_version.is_some() { file.qgis_version = server_cfg.qgis_version; }
-            if server_cfg.portable_profile_version.is_some() { file.portable_profile_version = server_cfg.portable_profile_version; }
             if !server_cfg.exclude_dirs.is_empty() { file.exclude_dirs = server_cfg.exclude_dirs; }
             // SYNC_SRC 内の qgislocalsync.config には SYNC_DST は通常指定しないが、
             // 指定されていてもローカル側の設定を優先する。
@@ -536,232 +511,31 @@ fn resolve_local_sync_config(settings: &QgisSettings, settings_dir: &str) -> Opt
     Some(file)
 }
 
-/// JSON 値から文字列としてバージョン値を取り出す（文字列・数値両対応）。
-fn version_value_as_string(value: &serde_json::Value) -> Option<String> {
-    if let Some(s) = value.as_str() {
-        return Some(s.to_string());
-    }
-    if value.is_number() {
-        return Some(value.to_string());
-    }
-    None
-}
-
-/// KASUGA-QGIS ランチャー本体の配布元バージョンを取得する。
-/// まず SYNC_SRC 側の qgis_settings.json を読み、kasugai_qgis_version を優先する。
-/// SYNC_SRC 側のファイルが無いか値が無ければ、ローカルの qgis_settings.json の値を返す。
-fn resolve_kasugai_qgis_version(settings: &QgisSettings, settings_dir: &str) -> Option<String> {
-    // まずは local_sync / qgislocalsync.config から SYNC_SRC を解決
-    let sync_src = resolve_local_sync_config(settings, settings_dir)
-        .and_then(|c| c.sync_src)?;
-    let src_path = expand_env_vars(&resolve_path(&sync_src, &settings.path_aliases));
-    let server_settings_path = PathBuf::from(&src_path).join("qgis_settings.json");
-    if server_settings_path.exists() {
-        if let Ok(text) = fs::read_to_string(&server_settings_path) {
-            let fixed = fix_backslashes_in_json(&text);
-            match serde_json::from_str::<serde_json::Value>(&fixed) {
-                Ok(value) => {
-                    if let Some(ver) = value.get("kasugai_qgis_version").and_then(version_value_as_string) {
-                        return Some(ver);
-                    }
-                }
-                Err(e) => {
-                    eprintln!("SYNC_SRC qgis_settings.json parse error ({}): {}", server_settings_path.display(), e);
-                }
-            }
-        }
-    }
-    settings.kasugai_qgis_version.clone()
-}
-
-/// 同期先のバージョンファイルを読み込む。ファイルが無ければ空文字列を返す。
-fn read_version_file(dir: &str, filename: &str) -> String {
-    let p = PathBuf::from(dir).join(filename);
-    fs::read_to_string(&p).unwrap_or_default().trim().to_string()
-}
-
-/// 同期先のバージョンファイルに書き込む。
-fn write_version_file(dir: &str, filename: &str, value: &str) {
-    let p = PathBuf::from(dir).join(filename);
-    if let Err(e) = fs::write(&p, value) {
-        eprintln!("local_sync: バージョンファイル書き込み失敗 ({}): {}", p.display(), e);
-    }
-}
-
-/// `src` 直下のフォルダ名で prefix に一致するものを列挙する（大文字小文字区別なし）。
-fn find_prefixed_folders(src: &str, prefix: &str) -> Vec<String> {
-    let mut result = Vec::new();
-    if let Ok(entries) = fs::read_dir(src) {
-        for entry in entries.flatten() {
-            if let Ok(ft) = entry.file_type() {
-                if ft.is_dir() {
-                    let name = entry.file_name().to_string_lossy().to_string();
-                    if name.to_lowercase().starts_with(&prefix.to_lowercase()) {
-                        result.push(name);
-                    }
-                }
-            }
-        }
-    }
-    result
-}
-
-/// KASUGAI/yr-qgis-launcher 方式のローカル同期が必要かどうかを判定する。
-/// qgislocalsync.config / JSON local_sync の設定に基づき、SYNC_SRC の存在、
-/// QField*/QGIS*/portable_profile のバージョン差分、SYNC_DST の未作成を判定する。
-fn local_sync_needed(settings: &QgisSettings, settings_dir: &str) -> bool {
-    let Some(config) = resolve_local_sync_config(settings, settings_dir) else { return false; };
-    let Some(src) = config.sync_src.as_ref() else { return false; };
-    let Some(dst) = config.sync_dst.as_ref() else { return false; };
-
-    let src = expand_env_vars(&resolve_path(src, &settings.path_aliases));
-    let dst = expand_env_vars(&resolve_path(dst, &settings.path_aliases));
-
-    if !PathBuf::from(&src).exists() {
-        return false;
-    }
-    if !PathBuf::from(&dst).exists() {
-        return true;
-    }
-
-    let qfield_folders = find_prefixed_folders(&src, "QField");
-    if let Some(qfield_ver) = config.qfield_version.as_ref() {
-        let local_ver = read_version_file(&dst, "LOCAL_QFIELD_VERSION");
-        if local_ver != *qfield_ver && !qfield_folders.is_empty() {
-            return true;
-        }
-    }
-
-    let qgis_folders = find_prefixed_folders(&src, "QGIS");
-    if let Some(qgis_ver) = config.qgis_version.as_ref() {
-        let local_ver = read_version_file(&dst, "LOCAL_QGIS_VERSION");
-        if local_ver != *qgis_ver && !qgis_folders.is_empty() {
-            return true;
-        }
-    }
-
-    if let Some(pp_ver) = config.portable_profile_version.as_ref() {
-        let local_ver = read_version_file(&dst, "portable.ver");
-        let folder = "portable_profile";
-        let s = PathBuf::from(&src).join(folder).to_string_lossy().to_string();
-        if local_ver != *pp_ver && PathBuf::from(&s).exists() {
-            return true;
-        }
-    }
-
-    // KASUGA-QGIS ランチャー本体のバージョン判定
-    if let Some(ver) = resolve_kasugai_qgis_version(settings, settings_dir) {
-        let local_ver = read_version_file(&dst, "LOCAL_KASUGAI_QGIS_VERSION");
-        if local_ver != ver {
-            return true;
-        }
-    }
-
-    // トップレベル同期が必要かは robocopy で判定するため、
-    // ここではバージョン管理対象フォルダの差分と SYNC_DST の未作成のみで判定する。
-    false
-}
-
 /// KASUGAI/yr-qgis-launcher 方式のローカル自動同期を実行する。
-/// SYNC_SRC → SYNC_DST へ、QField*/QGIS* フォルダはバージョン文字列比較で差分がある場合のみ同期する。
-/// 戻り値: 同期を実行した場合は true、アップデートが不要でスキップした場合は false。
+/// SYNC_SRC → SYNC_DST へ robocopy /MIR でミラー同期する（差分のみコピー）。
+/// 設定が無い・同期元が存在しない・同期元と同期先が同じ場合はスキップする。
+/// 戻り値: 同期を実行した場合は true、スキップした場合は false。
 fn run_local_sync(settings: &QgisSettings, settings_dir: &str, sender: Option<&std::sync::mpsc::Sender<String>>) -> bool {
-    if !local_sync_needed(settings, settings_dir) {
-        let msg = "local_sync: アップデートは不要です。";
-        if let Some(s) = sender { let _ = s.send(format!("MSG:{}", msg)); }
-        println!("{}", msg);
+    let Some(config) = resolve_local_sync_config(settings, settings_dir) else {
         return false;
-    }
-
-    let config = resolve_local_sync_config(settings, settings_dir).unwrap();
-    let src = config.sync_src.as_ref().unwrap();
-    let dst = config.sync_dst.as_ref().unwrap();
-
+    };
+    let (Some(src), Some(dst)) = (config.sync_src.as_ref(), config.sync_dst.as_ref()) else {
+        return false;
+    };
     let src = expand_env_vars(&resolve_path(src, &settings.path_aliases));
     let dst = expand_env_vars(&resolve_path(dst, &settings.path_aliases));
 
-    let msg = format!("local_sync: {} → {}", src, dst);
-    if let Some(s) = sender { let _ = s.send(format!("MSG:{}", msg)); }
-    println!("{}", msg);
-
+    if src == dst {
+        return false;
+    }
     if !PathBuf::from(&src).exists() {
         let msg = format!("local_sync: SYNC_SRC '{}' が見つかりません。スキップします。", src);
         if let Some(s) = sender { let _ = s.send(format!("MSG:{}", msg)); }
         eprintln!("{}", msg);
         return false;
     }
-    if let Err(e) = fs::create_dir_all(&dst) {
-        let msg = format!("local_sync: SYNC_DST 作成失敗 ({}): {}", dst, e);
-        if let Some(s) = sender { let _ = s.send(format!("MSG:{}", msg)); }
-        eprintln!("{}", msg);
-        return false;
-    }
 
-    // QField*/QGIS* フォルダを予め列挙して /XD 用の固定名リストを作る
-    let qfield_folders = find_prefixed_folders(&src, "QField");
-    let qgis_folders = find_prefixed_folders(&src, "QGIS");
-
-    // トップレベル同期: ファイルとサブフォルダを含むが QField*/QGIS*/EXCLUDE_DIRS は除外
-    let mut top_excludes: Vec<String> = config.exclude_dirs.clone();
-    for f in &qfield_folders { if !top_excludes.contains(f) { top_excludes.push(f.clone()); } }
-    for f in &qgis_folders { if !top_excludes.contains(f) { top_excludes.push(f.clone()); } }
-    run_robocopy_local(&src, &dst, &top_excludes, sender, "トップレベル");
-
-    // QField* フォルダのバージョン判定同期
-    if let Some(qfield_ver) = config.qfield_version.as_ref() {
-        let local_ver = read_version_file(&dst, "LOCAL_QFIELD_VERSION");
-        if local_ver != *qfield_ver && !qfield_folders.is_empty() {
-            let msg = format!("local_sync: QField 更新 ({} → {})", local_ver, qfield_ver);
-            if let Some(s) = sender { let _ = s.send(format!("MSG:{}", msg)); }
-            println!("{}", msg);
-            for folder in &qfield_folders {
-                let s = PathBuf::from(&src).join(folder).to_string_lossy().to_string();
-                let d = PathBuf::from(&dst).join(folder).to_string_lossy().to_string();
-                if PathBuf::from(&s).exists() {
-                    run_robocopy_local(&s, &d, &config.exclude_dirs, sender, &format!("QField {}", folder));
-                }
-            }
-            write_version_file(&dst, "LOCAL_QFIELD_VERSION", qfield_ver);
-        }
-    }
-
-    // QGIS* フォルダのバージョン判定同期
-    if let Some(qgis_ver) = config.qgis_version.as_ref() {
-        let local_ver = read_version_file(&dst, "LOCAL_QGIS_VERSION");
-        if local_ver != *qgis_ver && !qgis_folders.is_empty() {
-            let msg = format!("local_sync: QGIS 更新 ({} → {})", local_ver, qgis_ver);
-            if let Some(s) = sender { let _ = s.send(format!("MSG:{}", msg)); }
-            println!("{}", msg);
-            for folder in &qgis_folders {
-                let s = PathBuf::from(&src).join(folder).to_string_lossy().to_string();
-                let d = PathBuf::from(&dst).join(folder).to_string_lossy().to_string();
-                if PathBuf::from(&s).exists() {
-                    run_robocopy_local(&s, &d, &config.exclude_dirs, sender, &format!("QGIS {}", folder));
-                }
-            }
-            write_version_file(&dst, "LOCAL_QGIS_VERSION", qgis_ver);
-        }
-    }
-
-    // ポータブルプロファイルのバージョン判定同期
-    if let Some(pp_ver) = config.portable_profile_version.as_ref() {
-        let local_ver = read_version_file(&dst, "portable.ver");
-        let folder = "portable_profile";
-        let s = PathBuf::from(&src).join(folder).to_string_lossy().to_string();
-        if local_ver != *pp_ver && PathBuf::from(&s).exists() {
-            let msg = format!("local_sync: portable_profile 更新 ({} → {})", local_ver, pp_ver);
-            if let Some(s) = sender { let _ = s.send(format!("MSG:{}", msg)); }
-            println!("{}", msg);
-            let d = PathBuf::from(&dst).join(folder).to_string_lossy().to_string();
-            run_robocopy_local(&s, &d, &config.exclude_dirs, sender, "portable_profile");
-            write_version_file(&dst, "portable.ver", pp_ver);
-        }
-    }
-
-    // KASUGA-QGIS ランチャー本体のバージョンを記録
-    if let Some(ver) = resolve_kasugai_qgis_version(settings, settings_dir) {
-        write_version_file(&dst, "LOCAL_KASUGAI_QGIS_VERSION", &ver);
-    }
+    run_robocopy_local(&src, &dst, &config.exclude_dirs, sender, "local_sync");
 
     let msg = "local_sync: 完了".to_string();
     if let Some(s) = sender { let _ = s.send(format!("MSG:{}", msg)); }
@@ -1353,7 +1127,8 @@ fn expand_env_vars(s: &str) -> String {
 /// パスエイリアスを適用した後に環境変数展開を行う。
 /// "BOX:\\path" など 2文字以上のエイリアス名:path 形式を変換する。
 /// エイリアスは settings.path_aliases で定義。
-/// "BOX" が未定義の場合のデフォルト: %USERPROFILE%\Box
+/// 組み込み（path_aliases で上書き可）: BOX=%USERPROFILE%\Box, ONEDRIVE=%OneDrive%,
+/// ONEDRIVECOMMERCIAL=%OneDriveCommercial%, GDRIVE=検出した Google ドライブのマイドライブ
 fn resolve_path(s: &str, aliases: &HashMap<String, String>) -> String {
     // "ALIAS:\\..." または "ALIAS:/..." 形式を検出（2文字以上 = ドライブレターでない）
     let resolved = if let Some(colon_pos) = s.find(':') {
@@ -1363,10 +1138,8 @@ fn resolve_path(s: &str, aliases: &HashMap<String, String>) -> String {
             let alias_upper = prefix.to_uppercase();
             let alias_root = if let Some(v) = aliases.get(&alias_upper) {
                 v.clone()
-            } else if alias_upper == "BOX" {
-                // BOX のデフォルト: %USERPROFILE%\Box
-                let user_profile = env::var("USERPROFILE").unwrap_or_else(|_| "C:\\Users\\user".to_string());
-                format!("{}\\Box", user_profile)
+            } else if let Some(v) = builtin_alias_root(&alias_upper) {
+                v
             } else {
                 return expand_env_vars(s);
             };
@@ -1384,6 +1157,114 @@ fn resolve_path(s: &str, aliases: &HashMap<String, String>) -> String {
         s.to_string()
     };
     expand_env_vars(&resolved)
+}
+
+/// 組み込みエイリアス。path_aliases に同名があればそちらが優先される。
+fn builtin_alias_root(name: &str) -> Option<String> {
+    match name {
+        // BOX のデフォルト: %USERPROFILE%\Box
+        "BOX" => Some(format!(
+            "{}\\Box",
+            env::var("USERPROFILE").unwrap_or_else(|_| "C:\\Users\\user".to_string())
+        )),
+        "ONEDRIVE" => env::var("OneDrive").ok(),
+        "ONEDRIVECOMMERCIAL" => env::var("OneDriveCommercial").ok(),
+        "GDRIVE" => detect_google_drive_root(),
+        _ => None,
+    }
+}
+
+/// Google Drive for Desktop のドライブレター配下にある「マイドライブ」を検出する
+fn detect_google_drive_root() -> Option<String> {
+    for c in 'A'..='Z' {
+        for name in ["マイドライブ", "My Drive"] {
+            let p = format!("{}:\\{}", c, name);
+            if PathBuf::from(&p).is_dir() {
+                return Some(p);
+            }
+        }
+    }
+    None
+}
+
+/// SharePoint ライブラリを OneDrive 同期したローカルフォルダを検出する。
+/// 同期先は `%USERPROFILE%\<組織>\<サイト> - <ライブラリ>` の形になる。
+fn detect_sharepoint_folders() -> Vec<String> {
+    let mut out = Vec::new();
+    let Ok(user_profile) = env::var("USERPROFILE") else {
+        return out;
+    };
+    let Ok(rd) = std::fs::read_dir(&user_profile) else {
+        return out;
+    };
+    for e in rd.flatten() {
+        let org_dir = e.path();
+        if !org_dir.is_dir() || e.file_name().to_string_lossy().starts_with("OneDrive") {
+            continue;
+        }
+        if let Ok(sd) = std::fs::read_dir(&org_dir) {
+            for s in sd.flatten() {
+                let name = s.file_name().to_string_lossy().to_string();
+                if s.path().is_dir() && name.contains(" - ") {
+                    out.push(s.path().to_string_lossy().to_string());
+                }
+            }
+        }
+    }
+    out.sort();
+    out.truncate(20);
+    out
+}
+
+/// クラウドストレージのエイリアス基準とこの PC での実際の解決結果を組み立てる
+fn build_cloud_paths(settings: &QgisSettings) -> serde_json::Value {
+    let aliases = &settings.path_aliases;
+    let resolved_of = |alias: &str| -> Option<String> {
+        let r = resolve_path(&format!("{}:", alias), aliases);
+        if r == format!("{}:", alias) {
+            None
+        } else {
+            Some(r)
+        }
+    };
+    let mk = |id: &str, alias: &str, base: &str| {
+        let r = resolved_of(alias);
+        serde_json::json!({
+            "id": id,
+            "alias": alias,
+            "base": base,
+            "resolved": r,
+            "exists": r.as_ref().map(|p| PathBuf::from(p).is_dir()).unwrap_or(false),
+        })
+    };
+    let candidates = detect_sharepoint_folders();
+    let providers = serde_json::json!([
+        mk("box", "BOX", "%USERPROFILE%\\Box"),
+        mk("onedrive", "ONEDRIVE", "%OneDrive%"),
+        mk("onedrive_commercial", "ONEDRIVECOMMERCIAL", "%OneDriveCommercial%"),
+        mk("google_drive", "GDRIVE", "<L>:\\マイドライブ"),
+        {
+            "id": "sharepoint",
+            "alias": null,
+            "base": "%USERPROFILE%\\<Org>\\<Site> - <Library>",
+            "candidates": candidates,
+            "exists": !candidates.is_empty(),
+        }
+    ]);
+    let custom: Vec<_> = aliases
+        .iter()
+        .filter(|(k, _)| !k.is_empty())
+        .map(|(k, v)| {
+            let r = resolve_path(&format!("{}:", k), aliases);
+            serde_json::json!({
+                "name": k,
+                "value": v,
+                "resolved": r,
+                "exists": PathBuf::from(&r).is_dir(),
+            })
+        })
+        .collect();
+    serde_json::json!({ "providers": providers, "custom": custom })
 }
 
 /// `drive_mappings` の設定に従ってマウント / 同期を起動する。
@@ -2389,6 +2270,8 @@ async fn run_api_server(port: u16, settings_dir: &str, project_root_dir: &str, u
         .route("/update/apply", post(update_apply_handler))
         .route("/api/pick-folder", get(pick_folder_handler))
         .route("/api/drive-letters", get(drive_letters_handler))
+        .route("/api/open-docs", get(open_docs_handler))
+        .route("/api/cloud-paths", get(cloud_paths_handler))
         .route("/api/v1/server/stop", post(stop_server))
         .route("/api/v1/server/info", get(server_info))
         .route("/version", get(version_handler))
@@ -2500,6 +2383,28 @@ async fn pick_folder_handler() -> Json<serde_json::Value> {
     Json(serde_json::json!({
         "path": path.map(|p| p.to_string_lossy().to_string())
     }))
+}
+
+/// ドキュメントサイトを既定ブラウザで開く
+async fn open_docs_handler() -> Json<serde_json::Value> {
+    const URL: &str = "https://yamamoto-ryuzo.github.io/kasugai_qgis/";
+    let ok = Command::new("rundll32")
+        .args(["url.dll,FileProtocolHandler", URL])
+        .creation_flags(CREATE_NO_WINDOW)
+        .spawn()
+        .is_ok();
+    Json(serde_json::json!({ "ok": ok, "url": URL }))
+}
+
+/// クラウドストレージのエイリアス基準と実際の解決結果を返す
+async fn cloud_paths_handler(State(state): State<AppState>) -> Json<serde_json::Value> {
+    let settings_dir = state.settings_dir.clone();
+    let v = tokio::task::spawn_blocking(move || {
+        build_cloud_paths(&get_current_settings(&settings_dir))
+    })
+    .await
+    .unwrap_or_else(|_| serde_json::json!({ "providers": [], "custom": [] }));
+    Json(v)
 }
 
 /// 現在使用中でないドライブレター一覧を返す（drive_mappings の選択肢用）

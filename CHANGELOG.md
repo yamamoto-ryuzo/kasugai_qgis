@@ -6,8 +6,14 @@
 - Web UI: 各要素にホバー時のポップアップ説明（ツールチップ）を追加。`i18n.js` に `data-i18n-title` 属性による title 属性の翻訳機能を追加し、全タブ・フォーム・ボタン（動的生成される drive_mappings パネル・path_aliases 行を含む）に説明文を設定
 - Web UI: フォルダパス入力欄に「参照…」ボタンを追加し、`GET /api/pick-folder`（`rfd` によるネイティブのフォルダ選択ダイアログ）でフォルダを選択可能に。対象は sync_src / sync_dst / local_cache / robocopy_src / project_root / パスエイリアス
 - Web UI: `GET /api/drive-letters` を追加し、drive_mappings の `drive` を未使用ドライブレターのドロップダウンで選択可能に（設定済みレターは使用中でも候補に残る）
+- Web UI: ヘッダー右上に「ヘルプ」リンクを追加し、`GET /api/open-docs` でドキュメントサイト（GitHub Pages）を既定ブラウザで開けるようにした
+- Web UI: path_aliases サブタブに用途説明（名前付きパス置換・BOX 既定値・環境変数可）を追加
+- パスエイリアス画面を「クラウドパス」ステータスページに変更。BOX Drive / OneDrive（個人・法人）/ Google Drive for Desktop / SharePoint（ライブラリ）の準備手順・エイリアス基準・この PC で検出された実際の解決結果を `GET /api/cloud-paths` で表示（ユーザー編集 UI は廃止、path_aliases は生 JSON でのみ編集）
+- `resolve_path` の組み込みエイリアスを拡張（既存の BOX に加え ONEDRIVE=%OneDrive%、ONEDRIVECOMMERCIAL=%OneDriveCommercial%、GDRIVE=検出した Google ドライブのマイドライブ）。path_aliases の同名定義で上書き可能
+- Web UI: local_sync サブタブに起動時ミラー同期の仕組みを説明する注記を追加し、各フィールドラベル・ツールチップを実態に即した文言に修正。sync_src / sync_dst が空白の場合 project_root を使うことをプレースホルダで明示
 
 ### Changed
+- local_sync: バージョン判定による差分同期を廃止し、汎用のフォルダミラー（SYNC_SRC → SYNC_DST を robocopy /MIR、EXCLUDE_DIRS で除外）に簡素化。`qfield_version` / `qgis_version` / `portable_profile_version` の設定キーと `qgislocalsync.config` の `QFIELD_VERSION` / `QGIS_VERSION` / `PORTABLE_PROFILE_VERSION` は廃止（解釈されなくなる）。QField*/QGIS*/portable_profile の特別扱いと LOCAL_QFIELD_VERSION / LOCAL_QGIS_VERSION / portable.ver の読み書き、kasugai_qgis_version による自己更新判定を削除。Web UI からもバージョン入力欄を撤去
 - Web UI: 未翻訳だった要素を i18n 化。詳細設定タブの各フィールドラベルと起動タブのロール選択肢（Viewer / Editor / Administrator）を10言語辞書に登録
 - Web UI: 表示文言の規約を統一。ナビゲーション（タブ・サブタブ）とフィールドラベルは自然な訳文のみを表示し、JSON キー名はツールチップ先頭の `key:` 表記で確認できるようにした
 - Web UI: `mode`（subst / sync / mount）をドロップダウン化し、`read_only` は mount 選択時のみ有効（他モードではグレーアウト）に変更。drive_mappings パネル内に subst 系と rclone 系フィールドの区切り線を追加
