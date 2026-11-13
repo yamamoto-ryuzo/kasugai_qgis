@@ -47,7 +47,7 @@ class plugin(object):
 
         self.library = FunctionLibrary(iface)
         self.registry = MacroRegistry(iface)
-        # qgis_live_driver の bridge_call / describe_plugins 経由で
+        # geo_driver の bridge_call / describe_plugins 経由で
         # AI・外部制御から使われるAPI (plugins['geo_userfunc'].bridge)
         self.bridge = GeoUserfuncBridge(self)
         self._manager = None

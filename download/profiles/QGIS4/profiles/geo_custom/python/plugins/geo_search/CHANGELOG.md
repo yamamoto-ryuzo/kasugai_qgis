@@ -92,7 +92,7 @@
   ローカル変数でGCされて翻訳が無効化される問題を修正(`self.translator` に保持)。
 
 # V4.1.0 AI/外部制御用ブリッジ(QGIS Live Harness)
-- `bridge.py`(`GeoSearchBridge`)を追加し `plugin.bridge` に配線。`qgis_live_driver` の `bridge_call` コマンド(ファイルJSONL / REST / MCP)から全機能を呼び出せる。
+- `bridge.py`(`GeoSearchBridge`)を追加し `plugin.bridge` に配線。`geo_driver` の `bridge_call` コマンド(ファイルJSONL / REST / MCP)から全機能を呼び出せる。
 - メソッド: `pluginInfo` / `status` / `listTabs` / `selectTab` / `search` / `results` / `zoom` / `openDialog` / `closeDialog` / `searchOptions`(pan_mode・fixed_scale・show_layer_name) / `tabOptions`(地番=完全一致|あいまい・字コード、所有者=対象フィールド・一致方式) / `suggest` / `listThemes`・`applyTheme`・`themeAdditive` / `saveUserTheme`・`loadUserTheme` / `getSettings`・`setSettings` / `tabSetting`・`addTabFromCurrentLayer`・`removeTab`・`reloadDialog`。`search` は `options` 引数で検索オプションを事前適用できる。
 - `pluginInfo()` は標準自己記述スキーマ(id/name/summary/when_to_use/invoke/methods/state)を返し、ドライバの `describe_plugins` カタログでAIが用途・呼び方を発見できる。
 - 残存していたQt5向けフォールバック・非スコープenum・`exec_()`を除去しQt6専用コードに統一

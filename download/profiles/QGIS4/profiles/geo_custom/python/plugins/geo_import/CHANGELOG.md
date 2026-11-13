@@ -189,7 +189,7 @@
   統一し en/fi カタログを廃止。
 - `GeoImport` contextの未登録5メッセージ(SQLiteキャッシュ等)を全9言語で補完。
 - レイヤ整理連携: `load_resource_clicked` で追加したレイヤを
-  `layersAdded` で収集し、`qgis_live_driver` の `layer_org` サービス
+  `layersAdded` で収集し、`geo_driver` の `layer_org` サービス
   (プロファイルのルールでグループ配置・リネーム・スタイル適用)へ渡す。
   ドライバ未ロード・プロファイル無効時は従来どおりプロジェクト直下に
   flat追加。bridge `loadSelected` の応答に `organized` レポートを同梱。
@@ -230,7 +230,7 @@
 
 2.4.0 QGIS Live Harness: AI/外部制御ブリッジ追加
 - `bridge.py`(`GeoImportBridge`)を新設し `plugin.bridge` に配線。
-  `qgis_live_driver` の `bridge_call`(ファイルJSONL / REST /api/cmd /
+  `geo_driver` の `bridge_call`(ファイルJSONL / REST /api/cmd /
   MCP `qgis_bridge_call` / AIアシスタントパネル)と `describe_plugins`
   カタログから利用可能。メソッド(JSON文字列返却):
   `pluginInfo` / `status` / `openDialog` / `closeDialog` / `openSettings` /

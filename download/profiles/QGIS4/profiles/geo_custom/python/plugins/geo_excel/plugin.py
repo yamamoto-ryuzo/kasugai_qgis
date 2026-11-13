@@ -62,7 +62,7 @@ class plugin(object):
         self.macro_actions = []   # 実行メニュー項目(共有レジストリ登録時は外す)
         self.menu_name = "&geo_excel"
         self._init_language()
-        # qgis_live_driver の bridge_call / describe_plugins 経由で
+        # geo_driver の bridge_call / describe_plugins 経由で
         # AI・外部制御から使われるAPI (plugins['geo_excel'].bridge)
         self.bridge = GeoExcelBridge(self)
         self._settings_dialog = None

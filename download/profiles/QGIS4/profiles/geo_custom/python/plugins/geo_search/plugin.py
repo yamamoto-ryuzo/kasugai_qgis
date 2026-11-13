@@ -334,7 +334,7 @@ class plugin(object):
             except Exception:  # nosec B110  # 設計上の許容
                 pass
 
-        # AI/外部制御用ブリッジ。qgis_live_driver の bridge_call コマンドが
+        # AI/外部制御用ブリッジ。geo_driver の bridge_call コマンドが
         # qgis.utils.plugins['geo_search'].bridge をプロセス内で直接呼ぶため、
         # ファイルJSONL/REST/MCP(qgis_bridge_call)の全経路から検索を実行できる
         try:

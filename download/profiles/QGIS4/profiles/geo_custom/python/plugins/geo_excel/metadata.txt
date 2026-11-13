@@ -42,7 +42,7 @@ changelog=
     Version 1.3.0:
     - 対応バージョンをQGIS4以降に更新(qgisMinimumVersion=4.0)
     Version 1.2.0:
-    - AI/外部制御用ブリッジ(bridge.py)を追加。qgis_live_driver の
+    - AI/外部制御用ブリッジ(bridge.py)を追加。geo_driver の
       bridge_call / describe_plugins から listScripts / layerVariables /
       setLayerVariables / run / status を呼べるようになった
     Version 1.1.0:

@@ -22,6 +22,9 @@
 ### Fixed
 - Web UI: drive 未入力のパネルでモード等を変更すると入力中の値が初期化される問題を、下書き（driveDrafts）として保持するよう修正
 
+### Removed
+- Web UI: クラウドパス ステータスページから SharePoint（ライブラリ）の項目を削除。`GET /api/cloud-paths` の providers から sharepoint を外し、検出関数 `detect_sharepoint_folders` と i18n キー `cloud_name_sharepoint` / `cloud_prep_sharepoint`（全10言語）を撤去。docs/drive-mappings.html の SharePoint 行も削除。SharePoint 同期フォルダを参照したい場合は従来どおり `path_aliases` に任意名で定義すればよい
+
 ## [2.5.5] - 2026-11-13
 
 ### Fixed
@@ -39,7 +42,7 @@
 ## [2.5.3] - 2026-11-13
 
 ### Changed
-- 配布プロファイル（`download/profiles/QGIS4/profiles/geo_custom`）を現行プロファイルへ更新。qfieldsync・Qgis2threejs を新規同梱し、QGIS4.ini のプラグイン有効フラグを更新（qgis_live_driver/geo_excel/geo_userfunc が新規インストール時から有効になる）
+- 配布プロファイル（`download/profiles/QGIS4/profiles/geo_custom`）を現行プロファイルへ更新。qfieldsync・Qgis2threejs を新規同梱し、QGIS4.ini のプラグイン有効フラグを更新（geo_driver/geo_excel/geo_userfunc が新規インストール時から有効になる）
 
 ## [2.5.2] - 2026-11-13
 
@@ -86,8 +89,8 @@
 - `kasugai-qgis:` プロトコル経由の起動は従来通りヘッドレス（ウィンドウを開かない）。残ったタブ・KASUGAI 埋め込みペインが自ら `/health` をポーリングして復帰する方式を維持
 
 ### Added
-- QGIS Live Harness 連携の開発モード（`dev_mode` 設定 / 起動タブの「開発モード」チェックボックス / CLI `--dev`）。QGIS 起動時に `QTWEBENGINE_REMOTE_DEBUGGING`・`QTWEBENGINE_CHROMIUM_FLAGS`・`WEBENGINE_AUTOOPEN`・`WEBENGINE_LIVE_DIR`・`WEBENGINE_LOG_PATH` を注入し、junction 配置（dev モード）確定時のみ `WEBENGINE_DEV_SRC` も立てる。harness ルートは `KASUGAI_HARNESS_DIR` または exe 祖先の `qgis-plugin/qgis_live_driver/metadata.txt` から検出
-- `GET /live-sessions`：`~/.qgis-live` レジストリから稼働中の qgis_live_driver セッションを返し、起動タブに稼働中 PID を表示（i18n キー `label_dev_mode` / `live_session_active` / `live_session_none` を全10言語に追加）
+- QGIS Live Harness 連携の開発モード（`dev_mode` 設定 / 起動タブの「開発モード」チェックボックス / CLI `--dev`）。QGIS 起動時に `QTWEBENGINE_REMOTE_DEBUGGING`・`QTWEBENGINE_CHROMIUM_FLAGS`・`WEBENGINE_AUTOOPEN`・`WEBENGINE_LIVE_DIR`・`WEBENGINE_LOG_PATH` を注入し、junction 配置（dev モード）確定時のみ `WEBENGINE_DEV_SRC` も立てる。harness ルートは `KASUGAI_HARNESS_DIR` または exe 祖先の `qgis-plugin/geo_driver/metadata.txt` から検出
+- `GET /live-sessions`：`~/.qgis-live` レジストリから稼働中の geo_driver セッションを返し、起動タブに稼働中 PID を表示（i18n キー `label_dev_mode` / `live_session_active` / `live_session_none` を全10言語に追加）
 - `scripts/sync_bundle_plugins.py`：`<harness>/qgis-plugin/kasugai_qgis` 配置時、同梱プラグイン（geo_search・geo_webview・geo_report・geo_import・QGIS-legendView-main）を repo 側の正本へミラー同期。`run.py --build` に統合、`--sync-plugins` で単独実行も可
 
 ### Changed

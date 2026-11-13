@@ -71,8 +71,8 @@ GNU General Public License v3.0 (GPL-3.0-only) — [LICENSE](LICENSE)
 | geo_search | GPL-3.0 | 同上 |
 | geo_userfunc | GPL-3.0 | 同上 |
 | geo_webview | GPL-3.0 | 同上 |
-| qgis_live_driver | 本リポジトリ管理 | QGIS Live Harness の制御プラグイン |
-| QGIS-legendView-main | GPL-3.0 | upstream: QGIS-legendView |
+| geo_driver | 本リポジトリ管理 | QGIS Live Harness の制御プラグイン |
+| geo_legend | GPL-3.0 | upstream: QGIS-legendView |
 | StreetView | GPL-3.0 | upstream: saccon/streetview-plugin |
 | ImportPhotos | GPL-3.0 | upstream: KIOS-Research/ImportPhotos |
 | menu_from_project | GPL-2.0 | upstream: aeag/MenuFromProject-Qgis-Plugin |

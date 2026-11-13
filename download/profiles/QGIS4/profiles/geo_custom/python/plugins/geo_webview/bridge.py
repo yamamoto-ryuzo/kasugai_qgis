@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """geo_webview を AI/外部制御から利用するためのブリッジ。
 
-plugin.bridge 属性にこのオブジェクトをぶら下げると、qgis_live_driver の
+plugin.bridge 属性にこのオブジェクトをぶら下げると、geo_driver の
 bridge_call コマンド(ファイルJSONL / REST /api/cmd / MCP qgis_bridge_call)
 から ``qgis.utils.plugins['geo_webview'].bridge.<method>(*args)`` が
 プロセス内で直接呼ばれる。Qt Widgets プラグインなので WebChannel は通らない。

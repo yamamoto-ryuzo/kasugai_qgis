@@ -35,7 +35,7 @@ def main(context):
 
 ## AI / remote control
 
-Available through `qgis_live_driver` `bridge_call`:
+Available through `geo_driver` `bridge_call`:
 
 ```json
 {"command": "bridge_call", "plugin": "geo_userfunc",

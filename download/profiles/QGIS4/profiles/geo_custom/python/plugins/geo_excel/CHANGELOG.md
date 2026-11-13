@@ -129,7 +129,7 @@
 ## 1.2.0
 
 - **AI/外部制御用ブリッジ**(`bridge.py` の `GeoExcelBridge`)を追加し
-  `plugin.bridge` に配線。`qgis_live_driver` の `bridge_call`
+  `plugin.bridge` に配線。`geo_driver` の `bridge_call`
   (ファイルJSONL / REST /api/cmd / MCP `qgis_bridge_call` /
   AIアシスタントパネル)と `describe_plugins` カタログから利用可能。
   メソッド(JSON文字列返却):

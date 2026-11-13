@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """geo_import を AI/外部制御から利用するためのブリッジ。
 
-plugin.bridge 属性にこのオブジェクトをぶら下げると、qgis_live_driver の
+plugin.bridge 属性にこのオブジェクトをぶら下げると、geo_driver の
 bridge_call コマンド(ファイルJSONL / REST /api/cmd / MCP qgis_bridge_call)
 から ``qgis.utils.plugins['geo_import'].bridge.<method>(*args)`` が
 プロセス内で直接呼ばれる。
@@ -120,7 +120,7 @@ class GeoImportBridge:
             "description":
                 "チェック済みリソースをQGISへ読み込む(追加ボタン押下相当)。"
                 "警告ダイアログは自動Ok応答しメッセージとして返す。"
-                "追加レイヤは qgis_live_driver のレイヤ整理プロファイルが"
+                "追加レイヤは geo_driver のレイヤ整理プロファイルが"
                 "有効ならルールでグループ配置され、結果はorganizedに返る。",
             "example": {"method": "loadSelected", "args": []},
         },
@@ -498,7 +498,7 @@ class GeoImportBridge:
             dlg.load_resource_clicked()
         return self._ok({
             "messages": cap.messages,
-            # qgis_live_driver の LayerOrganizer が有効なら、
+            # geo_driver の LayerOrganizer が有効なら、
             # 追加レイヤのグループ配置結果(無効/未適用ならNone)
             "organized": getattr(dlg, "last_org_report", None),
         })

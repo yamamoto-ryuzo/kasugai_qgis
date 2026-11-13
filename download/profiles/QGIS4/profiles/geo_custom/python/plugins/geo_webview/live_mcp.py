@@ -55,7 +55,7 @@ def is_loopback_peer(ip):
 def _registry_dir():
     """Live Driver のセッションレジストリ dir を返す。
 
-    qgis_live_driver はリモート制御 ON 時に ~/.qgis-live/<pid>-<plugin>.json
+    geo_driver はリモート制御 ON 時に ~/.qgis-live/<pid>-<plugin>.json
     (QGIS_LIVE_REGISTRY で変更可)へ {mcp_url, token, pid, plugin_id,
     started} を書き出す。kasugai_canvas サーバ(main.rs)と同じ規約で読む。
     """
@@ -66,7 +66,7 @@ def _registry_dir():
 def driver_sessions():
     """レジストリを走査し Live Driver セッション候補を返す。
 
-    qgis_live_driver 優先・started の新しい順(kasugai_canvas 側の
+    geo_driver 優先・started の新しい順(kasugai_canvas 側の
     qgis_live_sessions() と同じ並び)。
     """
     reg = _registry_dir()
@@ -91,7 +91,7 @@ def driver_sessions():
             started = float(e.get('started') or 0)
         except (TypeError, ValueError):
             started = 0.0
-        return (e.get('plugin_id') != 'qgis_live_driver', -started)
+        return (e.get('plugin_id') != 'geo_driver', -started)
 
     entries.sort(key=_key)
     return entries

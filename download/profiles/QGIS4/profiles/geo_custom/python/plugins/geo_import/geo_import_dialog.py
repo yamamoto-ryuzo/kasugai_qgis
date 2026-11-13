@@ -1557,7 +1557,7 @@ class GeoImportDialog(QDialog, FORM_CLASS):
             xml_session_started = True
 
         # --- レイヤ整理: 追加されたレイヤを layersAdded で収集し、
-        # ループ後に qgis_live_driver の LayerOrganizer で配置する ---
+        # ループ後に geo_driver の LayerOrganizer で配置する ---
         self._org_items = []
         self._org_ctx = {}
         try:
@@ -1863,7 +1863,7 @@ class GeoImportDialog(QDialog, FORM_CLASS):
             items.append((lyr, ctx))
 
     def _apply_layer_org(self):
-        """収集したレイヤを qgis_live_driver の LayerOrganizer で配置する。
+        """収集したレイヤを geo_driver の LayerOrganizer で配置する。
 
         ドライバ未ロード・サービス無し・プロファイル無効の場合は何もしない
         (従来どおりプロジェクト直下に残る)。結果は self.last_org_report
@@ -1877,7 +1877,7 @@ class GeoImportDialog(QDialog, FORM_CLASS):
             return
         try:
             import qgis.utils
-            drv = qgis.utils.plugins.get("qgis_live_driver")
+            drv = qgis.utils.plugins.get("geo_driver")
             org = getattr(drv, "layer_org", None) if drv is not None else None
             if org is None:
                 return

@@ -1187,35 +1187,6 @@ fn detect_google_drive_root() -> Option<String> {
     None
 }
 
-/// SharePoint ライブラリを OneDrive 同期したローカルフォルダを検出する。
-/// 同期先は `%USERPROFILE%\<組織>\<サイト> - <ライブラリ>` の形になる。
-fn detect_sharepoint_folders() -> Vec<String> {
-    let mut out = Vec::new();
-    let Ok(user_profile) = env::var("USERPROFILE") else {
-        return out;
-    };
-    let Ok(rd) = std::fs::read_dir(&user_profile) else {
-        return out;
-    };
-    for e in rd.flatten() {
-        let org_dir = e.path();
-        if !org_dir.is_dir() || e.file_name().to_string_lossy().starts_with("OneDrive") {
-            continue;
-        }
-        if let Ok(sd) = std::fs::read_dir(&org_dir) {
-            for s in sd.flatten() {
-                let name = s.file_name().to_string_lossy().to_string();
-                if s.path().is_dir() && name.contains(" - ") {
-                    out.push(s.path().to_string_lossy().to_string());
-                }
-            }
-        }
-    }
-    out.sort();
-    out.truncate(20);
-    out
-}
-
 /// クラウドストレージのエイリアス基準とこの PC での実際の解決結果を組み立てる
 fn build_cloud_paths(settings: &QgisSettings) -> serde_json::Value {
     let aliases = &settings.path_aliases;
@@ -1237,19 +1208,11 @@ fn build_cloud_paths(settings: &QgisSettings) -> serde_json::Value {
             "exists": r.as_ref().map(|p| PathBuf::from(p).is_dir()).unwrap_or(false),
         })
     };
-    let candidates = detect_sharepoint_folders();
     let providers = serde_json::json!([
         mk("box", "BOX", "%USERPROFILE%\\Box"),
         mk("onedrive", "ONEDRIVE", "%OneDrive%"),
         mk("onedrive_commercial", "ONEDRIVECOMMERCIAL", "%OneDriveCommercial%"),
         mk("google_drive", "GDRIVE", "<L>:\\マイドライブ"),
-        {
-            "id": "sharepoint",
-            "alias": null,
-            "base": "%USERPROFILE%\\<Org>\\<Site> - <Library>",
-            "candidates": candidates,
-            "exists": !candidates.is_empty(),
-        }
     ]);
     let custom: Vec<_> = aliases
         .iter()

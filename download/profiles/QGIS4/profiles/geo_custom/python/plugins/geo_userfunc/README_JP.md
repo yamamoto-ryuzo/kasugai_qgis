@@ -31,7 +31,7 @@ def main(context):
 
 ## AI/外部制御
 
-`qgis_live_driver` の `bridge_call` から利用:
+`geo_driver` の `bridge_call` から利用:
 
 ```json
 {"command": "bridge_call", "plugin": "geo_userfunc",

@@ -152,7 +152,7 @@
 ### V2.3.0 QGIS Live Harness: AI/外部制御ブリッジ追加
 
 - `bridge.py`(`GeoReportBridge`)を新設し `plugin.bridge` に配線。
-  `qgis_live_driver` の `bridge_call`(ファイルJSONL / REST /api/cmd /
+  `geo_driver` の `bridge_call`(ファイルJSONL / REST /api/cmd /
   MCP `qgis_bridge_call` / AIアシスタントパネル)と `describe_plugins`
   カタログから利用可能。メソッド(JSON文字列返却):
   `pluginInfo` / `status` / `openPanel` / `closePanel` / `listLayouts` /
