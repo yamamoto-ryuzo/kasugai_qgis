@@ -1,0 +1,532 @@
+{
+  "component": "kasugai_qgis",
+  "component_type": "rust_axum_launcher",
+  "version": "2.5.5",
+  "driver": {
+    "type": "http",
+    "detect": "GET http://127.0.0.1:8500/health",
+    "launch": "target/debug/qgis_launcher.exe <URI> (URI引数でヘッドレス)",
+    "ready": "/health == ok",
+    "control": "HTTP :8500 /*",
+    "detected_from": "main.rs Args / README"
+  },
+  "updated": "2026-11-15T22:49:09+09:00",
+  "features": [
+    {
+      "id": "srv.ui",
+      "kind": "api_route",
+      "name": "GET /",
+      "source": "src/main.rs",
+      "signature": "GET /",
+      "summary": "GET /",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum :8500"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl :8500"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:49:09+09:00",
+      "note": "200 42KB HTML"
+    },
+    {
+      "id": "srv.favicon",
+      "kind": "api_route",
+      "name": "GET /favicon.ico",
+      "source": "src/main.rs",
+      "signature": "GET /favicon.ico",
+      "summary": "GET /favicon.ico",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum :8500"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl :8500"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:49:09+09:00",
+      "note": "200"
+    },
+    {
+      "id": "srv.i18n_js",
+      "kind": "api_route",
+      "name": "GET /i18n.js",
+      "source": "src/main.rs",
+      "signature": "GET /i18n.js",
+      "summary": "GET /i18n.js",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum :8500"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl :8500"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:49:09+09:00",
+      "note": "200"
+    },
+    {
+      "id": "srv.i18n_dict",
+      "kind": "api_route",
+      "name": "GET /i18n/{lang}.json",
+      "source": "src/main.rs",
+      "signature": "GET /i18n/{lang}.json",
+      "summary": "GET /i18n/{lang}.json",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum :8500"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl :8500"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:49:09+09:00",
+      "note": "ja.json 200 13KB"
+    },
+    {
+      "id": "srv.health",
+      "kind": "api_route",
+      "name": "GET /health",
+      "source": "src/main.rs",
+      "signature": "GET /health",
+      "summary": "GET /health",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum :8500"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl :8500"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:49:09+09:00",
+      "note": "ok"
+    },
+    {
+      "id": "api.settings_get",
+      "kind": "api_route",
+      "name": "GET /settings",
+      "source": "src/main.rs",
+      "signature": "GET /settings",
+      "summary": "GET /settings",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum :8500"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl :8500"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:49:09+09:00",
+      "note": "200 JSON"
+    },
+    {
+      "id": "api.settings_post",
+      "kind": "api_route",
+      "name": "POST /settings",
+      "source": "src/main.rs",
+      "signature": "POST /settings",
+      "summary": "POST /settings",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum :8500"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl :8500"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:49:09+09:00",
+      "note": "設定変更・副作用"
+    },
+    {
+      "id": "api.qgis_list",
+      "kind": "api_route",
+      "name": "GET /qgis",
+      "source": "src/main.rs",
+      "signature": "GET /qgis",
+      "summary": "GET /qgis",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum :8500"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl :8500"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:49:09+09:00",
+      "note": "QGIS 4.0.1 検出"
+    },
+    {
+      "id": "api.profiles",
+      "kind": "api_route",
+      "name": "GET /profiles",
+      "source": "src/main.rs",
+      "signature": "GET /profiles",
+      "summary": "GET /profiles",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum :8500"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl :8500"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:49:09+09:00",
+      "note": "geo_custom 検出"
+    },
+    {
+      "id": "api.projects",
+      "kind": "api_route",
+      "name": "GET /projects",
+      "source": "src/main.rs",
+      "signature": "GET /projects",
+      "summary": "GET /projects",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum :8500"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl :8500"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:49:09+09:00",
+      "note": "200 []"
+    },
+    {
+      "id": "api.launch",
+      "kind": "api_route",
+      "name": "POST /launch",
+      "source": "src/main.rs",
+      "signature": "POST /launch",
+      "summary": "POST /launch",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum :8500"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl :8500"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:49:09+09:00",
+      "note": "QGIS 実起動・副作用"
+    },
+    {
+      "id": "api.reset",
+      "kind": "api_route",
+      "name": "POST /reset",
+      "source": "src/main.rs",
+      "signature": "POST /reset",
+      "summary": "POST /reset",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum :8500"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl :8500"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:49:09+09:00",
+      "note": "プロファイル初期化・破壊的"
+    },
+    {
+      "id": "api.progress",
+      "kind": "api_route",
+      "name": "GET /progress",
+      "source": "src/main.rs",
+      "signature": "GET /progress",
+      "summary": "GET /progress",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum :8500"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl :8500"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:49:09+09:00",
+      "note": "200 {messages:[]}"
+    },
+    {
+      "id": "api.project_version",
+      "kind": "api_route",
+      "name": "GET /project-version",
+      "source": "src/main.rs",
+      "signature": "GET /project-version",
+      "summary": "GET /project-version",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum :8500"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl :8500"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:49:09+09:00",
+      "note": "path未指定→400バリデーション応答(正常系)"
+    },
+    {
+      "id": "api.update_check",
+      "kind": "api_route",
+      "name": "GET /update",
+      "source": "src/main.rs",
+      "signature": "GET /update",
+      "summary": "GET /update",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum :8500"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl :8500"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:49:09+09:00",
+      "note": "外部更新確認"
+    },
+    {
+      "id": "api.update_apply",
+      "kind": "api_route",
+      "name": "POST /update/apply",
+      "source": "src/main.rs",
+      "signature": "POST /update/apply",
+      "summary": "POST /update/apply",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum :8500"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl :8500"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:49:09+09:00",
+      "note": "自己更新・破壊的"
+    },
+    {
+      "id": "api.pick_folder",
+      "kind": "api_route",
+      "name": "GET /api/pick-folder",
+      "source": "src/main.rs",
+      "signature": "GET /api/pick-folder",
+      "summary": "GET /api/pick-folder",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum :8500"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl :8500"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:49:09+09:00",
+      "note": "ネイティブダイアログ表示・ブロッキング"
+    },
+    {
+      "id": "api.drive_letters",
+      "kind": "api_route",
+      "name": "GET /api/drive-letters",
+      "source": "src/main.rs",
+      "signature": "GET /api/drive-letters",
+      "summary": "GET /api/drive-letters",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum :8500"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl :8500"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:49:09+09:00",
+      "note": "ドライブ一覧200"
+    },
+    {
+      "id": "api.open_docs",
+      "kind": "api_route",
+      "name": "GET /api/open-docs",
+      "source": "src/main.rs",
+      "signature": "GET /api/open-docs",
+      "summary": "GET /api/open-docs",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum :8500"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl :8500"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:49:09+09:00",
+      "note": "ブラウザ起動・副作用"
+    },
+    {
+      "id": "api.cloud_paths",
+      "kind": "api_route",
+      "name": "GET /api/cloud-paths",
+      "source": "src/main.rs",
+      "signature": "GET /api/cloud-paths",
+      "summary": "GET /api/cloud-paths",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum :8500"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl :8500"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:49:09+09:00",
+      "note": "クラウドパス検出200"
+    },
+    {
+      "id": "api.server_stop",
+      "kind": "api_route",
+      "name": "POST /api/v1/server/stop",
+      "source": "src/main.rs",
+      "signature": "POST /api/v1/server/stop",
+      "summary": "POST /api/v1/server/stop",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum :8500"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl :8500"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:49:09+09:00",
+      "note": "POST→\"ok\" 応答後に /health 不通で停止を実測"
+    },
+    {
+      "id": "api.server_info",
+      "kind": "api_route",
+      "name": "GET /api/v1/server/info",
+      "source": "src/main.rs",
+      "signature": "GET /api/v1/server/info",
+      "summary": "GET /api/v1/server/info",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum :8500"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl :8500"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:49:09+09:00",
+      "note": "200"
+    },
+    {
+      "id": "api.version",
+      "kind": "api_route",
+      "name": "GET /version",
+      "source": "src/main.rs",
+      "signature": "GET /version",
+      "summary": "GET /version",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum :8500"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl :8500"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:49:09+09:00",
+      "note": "{version:2.5.5}"
+    },
+    {
+      "id": "srv.webview_window",
+      "kind": "ui_control",
+      "name": "起動時 WebView2 ウィンドウ",
+      "source": "src/main.rs",
+      "signature": "起動時 WebView2 ウィンドウ",
+      "summary": "起動時 WebView2 ウィンドウ",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum :8500"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl :8500"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:49:09+09:00",
+      "note": "ヘッドレス起動のためGUI未検証(URI引数でAPI-only動作を確認)"
+    },
+    {
+      "id": "static.cargo_check",
+      "kind": "logic_fn",
+      "name": "cargo check",
+      "source": "Cargo.toml",
+      "signature": "cargo check",
+      "summary": "静的コンパイル検証",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "cargo check → Finished",
+        "integrated": ""
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:49:09+09:00",
+      "note": "v2.5.5 Finished"
+    },
+    {
+      "id": "cli.headless_uri",
+      "kind": "cli_cmd",
+      "name": "URI引数ヘッドレス起動",
+      "source": "src/main.rs:Args",
+      "signature": "qgis_launcher.exe <URI>",
+      "summary": "URI位置引数でGUI無しヘッドレス起動(API-only)",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "qgis_launcher.exe headless://x → APIのみ起動",
+        "integrated": ""
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:49:09+09:00",
+      "note": "ヘッドレス起動実測(:8500応答)"
+    }
+  ]
+}
