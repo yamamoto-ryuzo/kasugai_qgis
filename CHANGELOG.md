@@ -3,6 +3,9 @@
 ## [Unreleased]
 
 ### Added
+- 起動履歴・起動中プロセス管理を追加。`POST /launch` 時にプロファイル×プロジェクト×日時を `launch_history.json`（settings_dir、最大50件）へ追記し、`GET /api/recent` で返却。起動タブの「最近の起動」一覧はクリックで同条件再起動
+- `GET /api/processes` を追加。`--profile` 引数を持つ QGIS プロセス（= 本ランチャー経由起動）を PID・プロファイル・経過秒つきで列挙し、起動タブへ一覧表示。`POST /api/processes/:pid/kill` で終了可能（taskkill /T /F。`--profile` 帰属を再検証し無関係プロセスや PID 再利用の誤終了を防止）
+- Web UI: 起動タブに「プロジェクト直接指定」入力欄を追加。`.qgz/.qgs` パスを直接書けばドロップダウン選択より優先して起動
 - Web UI: 各要素にホバー時のポップアップ説明（ツールチップ）を追加。`i18n.js` に `data-i18n-title` 属性による title 属性の翻訳機能を追加し、全タブ・フォーム・ボタン（動的生成される drive_mappings パネル・path_aliases 行を含む）に説明文を設定
 - Web UI: フォルダパス入力欄に「参照…」ボタンを追加し、`GET /api/pick-folder`（`rfd` によるネイティブのフォルダ選択ダイアログ）でフォルダを選択可能に。対象は sync_src / sync_dst / local_cache / robocopy_src / project_root / パスエイリアス
 - Web UI: `GET /api/drive-letters` を追加し、drive_mappings の `drive` を未使用ドライブレターのドロップダウンで選択可能に（設定済みレターは使用中でも候補に残る）

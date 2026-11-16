@@ -61,6 +61,16 @@
     .cloud-cand { margin: 2px 0 0; padding-left: 18px; }
     .checkbox-label { display: flex; align-items: center; gap: 8px; font-weight: normal; }
     .checkbox-label input[type="checkbox"] { width: auto; }
+    .list-box { border: 1px solid #cbd5e1; border-radius: 6px; max-height: 160px; overflow-y: auto; font-size: 0.9em; }
+    .list-box .empty { padding: 8px 10px; color: #94a3b8; }
+    .recent-item, .proc-item { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid #e2e8f0; }
+    .recent-item:last-child, .proc-item:last-child { border-bottom: none; }
+    .recent-item { cursor: pointer; }
+    .recent-item:hover { background: #eff6ff; }
+    .recent-item .rmeta, .proc-item .rmeta { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .recent-item .rtime, .proc-item .rtime { color: #64748b; font-size: 0.85em; white-space: nowrap; }
+    .proc-item .kill-btn { width: auto; padding: 2px 10px; font-size: 0.85em; background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; border-radius: 4px; cursor: pointer; }
+    .proc-item .kill-btn:hover { background: #fecaca; }
     .browse-row { display: flex; gap: 6px; align-items: center; }
     .browse-row input { flex: 1; }
     .browse-row .browse-btn { padding: 6px 12px; white-space: nowrap; width: auto; }
@@ -104,6 +114,9 @@
     <label data-i18n="label_project_version" data-i18n-title="tip_project_version">プロジェクトファイルバージョン</label>
     <input id="project-version" type="text" class="readonly" readonly data-i18n-title="tip_project_version">
 
+    <label data-i18n="label_custom_project" data-i18n-title="tip_custom_project">プロジェクト直接指定（.qgz/.qgs パス・任意）</label>
+    <input id="project-custom" type="text" placeholder="C:\\work\\map.qgz" data-i18n-ph="ph_custom_project" data-i18n-title="tip_custom_project">
+
     <label data-i18n="label_qgis_version" data-i18n-title="tip_qgis_exe">QGIS バージョン</label>
     <select id="qgis" data-i18n-title="tip_qgis_exe"></select>
 
@@ -111,6 +124,15 @@
       <button id="reset" data-i18n="btn_reset_profile" data-i18n-title="tip_btn_reset">プロファイルを初期化</button>
       <button id="save-launch" data-i18n="btn_save_launch" data-i18n-title="tip_btn_save_launch">起動設定を保存</button>
       <button id="launch" data-i18n="btn_launch" data-i18n-title="tip_btn_launch">QGIS を起動</button>
+    </div>
+
+    <label data-i18n="label_recent" data-i18n-title="tip_recent">最近の起動（クリックで同条件再起動）</label>
+    <div id="recent-list" class="list-box" data-i18n-title="tip_recent"></div>
+
+    <label data-i18n="label_processes" data-i18n-title="tip_processes">起動中の QGIS プロセス</label>
+    <div id="proc-list" class="list-box" data-i18n-title="tip_processes"></div>
+    <div class="row">
+      <button id="proc-refresh" data-i18n="btn_refresh" data-i18n-title="tip_processes">更新</button>
     </div>
   </div>
 
@@ -609,9 +631,11 @@
 
     async function launchQgis() {
       try {
+        const custom = $('project-custom').value.trim();
         const body = {
           profile: $('profile').value,
-          project_paths: [$('project-select').value].filter(x => x),
+          // 直接パス指定があればそちらを優先、なければドロップダウンの選択
+          project_paths: custom ? [custom] : [$('project-select').value].filter(x => x),
           executable: $('qgis').value,
           role: $('role').value
         };
@@ -621,6 +645,97 @@
       } catch (e) {
         status(t('status_launch_fail', { msg: e.message }), 'err');
       }
+    }
+
+    // ---------- 最近の起動・起動中プロセス ----------
+
+    let recentItems = [];
+
+    function fmtElapsed(sec) {
+      sec = Math.max(0, Number(sec) || 0);
+      if (sec < 60) return t('elapsed_sec', { n: sec });
+      if (sec < 3600) return t('elapsed_min', { n: Math.floor(sec / 60) });
+      return t('elapsed_hour', { n: (sec / 3600).toFixed(1) });
+    }
+
+    async function loadRecent() {
+      const box = $('recent-list');
+      try {
+        const res = await api('GET', '/api/recent');
+        recentItems = res.recent || [];
+        if (!recentItems.length) {
+          box.innerHTML = '<div class="empty">' + esc(t('empty_recent')) + '</div>';
+          return;
+        }
+        box.innerHTML = recentItems.map((r, i) => {
+          const dt = r.launched_at ? new Date(r.launched_at * 1000).toLocaleString() : '';
+          const proj = (r.project_paths || []).join(', ');
+          return '<div class="recent-item" data-i="' + i + '">' +
+            '<span class="rmeta">' + esc(r.profile || '') + (r.role ? ' [' + esc(r.role) + ']' : '') +
+            (proj ? ' — ' + esc(proj) : '') + '</span>' +
+            '<span class="rtime">' + esc(dt) + '</span></div>';
+        }).join('');
+        box.querySelectorAll('.recent-item').forEach(el => {
+          el.addEventListener('click', () => relaunch(recentItems[Number(el.dataset.i)]));
+        });
+      } catch (e) {
+        box.innerHTML = '<div class="empty">' + esc(e.message) + '</div>';
+      }
+    }
+
+    async function relaunch(r) {
+      if (!r || !confirm(t('confirm_relaunch', { profile: r.profile || '' }))) return;
+      try {
+        const body = {
+          profile: r.profile || '',
+          project_paths: r.project_paths || [],
+          executable: r.executable || '',
+          role: r.role || ''
+        };
+        await api('POST', '/launch', body);
+        status(t('status_launched'), 'ok');
+        closeTabAfterServerStop();
+      } catch (e) {
+        status(t('status_launch_fail', { msg: e.message }), 'err');
+      }
+    }
+
+    async function loadProcesses() {
+      const box = $('proc-list');
+      try {
+        const res = await api('GET', '/api/processes');
+        const procs = res.processes || [];
+        if (!procs.length) {
+          box.innerHTML = '<div class="empty">' + esc(t('empty_processes')) + '</div>';
+          return;
+        }
+        box.innerHTML = procs.map(p =>
+          '<div class="proc-item">' +
+          '<span class="rmeta">PID ' + p.pid + ' — ' + esc(p.profile || '?') + '</span>' +
+          '<span class="rtime">' + esc(fmtElapsed(p.elapsed_seconds)) + '</span>' +
+          '<button class="kill-btn" data-pid="' + p.pid + '">' + esc(t('btn_kill')) + '</button></div>'
+        ).join('');
+        box.querySelectorAll('.kill-btn').forEach(el => {
+          el.addEventListener('click', () => killProcess(Number(el.dataset.pid)));
+        });
+      } catch (e) {
+        box.innerHTML = '<div class="empty">' + esc(e.message) + '</div>';
+      }
+    }
+
+    async function killProcess(pid) {
+      if (!confirm(t('confirm_kill', { pid: pid }))) return;
+      try {
+        const res = await api('POST', '/api/processes/' + pid + '/kill');
+        if (res.ok) {
+          status(t('status_killed', { pid: pid }), 'ok');
+        } else {
+          status(t('status_kill_fail', { msg: res.error || '' }), 'err');
+        }
+      } catch (e) {
+        status(t('status_kill_fail', { msg: e.message }), 'err');
+      }
+      loadProcesses();
     }
 
     let progressTimer = null;
@@ -804,6 +919,7 @@
     $('save-project-root').addEventListener('click', saveProjectRoot);
     $('stop-server').addEventListener('click', stopServer);
     $('project-select').addEventListener('change', checkProjectVersion);
+    $('proc-refresh').addEventListener('click', loadProcesses);
     $('tab-raw').addEventListener('change', (e) => { if (e.target.id !== 'raw-settings') updateFromForm(); });
 
     // 言語切替セレクタ（i18n.js で管理）
@@ -847,6 +963,8 @@
             await initI18n();
             if (langSel) langSel.value = currentLang;
             await reloadAll();
+            loadRecent();
+            loadProcesses();
             break;
           } catch (e) {
             if (i === 29) throw e;

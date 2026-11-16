@@ -10,6 +10,8 @@ QGIS / QField 起動用ランチャー（Rust + AXUM）。v2.0.0 からは Web U
 
 - QGIS / QField の Web UI 起動
 - プロファイル・プロジェクト・QGIS バージョンの切り替え
+- 起動履歴（最近の起動から同条件再起動）と起動中 QGIS プロセスの一覧・終了
+- 起動時プロジェクトの直接パス指定（`.qgz`/`.qgs`）
 - ユーザーロール制御（Viewer / Editor / Administrator）
 - クラウドドライブ自動割り当て（`drive_mappings`）
 - ローカル自動同期（`local_sync`）

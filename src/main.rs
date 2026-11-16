@@ -23,7 +23,8 @@ use quick_xml::events::Event;
 use quick_xml::name::QName;
 use zip::ZipArchive;
 use std::io::Read;
-use axum::{extract::{Query, State}, http::{header, StatusCode}, response::{Html, IntoResponse}, routing::{get, post}, Json, Router};
+use std::time::{SystemTime, UNIX_EPOCH};
+use axum::{extract::{Path, Query, State}, http::{header, StatusCode}, response::{Html, IntoResponse}, routing::{get, post}, Json, Router};
 use tower_http::cors::CorsLayer;
 
 
@@ -2226,6 +2227,9 @@ async fn run_api_server(port: u16, settings_dir: &str, project_root_dir: &str, u
         .route("/profiles", get(list_profiles_handler))
         .route("/projects", get(list_projects_handler))
         .route("/launch", post(launch_handler))
+        .route("/api/recent", get(recent_handler))
+        .route("/api/processes", get(processes_handler))
+        .route("/api/processes/:pid/kill", post(kill_process_handler))
         .route("/reset", post(reset_profiles_handler))
         .route("/progress", get(progress_handler))
         .route("/project-version", get(project_version_handler))
@@ -2424,12 +2428,26 @@ async fn launch_handler(State(state): State<AppState>, Json(req): Json<LaunchReq
     let last_project = project_paths.first().cloned();
     let _ = tokio::task::spawn_blocking(move || {
         let mut s = get_current_settings(&settings_dir);
-        s.profile = profile;
-        s.userrole = if role.is_empty() { None } else { Some(role) };
-        s.qgis_executable = if executable.is_empty() { None } else { Some(executable) };
+        s.profile = profile.clone();
+        s.userrole = if role.is_empty() { None } else { Some(role.clone()) };
+        s.qgis_executable = if executable.is_empty() { None } else { Some(executable.clone()) };
         s.current_project = last_project;
         if let Err(e) = save_settings(&settings_dir, &s) {
             eprintln!("起動選択の保存に失敗: {}", e);
+        }
+        // 起動履歴を追記（最近の起動一覧・プロセス一覧の帰属に使用）
+        let rec = LaunchRecord {
+            launched_at: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or(0),
+            profile,
+            project_paths,
+            executable,
+            role,
+        };
+        if let Err(e) = append_launch_history(&settings_dir, &rec) {
+            eprintln!("起動履歴の保存に失敗: {}", e);
         }
     }).await;
     // QGIS 起動後はサーバーを自動停止する（レスポンス送信後に終了）
@@ -2439,6 +2457,143 @@ async fn launch_handler(State(state): State<AppState>, Json(req): Json<LaunchReq
         std::process::exit(0);
     });
     Ok(Json(serde_json::json!({ "ok": true, "server_stopping": true })))
+}
+
+// ---------- 起動履歴・起動中プロセス ----------
+
+/// 起動履歴1件（settings_dir/launch_history.json に追記保存）
+#[derive(Serialize, Deserialize, Clone)]
+struct LaunchRecord {
+    /// UNIX epoch 秒
+    launched_at: u64,
+    profile: String,
+    project_paths: Vec<String>,
+    executable: String,
+    role: String,
+}
+
+const LAUNCH_HISTORY_MAX: usize = 50;
+
+fn launch_history_path(settings_dir: &str) -> PathBuf {
+    PathBuf::from(settings_dir).join("launch_history.json")
+}
+
+fn load_launch_history(settings_dir: &str) -> Vec<LaunchRecord> {
+    fs::read_to_string(launch_history_path(settings_dir))
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default()
+}
+
+fn append_launch_history(settings_dir: &str, rec: &LaunchRecord) -> Result<(), String> {
+    let mut hist = load_launch_history(settings_dir);
+    hist.push(rec.clone());
+    if hist.len() > LAUNCH_HISTORY_MAX {
+        hist.drain(..hist.len() - LAUNCH_HISTORY_MAX);
+    }
+    let s = serde_json::to_string_pretty(&hist).map_err(|e| e.to_string())?;
+    fs::write(launch_history_path(settings_dir), s).map_err(|e| e.to_string())
+}
+
+/// 直近の起動履歴（新しい順）
+async fn recent_handler(State(state): State<AppState>) -> Json<serde_json::Value> {
+    let settings_dir = state.settings_dir;
+    let mut hist = tokio::task::spawn_blocking(move || load_launch_history(&settings_dir))
+        .await
+        .unwrap_or_default();
+    hist.reverse();
+    Json(serde_json::json!({ "recent": hist }))
+}
+
+/// `--profile <name>` をコマンドラインから取り出す（ランチャー経由起動の識別用）
+fn profile_from_cmdline(cmdline: &str) -> Option<String> {
+    let mut it = cmdline.split_whitespace().peekable();
+    while let Some(tok) = it.next() {
+        if tok == "--profile" {
+            return it.next().map(|s| s.trim_matches('"').to_string());
+        }
+        if let Some(rest) = tok.strip_prefix("--profile=") {
+            return Some(rest.trim_matches('"').to_string());
+        }
+    }
+    None
+}
+
+/// 起動中の QGIS プロセス（`--profile` 引数を持つ = 本ランチャー経由）を列挙する。
+/// サーバーは QGIS 起動後に終了するため、PID 保持ではなくコマンドライン走査で帰属判定する。
+fn list_launcher_qgis_processes() -> Vec<serde_json::Value> {
+    let ps = r#"Get-CimInstance Win32_Process -Filter "Name like 'qgis%'" |
+  Where-Object { $_.CommandLine -match '--profile' } |
+  Select-Object ProcessId, CommandLine,
+    @{n='ElapsedSeconds';e={[int](New-TimeSpan -Start $_.CreationDate).TotalSeconds}} |
+  ConvertTo-Json -Compress"#;
+    let out = Command::new("powershell")
+        .args(["-NoProfile", "-Command", ps])
+        .creation_flags(CREATE_NO_WINDOW)
+        .output();
+    let out = match out {
+        Ok(o) if o.status.success() => o.stdout,
+        _ => return Vec::new(),
+    };
+    let text = String::from_utf8_lossy(&out);
+    let text = text.trim();
+    if text.is_empty() {
+        return Vec::new();
+    }
+    // ConvertTo-Json は 1件のみのときオブジェクト（配列でない）を返す
+    let items: Vec<serde_json::Value> = match serde_json::from_str::<serde_json::Value>(text) {
+        Ok(serde_json::Value::Array(a)) => a,
+        Ok(v @ serde_json::Value::Object(_)) => vec![v],
+        _ => return Vec::new(),
+    };
+    items
+        .iter()
+        .filter_map(|p| {
+            let pid = p.get("ProcessId")?.as_u64()? as u32;
+            let cmdline = p.get("CommandLine").and_then(|c| c.as_str()).unwrap_or("");
+            Some(serde_json::json!({
+                "pid": pid,
+                "profile": profile_from_cmdline(cmdline),
+                "commandline": cmdline,
+                "elapsed_seconds": p.get("ElapsedSeconds").and_then(|e| e.as_i64()).unwrap_or(0),
+            }))
+        })
+        .collect()
+}
+
+async fn processes_handler(State(state): State<AppState>) -> Json<serde_json::Value> {
+    let _ = state;
+    let procs = tokio::task::spawn_blocking(list_launcher_qgis_processes)
+        .await
+        .unwrap_or_default();
+    Json(serde_json::json!({ "processes": procs }))
+}
+
+/// `pid` が `--profile` 付き QGIS（ランチャー経由起動）なら taskkill する。
+/// 無関係プロセスの誤終了と PID 再利用事故を防ぐため帰属を再検証する。
+async fn kill_process_handler(Path(pid): Path<u32>) -> Result<Json<serde_json::Value>, StatusCode> {
+    let result = tokio::task::spawn_blocking(move || {
+        let procs = list_launcher_qgis_processes();
+        let owned = procs.iter().any(|p| p.get("pid").and_then(|v| v.as_u64()) == Some(pid as u64));
+        if !owned {
+            return Err("not a launcher-started QGIS process".to_string());
+        }
+        Command::new("taskkill")
+            .args(["/PID", &pid.to_string(), "/T", "/F"])
+            .creation_flags(CREATE_NO_WINDOW)
+            .output()
+            .map_err(|e| e.to_string())
+            .and_then(|o| {
+                if o.status.success() { Ok(()) }
+                else { Err(String::from_utf8_lossy(&o.stderr).trim().to_string()) }
+            })
+    })
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    match result {
+        Ok(()) => Ok(Json(serde_json::json!({ "ok": true }))),
+        Err(e) => Ok(Json(serde_json::json!({ "ok": false, "error": e }))),
+    }
 }
 
 #[derive(Serialize)]
