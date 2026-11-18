@@ -1,5 +1,308 @@
 # 変更履歴(Changelog)
 
+## 4.22.0
+
+- **Qt6 クラッシュ対策: ボタンイベント内の重い同期処理と messageBar 通知を次イベントループへ遅延**。
+  `clicked` は `QAbstractButton::mouseReleaseEvent` 内で発火するため、
+  「Export」「ZIP」「▶ Canvas」「▶ WebView」が行う同期エクスポート+
+  `pushMessage`(QgsMessageBarItem 生成時のスタイルシート/アイコン解決)
+  がイベント処理中に走り、Qt6 環境でアクセス違反を起こすことがあった。
+  該当ボタンのハンドラを `QTimer.singleShot(0)` で次ティックへ送り、
+  全 `pushMessage` 呼出し(40箇所)を `_push_message` ラッパー経由の
+  遅延通知へ置き換え(QGIS 本体の Qt6 イベントハンドラ対策と同じ
+  キューイング方針)。ラッパーは context=mainWindow 付き
+  `singleShot` で呼出しスレッドに関わらず GUI スレッド実行を保証し、
+  非対応環境では無 context `singleShot`→従来の即時通知へ順に退避する
+- **修正: `image:` 行のタイトルが `{0}` リテラルのまま出力される不具合**。
+  ラスタ PNG 焼き込み(baked)行の `.format` が末尾文字列にのみ
+  適用されており、`.kasc` の image: 行タイトルが `{0}` になっていた
+- **ベクター出力形式に `geojson`(WEB連携)モードを追加**。`native`/
+  `recommended` に続く第3モードとして、全ベクター(FlatGeobuf/GeoParquet
+  ソース・WFS/メモリ等を含む)を GeoJSON(EPSG:4326) へ変換し
+  `canvas_data/` へ `geojson:` 行として配置する。`canvas_data/` が
+  オープン標準の GeoJSON のみになるため KASUGAI Canvas 以外の
+  WebGIS・GIS ツールでもそのまま読み込める相互運用向けモード。
+  切替経路は既存と同じ4系統(パネル Format コンボ・設定ダイアログ
+  Vector Export Format・`GET /kasugai?fmt=geojson`・bridge
+  `kasugaiExport(vector_format='geojson')`、永続キーは共通の
+  `kasugai_vector_format`)。GEOJSON 固定出力のため FlatGeobuf→
+  Parquet のドライバフォールバックは使わない。
+  UI ラベル `geojson (WEB interop → GeoJSON)`・ツールチップ・
+  設定ダイアログの3モード説明文を i18n 9言語カタログへ登録し、
+  SPEC.md・docs/spec.html・skills/webgis-convert.md・panel_base.ui を
+  3モード記述へ同期(kasugai_canvas 側 docs/data-recommend.html の
+  WEB連携ルートも「予定」から実装済みへ更新)
+- **出力データフォルダを `canvas_data/` に統一**。従来 `link_files` の値で
+  分かれていた出力先（`link_files=False` のサーバレス配布=`DATA/`、
+  `link_files=True` の複写なしWeb化=`canvas_data/`）を、両モード共通で
+  `canvas_data/` へ一本化。KASUGAI Canvas 本体のプロジェクト構造
+  `projects/<id>/canvas_data/` とも一致するようになった。
+  `.kasc` 内のデータ参照は `canvas_data/...` で出力され、旧 `DATA/` 構成の
+  プロジェクトは Canvas 側（`/api/files`・参照解決・納品ローカル化）が
+  後方互換で読む。あわせて SPEC.md・docs/・i18n・スキル・panel_base.ui・
+  metadata.txt・verify 資産の `DATA/` 表記を `canvas_data/` へ同期
+- ドキュメント修正: ネイティブ参照できないベクターの変換先は 4.17.0 以降
+  **FlatGeobuf(EPSG:4326・空間インデックス付き) が第1候補**(非搭載時 Parquet、
+  失敗時 GeoJSON フォールバック)だが、`docs/spec.html`/`SPEC.md` の
+  .kasc 行生成規則表・`docs/technical.html`・bridge `kasugaiExport` docstring が
+  旧「GeoJSON 変換」記述のままだったのを実装へ整合。
+  `skills/webgis-convert.md` の where-eval 非対応時の回り先も同様に修正。
+  あわせて `kasugai_export.py` の `_native_ref` docstring・関連コメントの
+  「GeoJSON 再エクスポート/変換」表記をフォールバック変換の実態へ揃えた
+  (kasugai_canvas 側 `docs/data-recommend.html` の WEBVIEW連携図も同期修正)
+
+## 4.21.0
+
+- **`embed_gpkg_style` を廃止しスタイル配布を .qml+`style=` の1系統に統一**。
+  GPKG の `layer_styles` テーブルへ既定スタイルを書き込む
+  opt-in 経路(元 .gpkg ファイルを更新する副作用があった)を
+  `export_kasugai_project`・bridge `kasugaiExport` の引数ごと撤去
+  (`_native_ref` の embed_style 引数・`_embed_gpkg_style` 関数も削除)。
+  スタイルは全データ形式で `DATA/<slug>.qml`+`| style=` に一本化。
+  既存コードで embed_gpkg_style を指定していた呼出しは引数削除に注意
+- **パネルにベクター出力形式の直接切替を追加**。Web Distribution
+  グループの Export 行の下に **Format:** コンボ
+  (`comboBox_vector_format`)を新設し、
+  `native (reference as-is)` / `recommended (FlatGeobuf → DATA/)`
+  をドロップダウンで即切替できるようにした。
+  設定ダイアログの Vector Export Format と同じ
+  `kasugai_vector_format` を読み書きするため双方向に同期する
+  (4.20.0 で追加した推奨形式スイッチの第4の切替経路)。
+  選択は `on_vector_format_changed` →
+  `kasugai_export.set_vector_export_mode()` で即保存され、
+  Export ボタン・`/kasugai`(fmt 未指定時)・bridge の全経路に効く
+- あわせて 4.20.0 で未登録だった設定ダイアログの
+  Vector Export Format 関連文字列を i18n カタログ(9言語)へ登録
+- `docs/spec.html`/`SPEC.md` に「ベクター出力形式(native/recommended)」
+  「.qml スタイル出力」の2節を追加。推奨形式スイッチの4切替経路・
+  永続/一時上書きの違い、.qml がデータ形式と独立に全モードで
+  `| style=DATA/x.qml` 付きで出力される仕様を明文化
+
+
+## 4.20.0
+
+- **ベクター出力の「推奨形式スイッチ」(vector_format)を追加**。
+  エクスポート全体を「推奨形式へ変換して DATA/ へ配置」するモードを
+  3経路で切替可能にした
+  - 設定ダイアログ新設 **Vector Export Format** グループ
+    (`kasugai_vector_format`、ON/OFF の変換ルールを併記表示)
+  - `GET /kasugai?fmt=recommended|native`
+    （応答 JSON に `vector_format` を含む）
+  - bridge `kasugaiExport(vector_format='recommended')`
+  - **ON(recommended)**: gpkg/geojson/shp/csv/kml/wfs 等のソースを
+    すべて FlatGeobuf へ EPSG:4326 で変換し DATA/ へ配置
+    (`flatgeobuf:` 行。Canvas では `bbox=auto` の空間インデックス
+    +Range 範囲読みが効く)。既に FlatGeobuf/GeoParquet のソースは
+    `flatgeobuf:`/`geoparquet:`/`duckdb:+format=parquet` 参照を維持。
+    subsetString・fields/where/limit は変換データへ焼き込み
+  - **OFF(native・既定)**: 従来どおり読めるソースはそのまま参照
+  - `export_kasugai_project` に `vector_format` 引数を追加
+    (None は QSettings 解決)。`verify/features.json` に5件登録
+- `skills/webgis-convert.md` に推奨形式スイッチの切替経路と
+  変換ルールを追記
+
+
+## 4.19.2
+
+- `kascImport` の `bbox=` 判定を修正。`bbox=auto`/`bbox=off` 等の
+  表示範囲連動クエリ指定(`gpkg:`/`duckdb:`/`flatgeobuf:`)を描画範囲制限
+  の4数値として誤解して警告を出していたのを、モード値として除外するよう修正
+  （Canvas 側で `flatgeobuf:` に `bbox=auto` 既定 ON の空間インデックス
+  +Range 範囲読みが追加されたことへの同期）
+- `skills/webgis-convert.md` の FlatGeobuf 行を更新:
+  `bbox=auto` 既定 ON（表示範囲のみ部分読み）・`bbox=off` で全件、
+  索引なし・Range 非対応サーバーは全件へフォールバックを明記
+
+
+## 4.19.1
+
+- `kascInspect`/`kascImport` の Canvas 専用オプション未適用報告を拡充。
+  Canvas 側(CesiumJS 監査対応)で追加された `3dtiles:` の
+  `tilestyle`/`tilecolor`/`tileshow`/`tilepointsize`/`sse`/`edl`、
+  ベクター行の `scaledist`/`transldist`/`pixoffdist`/`splitdir`/
+  `strot`/`subregion`、`wms:` の `infoformat` を、
+  QGIS へ未適用のまま警告列挙する対象へ追加
+
+## 4.19.0
+
+- **QML 内ユーザー関数を組込み式へ自動展開**して出力。
+  geo_userfunc 側で `@qgsfunction` 関数の docstring に
+  `@expr: <式テンプレート>` を宣言すると、`saveNamedStyle` /
+  テーマスタイル(`xmlData`)で出力した `.qml` を後処理し、
+  DD `expression`・ルール `filter`・ラベル `fieldName`
+  (isExpression)・`geometryModifier`・`weight_expression` 内の
+  呼出しを `QgsExpression` ノードスパン単位で宣言式へ書き換える。
+  配布 `.kasc`+`DATA/` が Canvas の関数実装なしに自己完結する
+  （宣言の無い関数は従来通り残り、Canvas 側で警告+フォールバック）
+  - 第一号: `line_width(0.2,0.08,15000,@map_scale)` →
+    `clamp(0.08, 0.2*15000/@map_scale, 0.2)`
+  - bridge `geo_userfunc.expansions()` で展開テーブルを取得
+
+## 4.18.0
+
+- **`.kasc` をプロジェクトファイル隣へ出力する「複写なし Web化」
+  (link_files) を既定化**。`export_kasugai_project` に
+  `link_files=True`(既定)を追加:
+  - 出力先の優先順位: 明示 out_dir > QSettings
+    ``kasugai_output_path`` > (link 時)プロジェクトファイル
+    (.qgs/.qgz)のフォルダ > 既定出力先。保存済みプロジェクトは
+    ``<プロジェクトdir>/kasugai_canvas.kasc`` に直接出力
+  - 参照可能なデータは**原本を複写せず相対パスで参照**:
+    プロジェクトdir配下は ``near.geojson`` 形式、1階層上
+    (ワークスペース)は ``../up.gpkg`` 形式(Canvas サーバの外部
+    プロジェクト @parent 解決で配信)。Shapefile/3D Tiles/ローカル
+    XYZ ツリーも原本の場所をそのまま参照
+  - 相対化できないファイル(2階層以上上・別ドライブ)と変換が必要な
+    データのみ ``canvas_data/`` サブフォルダへ出力(従来の DATA/ の
+    代替)。.qml スタイルも canvas_data/ へ
+  - link 時のエンジン起動HTML(emit_launchers)は既定 OFF
+    (サーバレス配布用途のみ・明示 True で生成可)
+  - ``link_files=False`` で従来互換(out_dir/DATA/ へ全複写)
+  - `existing_export` はプロジェクト隣接 .kasc も探索
+  - bridge ``kasugaiExport`` に ``link_files`` 引数を追加
+  - Canvas 側 `shared/kasc.js` も対応: 外部プロジェクトの ``..``
+    参照を ``@parent`` へ変換し Cesium 以外のエンジンでも
+    プロジェクト外の原本参照を配信できるようにした
+
+## 4.17.0
+
+- **`.kasc` ネイティブ参照の形式拡大＋フォールバック変換先を
+  FlatGeobuf へ変更**。Canvas 対応形式(ogrsql: 行まで)を
+  `_native_ref` が直接参照するよう拡張:
+  - 新規ネイティブ参照: `.kml`/`.kmz`(`kml:`)、`.gpx`(`gpx:`)、
+    `.topojson`(`.json`/`topojson=`)、`.czml`、`.igc`、
+    `.gml`、`.zip`(Shapefile ZIP→`shp:`)、`.sqlite`/`db`/`mdb`→`ogrsql:`
+  - Shapefile: `.shp` 指定時は `.dbf`/`.shx`/`.prj` 等の
+    sidecar 一式を DATA/ へ複製して `shp:` 行を出力
+  - QGIS `WFS` プロバイダレイヤ → `wfs:` 行(URL+typename を
+    プロバイダ URI から再構成、version=2.0.0 既定)
+  - リモート http(s)/vsicurl も同形式を直参照
+  - `_export_geojson` → `_export_vector` に汎用化し、
+    フォールバック変換先を FlatGeobuf(空間インデックス付き・
+    GeoJSON より軽量・全エンジン対応)を第1候補へ変更。
+    ドライバ非搭載/失敗時は Parquet→GeoJSON の順でフォールバック。
+    `fields`/`where`/`limit` の焼き込みも同じ経路で行う
+  - `kasc_import.py` も新行タイプ(`gpx`/`topojson`/`czml`/`esrijson`/
+    `geojsonl`/`wkt`/`wkb`/`igc`/`polyline`/`gml` 等)をパース対象に追加
+    (ogr で読めるものは QGIS レイヤ化、読めないものは skipped 報告)
+
+## 4.16.0
+
+- **`.kasc` エクスポートの属性フィールド選択・行フィルタ・地物数上限**
+  (Issue #14)。bridge `kasugaiExport` と
+  `export_kasugai_project` に `fields`/`where`/`limit` 引数を追加。
+  いずれも全レイヤ共通値、または `{レイヤ名 or レイヤID: 値}` の
+  レイヤ毎 dict を受け付ける(QGIS「ベクタレイヤを保存」ダイアログの
+  フィールド選択、ogr2ogr の `-select`/`-where`/`-limit` 相当)。
+  - `fields`: 出力する属性列名のリスト(カンマ区切り文字列も可)。
+    `DATA/*.geojson` の properties が選択列のみになる。
+    存在しない列名はそのレイヤを errors へ記録して除外
+  - `where`: QgsExpression 式で出力地物を絞る。レイヤの
+    プロバイダフィルタ(subsetString)とは AND 適用。
+    式のパースエラーは errors へ記録してそのレイヤを除外
+  - `limit`: レイヤ毎の出力地物数上限(1以上の整数。
+    大容量レイヤの配信サイズ制御用)
+  - いずれかを指定したベクターレイヤはネイティブ参照
+    (`gpkg:`/`geojson:` 等)を使わず、QgsFeatureRequest+materialize で
+    条件適用済みの地物を GeoJSON 変換で焼き込む。どのソース形式でも
+    フィルタが出力データへ確実に反映される
+    (.kasc 行形式・Canvas 側の変更は不要)
+  - `layers` 結果の各レイヤ辞書に `filter` キーで適用条件を返す
+
+## 4.15.0
+
+- **Re:Earth CMS 連携を追加**(`reearth_cms.py` 新設、Issue #11)。
+  Integration API(`https://api.cms.reearth.io/api`)を使い、
+  ベクタレイヤを CMS アイテムとして登録(Phase 1)し、
+  `.kasc`+`DATA/` 出力物を ZIP 化して CMS アセットとして
+  アップロード・公開(Phase 2、assets.cms.reearth.io 公開URL取得)できる。
+  bridge メソッド: `cmsStatus`/`cmsSettings`/`cmsSchema`/
+  `cmsRegisterLayer`(属性→フィールドkey マッピングは同名自動対応＋
+  dict 指定。`geometry_key` で地物ジオメトリを EPSG:4326 GeoJSON
+  geometry として格納、`publish` で即公開)/`cmsUploadKasc`。
+  インテグレーショントークンは環境変数 `REEARTH_CMS_TOKEN` 優先、
+  未設定時は QSettings `reearth_cms_token`。bridge はトークン値を
+  返さない(リポジトリへのコミット禁止)。読み取り側(CMSアイテムの
+  レイヤ読み込み等)は kasugai_canvas#132 が担う
+- **`ogrsql:` 行タイプの取り込みに対応**(`kasc_import.py`)。
+  Canvas 側で新設された OGR SQL SELECT 行(`ogrsql:タイトル|SELECT ...`)を
+  QGIS 側でもネイティブに復元する。`ogr.ExecuteSQL(dialect="OGRSQL")` を
+  QGIS 内の GDAL で直接実行し、結果を memory プロバイダのベクターレイヤー
+  として追加する。FROM 参照は QGIS プロジェクトレイヤー(表示名/レイヤーID)・
+  `'ds'.'layer'` 形式・DATA/ 相対パス・http(s) URL(/vsicurl/)を解決し、
+  クエリ末尾の Canvas オプション(`| off`/`| attr=`/`| render=` 等)は
+  実行前に除去する。QGIS4 の `QgsGeometry().fromWkb`(インスタンスメソッド)・
+  `ogr.Open`(OpenEx 非対応)に準拠
+- **`where=` を「行の最終オプション・値は改行まで」の厳格規約へ変更**。
+  式中に `|`(`||` 連結・`'a|b'` リテラル等)を含む subsetString も
+  そのまま `where=` へ出力できるようになった(従来は `|` 含有で
+  GeoJSON 変換へ逃がしていた)。`off` や他の `key=value` は
+  `where=` より前に置く。`view:` の `;where=` は対象外(値に `|` 不可)。
+  where-eval.js(クライアント評価)は `||` 文字列連結に対応済みのため
+  `||` 含む式も `geojson:`/`flatgeobuf:`/`geoparquet:` でそのまま送出する
+  (単独 `|` のビット演算・`%` 剰余は非対応のまま GeoJSON 焼き込み。
+  `gpkg:`/`duckdb:` は SQL 評価でいずれもそのまま渡る)。
+  書き出し順も `where=` を必ず行末に出すよう整理した
+  (kasc_import.py 側も行末規約で `|` 含む式を復元)
+- レイヤーフィルタ(subsetString)の `where=` 送出を全ネイティブ形式へ拡大。
+  従来 `gpkg:`/`duckdb:` 系のみだった `where=` を
+  `geojson:`/`flatgeobuf:`/`geoparquet:`(URL)行にも発行する
+  (Canvas 側 shared/where-eval.js の OGR SQL WHERE句準拠クライアント
+  評価。ローカル/URL・GeoJSON/FGB を含む全分岐で統一)。
+  where-eval が解釈できない式(サブクエリ・未対応関数・QGIS式記法)は
+  従来通り GeoJSON 変換でフィルタを地物へ焼き込む。
+  ローカル Parquet は従来通り `duckdb:+format=parquet+where=` で SQL 評価
+- kasc_import.py のメタ行タイプに `view:`/`html:`/`portal:`/`link:` を追加。
+  `portal: … | html=ファイル/URL` のポータル全体HTML指定と
+  HTML内 `data-view=`/`data-link=`/`data-cam=`/`data-base=`/`data-clear`/`data-close` の
+  GIS操作属性も Canvas 側で実装済み(全エンジン共通の shared/portal.js で動作)
+  Canvas 側の新行形式(ポータル開始画面・目的別ビューカード)を
+  .kasc 逆取り込み時にレイヤ行と誤認しないよう読み飛ばし対象へ登録
+- `skills/webgis-convert.md` を追加(geo_driver から移動)。
+  geo_driver の同梱指示書集約がプラグイン別 `skills/` 対応になったため、
+  KASUGAI Canvas 向け変換・kasugaiExport の手順書は本プラグインの責務として同梱する
+
+## 4.14.0
+
+- **`.kasc` 逆取り込み機能を追加**(kasc_import.py + bridge
+  `kascInspect`/`kascImport`)。`kasugaiExport` の逆方向として、
+  `.kasc+DATA/`(ローカルパスまたは http(s) URL)を QGIS プロジェクトへ
+  再構成する。`xyz:`/`base:`→XYZラスタ、`wms:`/`wmts:`→WMSラスタ、
+  `geojson:`/`gpkg:`/`geoparquet:`/`flatgeobuf:`/`shp:`/`kml:`→
+  ベクター(ogr)、`duckdb:`/`csv:`/`tsv:`→delimitedtext(ローカル)または
+  ogr、`mvt:`/`pmtiles:`→ベクタータイル、`3dtiles:`→TiledScene、
+  `geotiff:`/`image:`→ラスタ、`fly_geojson:`→ベクター。
+  `style=`(.qml・リモートは一時DL)・`minScale=`/`maxScale=`・
+  `opacity=`・`where=`→subsetString・`attr=`/`出典`→attribution・
+  タイトルの `/` → レイヤツリーグループ(`//` は排他グループ)・
+  `| off`・`group:` 折りたたみ・`theme:` → マップテーマ・
+  `bookmark:` → bookmarks.xml インポート・`cam:` → キャンバス
+  中心/縮尺(送出側近似式 h=scale*0.2 の逆算)/回転を復元する。
+  `bbox=` は Canvas の描画範囲制限として、
+  setMapClippingRegion のあるQGIS系ではクリッピング領域、
+  無い系(QGIS4)ではラスタの setExtent(レイヤCRSへ変換した矩形)
+  へフォールバック適用する(ベクターは未対応として警告)。
+  theme: のレイヤ照合は NFKC 正規化+リーフ名でも行い、
+  空テーマは `レイヤ指定なし` と区別して警告する。
+  `kascInspect` はプロジェクトを変更しない dry run(集計+参照解決)。
+  応答は `added`/`skipped`(理由付き)/`warnings`(Canvas専用オプション=
+  extrude/time等の未適用を列挙)を返す。既存 WebGIS → QGIS →
+  再エクスポートの変換パイプラインの往路として、AIスキル
+  `webgis-import` から呼ばれる想定
+- `kascImport` に **`replace` オプション**(既定 False)を追加。
+  取込レイヤへ `kasc_source` カスタムプロパティ(正規化した
+  source キー)を付与し、replace=True では同キーの前回取込
+  レイヤと取込専用に作成した空グループを除去してから取り込む
+  冪等モード(応答 `replaced` に除去数)。同じ .kasc の
+  再取り込みで重複しない
+- **同梱 AI スキルを `skills/` に配置**(geo_driver の集約拡張で
+  `qgis-plugin/<id>/skills/*.md` が全プラグインから読めるようになった
+  ため責務プラグイン側へ移設): `skills/webgis-convert.md`
+  (geo_driver から移動・Canvas 向け形式変換の手順書)と
+  `skills/webgis-import.md`(新規・既存 WebGIS/.kasc の QGIS 取り込み
+  手順書。`kascInspect`/`kascImport` と汎用 Web ソースの
+  pyeval レシピを記載)の2本
+
 ## 4.13.1
 
 - 個別利用時にGeoSuiteツールバーが表示されない不具合を修正。

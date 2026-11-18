@@ -27,8 +27,8 @@ from qgis.core import *
 from qgis.gui import *
 from qgis.utils import *
 
-from PyQt5.QtCore import Qt, QDate, QTime, QDateTime, QCoreApplication
-from PyQt5.QtWidgets import QAction, QMessageBox, QApplication
+from qgis.PyQt.QtCore import Qt, QDate, QTime, QDateTime, QCoreApplication
+from qgis.PyQt.QtWidgets import QAction, QMessageBox, QApplication
 
 # レイヤ変数定義
 TEMPLATE_PATH = "xlsout_list_template_path"

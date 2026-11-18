@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>geo_userfunc ドキュメント | QGIS Live Harness</title>
+<meta name="description" content="ユーザー定義Pythonコード(式関数/フック/マクロ)のライブラリ管理プラグイン">
+<link rel="stylesheet" href="style.css">
+<script src="nav.js" defer></script>
+</head>
+<body>
+<div class="container">
+<header>
+<h1>geo_userfunc</h1>
+<p>ユーザー定義Pythonコード(式関数/フック/マクロ)のライブラリ管理プラグイン</p>
+</header>
+<main>
+
+<p>ユーザー定義Pythonコード(式関数・フック・マクロ)のライブラリ管理プラグイン。</p>
+<h2 id="できること">できること</h2>
+<p><code>&lt;profile&gt;/python/geo_userfunc/</code> に置いた <code>*.py</code> をファイルの中身(AST)で
+自動分類し、型に応じてQGISへ登録します。</p>
+<table>
+<thead>
+<tr>
+  <th>型</th>
+  <th>判定条件</th>
+  <th>登録先</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>関数型</td>
+  <td><code>@qgsfunction</code> デコレータ付き関数</td>
+  <td>式エンジン(フィールド計算等で使える)</td>
+</tr>
+<tr>
+  <td>フック型</td>
+  <td><code>openProject</code>/<code>saveProject</code>/<code>closeProject</code> 定義</td>
+  <td>プロジェクト信号へ自動配線</td>
+</tr>
+<tr>
+  <td>マクロ型</td>
+  <td><code>main(context)</code> 定義</td>
+  <td>プラグインメニュー + <code>bridge.run()</code></td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-python"># マクロ型のエントリ規約 — context には iface/任意レイヤ/他プラグインが入る
+def main(context):
+    iface = context[&quot;iface&quot;]
+    geo_excel = context[&quot;plugins&quot;].get(&quot;geo_excel&quot;)
+    if geo_excel:
+        geo_excel.bridge.run(&quot;list&quot;, None, True)
+</code></pre>
+<h2 id="管理">管理</h2>
+<ul>
+<li><strong>プラグイン &gt; geo_userfunc &gt; User function library...</strong> で管理ダイアログ
+(GeoSuite共有ツールバーのアイコンからも開ける)</li>
+<li>有効/無効の切替・編集・再読込・URL取得・upstream一括更新</li>
+<li>有効状態は <code>manifest.json</code> に永続化</li>
+</ul>
+<h2 id="ai外部制御">AI/外部制御</h2>
+<p><code>geo_driver</code> の <code>bridge_call</code> から利用:</p>
+<pre><code class="language-json">{&quot;command&quot;: &quot;bridge_call&quot;, &quot;plugin&quot;: &quot;geo_userfunc&quot;,
+ &quot;method&quot;: &quot;evalExpression&quot;, &quot;args&quot;: [&quot;zen2han('ＡＢＣ１２３')&quot;]}
+</code></pre>
+<p>主なメソッド: <code>listFunctions</code> / <code>listMacros</code> / <code>run</code> / <code>evalExpression</code> /
+<code>readFunction</code> / <code>saveFunction</code> / <code>deleteFunction</code> / <code>setEnabled</code> /
+<code>reload</code> / <code>updateFromUpstream</code> / <code>status</code> / <code>openManager</code></p>
+<p><code>saveFunction</code> → <code>reload</code> → <code>evalExpression</code> で、AIが関数を書いて
+即座に登録・動作確認するループを回せます。</p>
+<h2 id="他プラグインからの登録">他プラグインからの登録</h2>
+<pre><code class="language-python">def register_user_functions(self, registry):
+    registry.register_macro(
+        &quot;my_plugin.my_macro&quot;, title=&quot;My macro&quot;,
+        callback=self._run, plugin_id=&quot;my_plugin&quot;)
+</code></pre>
+<p>geo_userfunc の initGui がこの規約メソッドを探索して呼びます(pull)。
+または各プラグインの initGui で <code>plugins['geo_userfunc'].registry</code> を
+直接呼ぶこともできます(push)。geo_userfunc が無い環境では
+各プラグインが自前のメニューへフォールバックしてください。</p>
+<h2 id="upstream-追従">upstream 追従</h2>
+<p>同梱 <code>functions/</code> は初回起動時にライブラリdirへシードされ、
+その後はライブラリdirが正本です。<code>sources.json</code> に定義されたURLは
+管理ダイアログまたは <code>updateFromUpstream</code> で再取得できます。</p>
+<p>初期同梱: <a href="https://github.com/yamamoto-ryuzo/QGIS_user_function">QGIS_user_function</a>
+の <code>python</code>(<code>zen2han</code> 式関数など)を <code>user_functions.py</code> として同梱。</p>
+<h1>免責事項</h1>
+<p>本システムは個人のPCで作成・テストされたものです。<br />
+ご利用によるいかなる損害も責任を負いません。</p>
+<p align="center">
+  <a href="https://giphy.com/explore/free-gif" target="_blank">
+    <img src="https://github.com/yamamoto-ryuzo/QGIS_portable_3x/raw/master/imgs/giphy.gif" width="500" title="avvio QGIS">
+  </a>
+</p>
+
+
+
+<h2>関連リンク</h2>
+<ul>
+  <li><a href="https://yamamoto-ryuzo.github.io/qgis_live_harness/plugins.html">プラグイン一覧(サイト)</a></li>
+  <li><a href="https://github.com/yamamoto-ryuzo/qgis_live_harness/blob/master/qgis-plugin/geo_userfunc/README.md">README(GitHub)</a></li>
+  <li><a href="https://github.com/yamamoto-ryuzo/qgis_live_harness/blob/master/qgis-plugin/geo_userfunc/CHANGELOG.md">CHANGELOG(GitHub)</a></li>
+</ul>
+<p><small>正本は <code>qgis-plugin/geo_userfunc/docs/</code>。
+サイトの <code>docs/geo_userfunc/</code> は
+<code>scripts/build-plugin-docs.py</code> によるミラーです。</small></p>
+</main>
+</div>
+</body>
+</html>

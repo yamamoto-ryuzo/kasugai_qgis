@@ -37,6 +37,7 @@ ai_panel のエージェントループはプロバイダ非依存で回る。
 
 import base64
 import hashlib
+import inspect
 import itertools
 import json
 import os
@@ -141,6 +142,7 @@ GITHUB_ACCESS_TOKEN_URL = "https://github.com/login/oauth/access_token"  # nosec
 PROVIDERS = {
     "openai": {
         "label": QT_TRANSLATE_NOOP("geo_driver", "OpenAI-compatible"),
+        "tag": "【API】",
         "base": DEFAULT_BASE_URL,
         "model": DEFAULT_MODEL,
         "key_hint": QT_TRANSLATE_NOOP(
@@ -152,6 +154,7 @@ PROVIDERS = {
     },
     "anthropic": {
         "label": "Anthropic (Claude)",
+        "tag": "【API】",
         "base": ANTHROPIC_DEFAULT_BASE,
         "model": ANTHROPIC_DEFAULT_MODEL,
         "key_hint": QT_TRANSLATE_NOOP(
@@ -161,6 +164,7 @@ PROVIDERS = {
     },
     "gemini": {
         "label": "Gemini",
+        "tag": "【API】",
         "base": GEMINI_DEFAULT_BASE_URL,
         "model": GEMINI_DEFAULT_MODEL,
         "key_hint": QT_TRANSLATE_NOOP(
@@ -170,6 +174,7 @@ PROVIDERS = {
     },
     "azure": {
         "label": "Azure OpenAI",
+        "tag": "【API】",
         "base": ("https://<resource>.openai.azure.com"
                  "/openai/deployments/<deployment>"),
         "model": AZURE_DEFAULT_MODEL,
@@ -181,6 +186,7 @@ PROVIDERS = {
     },
     "copilot": {
         "label": "GitHub Copilot",
+        "tag": "【API】",
         "base": COPILOT_DEFAULT_BASE,
         "model": COPILOT_DEFAULT_MODEL,
         "key_hint": QT_TRANSLATE_NOOP(
@@ -192,6 +198,116 @@ PROVIDERS = {
             "https://api.githubcopilot.com  (URL of a compatible "
             "proxy such as copilot-api)"),
     },
+    "devin_acp": {
+        "label": "Devin",
+        "tag": "【ACP】",
+        "base": "",
+        "model": "default",
+        "key_hint": QT_TRANSLATE_NOOP(
+            "geo_driver",
+            "not required (uses the IDE's Devin sign-in)"),
+        "endpoint_hint": QT_TRANSLATE_NOOP(
+            "geo_driver",
+            "working directory for Devin sessions "
+            "(default: user home)"),
+    },
+    "copilot_acp": {
+        "label": "GitHub Copilot",
+        "tag": "【ACP】",
+        "base": "",
+        "model": "default",
+        "key_hint": QT_TRANSLATE_NOOP(
+            "geo_driver",
+            "not required (uses the Copilot CLI / gh sign-in)"),
+        "endpoint_hint": QT_TRANSLATE_NOOP(
+            "geo_driver",
+            "working directory for Copilot CLI sessions "
+            "(default: user home)"),
+    },
+    "acp": {
+        "label": QT_TRANSLATE_NOOP("geo_driver", "Custom agent"),
+        "tag": "【ACP】",
+        "base": "",
+        "model": "default",
+        "key_hint": QT_TRANSLATE_NOOP(
+            "geo_driver",
+            "working directory for the agent session "
+            "(default: user home)"),
+        "endpoint_hint": QT_TRANSLATE_NOOP(
+            "geo_driver",
+            "ACP launch command for an arbitrary agent CLI "
+            "(e.g. my-agent acp)"),
+    },
+    "devin_bridge": {
+        "label": "Devin",
+        "tag": "【ブリッジ】",
+        "base": DEFAULT_BASE_URL,
+        "model": DEFAULT_MODEL,
+        "key_hint": QT_TRANSLATE_NOOP(
+            "geo_driver",
+            "API key of the backing OpenAI-compatible endpoint "
+            "(the chat LLM delegates work to Devin via the "
+            "qgis_devin_* tools)"),
+        "endpoint_hint": QT_TRANSLATE_NOOP(
+            "geo_driver",
+            "OpenAI-compatible endpoint driving the delegation chat "
+            "(e.g. https://api.openai.com/v1)"),
+    },
+    "copilot_bridge": {
+        "label": "GitHub Copilot",
+        "tag": "【ブリッジ】",
+        "base": DEFAULT_BASE_URL,
+        "model": DEFAULT_MODEL,
+        "key_hint": QT_TRANSLATE_NOOP(
+            "geo_driver",
+            "API key of the backing OpenAI-compatible endpoint "
+            "(the chat LLM delegates work to Copilot CLI via the "
+            "qgis_copilot_* tools)"),
+        "endpoint_hint": QT_TRANSLATE_NOOP(
+            "geo_driver",
+            "OpenAI-compatible endpoint driving the delegation chat "
+            "(e.g. https://api.openai.com/v1)"),
+    },
+    "agent": {
+        "label": QT_TRANSLATE_NOOP("geo_driver", "External agent"),
+        "tag": "【ブリッジ】",
+        "base": "",
+        "model": "default",
+        "key_hint": QT_TRANSLATE_NOOP(
+            "geo_driver",
+            "Bearer token for the agent endpoint (optional)"),
+        "endpoint_hint": QT_TRANSLATE_NOOP(
+            "geo_driver",
+            "agent endpoint URL accepting POST {message,...} and "
+            "replying {reply: ...} "
+            "(e.g. http://127.0.0.1:8511/agent)"),
+    },
+}
+
+# 表示順は【API】→【ACP】→【ブリッジ】の分類順
+# (kasugai_canvas の PROVIDER_ORDER と同じ規則)
+PROVIDER_ORDER = ["gemini", "copilot", "azure", "anthropic", "openai",
+                  "copilot_acp", "devin_acp", "acp",
+                  "copilot_bridge", "devin_bridge", "agent"]
+
+# プロバイダ種別タグ → 接続方式の説明(ツールチップ・ヘルプ用)
+PROVIDER_TAGS = {
+    "【API】": QT_TRANSLATE_NOOP(
+        "geo_driver",
+        "Direct LLM API — each message is sent to the model and the "
+        "panel runs the tool loop itself"),
+    "【ACP】": QT_TRANSLATE_NOOP(
+        "geo_driver",
+        "Agent session — a Devin/Copilot CLI session is the chat "
+        "engine and runs its own tool loop (the panel is a chat UI; "
+        "no API key needed — uses the CLI/IDE sign-in; the endpoint "
+        "field is the working directory)"),
+    "【ブリッジ】": QT_TRANSLATE_NOOP(
+        "geo_driver",
+        "Delegation chat — a normal API chat with injected "
+        "instructions to hand substantial work to an agent CLI via "
+        "the qgis_devin_* / qgis_copilot_* tools (the panel still "
+        "drives the tool loop; needs an API endpoint + key)"),
 }
 
 # ---- モデル一覧のメタ情報 ----
@@ -461,6 +577,12 @@ Guidelines:
   GUI thread with `iface`, `QgsProject`, `QgsApplication` and `driver`
   in scope. Expressions return their value; for statements assign the
   output to a variable named `result`.
+- To move the map to a named place (city, address, landmark), prefer
+  `qgis_bridge_call` on geo_search `searchAddress` over hardcoding
+  coordinates. QgsMapCanvas has no "zoom level" API — use
+  zoomScale(denominator), setExtent(), zoomByFactor() or
+  zoomToFeatureExtent(), and transform EPSG:4326 lon/lat to the canvas
+  CRS before setCenter().
 - Use `qgis_status` first if you need to know which plugins are loaded
   or whether a plugin has a WebEngine view.
 - Use `qgis_screenshot` to visually check the map canvas or the main
@@ -470,7 +592,9 @@ Guidelines:
 - `ai_*` tools manage instruction files on this machine:
   `agents` = persistent instructions injected into your system prompt
   (one selected at a time), `skills` = on-demand procedural docs listed
-  in the prompt. You may create or update them when the user asks or
+  in the prompt, `prompts` = canned prompt text shown in the panel's
+  suggestion list (the body is inserted into the user's input field
+  when picked). You may create or update them when the user asks or
   when a reusable procedure emerges. Save always writes a user file;
   bundled files can be shadowed by saving the same id but never deleted.
 - When the user asks to save/learn/create instructions, choose the
@@ -483,6 +607,9 @@ Guidelines:
     a specific task ("remember this workflow", "save how to do X").
     Skills coexist and are read on demand, so this is the default for
     task-specific knowledge.
+  - `prompts`: requests to register a frequently used instruction as
+    a one-click suggestion ("add this to the suggestions"). The file
+    body after the header becomes the text inserted into the input.
   If the intent is genuinely ambiguous, ask the user which they want
   before saving.
 - `mcp_<server>__<tool>` tools (if present) are provided by external
@@ -742,6 +869,189 @@ def chat_completions(base, api_key, model, messages, tools=None,
     if not isinstance(data, dict) or not data.get("choices"):
         raise ApiError(f"Invalid response format: {str(data)[:300]}")
     return data
+
+
+# ---- OpenAI Responses API (POST {base}/responses) ----
+# CopilotのGPT-6系等、/chat/completions を受け付けず /responses 専用の
+# モデル向け(GET /models の supported_endpoints で判別できる)。
+# ワイヤ形式は異なるが、プロバイダ内部ではchat形式のmsgsを保持し、
+# 送信時にだけResponses形式へ変換する(往復でtool_calls/tool結果が
+# 混ざったmsgsを毎回まるごと変換するので状態を持たない)。
+
+def responses_tools(tools):
+    """OpenAI function calling形式 → Responses APIのtools形式。
+    {"type":"function","function":{...}} をフラット化する。"""
+    out = []
+    for t in tools or []:
+        if t.get("type") == "function" \
+                and isinstance(t.get("function"), dict):
+            d = {"type": "function"}
+            d.update(t["function"])
+            out.append(d)
+        else:
+            out.append(t)
+    return out
+
+
+def _responses_content_parts(content, role):
+    """chat形式のcontent → Responsesのcontent parts
+    (user=input_text/input_image, assistant=output_text)。"""
+    text_t = "input_text" if role == "user" else "output_text"
+    if isinstance(content, str):
+        return [{"type": text_t, "text": content}]
+    parts = []
+    for p in content or []:
+        if not isinstance(p, dict):
+            continue
+        t = p.get("type")
+        if t == "text":
+            parts.append({"type": text_t, "text": p.get("text") or ""})
+        elif t == "image_url":
+            parts.append({"type": "input_image",
+                          "image_url":
+                              (p.get("image_url") or {}).get("url") or ""})
+        elif t in ("input_text", "input_image"):
+            parts.append(p)
+    return parts
+
+
+def _tool_result_output(content):
+    """chat形式のtool結果content → function_call_output.output。
+    文字列はそのまま、画像を含むparts列はinput_*形式にする。"""
+    if isinstance(content, str):
+        return content
+    parts = []
+    for p in content or []:
+        if not isinstance(p, dict):
+            continue
+        t = p.get("type")
+        if t == "text":
+            parts.append({"type": "input_text", "text": p.get("text") or ""})
+        elif t == "image_url":
+            parts.append({"type": "input_image",
+                          "image_url":
+                              (p.get("image_url") or {}).get("url") or ""})
+    return parts or json.dumps(content, ensure_ascii=False)
+
+
+def openai_msgs_to_responses_input(msgs):
+    """OpenAI chat形式msgs → (instructions, Responses API input items)。"""
+    instr = []
+    items = []
+    for m in msgs or []:
+        role = m.get("role")
+        if role == "system":
+            c = m.get("content")
+            instr.append(
+                c if isinstance(c, str)
+                else "\n".join(p.get("text") or "" for p in c or []
+                               if isinstance(p, dict)))
+            continue
+        if role == "assistant" and m.get("tool_calls"):
+            if m.get("content"):
+                items.append({"type": "message", "role": "assistant",
+                              "content": _responses_content_parts(
+                                  m["content"], "assistant")})
+            for tc in m["tool_calls"]:
+                fn = tc.get("function") or {}
+                args = fn.get("arguments")
+                items.append({
+                    "type": "function_call",
+                    "call_id": tc.get("id") or "",
+                    "name": fn.get("name") or "",
+                    "arguments": (args if isinstance(args, str)
+                                  else json.dumps(
+                                      args or {}, ensure_ascii=False))})
+            continue
+        if role == "tool":
+            items.append({
+                "type": "function_call_output",
+                "call_id": m.get("tool_call_id") or "",
+                "output": _tool_result_output(m.get("content"))})
+            continue
+        items.append({"type": "message", "role": role,
+                      "content": _responses_content_parts(
+                          m.get("content"), role)})
+    return "\n".join(x for x in instr if x), items
+
+
+def responses_create(base, api_key, model, msgs, tools=None,
+                     timeout=180.0, extra=None, headers=None):
+    """POST {base}/responses (非ストリーミング)して応答JSONを返す。
+
+    @param msgs: OpenAI chat形式メッセージ列(system含む)。
+      systemメッセージはinstructionsフィールドへ移す
+    """
+    instr, inp = openai_msgs_to_responses_input(msgs)
+    body = {"model": model, "input": inp, "store": False}
+    if instr:
+        body["instructions"] = instr
+    if tools:
+        body["tools"] = responses_tools(tools)
+        body["tool_choice"] = "auto"
+    if extra:
+        body.update(extra)
+    hdrs = dict(headers or {})
+    if api_key:
+        hdrs["Authorization"] = f"Bearer {api_key}"
+    data = _post_json(base.rstrip("/") + "/responses",
+                      hdrs, body, timeout)
+    if not isinstance(data, dict) \
+            or not isinstance(data.get("output"), list):
+        raise ApiError(f"Invalid response format: {str(data)[:300]}")
+    return data
+
+
+def parse_responses_output(data):
+    """Responses API応答 → parse()と同じ {"text","calls","raw","usage"}。
+    rawはchat形式のassistantメッセージ(append_exchange互換)。"""
+    text = []
+    calls = []
+    tool_calls = []
+    for item in data.get("output") or []:
+        if not isinstance(item, dict):
+            continue
+        t = item.get("type")
+        if t == "message":
+            for c in item.get("content") or []:
+                if isinstance(c, dict) \
+                        and c.get("type") == "output_text":
+                    text.append(c.get("text") or "")
+        elif t == "function_call":
+            args = item.get("arguments")
+            cid = item.get("call_id") or item.get("id")
+            calls.append({"id": cid,
+                          "name": item.get("name") or "",
+                          "args": parse_tool_arguments(args)})
+            tool_calls.append({
+                "id": cid, "type": "function",
+                "function": {
+                    "name": item.get("name") or "",
+                    "arguments": (args if isinstance(args, str)
+                                  else json.dumps(
+                                      args or {}, ensure_ascii=False))}})
+    raw = {"role": "assistant", "content": "".join(text) or None}
+    if tool_calls:
+        raw["tool_calls"] = tool_calls
+    return {"text": "".join(text), "calls": calls, "raw": raw,
+            "usage": parse_usage(data)}
+
+
+# model id → True で /responses 専用と記録する。
+# Copilotの GET /models の supported_endpoints と、送信時の
+# model_not_supported エラーからのフォールバックで学習する
+_RESPONSES_ONLY_MODELS = {}
+
+
+def _responses_only_error(e):
+    """そのモデルが /chat/completions を受け付けない場合の
+    エラーかを判定する。誤判定の場合 /responses 側が同様に
+    失敗してそのエラーが返るだけなので広めに拾う。"""
+    s = str(e).lower()
+    # "The requested model is not supported." 等の文言揺れも拾う
+    return ("not accessible via the /chat/completions" in s
+            or "model_not_supported" in s
+            or "not supported" in s)
 
 
 # ---- Gemini (generateContent) ----
@@ -1138,9 +1448,35 @@ def skills_dir():
     return os.path.join(_registry_dir(), "skills")
 
 
+def prompts_dir():
+    return os.path.join(_registry_dir(), "prompts")
+
+
 def _bundled_dir(kind):
     """プラグイン同梱のデフォルト <kind> ディレクトリ。"""
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), kind)
+
+
+def _bundled_dirs(kind):
+    """同梱 <kind> ディレクトリ群(geo_driver + 全ロードプラグイン)。
+
+    各プラグインが自身の <plugin>/<kind>/*.md を同梱できるようにし、
+    geo_driver のものを先頭に同名は先勝ちで列挙する。
+    """
+    dirs = [_bundled_dir(kind)]
+    try:
+        import qgis.utils
+        for p in qgis.utils.plugins.values():
+            try:
+                d = os.path.join(
+                    os.path.dirname(inspect.getfile(type(p))), kind)
+            except (TypeError, AttributeError):
+                continue
+            if d not in dirs and os.path.isdir(d):
+                dirs.append(d)
+    except Exception:  # nosec B110  # QGIS外利用の許容
+        pass
+    return dirs
 
 
 # ヘッダーの「使いどき」ラベル(説明文の直後・最初の空行までの間に書く)
@@ -1195,9 +1531,10 @@ def list_instruction_files(kind):
     @returns [{id, title, desc, path, builtin}] (id=ファイル名stemで
       ソート)。bundled→user の順で走査し、同名はユーザ側が上書き。
     """
-    udir = agents_dir() if kind == "agents" else skills_dir()
+    udir = os.path.join(_registry_dir(), kind)
     out = {}
-    for d, builtin in ((_bundled_dir(kind), True), (udir, False)):
+    dirs = [(d, True) for d in _bundled_dirs(kind)] + [(udir, False)]
+    for d, builtin in dirs:
         if not os.path.isdir(d):
             continue
         for f in sorted(os.listdir(d)):
@@ -1223,12 +1560,70 @@ def list_skills():
     return list_instruction_files("skills")
 
 
+def list_prompts():
+    """おすすめプロンプト一覧(チャット入力欄へ挿入する定型文)。"""
+    return list_instruction_files("prompts")
+
+
+def _md_body(path):
+    """_md_head と同規則でヘッダー(#タイトル/説明/use_when)を
+    読み飛ばした残りの本文を返す。"""
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+    except OSError:
+        return ""
+    title = desc = None
+    i = 0
+    while i < len(lines):
+        t = lines[i].strip()
+        if not t:
+            if title and desc:
+                i += 1
+                break
+            i += 1
+            continue
+        if t.startswith("#"):
+            if title is None:
+                title = t.lstrip("#").strip()
+                i += 1
+                continue
+            if desc:
+                break       # 次見出し=ヘッダー終了(その行は本文)
+            i += 1
+            continue
+        if desc is None:
+            if t.startswith("---") or t.startswith("<!--"):
+                i += 1
+                continue
+            desc = t
+            i += 1
+            continue
+        if _WHEN_RE.match(t):
+            i += 1        # use_when 行はヘッダーとして消費
+        break               # ラベル行以外=ヘッダー終了(その行は本文)
+    return "".join(lines[i:]).strip()
+
+
+def prompt_body(item_id):
+    """prompts の id → 入力欄へ挿入する本文。未指定/未存在はNone。
+
+    ヘッダー(#タイトル/説明/use_when)を除いた残りを返す。
+    本文が無いファイルは説明→タイトルの順にフォールバックする。
+    """
+    for a in list_instruction_files("prompts"):
+        if a["id"] == item_id:
+            body = _md_body(a["path"])
+            return body or a.get("desc") or a["title"]
+    return None
+
+
 def _kind_dir(kind):
-    return agents_dir() if kind == "agents" else skills_dir()
+    return os.path.join(_registry_dir(), kind)
 
 
 def _kind_list(kind):
-    return list_agents() if kind == "agents" else list_skills()
+    return list_instruction_files(kind)
 
 
 def load_agent(agent_id):
@@ -1304,13 +1699,17 @@ def delete_instruction(kind, item_id):
 # mcp_http.TOOLS と同じ {name, description, inputSchema} 形にして
 # openai_tools()/gemini_tools() にそのまま混ぜられるようにする。
 
-_KIND_PROP = {"type": "string", "enum": ["agents", "skills"],
+_KIND_PROP = {"type": "string",
+              "enum": ["agents", "skills", "prompts"],
               "description":
                   "agents=役割・方針・出力様式など常時注入の指示書"
                   "(同時に1件のみ有効。人格や「常に〜して」系の依頼向け) / "
                   "skills=特定タスクの手順・レシピ"
                   "(複数共存し必要時だけ読まれる。「この手順を覚えて」"
-                  "系の依頼向け)"}
+                  "系の依頼向け) / "
+                  "prompts=チャット入力欄へ挿入する定型文"
+                  "(パネルのおすすめ一覧に出る。「この指示をおすすめに"
+                  "登録して」系の依頼向け。本文=挿入される指示文)"}
 
 INSTRUCTION_TOOLS = [
     {
@@ -1341,7 +1740,10 @@ INSTRUCTION_TOOLS = [
             "Choose the kind by intent: 'agents' for behavior/persona/"
             "output-style instructions (only one is active at a time), "
             "'skills' for task procedures and recipes (many coexist, "
-            "read on demand). Format: first '# ' line = title, next "
+            "read on demand), 'prompts' for canned prompt text shown "
+            "in the panel's suggestion list and inserted into the "
+            "chat input when picked (body = the instruction text). "
+            "Format: first '# ' line = title, next "
             "non-empty line = description, optionally followed by a "
             "'use_when: <when to use>' line (shown in listings so "
             "the model can pick it when a task matches), then the "
@@ -1392,8 +1794,9 @@ def run_instruction_tool(name, args):
         raise ApiError("ai_select_agent is only valid on the AI panel")
     a = args or {}
     kind = a.get("kind") or ""
-    if kind not in ("agents", "skills"):
-        raise ApiError(f"kind must be agents|skills: {kind!r}")
+    if kind not in ("agents", "skills", "prompts"):
+        raise ApiError(
+            f"kind must be agents|skills|prompts: {kind!r}")
     if name == "ai_list_instructions":
         items = list_instruction_files(kind)
         if not items:
@@ -2437,14 +2840,41 @@ class CopilotProvider(OpenAIProvider):
             lim = caps.get("limits") or {}
             if lim.get("max_context_window_tokens"):
                 e["context_length"] = lim["max_context_window_tokens"]
+            # /responses 専用モデルを記録(GPT-6系等。
+            # supported_endpoints が無い応答は不明=chat送り)
+            eps = m.get("supported_endpoints")
+            if isinstance(eps, list):
+                if "/chat/completions" not in eps \
+                        and "/responses" in eps:
+                    _RESPONSES_ONLY_MODELS[m["id"]] = True
+                elif "/chat/completions" in eps:
+                    _RESPONSES_ONLY_MODELS.pop(m["id"], None)
             out.append(e)
         return sorted(out, key=lambda e: e["id"])
 
     def send(self, base, key, model, system, msgs, timeout=180.0):
         tok, api_base = copilot_session(key, base)
-        return chat_completions(api_base, tok, model, msgs,
-                                tools=openai_tools(), timeout=timeout,
-                                headers=COPILOT_HEADERS)
+        if not _RESPONSES_ONLY_MODELS.get(model):
+            try:
+                return chat_completions(
+                    api_base, tok, model, msgs,
+                    tools=openai_tools(), timeout=timeout,
+                    headers=COPILOT_HEADERS)
+            except ApiError as e:
+                if not _responses_only_error(e):
+                    raise
+                # /responses専用モデルだった。学習して切替
+                _RESPONSES_ONLY_MODELS[model] = True
+        return responses_create(
+            api_base, tok, model, msgs,
+            tools=openai_tools(), timeout=timeout,
+            headers=COPILOT_HEADERS)
+
+    def parse(self, data):
+        if isinstance(data, dict) \
+                and isinstance(data.get("output"), list):
+            return parse_responses_output(data)
+        return super().parse(data)
 
 
 class AzureOpenAIProvider(OpenAIProvider):
@@ -2500,9 +2930,369 @@ class AzureOpenAIProvider(OpenAIProvider):
         return data
 
 
+# ---- Devin プロバイダ ----
+#
+# "devin_bridge"(【ブリッジ】): 通常のOpenAI互換チャット + systemへ
+# 「qgis_devin_* ツールで実作業をDevinへ委譲せよ」という指示を注入
+# する疑似プロバイダ。ツールループはパネル側(従来どおり)。
+# "devin_acp"(【ACP】): Devin CLI の `devin acp` セッションをチャット
+# エンジンにする実プロバイダ。送信は session/prompt に流し、Devin
+# 自身がツールループを回す(geo_driver の /mcp をMCPサーバとして
+# 注入するので Devin からQGIS操作も可能)。APIキー不要でIDE認証を
+# 共有する。会話履歴はDevinセッション側に保持されるため、各ターン
+# は最新ユーザ発言だけを送る。
+
+_DEVIN_BRIDGE_HINT = """\
+[DELEGATION MODE] You are a delegation assistant. For any task that
+requires writing files, running commands, editing code, or other
+substantial work, delegate it to Devin via the qgis_devin_* tools
+instead of describing the work yourself:
+- qgis_devin_run(prompt, cwd, session_id, engine) starts a task and
+  returns task_id (engine "acp" works without `devin auth login`)
+- qgis_devin_status / qgis_devin_result monitor it (poll; tasks are
+  asynchronous and may take minutes — keep polling until done)
+- qgis_devin_abort cancels a running task
+Pass the returned session_id to later qgis_devin_run calls to continue
+the same Devin session. Report Devin's results to the user."""
+
+_COPILOT_BRIDGE_HINT = _DEVIN_BRIDGE_HINT.replace(
+    "Devin", "Copilot CLI").replace("qgis_devin_", "qgis_copilot_")
+
+# devin_acp セッションはcwd単位でモジュールに保持し、送信のたびに
+# 再利用する(プロバイダインスタンスは send ごとに作り直されるため)
+_ACP_SESSIONS = {}
+
+
+def _acp_mcp_servers():
+    """geo_driver自身の /mcp を Devin セッションへ渡す定義を返す。
+
+    Devin 側のツールループから qgis_pyeval 等が直接使えるようにする。
+    ドライバ未起動・QGIS外では空を返す。
+    """
+    try:
+        import qgis.utils  # noqa: PLC0415
+        plug = qgis.utils.plugins.get("geo_driver")
+        drv = getattr(plug, "driver", None)
+        port = getattr(drv, "http_port", None)
+        tok = getattr(drv, "token", None)
+        if port and tok:
+            return [{"type": "http", "name": "qgis-live",
+                     "url": f"http://127.0.0.1:{port}/mcp",
+                     "headers": [{"name": "Authorization",
+                                  "value": f"Bearer {tok}"}]}]
+    except Exception:  # nosec B110  # 設計上の許容
+        pass
+    return []
+
+
+def close_acp_sessions():
+    """devin_acp で開いた全セッションを閉じる(パネル破棄時)。"""
+    for s in list(_ACP_SESSIONS.values()):
+        try:
+            s.close()
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+    _ACP_SESSIONS.clear()
+
+
+class DevinBridgeProvider(OpenAIProvider):
+    """【ブリッジ】OpenAI互換チャット + Devin委譲指示の注入。"""
+
+    id = "devin_bridge"
+    label = PROVIDERS["devin_bridge"]["label"]
+
+    def build_messages(self, system, history, user_text,
+                       user_images=None):
+        return super().build_messages(
+            _DEVIN_BRIDGE_HINT + "\n\n" + (system or ""),
+            history, user_text, user_images)
+
+
+class CopilotBridgeProvider(OpenAIProvider):
+    """【ブリッジ】OpenAI互換チャット + Copilot CLI委譲指示の注入。"""
+
+    id = "copilot_bridge"
+    label = PROVIDERS["copilot_bridge"]["label"]
+
+    def build_messages(self, system, history, user_text,
+                       user_images=None):
+        return super().build_messages(
+            _COPILOT_BRIDGE_HINT + "\n\n" + (system or ""),
+            history, user_text, user_images)
+
+
+class DevinAcpProvider:
+    """【ACP】`devin acp` セッションをチャットエンジンにする。
+
+    エンドポイント欄=セッションの作業ディレクトリ(cwd)、
+    APIキー欄=未使用(IDE認証を共有)、モデル欄=Devin側モデル
+    ("default"または空で未指定)。geo_driver の /mcp を
+    MCPサーバとして渡すので Devin からQGIS操作が可能。
+    """
+
+    id = "devin_acp"
+    label = PROVIDERS["devin_acp"]["label"]
+    ENGINE = "devin"
+
+    def list_model_entries(self, base, key, timeout=30.0):
+        return [{"id": "default"}]
+
+    def list_models(self, base, key, timeout=30.0):
+        return ["default"]
+
+    def build_messages(self, system, history, user_text,
+                       user_images=None):
+        # 履歴はDevin側が保持するため表示用の簡易形式のみ
+        msgs = [{"role": "system", "content": system}]
+        for m in history:
+            msgs.append({"role": m.get("role"),
+                         "content": m.get("content") or "",
+                         "images": m.get("images")})
+        msgs.append({"role": "user", "content": user_text,
+                     "images": list(user_images or [])})
+        return msgs
+
+    def _session(self, cwd, model):
+        """engine+cwd単位の常駐セッションを取得(無ければ生成)。"""
+        from . import devin_tasks  # noqa: PLC0415
+        cwd = os.path.abspath(os.path.expanduser(cwd or "~"))
+        skey = (self.ENGINE, cwd)
+        s = _ACP_SESSIONS.get(skey)
+        if s is not None and s._proc.poll() is not None:
+            s = None  # プロセスが死んでいたら作り直す
+        if s is None:
+            s = devin_tasks.AcpSession(
+                cwd, mcp_servers=_acp_mcp_servers(), mode="bypass",
+                model=None if model in (None, "", "default") else model,
+                engine=self.ENGINE)
+            _ACP_SESSIONS[skey] = s
+        return s
+
+    def _make_session(self, base, key, model):
+        """send からのセッション取得フック。base=エンドポイント欄、
+        key=APIキー欄(ACP系では認証外の別用途に使える)。
+        既定は base を cwd とみなす"""
+        return self._session(base, model)
+
+    def send(self, base, key, model, system, msgs, timeout=180.0):
+        from . import devin_tasks  # noqa: PLC0415
+        sess = self._make_session(base, key, model)
+        last = msgs[-1] if msgs else {}
+        text = last.get("content") or ""
+        # 新規セッションの最初の発言にだけ system(指示書類)を前置
+        if not getattr(sess, "_sys_sent", False):
+            if system:
+                text = system + "\n\n---\n\n" + text
+            sess._sys_sent = True
+        blocks = []
+        if text.strip():
+            blocks.append({"type": "text", "text": text})
+        for p in last.get("images") or []:
+            try:
+                with open(p, "rb") as f:
+                    import base64
+                    blocks.append({
+                        "type": "image",
+                        "data": base64.b64encode(f.read()).decode("ascii"),
+                        "mimeType": "image/png"})
+            except OSError:
+                pass
+        if not blocks:
+            raise ApiError("empty prompt")
+        chunks = []
+
+        def on_update(u):
+            kind = u.get("sessionUpdate")
+            if kind == "agent_message_chunk":
+                t = ((u.get("content") or {}).get("text") or "")
+                if t:
+                    chunks.append(t)
+            cb = getattr(self, "on_event", None)
+            if cb:
+                try:
+                    cb(kind, u)
+                except Exception:  # nosec B110  # 設計上の許容
+                    pass
+
+        sess.on_update = on_update
+        self._sess = sess
+        try:
+            res = sess.prompt(blocks)
+        except devin_tasks.TaskError as e:
+            raise ApiError(str(e))
+        usage = res.get("usage") or {}
+        return {"text": "".join(chunks),
+                "stop_reason": res.get("stopReason"),
+                "session_id": sess.session_id,
+                "usage": {"in": usage.get("inputTokens", 0),
+                          "out": usage.get("outputTokens", 0)},
+                "raw": res}
+
+    def parse(self, data):
+        return {"text": data.get("text") or "", "calls": [],
+                "raw": data.get("raw") or data,
+                "usage": data.get("usage")}
+
+    def append_exchange(self, msgs, turn, results):
+        # calls は常に空なので通常呼ばれない。テキストのみ積む
+        msgs.append({"role": "assistant",
+                     "content": turn.get("text") or ""})
+
+    def abort(self):
+        """パネルの中断ボタン → session/cancel。"""
+        s = getattr(self, "_sess", None)
+        if s is not None:
+            s.cancel()
+
+
+class CopilotAcpProvider(DevinAcpProvider):
+    """【ACP】`copilot --acp --stdio` セッションをチャットエンジンにする。
+
+    機構は DevinAcpProvider と同じで、エンジンと認証だけが異なる
+    (GitHub Copilot CLI の gh ログインを利用。windsurf_api_key 不要)。
+    """
+
+    id = "copilot_acp"
+    label = PROVIDERS["copilot_acp"]["label"]
+    ENGINE = "copilot"
+
+
+def _custom_acp_argv(command):
+    """起動コマンド文字列を argv に分解する。
+
+    Windows の .cmd/.bat shim は直接 spawn できないため cmd /c 経由にする
+    (copilot.cmd 等と同じ対策)。
+    """
+    import shlex  # noqa: PLC0415
+    try:
+        argv = shlex.split(command, posix=os.name != "nt")
+    except ValueError:
+        argv = command.split()
+    argv = [a.strip('"').strip("'") for a in argv if a.strip('"').strip("'")]
+    if not argv:
+        raise ApiError("ACP launch command is empty")
+    resolved = shutil.which(argv[0])
+    if resolved is None:
+        raise ApiError(f"ACP command not found: {argv[0]}")
+    argv[0] = resolved
+    if os.name == "nt" and resolved.lower().endswith((".cmd", ".bat")):
+        argv = [os.environ.get("COMSPEC", "cmd.exe"), "/c", *argv]
+    return argv
+
+
+class CustomAcpProvider(DevinAcpProvider):
+    """【ACP】任意の ACP 対応 CLI をチャットエンジンにする。
+
+    エンドポイント欄=起動コマンド(例: `my-agent acp`)、
+    APIキー欄=セッションの作業ディレクトリ(cwd。省略時はホーム)。
+    認証は CLI 側のログインに委譲(authMethods が提示された場合のみ
+    先頭方式を best-effort で試行)。機構は DevinAcpProvider と同じ
+    (KASUGAI Canvas の【ACP】カスタムエージェントに相当)。
+    """
+
+    id = "acp"
+    label = PROVIDERS["acp"]["label"]
+    ENGINE = "custom"
+
+    def _make_session(self, base, key, model):
+        from . import devin_tasks  # noqa: PLC0415
+        command = (base or "").strip()
+        if not command:
+            raise ApiError(
+                "ACP launch command is not set (endpoint field)")
+        argv = _custom_acp_argv(command)
+        cwd = os.path.abspath(
+            os.path.expanduser((key or "").strip() or "~"))
+        skey = (self.ENGINE, command, cwd)
+        s = _ACP_SESSIONS.get(skey)
+        if s is not None and s._proc.poll() is not None:
+            s = None  # プロセスが死んでいたら作り直す
+        if s is None:
+            s = devin_tasks.AcpSession(
+                cwd, exe=argv, mcp_servers=_acp_mcp_servers(),
+                mode="bypass",
+                model=None if model in (None, "", "default") else model,
+                engine="custom")
+            _ACP_SESSIONS[skey] = s
+        return s
+
+
+class ExternalAgentProvider(OpenAIProvider):
+    """【ブリッジ】任意のエージェント HTTP エンドポイントへ委譲する。
+
+    POST {endpoint} {"message", "system", "history", "model"?}
+      → {"reply": "..."} (reply/text/message/content のいずれか)。
+    KASUGAI Canvas のブリッジハブ /agent と同じ形式で、
+    hub の provider 振り分けは model 欄ではなく
+    body の "provider" 固定値は使わず直接プロバイダURLへ送る想定。
+    """
+
+    id = "agent"
+    label = PROVIDERS["agent"]["label"]
+
+    def list_model_entries(self, base, key, timeout=30.0):
+        return [{"id": "default"}]
+
+    def list_models(self, base, key, timeout=30.0):
+        return ["default"]
+
+    def send(self, base, key, model, system, msgs, timeout=180.0):
+        url = (base or "").strip()
+        if not url:
+            raise ApiError("agent endpoint is not set")
+        last = msgs[-1] if msgs else {}
+        content = last.get("content")
+        if isinstance(content, str):
+            text = content
+        else:  # 画像付き等のマルチパート形式はテキスト部だけ結合
+            text = " ".join(
+                p.get("text", "") for p in (content or [])
+                if isinstance(p, dict))
+        headers = {}
+        if key:
+            headers["Authorization"] = f"Bearer {key}"
+        body = {
+            "message": text,
+            "system": system or "",
+            "history": [
+                {"role": m.get("role"), "content": m.get("content")}
+                for m in msgs[-20:]
+                if m.get("role") in ("user", "assistant", "model")],
+        }
+        if model and model != "default":
+            body["model"] = model
+        return _post_json(url, headers, body, timeout)
+
+    def parse(self, data):
+        if isinstance(data, dict):
+            reply = data.get("reply")
+            if isinstance(reply, dict):
+                reply = (reply.get("text") or reply.get("content")
+                         or reply.get("message") or "")
+            if not reply:
+                reply = (data.get("text") or data.get("message")
+                         or data.get("content") or "")
+            if isinstance(reply, str):
+                return {"text": reply, "calls": [], "raw": data,
+                        "usage": parse_usage(data)}
+        raise ApiError(f"Invalid agent response: {str(data)[:300]}")
+
+    def append_exchange(self, msgs, turn, results):
+        # calls は常に空。応答 dict をそのまま積むと次の送信履歴を
+        # 壊すためテキストのみにする
+        msgs.append({"role": "assistant",
+                     "content": turn.get("text") or ""})
+
+
 _PROVIDERS = {"openai": OpenAIProvider, "anthropic": AnthropicProvider,
               "gemini": GeminiProvider, "azure": AzureOpenAIProvider,
-              "copilot": CopilotProvider}
+              "copilot": CopilotProvider,
+              "devin_bridge": DevinBridgeProvider,
+              "copilot_bridge": CopilotBridgeProvider,
+              "devin_acp": DevinAcpProvider,
+              "copilot_acp": CopilotAcpProvider,
+              "acp": CustomAcpProvider,
+              "agent": ExternalAgentProvider}
 
 
 def get_provider(provider):

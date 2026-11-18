@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>geo_excel ドキュメント | QGIS Live Harness</title>
+<meta name="description" content="ベクターレイヤの属性情報をExcel帳票として出力するスクリプト群(QGIS-exportExcel)の簡易プラグインラッパー">
+<link rel="stylesheet" href="style.css">
+<script src="nav.js" defer></script>
+</head>
+<body>
+<div class="container">
+<header>
+<h1>geo_excel</h1>
+<p>ベクターレイヤの属性情報をExcel帳票として出力するスクリプト群(QGIS-exportExcel)の簡易プラグインラッパー</p>
+</header>
+<main>
+
+<p><a href="https://github.com/yamamoto-ryuzo/QGIS-exportExcel">QGIS-exportExcel</a> の
+レイヤアクション用スクリプト群を、<strong>QGISプラグインとしてメニューから実行できる</strong>
+ようにした簡易ラッパープラグイン(QGIS Live Harness 組み込み用)。</p>
+<h2 id="使い方プラグインとして">使い方(プラグインとして)</h2>
+<ol>
+<li>対象のベクターレイヤをアクティブにする(単票出力は地物も選択)</li>
+<li>メニュー <code>プラグイン → geo_excel</code> から実行:<ul>
+<li><strong>一覧帳票を出力 (アクティブレイヤ)</strong> — <code>exportList.py</code> 相当</li>
+<li><strong>単票を出力 (選択地物)</strong> — <code>exportSingle.py</code> 相当(選択地物ごとに実行)</li>
+<li><strong>単票を一括出力 (選択地物または全地物)</strong> — <code>exportSingleBulk.py</code> 相当</li>
+<li><strong>Settings...</strong> — 設定ダイアログ(後述)</li>
+</ul>
+</li>
+<li>レイヤ変数(<code>xlsout_*</code>)の設定方法は下記の upstream 説明と同じ。
+未設定でも実行時に既定値が自動適用される(次節)</li>
+</ol>
+<p>実行時に <code>[% @layer_id %]</code>(アクティブレイヤ)/<code>[% $id %]</code>(選択地物)を自動置換する。
+スクリプト本体は upstream 由来だが、import は Qt6 対応済み(<code>qgis.PyQt</code>)の状態で同梱する。</p>
+<p><strong>前提</strong>: <code>win32com</code>(pywin32)と Excel がインストール済みであること。</p>
+<h2 id="既定値と設定ダイアログすぐに動くための設定">既定値と設定ダイアログ(すぐに動くための設定)</h2>
+<p>レイヤ変数 <code>xlsout_*</code> が未設定のレイヤでも、実行時に既定値を自動適用する
+(<code>settings.py</code>。無効化は設定ダイアログまたは QSettings
+<code>geo_excel/auto_apply</code>)。既定値:</p>
+<ul>
+<li><code>xlsout_*_output_path_fixed</code> → <strong><code>&lt;ドキュメント&gt;/geo_excel</code></strong>
+(<code>QStandardPaths.DocumentsLocation</code> で取得。環境依存パスを持たない汎用既定)</li>
+<li><code>xlsout_output_path_variable</code> → <code>concat('&lt;レイヤ名&gt;_', $id, '.xlsx')</code>
+(一覧は <code>&lt;レイヤ名&gt;_list.xlsx</code>)</li>
+<li><code>xlsout_*_template_path</code> → 未指定なら <code>&lt;出力先&gt;/templates/ &lt;レイヤ名&gt;_&lt;種別&gt;_template.xlsx</code> に、レイヤのフィールド名を埋め込んだ
+最小構成のxlsx雛形(<code>##Attach::</code>/<code>##ListInsert::</code>)を自動生成</li>
+<li><code>dpi</code> → 未指定時はスクリプト側既定(200)</li>
+</ul>
+<p>メニュー <code>Settings...</code> で開く設定ダイアログ(<code>settings_dialog.py</code>)は
+以下を1画面に集約する:</p>
+<ul>
+<li><strong>環境チェック</strong>: pywin32(win32com) import可否 / Excel COM登録
+(レジストリ確認+「起動テスト」で実起動検証) / ドキュメント・
+出力先フォルダパス</li>
+<li><strong>既定値の編集</strong>: 出力先フォルダ・DPI・一覧/単票テンプレート指定・
+自動適用の有無(QSettings <code>geo_excel/*</code> に保存)</li>
+<li><strong>アクティブレイヤの変数</strong>: <code>xlsout_*</code>/<code>dpi</code> の現在値を表で編集し
+「保存」でレイヤへ書き込み。「不足変数へ既定値を適用」
+「自動テンプレートを再生成」ボタンあり</li>
+<li><strong>必要なもの</strong>: 実行要件(Excel・pywin32・テンプレートの
+プレースホルダ記法・<code>##AttachFitImage::</code> にはマップテーマ必要等)を列挙</li>
+</ul>
+<h2 id="ai外部制御-apibridge">AI/外部制御 API(bridge)</h2>
+<p><code>plugins['geo_excel'].bridge</code>(<code>GeoExcelBridge</code>)経由で、QGIS Live Driver の
+<code>bridge_call</code> / <code>describe_plugins</code>(MCP <code>qgis_bridge_call</code>・REST・
+AIアシスタントパネル)から操作できる。メソッドはJSON文字列を返す:</p>
+<ul>
+<li><code>pluginInfo()</code> / <code>status()</code> — 自己記述・実行時状態(アクティブレイヤ/選択数/win32com有無/変数設定状況)</li>
+<li><code>listScripts()</code> — 帳票スクリプト一覧(id/ファイル/要選択/必要レイヤ変数)</li>
+<li><code>layerVariables(layer_id)</code> / <code>setLayerVariables(vars, layer_id)</code> — <code>xlsout_*</code>/<code>dpi</code> レイヤ変数の取得/設定</li>
+<li><code>settings()</code> — 既定設定(QSettings)・環境チェック・必要物の列挙を返す</li>
+<li><code>applyDefaults(layer_id=None, script=None)</code> — 不足レイヤ変数へ既定値を適用
+(出力先フォルダ作成・テンプレート自動生成含む)</li>
+<li><code>checkExcel()</code> — Excelを実際にCOM起動して検証(既存ExcelはQuitしない)</li>
+<li><code>openSettings()</code> — 設定ダイアログを開く</li>
+<li><code>run(script, feature_id=None, confirm=False)</code> — 帳票実行。
+<code>script</code> は <code>list</code>/<code>single</code>/<code>bulk</code>/ファイル名/index。<code>single</code> は選択地物
+または <code>feature_id</code> 指定。スクリプト内の modal QMessageBox は実行中だけ
+自動応答に差し替わり、<code>confirm=True</code> で上書き/続行にOk応答
+(既定False=中断)。実行結果(<code>excel_result</code>/<code>output_path</code>)と収集した
+メッセージを返す。Excel生成中はGUIスレッドをブロックする</li>
+</ul>
+<p>例: <code>qgis_bridge_call pluginId=&quot;geo_excel&quot; method=&quot;run&quot; args=[&quot;list&quot;, null, true]</code></p>
+<hr />
+<p>以下は upstream (QGIS-exportExcel) のREADMEです。</p>
+<h1>QGIS-exportExcel</h1>
+<p>このリポジトリは、QGIS からベクターレイヤの属性情報を Excel 帳票として出力するための Python スクリプト群を提供します。</p>
+<h1>各スクリプトの概要</h1>
+<h2 id="exportlistpy">exportList.py</h2>
+<ul>
+<li>ベクターレイヤの「レイヤスコープ」アクションとして利用する一覧帳票出力用スクリプトです。</li>
+<li>レイヤ変数でテンプレートパスや出力先ディレクトリを指定し、全地物の情報を Excel テンプレートに出力します。</li>
+<li>テンプレート内の <code>##ListInsert::フィールド名</code> で繰り返し出力が可能です。</li>
+</ul>
+<h3 id="使用方法">使用方法</h3>
+<ol>
+<li>QGISの対象レイヤのレイヤ変数に以下を設定します。<ul>
+<li><code>xlsout_list_template_path</code> : Excelテンプレートファイルのパス</li>
+<li><code>xlsout_list_output_path_fixed</code> : 出力先ディレクトリパス</li>
+<li><code>xlsout_list_output_path_variable</code> : 出力ファイル名やサブディレクトリ名（式やフィールド参照も可）</li>
+</ul>
+</li>
+<li>テンプレートExcelに <code>##ListInsert::フィールド名</code> を記述します。</li>
+<li>レイヤアクションに <code>exportList.py</code> を登録し、アクションフィールドとして <code>[% @layer_id %]</code> を渡します。</li>
+<li>アクション実行で帳票が出力されます。</li>
+</ol>
+<hr />
+<h2 id="exportsinglepy">exportSingle.py</h2>
+<ul>
+<li>ベクターレイヤの「地物スコープ」アクションとして利用する単票（単体）帳票出力用スクリプトです。</li>
+<li>選択した1つの地物の属性値を Excel テンプレートに出力します。</li>
+<li>テンプレート内の <code>##Attach::フィールド名</code> で属性値を差し込みます。</li>
+</ul>
+<h3 id="使用方法">使用方法</h3>
+<ol>
+<li>QGISの対象レイヤのレイヤ変数に以下を設定します。<ul>
+<li><code>xlsout_template_path</code> : Excelテンプレートファイルのパス</li>
+<li><code>xlsout_output_path_fixed</code> : 出力先ディレクトリパス</li>
+<li><code>xlsout_output_path_variable</code> : 出力ファイル名（式やフィールド参照も可）</li>
+</ul>
+</li>
+<li>テンプレートExcelに <code>##Attach::フィールド名</code> を記述します。</li>
+<li>レイヤアクションに <code>exportSingle.py</code> を登録し、アクションフィールドとして <code>[% @layer_id %]</code> <code>[% $id %]</code> を渡します。</li>
+<li>アクション実行で帳票が出力されます。</li>
+</ol>
+<hr />
+<h2 id="exportsinglebulkpy">exportSingleBulk.py</h2>
+<ul>
+<li>ベクターレイヤの「地物スコープ」アクションとして利用する単票一括出力用スクリプトです。</li>
+<li>選択地物または全地物について、個別の Excel ファイルを一括出力します。</li>
+<li>画像貼付やテーマ切替、縮尺指定などにも対応しています。</li>
+</ul>
+<h3 id="使用方法">使用方法</h3>
+<ol>
+<li>QGISの対象レイヤのレイヤ変数に以下を設定します。<ul>
+<li><code>xlsout_template_path</code> : Excelテンプレートファイルのパス</li>
+<li><code>xlsout_output_path_fixed</code> : 出力先ディレクトリパス</li>
+<li><code>xlsout_output_path_variable</code> : 出力ファイル名（式やフィールド参照も可）</li>
+</ul>
+</li>
+<li>テンプレートExcelに <code>##Attach::フィールド名</code> や <code>##AttachFitImage::テーマ名::縮尺</code> を記述します。</li>
+<li>レイヤアクションに <code>exportSingleBulk.py</code> を登録し、アクションフィールドとして <code>[% @layer_id %]</code> <code>[% $id %]</code> を渡します。</li>
+<li>アクション実行で選択地物または全地物分の帳票が一括出力されます。</li>
+</ol>
+<hr />
+<h1>共通の使い方</h1>
+<ol>
+<li>QGIS プロジェクトで対象レイヤに必要なレイヤ変数を設定します。</li>
+<li>Excel テンプレートファイルを用意し、差し込みたい箇所に <code>##Attach::フィールド名</code> や <code>##ListInsert::フィールド名</code> を記述します。</li>
+<li>レイヤのアクションにスクリプトを登録し、必要なフィールド（例: <code>[% @layer_id %]</code>, <code>[% $id %]</code>）を渡すようにします。</li>
+<li>アクションを実行すると、指定の出力先に Excel 帳票が作成されます。</li>
+</ol>
+<h1>注意事項</h1>
+<ul>
+<li>Excel の自動操作には Windows 環境と <code>win32com.client</code> が必要です。</li>
+<li>出力先ディレクトリは事前に作成しておく必要があります（一部スクリプトでは自動作成）。</li>
+<li>テンプレートや出力先パスは絶対パス・相対パスどちらも利用可能ですが、パス区切り文字に注意してください（<code>\\</code> 推奨）。</li>
+<li>画像貼付や地図テーマ切替には QGIS のマップテーマ機能を利用します。</li>
+</ul>
+<h1>参考</h1>
+<ul>
+<li>各スクリプトの先頭コメントや関数コメントも参照してください。</li>
+<li>QGIS のバージョンや Python 環境によっては動作しない場合があります。</li>
+</ul>
+<p>初期バージョンの開発業者：オービタルネット　<a href="https://www.orbitalnet.jp/">https://www.orbitalnet.jp/</a><br />
+2023/02/01 QDATE,QDATETIMEへの対応しました。</p>
+<h1>免責事項</h1>
+<p>本システムは個人のPCで作成・テストされたものです。<br />
+ご利用によるいかなる損害も責任を負いません。</p>
+<p align="center">
+  <a href="https://giphy.com/explore/free-gif" target="_blank">
+    <img src="https://github.com/yamamoto-ryuzo/QGIS_portable_3x/raw/master/imgs/giphy.gif" width="500" title="avvio QGIS">
+  </a>
+</p>
+
+
+
+<h2>関連リンク</h2>
+<ul>
+  <li><a href="https://yamamoto-ryuzo.github.io/qgis_live_harness/plugins.html">プラグイン一覧(サイト)</a></li>
+  <li><a href="https://github.com/yamamoto-ryuzo/qgis_live_harness/blob/master/qgis-plugin/geo_excel/README.md">README(GitHub)</a></li>
+  <li><a href="https://github.com/yamamoto-ryuzo/qgis_live_harness/blob/master/qgis-plugin/geo_excel/CHANGELOG.md">CHANGELOG(GitHub)</a></li>
+</ul>
+<p><small>正本は <code>qgis-plugin/geo_excel/docs/</code>。
+サイトの <code>docs/geo_excel/</code> は
+<code>scripts/build-plugin-docs.py</code> によるミラーです。</small></p>
+</main>
+</div>
+</body>
+</html>

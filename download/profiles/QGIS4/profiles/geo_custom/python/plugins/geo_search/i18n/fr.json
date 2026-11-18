@@ -104,15 +104,19 @@
     "{field_name}:": "{field_name} :"
   },
   "SearchWidget": {
+    "Address Search": "Recherche d'adresse",
     "Angle (deg):": "Angle (degré):",
     "Angle: Not specified": "Angle : non spécifié",
     "Angle: {0}": "Angle : {0}",
     "Angle: {0}°": "Angle : {0}°",
+    "Create scratch layer": "Créer une couche temporaire",
     "Edit Tab Settings: {0}": "Modifier les paramètres d’onglet : {0}",
+    "Enter an address, place name or coordinates": "Saisissez une adresse, un lieu ou des coordonnées",
     "Exact Match": "Correspondance exacte",
     "Forward Match": "Correspondance de préfixe",
     "Fuzzy Search": "Recherche floue",
     "Geo Search: ": "Recherche Géo : ",
+    "Google Maps API key is not set": "La clé API Google Maps n'est pas définie",
     "OR search for multiple fields": "Recherche OU sur plusieurs champs",
     "Owner Search": "Recherche de propriétaire",
     "Partial Match": "Correspondance partielle",
@@ -122,7 +126,9 @@
     "Scale: {0}": "Échelle : {0}",
     "Search Results: {0} items": "Résultats de recherche : {0} éléments",
     "Search all fields": "Rechercher dans tous les champs",
-    "Set current value": "Définir la valeur actuelle"
+    "Search failed": "Échec de la recherche",
+    "Set current value": "Définir la valeur actuelle",
+    "Yahoo app id is not set": "L'identifiant d'application Yahoo n'est pas défini"
   },
   "SettingsDialog": {
     "Applied theme to %n layers": "Thème appliqué à %n couches",

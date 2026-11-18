@@ -61,6 +61,53 @@ def log_message(message, level=Qgis.MessageLevel.Info):
     QgsMessageLog.logMessage(message, 'geo_report', level)
 
 
+def _qt_dead(w):
+    """QtラッパーのC++側オブジェクトが削除済みかを返す。
+
+    削除済み QAction/QMenu/QToolBar へメソッドを呼ぶと Python 例外では
+    なく access violation になるため、触れる前に判定する。
+    """
+    try:
+        from qgis.PyQt import sip
+        return bool(sip.isdeleted(w))
+    except Exception:
+        try:
+            from PyQt6 import sip
+            return bool(sip.isdeleted(w))
+        except Exception:
+            return False
+
+
+def _defer_remove_actions(iface, menu_name, actions, toolbar=None):
+    """メニュー/ツールバー項目の除去をイベント完了後へ遅延する。
+
+    QMenu のイベント処理中(triggered ハンドラ内の reloadPlugin 経由等)
+    に removePluginMenu/removeAction するとポップアップ処理中の
+    メニュー階層を破壊して access violation になる実績があるため、
+    QTimer で遅延する。除去対象は呼出し時点の参照に限定し、
+    触れる各オブジェクトは _qt_dead で先に判定する。
+    """
+    def _cleanup():
+        for action in actions:
+            if _qt_dead(action):
+                continue
+            try:
+                iface.removePluginMenu(menu_name, action)
+            except Exception:  # nosec B110  # 設計上の許容
+                pass
+            try:
+                if toolbar is not None and not _qt_dead(toolbar):
+                    toolbar.removeAction(action)
+            except Exception:  # nosec B110  # 設計上の許容
+                pass
+
+    try:
+        from qgis.PyQt.QtCore import QTimer
+        QTimer.singleShot(0, _cleanup)
+    except Exception:  # nosec B110  # 設計上の許容
+        _cleanup()
+
+
 # --- 印刷範囲移動ツール（QgsMapToolサブクラス） ---
 class PrintAreaMoveTool(QgsMapTool):
     """
@@ -376,11 +423,11 @@ class GeoReport:
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
-        for action in self.actions:
-            self.iface.removePluginMenu(
-                self.menu,
-                action)
-            self._geo_toolbar(ensure_visible=False).removeAction(action)
+        # メニュー/ツールバー項目の除去はイベント完了後へ遅延する
+        # (QMenu イベント処理中の除去は access violation の実績)
+        _defer_remove_actions(
+            self.iface, self.menu, list(self.actions),
+            self._geo_toolbar(ensure_visible=False))
 
         # パネルを削除
         if self.dock_widget:
@@ -878,6 +925,12 @@ class LayoutSelectorDialog(QDialog):
         self.load_layout_button.setEnabled(False)
         button_layout.addWidget(self.load_layout_button)
 
+        # 出力前のレイアウトプレビュー(issue #13)
+        self.preview_button = QPushButton(QCoreApplication.translate('geo_report', "Preview Layout"))
+        self.preview_button.clicked.connect(self.preview_layout)
+        self.preview_button.setEnabled(False)
+        button_layout.addWidget(self.preview_button)
+
         button_layout.addStretch()
 
         # レポート作成ボタン（最下部、高さ2倍）
@@ -1221,6 +1274,7 @@ class LayoutSelectorDialog(QDialog):
         self.show_print_area_button.setEnabled(True)
         self.save_layout_button.setEnabled(True)
         self.load_layout_button.setEnabled(True)
+        self.preview_button.setEnabled(True)
         self.load_layout_items()
         self.load_layout_info()
 
@@ -2482,6 +2536,69 @@ class LayoutSelectorDialog(QDialog):
         # レイアウトマネージャ（デザイナー）を開く
         self.iface.openLayoutDesigner(self.current_layout)
         # パネル化したので、self.accept()を呼ばない（パネルを閉じない）
+
+    def preview_layout(self):
+        """選択中レイアウトをQgsLayoutExporterで一時描画しプレビュー表示"""
+        if not self.current_layout:
+            self.iface.messageBar().pushMessage(
+                QCoreApplication.translate('geo_report', "Warning"), QCoreApplication.translate('geo_report', "Please select a layout."),
+                level=Qgis.MessageLevel.Warning, duration=3
+            )
+            return
+        from qgis.core import QgsLayoutExporter
+        from qgis.PyQt.QtGui import QPixmap
+        from qgis.PyQt.QtWidgets import QComboBox
+        import tempfile
+        tmpdir = tempfile.mkdtemp(prefix="geo_report_preview_")
+        target = os.path.join(tmpdir, "preview.png")
+        exporter = QgsLayoutExporter(self.current_layout)
+        settings = QgsLayoutExporter.ImageExportSettings()
+        settings.dpi = 96
+        res = exporter.exportToImage(target, settings)
+        ok_enum = getattr(QgsLayoutExporter, "ExportResult", QgsLayoutExporter)
+        if res != ok_enum.Success:
+            QMessageBox.warning(
+                self, QCoreApplication.translate('geo_report', "Warning"),
+                QCoreApplication.translate('geo_report', "Preview export failed: {}").format(res))
+            return
+        files = sorted(f for f in os.listdir(tmpdir)
+                       if f.lower().endswith(".png"))
+        if not files:
+            QMessageBox.warning(
+                self, QCoreApplication.translate('geo_report', "Warning"),
+                QCoreApplication.translate('geo_report', "No preview image was generated."))
+            return
+        dlg = QDialog(self)
+        dlg.setWindowTitle(
+            QCoreApplication.translate('geo_report', "Layout Preview: {}").format(self.current_layout.name()))
+        vbox = QVBoxLayout()
+        combo = None
+        if len(files) > 1:
+            combo = QComboBox()
+            combo.addItems([
+                QCoreApplication.translate('geo_report', "Page ") + str(i + 1)
+                for i in range(len(files))])
+            vbox.addWidget(combo)
+        label = QLabel()
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        scroll = QScrollArea()
+        scroll.setWidget(label)
+        scroll.setWidgetResizable(True)
+        vbox.addWidget(scroll)
+        dlg.setLayout(vbox)
+        dlg.resize(700, 500)
+
+        def show_page(i):
+            label.setPixmap(QPixmap(os.path.join(tmpdir, files[i])))
+            label.adjustSize()
+
+        if combo is not None:
+            combo.currentIndexChanged.connect(show_page)
+        show_page(0)
+        if not hasattr(self, '_preview_dialogs'):
+            self._preview_dialogs = []
+        self._preview_dialogs.append(dlg)
+        dlg.show()
 
     def load_layout_info(self):
         """レイアウト情報を読み込む"""

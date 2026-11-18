@@ -3,7 +3,13 @@
     "&Legend View": "&Vue de la légende",
     "Legend": "Légende",
     "Other values": "Autres valeurs",
-    "Symbol": "Symbole"
+    "Symbol": "Symbole",
+    "Export legend": "Exporter la légende",
+    "Export legend image (PNG)...": "Exporter l'image de la légende (PNG)...",
+    "Export legend image (SVG)...": "Exporter l'image de la légende (SVG)...",
+    "Export legend as HTML...": "Exporter la légende en HTML...",
+    "Legend exported: %1": "Légende exportée : %1",
+    "Export failed: %1": "Échec de l'exportation : %1"
   },
   "LegendViewDockWidget": {
     "Close": "Fermer",

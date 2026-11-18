@@ -30,6 +30,10 @@
     "Fetched {0}.": "{0} を取得しました。",
     "No upstream sources (sources.json).": "upstream定義(sources.json)がありません。",
     "Upstream update: {0}/{1} files.": "upstream更新: {0}/{1} ファイル",
-    "geo_userfunc": "geo_userfunc"
+    "geo_userfunc": "geo_userfunc",
+    "Test / history": "テスト / 履歴",
+    "Function/macro:": "関数/マクロ:",
+    "Run tests": "テスト実行",
+    "Show history": "履歴表示"
   }
 }

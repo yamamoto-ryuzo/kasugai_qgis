@@ -1,0 +1,1559 @@
+{
+  "component": "geo_import",
+  "component_type": "qgis_plugin",
+  "version": "2.10.14",
+  "driver": {
+    "type": "qgis_live_harness",
+    "detect": "GET http://127.0.0.1:<http_port>/api/health",
+    "launch": "npm run live:ensure",
+    "ready": "/api/health が ok:true を返す",
+    "control": "POST /api/cmd Bearer <live_dir token>",
+    "detected_from": "scripts/qgis-session.mjs, live_driver.py"
+  },
+  "updated": "2026-11-15T22:33:28+09:00",
+  "features": [
+    {
+      "id": "entry_point.__init__.py:classFactory",
+      "kind": "entry_point",
+      "name": "classFactory",
+      "source": "__init__.py:26",
+      "signature": "classFactory(iface)",
+      "summary": "Load GeoImport class from file GeoImport.",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "standalone経路のみ(要runtime依存無し)"
+    },
+    {
+      "id": "action.DataFetchThread.run",
+      "kind": "action",
+      "name": "run",
+      "source": "geo_import_dialog.py:118",
+      "signature": "run()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call/generic trigger→実在確認"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "action.GeoImport.initGui",
+      "kind": "action",
+      "name": "initGui",
+      "source": "geo_import_main.py:136",
+      "signature": "initGui()",
+      "summary": "Create the menu entries and toolbar icons inside the QGIS GUI.",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call/generic trigger→実在確認"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "action.GeoImport.run",
+      "kind": "action",
+      "name": "run",
+      "source": "geo_import_main.py:168",
+      "signature": "run()",
+      "summary": "Run method that performs all the real work",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call/generic trigger→実在確認"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "action.GeoImport.unload",
+      "kind": "action",
+      "name": "unload",
+      "source": "geo_import_main.py:158",
+      "signature": "unload()",
+      "summary": "Removes the plugin menu item and icon from QGIS GUI.",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call/generic trigger→実在確認"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "dialog.GeoImportDialog",
+      "kind": "dialog",
+      "name": "GeoImportDialog",
+      "source": "geo_import_dialog.py:153",
+      "signature": "GeoImportDialog",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "openDialog→screenshot→closeDialog"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "dialog.GeoImportDialogDataProviders",
+      "kind": "dialog",
+      "name": "GeoImportDialogDataProviders",
+      "source": "geo_import_dialog_dataproviders.py:43",
+      "signature": "GeoImportDialogDataProviders",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "openDialog→screenshot→closeDialog"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "dialog.GeoImportDialogDisclaimer",
+      "kind": "dialog",
+      "name": "GeoImportDialogDisclaimer",
+      "source": "geo_import_dialog_disclaimer.py:39",
+      "signature": "GeoImportDialogDisclaimer",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "openDialog→screenshot→closeDialog"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "dialog.GeoImportDialogSettings",
+      "kind": "dialog",
+      "name": "GeoImportDialogSettings",
+      "source": "geo_import_dialog_settings.py:41",
+      "signature": "GeoImportDialogSettings",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "openDialog→screenshot→closeDialog"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoImportDialog._on_data_ready",
+      "kind": "ui_control",
+      "name": "_on_data_ready",
+      "source": "geo_import_dialog.py:1411",
+      "signature": "_on_data_ready(page_results, result_count, page_count, total_resource_count)",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoImportDialog._on_org_layers_added",
+      "kind": "ui_control",
+      "name": "_on_org_layers_added",
+      "source": "geo_import_dialog.py:1856",
+      "signature": "_on_org_layers_added(layers)",
+      "summary": "layersAdded収集スロット。整理用に(layer, ctx)を保持する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoImportDialog.category_item_clicked",
+      "kind": "ui_control",
+      "name": "category_item_clicked",
+      "source": "geo_import_dialog.py:1295",
+      "signature": "category_item_clicked(item)",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoImportDialog.list_all_clicked",
+      "kind": "ui_control",
+      "name": "list_all_clicked",
+      "source": "geo_import_dialog.py:1286",
+      "signature": "list_all_clicked()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoImportDialog.list_group_item_changed",
+      "kind": "ui_control",
+      "name": "list_group_item_changed",
+      "source": "geo_import_dialog.py:1449",
+      "signature": "list_group_item_changed(item)",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoImportDialog.load_resource_clicked",
+      "kind": "ui_control",
+      "name": "load_resource_clicked",
+      "source": "geo_import_dialog.py:1502",
+      "signature": "load_resource_clicked()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoImportDialog.next_page_clicked",
+      "kind": "ui_control",
+      "name": "next_page_clicked",
+      "source": "geo_import_dialog.py:1888",
+      "signature": "next_page_clicked()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoImportDialog.on_IDC_bSelectAllResources_clicked",
+      "kind": "ui_control",
+      "name": "on_IDC_bSelectAllResources_clicked",
+      "source": "geo_import_dialog.py:156",
+      "signature": "on_IDC_bSelectAllResources_clicked()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoImportDialog.previous_page_clicked",
+      "kind": "ui_control",
+      "name": "previous_page_clicked",
+      "source": "geo_import_dialog.py:1891",
+      "signature": "previous_page_clicked()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoImportDialog.refresh_sqlite_clicked",
+      "kind": "ui_control",
+      "name": "refresh_sqlite_clicked",
+      "source": "geo_import_dialog.py:811",
+      "signature": "refresh_sqlite_clicked()",
+      "summary": "選択中の全サーバーの全データセットを再取得しSQLiteキャッシュを再作成する",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoImportDialog.resource_item_changed",
+      "kind": "ui_control",
+      "name": "resource_item_changed",
+      "source": "geo_import_dialog.py:1495",
+      "signature": "resource_item_changed(new_item)",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoImportDialog.select_data_provider_clicked",
+      "kind": "ui_control",
+      "name": "select_data_provider_clicked",
+      "source": "geo_import_dialog.py:1301",
+      "signature": "select_data_provider_clicked()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoImportDialogDataProviders.item_checked_changed",
+      "kind": "ui_control",
+      "name": "item_checked_changed",
+      "source": "geo_import_dialog_dataproviders.py:468",
+      "signature": "item_checked_changed(item)",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoImportDialogDataProviders.save_btn_clicked",
+      "kind": "ui_control",
+      "name": "save_btn_clicked",
+      "source": "geo_import_dialog_dataproviders.py:480",
+      "signature": "save_btn_clicked()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoImportDialogDataProviders.server_in_list_clicked",
+      "kind": "ui_control",
+      "name": "server_in_list_clicked",
+      "source": "geo_import_dialog_dataproviders.py:456",
+      "signature": "server_in_list_clicked(model_index)",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "bridge.addServer",
+      "kind": "bridge_method",
+      "name": "addServer",
+      "source": "bridge.py:801",
+      "signature": "addServer(name, url)",
+      "summary": "カスタムサーバーを追加する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call addServer → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "要実引数(応答あり): {'ok': False, 'error': 'name and url required'}"
+    },
+    {
+      "id": "bridge.checkGroups",
+      "kind": "bridge_method",
+      "name": "checkGroups",
+      "source": "bridge.py:570",
+      "signature": "checkGroups(selection=…)",
+      "summary": "カテゴリのチェックを設定し再検索する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call checkGroups → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.checkResources",
+      "kind": "bridge_method",
+      "name": "checkResources",
+      "source": "bridge.py:470",
+      "signature": "checkResources(selection=…)",
+      "summary": "リソースのチェックを設定する。'all'/'none'またはindex配列。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call checkResources → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.closeDialog",
+      "kind": "bridge_method",
+      "name": "closeDialog",
+      "source": "bridge.py:390",
+      "signature": "closeDialog()",
+      "summary": "カタログブラウザを閉じる。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call closeDialog → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.datasetDetails",
+      "kind": "bridge_method",
+      "name": "datasetDetails",
+      "source": "bridge.py:703",
+      "signature": "datasetDetails(index=…)",
+      "summary": "選択データセットの詳細(package辞書)を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call datasetDetails → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.formatFilter",
+      "kind": "bridge_method",
+      "name": "formatFilter",
+      "source": "bridge.py:623",
+      "signature": "formatFilter(format=…)",
+      "summary": "データ形式フィルタを取得/設定する('All'でフィルタ無し)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call formatFilter → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.getSettings",
+      "kind": "bridge_method",
+      "name": "getSettings",
+      "source": "bridge.py:882",
+      "signature": "getSettings()",
+      "summary": "設定を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call getSettings → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.gotoPage",
+      "kind": "bridge_method",
+      "name": "gotoPage",
+      "source": "bridge.py:530",
+      "signature": "gotoPage(page)",
+      "summary": "検索結果の指定ページへ移動する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call gotoPage → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.link",
+      "kind": "bridge_method",
+      "name": "link",
+      "source": "bridge.py:728",
+      "signature": "link(copy=…)",
+      "summary": "リンク表示欄の内容を返す。copy=Trueでクリップボードへ。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call link → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.listGroups",
+      "kind": "bridge_method",
+      "name": "listGroups",
+      "source": "bridge.py:551",
+      "signature": "listGroups()",
+      "summary": "カテゴリ(グループ)一覧を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call listGroups → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.listServers",
+      "kind": "bridge_method",
+      "name": "listServers",
+      "source": "bridge.py:749",
+      "signature": "listServers()",
+      "summary": "カタログサーバー設定一覧を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call listServers → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.loadSelected",
+      "kind": "bridge_method",
+      "name": "loadSelected",
+      "source": "bridge.py:492",
+      "signature": "loadSelected()",
+      "summary": "チェック済みリソースをQGISへ読み込む。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call loadSelected → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.localCache",
+      "kind": "bridge_method",
+      "name": "localCache",
+      "source": "bridge.py:646",
+      "signature": "localCache(enabled=…)",
+      "summary": "ローカルキャッシュ利用を取得/設定する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call localCache → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.nextPage",
+      "kind": "bridge_method",
+      "name": "nextPage",
+      "source": "bridge.py:508",
+      "signature": "nextPage()",
+      "summary": "検索結果の次ページへ移動する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call nextPage → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.openDialog",
+      "kind": "bridge_method",
+      "name": "openDialog",
+      "source": "bridge.py:368",
+      "signature": "openDialog()",
+      "summary": "カタログブラウザを非modalで開く。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call openDialog → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.openDisclaimer",
+      "kind": "bridge_method",
+      "name": "openDisclaimer",
+      "source": "bridge.py:874",
+      "signature": "openDisclaimer()",
+      "summary": "免責事項ダイアログを開く。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call openDisclaimer → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.openProviders",
+      "kind": "bridge_method",
+      "name": "openProviders",
+      "source": "bridge.py:740",
+      "signature": "openProviders()",
+      "summary": "データプロバイダ選択ダイアログを開く(非同期起動)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call openProviders → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.openSettings",
+      "kind": "bridge_method",
+      "name": "openSettings",
+      "source": "bridge.py:397",
+      "signature": "openSettings()",
+      "summary": "設定ダイアログを開く(modal — 閉じるまで呼出は戻らない)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call openSettings → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.pluginInfo",
+      "kind": "bridge_method",
+      "name": "pluginInfo",
+      "source": "bridge.py:324",
+      "signature": "pluginInfo()",
+      "summary": "プラグインの自己記述(id/summary/when_to_use/methods)を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call pluginInfo → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.prevPage",
+      "kind": "bridge_method",
+      "name": "prevPage",
+      "source": "bridge.py:519",
+      "signature": "prevPage()",
+      "summary": "検索結果の前ページへ移動する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call prevPage → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.refreshCache",
+      "kind": "bridge_method",
+      "name": "refreshCache",
+      "source": "bridge.py:668",
+      "signature": "refreshCache()",
+      "summary": "選択中サーバーのSQLiteキャッシュを再作成する(長時間の場合あり)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call refreshCache → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.reload",
+      "kind": "bridge_method",
+      "name": "reload",
+      "source": "bridge.py:864",
+      "signature": "reload()",
+      "summary": "ダイアログを再読込する(サーバー・カテゴリ再取得+全件検索)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call reload → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.removeServer",
+      "kind": "bridge_method",
+      "name": "removeServer",
+      "source": "bridge.py:827",
+      "signature": "removeServer(name)",
+      "summary": "カスタムサーバーを削除する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call removeServer → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.resources",
+      "kind": "bridge_method",
+      "name": "resources",
+      "source": "bridge.py:459",
+      "signature": "resources()",
+      "summary": "選択データセットのリソース一覧を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call resources → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.results",
+      "kind": "bridge_method",
+      "name": "results",
+      "source": "bridge.py:420",
+      "signature": "results()",
+      "summary": "現在の検索結果一覧とページ情報を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call results → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.search",
+      "kind": "bridge_method",
+      "name": "search",
+      "source": "bridge.py:402",
+      "signature": "search(text=…)",
+      "summary": "データセット検索を開始する(非同期)。結果は results()。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call search → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.selectResult",
+      "kind": "bridge_method",
+      "name": "selectResult",
+      "source": "bridge.py:446",
+      "signature": "selectResult(index)",
+      "summary": "結果リストのデータセットを選択する(リソース一覧が更新される)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call selectResult → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "bridge_call応答あり args=[0]"
+    },
+    {
+      "id": "bridge.selectResults",
+      "kind": "bridge_method",
+      "name": "selectResults",
+      "source": "bridge.py:680",
+      "signature": "selectResults(indices)",
+      "summary": "結果リストの複数データセットを選択する(index配列)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call selectResults → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.selectServers",
+      "kind": "bridge_method",
+      "name": "selectServers",
+      "source": "bridge.py:771",
+      "signature": "selectServers(names)",
+      "summary": "検索対象サーバーを選択して再読込する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call selectServers → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.setSettings",
+      "kind": "bridge_method",
+      "name": "setSettings",
+      "source": "bridge.py:903",
+      "signature": "setSettings(settings=…)",
+      "summary": "設定を変更して保存する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call setSettings → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.status",
+      "kind": "bridge_method",
+      "name": "status",
+      "source": "bridge.py:337",
+      "signature": "status()",
+      "summary": "ダイアログ・検索状態・接続設定を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call status → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.testServer",
+      "kind": "bridge_method",
+      "name": "testServer",
+      "source": "bridge.py:842",
+      "signature": "testServer(url)",
+      "summary": "サーバーURLの接続テストを行う(同期HTTP。数秒ブロック)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call testServer → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "integration.geo_import_dialog.py:1660",
+      "kind": "integration",
+      "name": "requests.get",
+      "source": "geo_import_dialog.py:1660",
+      "signature": "requests.get(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.httpcall.py:139",
+      "kind": "integration",
+      "name": "QgsNetworkAccessManager.instance",
+      "source": "httpcall.py:139",
+      "signature": "QgsNetworkAccessManager.instance(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.util.py:1251",
+      "kind": "integration",
+      "name": "subprocess.Popen",
+      "source": "util.py:1251",
+      "signature": "subprocess.Popen(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.util.py:1253",
+      "kind": "integration",
+      "name": "subprocess.Popen",
+      "source": "util.py:1253",
+      "signature": "subprocess.Popen(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.util.py:1257",
+      "kind": "integration",
+      "name": "subprocess.Popen",
+      "source": "util.py:1257",
+      "signature": "subprocess.Popen(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.util.py:229",
+      "kind": "integration",
+      "name": "subprocess.call",
+      "source": "util.py:229",
+      "signature": "subprocess.call(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.util.py:901",
+      "kind": "integration",
+      "name": "subprocess.call",
+      "source": "util.py:901",
+      "signature": "subprocess.call(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.util.py:907",
+      "kind": "integration",
+      "name": "subprocess.call",
+      "source": "util.py:907",
+      "signature": "subprocess.call(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "ai.bridge_route",
+      "kind": "ai_integration",
+      "name": "bridge_call経由全到達",
+      "source": "bridge.py",
+      "signature": "",
+      "summary": "全bridge_methodがAI経路で呼べる",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call 全method→ok/error記録"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "25メソッド到達可能"
+    },
+    {
+      "id": "ai.catalog",
+      "kind": "ai_integration",
+      "name": "describe_plugins登録",
+      "source": "geo_driver経由",
+      "signature": "",
+      "summary": "カタログに載り呼出可能か",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "describe_plugins→plugins[]にid実在+methods非空"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "describe_plugins: methods=31"
+    },
+    {
+      "id": "ai.pluginInfo",
+      "kind": "ai_integration",
+      "name": "pluginInfo自己記述",
+      "source": "bridge.py",
+      "signature": "pluginInfo()",
+      "summary": "summary/when_to_use/methodsの正確性",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call pluginInfo→メタ一致assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "自己記述あり"
+    },
+    {
+      "id": "logic_fn.clipboard.py:copy",
+      "kind": "logic_fn",
+      "name": "copy",
+      "source": "clipboard.py:11",
+      "signature": "copy(text)",
+      "summary": "テキストをシステムクリップボードへコピーする。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.geo_import_dialog.py:fetch_page_from_db",
+      "kind": "logic_fn",
+      "name": "fetch_page_from_db",
+      "source": "geo_import_dialog.py:18",
+      "signature": "fetch_page_from_db(db_path, format_text, format_lc, current_page, results_limit, search_txt=…, group_names=…)",
+      "summary": "SQLiteキャッシュDBからフィルタ済みの1ページ分を同期取得する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.mlit_xml_checker.py:diagnose_xml_type",
+      "kind": "logic_fn",
+      "name": "diagnose_xml_type",
+      "source": "mlit_xml_checker.py:13",
+      "signature": "diagnose_xml_type(xml_file_path)",
+      "summary": "XMLファイルのタイプを診断し、絵文字付きレイヤ名を表示",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.mlit_xml_checker.py:main",
+      "kind": "logic_fn",
+      "name": "main",
+      "source": "mlit_xml_checker.py:97",
+      "signature": "main()",
+      "summary": "メイン関数",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.mlit_xml_checker.py:test_all_xml_types",
+      "kind": "logic_fn",
+      "name": "test_all_xml_types",
+      "source": "mlit_xml_checker.py:73",
+      "signature": "test_all_xml_types()",
+      "summary": "test_mlit_xml_typesディレクトリの全XMLファイルをテスト",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.save_ckan_to_sqlite.py:save_ckan_groups_to_sqlite",
+      "kind": "logic_fn",
+      "name": "save_ckan_groups_to_sqlite",
+      "source": "save_ckan_to_sqlite.py:64",
+      "signature": "save_ckan_groups_to_sqlite(db_path, groups)",
+      "summary": "CKANグループリストをSQLiteに保存",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.save_ckan_to_sqlite.py:save_ckan_packages_to_sqlite",
+      "kind": "logic_fn",
+      "name": "save_ckan_packages_to_sqlite",
+      "source": "save_ckan_to_sqlite.py:5",
+      "signature": "save_ckan_packages_to_sqlite(db_path, packages)",
+      "summary": "",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.xml_attribute_loader.py:diagnose_mlit_xml",
+      "kind": "logic_fn",
+      "name": "diagnose_mlit_xml",
+      "source": "xml_attribute_loader.py:1157",
+      "signature": "diagnose_mlit_xml(xml_file_path)",
+      "summary": "スタンドアロン関数：XMLファイルが国土交通省関連かどうかを診断",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.xml_attribute_loader.py:print_mlit_xml_diagnosis",
+      "kind": "logic_fn",
+      "name": "print_mlit_xml_diagnosis",
+      "source": "xml_attribute_loader.py:1202",
+      "signature": "print_mlit_xml_diagnosis(xml_file_path)",
+      "summary": "XMLファイルの診断結果をコンソールに出力",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.xml_diagnostics.py:diagnose_xml_file",
+      "kind": "logic_fn",
+      "name": "diagnose_xml_file",
+      "source": "xml_diagnostics.py:24",
+      "signature": "diagnose_xml_file(file_path)",
+      "summary": "XMLファイルの問題を診断する",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.xml_diagnostics.py:print_diagnosis",
+      "kind": "logic_fn",
+      "name": "print_diagnosis",
+      "source": "xml_diagnostics.py:163",
+      "signature": "print_diagnosis(file_path)",
+      "summary": "XMLファイルの診断結果を出力する",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "standalone import+attr実在"
+    }
+  ],
+  "static": {
+    "compileall": {
+      "rc": 0,
+      "out": ""
+    },
+    "flake8": {
+      "rc": 1,
+      "out": "C:\\devin\\qgis_live_harness\\qgis-plugin\\geo_import\\defusedxml\\ElementTree.py:28:1: E402 module level import not at top of file\nC:\\devin\\qgis_live_harness\\qgis-plugin\\geo_import\\defusedxml\\ElementTree.py:35:1: E402 module level import not at top of file"
+    },
+    "bandit": {
+      "rc": 0,
+      "out": "[main]\tINFO\tUsing ini file for skipped tests\n[main]\tINFO\tUsing command line arg for selected targets"
+    },
+    "ran_at": "2026-11-15T22:33:28+09:00",
+    "reload": {
+      "loaded": true,
+      "opened": false,
+      "plugins": [
+        "ImportPhotos",
+        "MetaSearch",
+        "Qgis2threejs",
+        "QuickDEM4JP",
+        "StreetView",
+        "db_manager",
+        "geo_driver",
+        "geo_excel",
+        "geo_import",
+        "geo_launcher",
+        "geo_legend",
+        "geo_report",
+        "geo_search",
+        "geo_userfunc",
+        "geo_webview",
+        "menu_from_project",
+        "mmqgis",
+        "mojxml_plugin",
+        "plateau_plugin",
+        "processing",
+        "qfieldsync",
+        "searchlayers"
+      ]
+    }
+  }
+}

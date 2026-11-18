@@ -52,6 +52,53 @@ except Exception:
 from .i18n_json import install_translator
 
 
+def _qt_dead(w):
+    """QtラッパーのC++側オブジェクトが削除済みかを返す。
+
+    削除済み QAction/QMenu/QToolBar へメソッドを呼ぶと Python 例外では
+    なく access violation になるため、触れる前に判定する。
+    """
+    try:
+        from qgis.PyQt import sip
+        return bool(sip.isdeleted(w))
+    except Exception:
+        try:
+            from PyQt6 import sip
+            return bool(sip.isdeleted(w))
+        except Exception:
+            return False
+
+
+def _defer_remove_actions(iface, menu_name, actions, toolbar=None):
+    """メニュー/ツールバー項目の除去をイベント完了後へ遅延する。
+
+    QMenu のイベント処理中(triggered ハンドラ内の reloadPlugin 経由等)
+    に removePluginMenu/removeAction するとポップアップ処理中の
+    メニュー階層を破壊して access violation になる実績があるため、
+    QTimer で遅延する。除去対象は呼出し時点の参照に限定し、
+    触れる各オブジェクトは _qt_dead で先に判定する。
+    """
+    def _cleanup():
+        for action in actions:
+            if _qt_dead(action):
+                continue
+            try:
+                iface.removePluginMenu(menu_name, action)
+            except Exception:  # nosec B110  # 設計上の許容
+                pass
+            try:
+                if toolbar is not None and not _qt_dead(toolbar):
+                    toolbar.removeAction(action)
+            except Exception:  # nosec B110  # 設計上の許容
+                pass
+
+    try:
+        from qgis.PyQt.QtCore import QTimer
+        QTimer.singleShot(0, _cleanup)
+    except Exception:  # nosec B110  # 設計上の許容
+        _cleanup()
+
+
 class NavigationSignals(QObject):
     """プラグイン内で使用するシンプルなシグナルコンテナ"""
     navigate_requested = pyqtSignal(dict)  # 地図ナビゲーション要求
@@ -179,6 +226,36 @@ class GeoWebView:
             except Exception:  # nosec B110  # 設計上の許容
                 pass
 
+    def _push_message(self, *args, **kwargs):
+        """messageBar.pushMessage を次イベントループへ遅延するラッパー。
+
+        clicked 等のイベントハンドラ内から直接 pushMessage すると、
+        Qt6 では QgsMessageBarItem 生成時のスタイルシート/アイコン
+        解決(QIcon/QResource)でアクセス違反を起こすことがある。
+        mouseReleaseEvent の中で重い同期処理の直後に widget を
+        生成しないよう QTimer.singleShot(0) でイベント処理完了後へ送る
+        (QGIS 本体の Qt6 対策と同じキューイング方針)。
+        引数・キーワードは pushMessage と同じ(戻り値は使わない前提)。"""
+        try:
+            from qgis.PyQt.QtCore import QTimer
+
+            def _do():
+                try:
+                    self.iface.messageBar().pushMessage(*args, **kwargs)
+                except Exception:  # nosec B110  # 通知失敗のみ許容
+                    pass
+            # context=mainWindow で呼出しスレッドに関わらず
+            # GUI スレッド実行を保証する(非対応なら無contextで代替)
+            try:
+                QTimer.singleShot(0, self.iface.mainWindow(), _do)
+            except TypeError:
+                QTimer.singleShot(0, _do)
+        except Exception:  # nosec B110  # 遅延不能時は従来どおり即時通知
+            try:
+                self.iface.messageBar().pushMessage(*args, **kwargs)
+            except Exception:  # nosec B110  # 通知失敗のみ許容
+                pass
+
     def add_action(
             self,
             icon_path,
@@ -258,7 +335,7 @@ class GeoWebView:
                 parent=self.iface.mainWindow())
         else:
             # パネルが利用できない場合は警告メッセージ
-            self.iface.messageBar().pushMessage(
+            self._push_message(
                 self.tr("geo_webview"),
                 self.tr("Panel functionality is not available. Please try reinstalling the plugin."),
                 level=2,  # WARNING
@@ -363,7 +440,7 @@ class GeoWebView:
         try:
             if self.panel is None:
                 # パネル利用可能性をデバッグ
-                self.iface.messageBar().pushMessage(
+                self._push_message(
                     "QMap Permalink",
                     f"PANEL_AVAILABLE: {PANEL_AVAILABLE}, GeoWebViewPanel: {GeoWebViewPanel}",
                     duration=5
@@ -380,15 +457,21 @@ class GeoWebView:
                 self.panel.pushButton_navigate.clicked.connect(self.on_navigate_clicked_panel)
                 self.panel.pushButton_copy.clicked.connect(self.on_copy_clicked_panel)
 
-                # KASUGAI Canvas エクスポートボタンのイベントを接続
+                # KASUGAI Canvas エクスポートボタンのイベントを接続。
+                # clicked は mouseReleaseEvent 内で発火するため、重い
+                # 同期エクスポート＋widget 生成をイベント処理中に行わない
+                # よう QTimer.singleShot(0) で次ティックへ遅延する
+                # (Qt6 のイベントハンドラ内 use-after-free クラッシュ対策)
+                from qgis.PyQt.QtCore import QTimer
                 _exp_btn = getattr(
                     self.panel, 'pushButton_kasugai_export', None)
                 if _exp_btn is not None:
                     _exp_btn.clicked.connect(
-                        lambda checked=False: self.on_kasugai_export_clicked())
+                        lambda checked=False: QTimer.singleShot(
+                            0, self.on_kasugai_export_clicked))
                     print("KASUGAI export button connected")
 
-                # 出力フォルダ(.kasc/DATA/<engine>.html)を開くボタン
+                # 出力フォルダ(.kasc/canvas_data/<engine>.html)を開くボタン
                 _folder_btn = getattr(
                     self.panel, 'pushButton_kasugai_folder', None)
                 if _folder_btn is not None:
@@ -400,7 +483,8 @@ class GeoWebView:
                     self.panel, 'pushButton_kasugai_zip', None)
                 if _zip_btn is not None:
                     _zip_btn.clicked.connect(
-                        lambda checked=False: self.on_kasugai_zip_clicked())
+                        lambda checked=False: QTimer.singleShot(
+                            0, self.on_kasugai_zip_clicked))
 
                 # ドキュメントサイト(GitHub Pages)を開くヘルプボタン
                 _help_btn = getattr(
@@ -437,7 +521,9 @@ class GeoWebView:
                     if _btn is not None:
                         _btn.clicked.connect(
                             lambda checked=False, r=_route:
-                            self.on_kasugai_launch_clicked(r))
+                            QTimer.singleShot(
+                                0, lambda r=r:
+                                self.on_kasugai_launch_clicked(r)))
                         print(f"KASUGAI launch button connected: {_btn_name}")
 
                 # エンジン選択コンボ: 前回値の復元と保存
@@ -474,6 +560,24 @@ class GeoWebView:
                     except Exception:  # nosec B110  # 設計上の許容
                         pass
 
+                # ベクター出力形式コンボ: 推奨形式スイッチ(vector_format)の
+                # パネル側入口。設定ダイアログの Vector Export Format と同じ
+                # kasugai_vector_format を読み書きする
+                _vf_combo = getattr(
+                    self.panel, 'comboBox_vector_format', None)
+                if _vf_combo is not None:
+                    try:
+                        from . import kasugai_export
+                        _idx = _vf_combo.findData(
+                            kasugai_export.get_vector_export_mode())
+                        _vf_combo.blockSignals(True)
+                        _vf_combo.setCurrentIndex(_idx if _idx >= 0 else 0)
+                        _vf_combo.blockSignals(False)
+                        _vf_combo.currentIndexChanged.connect(
+                            self.on_vector_format_changed)
+                    except Exception:  # nosec B110  # 設計上の許容
+                        pass
+
                 # Check Access ボタンのイベントを接続
                 if hasattr(self.panel, 'pushButton_check_access'):
                     self.panel.pushButton_check_access.clicked.connect(self.on_check_access_clicked)
@@ -492,7 +596,7 @@ class GeoWebView:
                         self.panel.comboBox_received.currentIndexChanged.connect(
                             self.on_received_selected)
                         # 受領履歴を定期ポーリングしてコンボを更新
-                        from qgis.PyQt.QtCore import QTimer
+                        # (QTimer は上のボタン配線ブロックで import 済み)
                         self._received_timer = QTimer(self.panel)
                         self._received_timer.setInterval(3000)
                         self._received_timer.timeout.connect(
@@ -619,7 +723,7 @@ class GeoWebView:
                 self._try_tabify_with_existing_panels()
 
                 # デバッグメッセージ
-                self.iface.messageBar().pushMessage(
+                self._push_message(
                     self.tr("geo_webview"),
                     self.tr("Panel created successfully."),
                     duration=3
@@ -752,13 +856,13 @@ class GeoWebView:
                 # QMapPermalinkパネルをアクティブにする
                 self.panel.raise_()
 
-                self.iface.messageBar().pushMessage(
+                self._push_message(
                     self.tr("geo_webview"),
                     self.tr("Tabified with '{panel_name}' panel.").format(panel_name=target_panel.windowTitle()),
                     duration=3
                 )
             else:
-                self.iface.messageBar().pushMessage(
+                self._push_message(
                     self.tr("geo_webview"),
                     self.tr("Displayed as an independent panel on the left side."),
                     duration=3
@@ -767,7 +871,7 @@ class GeoWebView:
         except Exception as e:
             # タブ化に失敗しても継続
             print(f"Panel tabify error: {e}")
-            self.iface.messageBar().pushMessage(
+            self._push_message(
                 self.tr("geo_webview"),
                 self.tr("Panel displayed on the left side."),
                 duration=3
@@ -787,11 +891,11 @@ class GeoWebView:
         if hasattr(self, 'navigation_signals'):
             self.navigation_signals.navigate_requested.disconnect()
 
-        for action in self.actions:
-            self.iface.removePluginMenu(
-                self.tr(u'&geo_webview'),
-                action)
-            self._geo_toolbar(ensure_visible=False).removeAction(action)
+        # メニュー/ツールバー項目の除去はイベント完了後へ遅延する
+        # (QMenu イベント処理中の除去は access violation の実績)
+        _defer_remove_actions(
+            self.iface, self.tr(u'&geo_webview'), list(self.actions),
+            self._geo_toolbar(ensure_visible=False))
 
         # 自動再エクスポートのシグナル接続を解除
         if getattr(self, '_auto_export_connected', False):
@@ -979,7 +1083,7 @@ class GeoWebView:
                 canvas.setExtent(extent)
                 canvas.refresh()
 
-                self.iface.messageBar().pushMessage(
+                self._push_message(
                     "QMap Permalink",
                     self.tr("Moved the map view from the permalink."),
                     duration=3
@@ -1021,7 +1125,7 @@ class GeoWebView:
             canvas.setExtent(extent)
             canvas.refresh()
 
-            self.iface.messageBar().pushMessage(
+            self._push_message(
                 "QMap Permalink",
                 self.tr("Moved the map view via HTTP."),
                 duration=3
@@ -1185,7 +1289,7 @@ class GeoWebView:
             if theme_applied:
                 message += self.tr(" The theme was also restored.")
 
-            self.iface.messageBar().pushMessage(
+            self._push_message(
                 "QMap Permalink",
                 message,
                 duration=3
@@ -1223,7 +1327,7 @@ class GeoWebView:
 
         except Exception as e:
             print(f"Navigation error: {e}")
-            self.iface.messageBar().pushMessage(
+            self._push_message(
                 self.tr("QMap Permalink Error"),
                 self.tr("An error occurred while processing navigation: {0}").format(e),
                 duration=5
@@ -1260,7 +1364,7 @@ class GeoWebView:
             else:
                 message = self.tr("Permalink (position only) generated successfully.")
 
-            self.iface.messageBar().pushMessage(
+            self._push_message(
                 self.tr("geo_webview"),
                 message,
                 duration=3
@@ -1364,7 +1468,7 @@ class GeoWebView:
 
         if success:
             print("Clipboard copy succeeded")
-            self.iface.messageBar().pushMessage(
+            self._push_message(
                 "geo_webview",
                 self.tr("Copied the permalink to the clipboard."),
                 duration=3
@@ -1378,7 +1482,7 @@ class GeoWebView:
             )
 
     def on_kasugai_open_folder(self):
-        """KASUGAI 出力フォルダ(.kasc/DATA/<engine>.html/index.html が
+        """KASUGAI 出力フォルダ(.kasc/canvas_data/<engine>.html/index.html が
         出力される場所)を OS のファイルマネージャで開く。"""
         try:
             from . import kasugai_export
@@ -1387,7 +1491,7 @@ class GeoWebView:
             QDesktopServices.openUrl(
                 QUrl.fromLocalFile(os.path.abspath(out_dir)))
         except Exception as e:
-            self.iface.messageBar().pushMessage(
+            self._push_message(
                 "geo_webview",
                 self.tr("Failed to open export folder: {0}").format(e),
                 duration=5)
@@ -1417,12 +1521,12 @@ class GeoWebView:
                 return
             kasugai_export.set_output_dir(folder)
             self.update_kasugai_outdir_display()
-            self.iface.messageBar().pushMessage(
+            self._push_message(
                 "geo_webview",
                 self.tr("Export destination set to {0}").format(folder),
                 duration=5)
         except Exception as e:
-            self.iface.messageBar().pushMessage(
+            self._push_message(
                 "geo_webview",
                 self.tr("Failed to set export destination: {0}").format(e),
                 duration=5)
@@ -1433,7 +1537,7 @@ class GeoWebView:
             from . import kasugai_export
             kasugai_export.set_output_dir('')
             self.update_kasugai_outdir_display()
-            self.iface.messageBar().pushMessage(
+            self._push_message(
                 "geo_webview",
                 self.tr("Export destination reset to the default"),
                 duration=5)
@@ -1442,7 +1546,7 @@ class GeoWebView:
 
     def on_kasugai_export_clicked(self):
         """パネル版：KASUGAI エクスポートボタン — 表示中レイヤを
-        KASUGAI Canvasプロジェクト(.kasc+DATA/+エンジン起動HTML)として
+        KASUGAI Canvasプロジェクト(.kasc+canvas_data/+エンジン起動HTML)として
         出力するだけの簡易経路。Canvas 起動・プロジェクト登録は行わず、
         出力物は 📁 ボタンの出力フォルダか index.html から開く。
         Canvas 連携での起動は GET /kasugai / bridge kasugaiExport 経由。"""
@@ -1450,16 +1554,16 @@ class GeoWebView:
             from . import kasugai_export
             result = kasugai_export.export_kasugai_project(
                 self.iface,
-                out_dir=kasugai_export.preferred_output_dir())
+                out_dir=None)
             n_layers = len(result.get('layers') or [])
             n_tiles = len(result.get('tiles') or [])
             if not n_layers and not n_tiles:
-                self.iface.messageBar().pushMessage(
+                self._push_message(
                     "geo_webview",
                     self.tr("No visible vector/tile layers to export."),
                     duration=5)
                 return
-            self.iface.messageBar().pushMessage(
+            self._push_message(
                 "geo_webview",
                 self.tr("Exported KASUGAI project to {0} "
                         "({1} layers, {2} tiles). "
@@ -1467,7 +1571,7 @@ class GeoWebView:
                     result['dir'], n_layers, n_tiles),
                 duration=8)
         except Exception as e:
-            self.iface.messageBar().pushMessage(
+            self._push_message(
                 "geo_webview",
                 self.tr("KASUGAI export error: {0}").format(e),
                 duration=5)
@@ -1478,7 +1582,7 @@ class GeoWebView:
         その場で固めて返すため、常に直近エクスポートの最新内容になる。"""
         try:
             if not self.server_manager.is_server_running():
-                self.iface.messageBar().pushMessage(
+                self._push_message(
                     "geo_webview",
                     self.tr("The HTTP server is not running. Please start the server."),
                     duration=5)
@@ -1490,16 +1594,16 @@ class GeoWebView:
                 'http://localhost:{0}/export-data/{1}'.format(
                     port, zip_name)))
         except Exception as e:
-            self.iface.messageBar().pushMessage(
+            self._push_message(
                 "geo_webview",
                 self.tr("ZIP download error: {0}").format(e), duration=5)
 
-    # geo_webview ドキュメントサイト(GitHub Pages。docs/geo_webview/ を公開)
-    DOCS_URL = ('https://yamamoto-ryuzo.github.io/'
-                'qgis_live_harness/geo_webview/')
+    # geo_webview ドキュメント(qgis-plugin/geo_webview/docs/ の GitHub ツリー)
+    DOCS_URL = ('https://github.com/yamamoto-ryuzo/qgis_live_harness/'
+                'tree/master/qgis-plugin/geo_webview/docs')
 
     def on_kasugai_help_clicked(self):
-        """ドキュメントサイト(GitHub Pages)をブラウザで開く。"""
+        """ドキュメント(GitHub 上の docs/)をブラウザで開く。"""
         QDesktopServices.openUrl(QUrl(self.DOCS_URL))
 
     def on_engine_combo_changed(self, index):
@@ -1526,6 +1630,21 @@ class GeoWebView:
             QSettings('GeoWebView', 'geo_webview').setValue(
                 'kasugai_hosted_channel',
                 str(text or '').strip() or 'stable')
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+
+    def on_vector_format_changed(self, index):
+        """パネルのベクター出力形式コンボを kasugai_vector_format へ保存する。
+
+        settings_dialog の Vector Export Format コンボと同じ
+        QSettings キーなので双方向に同期する。"""
+        try:
+            from . import kasugai_export
+            combo = getattr(self.panel, 'comboBox_vector_format', None)
+            if combo is None:
+                return
+            kasugai_export.set_vector_export_mode(
+                combo.itemData(index) or 'native')
         except Exception:  # nosec B110  # 設計上の許容
             pass
 
@@ -1566,13 +1685,13 @@ class GeoWebView:
                 or '{}')
             if not res.get('ok'):
                 if res.get('code') == 'not_exported':
-                    self.iface.messageBar().pushMessage(
+                    self._push_message(
                         "geo_webview",
                         self.tr("The project has not been exported yet. "
                                 "Use the Export button to export it first."),
                         duration=8)
                     return
-                self.iface.messageBar().pushMessage(
+                self._push_message(
                     "geo_webview",
                     self.tr("KASUGAI export failed: {0}").format(
                         res.get('error', 'unknown error')),
@@ -1580,7 +1699,7 @@ class GeoWebView:
                 return
             url = res.get('url')
             if url:
-                self.iface.messageBar().pushMessage(
+                self._push_message(
                     "geo_webview",
                     self.tr("Opened the project in {0} ({1}): {2}").format(
                         engine, res.get('via') or '-', url),
@@ -1595,7 +1714,7 @@ class GeoWebView:
                         "stopped or no installed Canvas web/ was found."),
                     'hosted': self.tr(
                         "Serverless delivery unavailable — the HTTP server "
-                        "must be running to serve DATA/."),
+                        "must be running to serve canvas_data/."),
                 }
                 if route == 'kasugai':
                     # エクスポート済みの出力物を使う経路なので
@@ -1608,10 +1727,10 @@ class GeoWebView:
                             route,
                             self.tr("No engine available — open the .kasc "
                                     "file in KASUGAI Canvas.")))
-                self.iface.messageBar().pushMessage(
+                self._push_message(
                     "geo_webview", msg, duration=8)
         except Exception as e:
-            self.iface.messageBar().pushMessage(
+            self._push_message(
                 "geo_webview",
                 self.tr("KASUGAI launch error: {0}").format(e),
                 duration=5)
@@ -1769,7 +1888,7 @@ class GeoWebView:
                     QgsMessageLog.logMessage(
                         'KASUGAI Canvas install cancelled by user',
                         'geo_webview', Qgis.MessageLevel.Info)
-                    self.iface.messageBar().pushMessage(
+                    self._push_message(
                         "geo_webview",
                         self.tr("KASUGAI Canvas install cancelled."),
                         level=Qgis.MessageLevel.Info, duration=5)
@@ -1777,12 +1896,12 @@ class GeoWebView:
                 QgsMessageLog.logMessage(
                     'KASUGAI Canvas install failed: {0}'.format(err),
                     'geo_webview', Qgis.MessageLevel.Warning)
-                self.iface.messageBar().pushMessage(
+                self._push_message(
                     "geo_webview",
                     self.tr("KASUGAI Canvas install failed: {0}").format(err),
                     level=Qgis.MessageLevel.Warning, duration=10)
                 return
-            self.iface.messageBar().pushMessage(
+            self._push_message(
                 "geo_webview",
                 self.tr("Installed KASUGAI Canvas to {0}.").format(dest),
                 duration=5)
@@ -1824,7 +1943,7 @@ class GeoWebView:
         """
         try:
             if not self.server_manager.is_server_running():
-                self.iface.messageBar().pushMessage(
+                self._push_message(
                     "geo_webview",
                     self.tr("The HTTP server is not running. Please start the server."),
                     duration=5)
@@ -1837,12 +1956,12 @@ class GeoWebView:
                 QApplication.clipboard().setText(url)
             except Exception:  # nosec B110  # 設計上の許容
                 pass
-            self.iface.messageBar().pushMessage(
+            self._push_message(
                 "geo_webview",
                 self.tr("Opened the presentation share page. Share URL (copied to clipboard): {0}").format(url),
                 duration=5)
         except Exception as e:
-            self.iface.messageBar().pushMessage(
+            self._push_message(
                 "geo_webview",
                 self.tr("Presentation launch error: {0}").format(e), duration=5)
 
@@ -1986,7 +2105,7 @@ class GeoWebView:
 
                         def copy_command():
                             QApplication.clipboard().setText(rule_result.get('command', ''))
-                            self.iface.messageBar().pushMessage(
+                            self._push_message(
                                 "QMap Permalink", self.tr("Copied the command"), duration=2
                             )
                         copy_cmd_btn.clicked.connect(copy_command)
@@ -2015,7 +2134,7 @@ class GeoWebView:
 
                 def copy_url():
                     QApplication.clipboard().setText(result['local_network_url'])
-                    self.iface.messageBar().pushMessage(
+                    self._push_message(
                         "QMap Permalink", self.tr("Copied the URL"), duration=2
                     )
                 copy_btn.clicked.connect(copy_url)
@@ -2074,7 +2193,7 @@ class GeoWebView:
                 # スピンボックスの値を更新
                 self.panel.spinBox_port.setValue(port)
 
-                self.iface.messageBar().pushMessage(
+                self._push_message(
                     "QMap Permalink",
                     self.tr("Port number set to {0}. Please restart QGIS with administrator rights and start the server.").format(port),
                     duration=5
@@ -2215,7 +2334,7 @@ class GeoWebView:
         theme_name = (name_edit.text() or "").strip() if name_edit else ""
 
         if not theme_name:
-            self.iface.messageBar().pushMessage(
+            self._push_message(
                 "QMap Permalink",
                 self.tr("Theme name is empty."),
                 duration=3
@@ -2246,10 +2365,10 @@ class GeoWebView:
             else:
                 msg = self.tr("Theme '{theme}' saved.").format(
                     theme=theme_name)
-            self.iface.messageBar().pushMessage(
+            self._push_message(
                 "QMap Permalink", msg, duration=3)
         else:
-            self.iface.messageBar().pushMessage(
+            self._push_message(
                 "QMap Permalink",
                 self.tr("Theme save failed: {error}").format(
                     error=result.get("error")),

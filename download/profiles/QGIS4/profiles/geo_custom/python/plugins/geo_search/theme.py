@@ -204,17 +204,17 @@ def collect_visible_layer_snapshot(root, log_layer_legend_state_func=None, tag: 
     except Exception:
         messages = ["[theme log] failed to get layer list"]
 
-    # Emit messages using QgsMessageLog when available, otherwise print
+    # Emit messages using log_message when available, otherwise print
     try:
-        from qgis.core import QgsMessageLog
+        from .log import log_message
     except Exception:
-        QgsMessageLog = None
+        log_message = None
 
     for m in messages:
         try:
-            if QgsMessageLog is not None:
+            if log_message is not None:
                 try:
-                    QgsMessageLog.logMessage(m, tag, 0)
+                    log_message(m, tag, 0)
                 except Exception:
                     print(m)
             else:
@@ -233,8 +233,8 @@ def collect_visible_layer_snapshot(root, log_layer_legend_state_func=None, tag: 
                 # also emit a short confirmation message
                 info = f"[theme log] saved visible-layer snapshot '{snapshot_name}' to memory (layers={len(snapshot)})"
                 try:
-                    if QgsMessageLog is not None:
-                        QgsMessageLog.logMessage(info, tag, 0)
+                    if log_message is not None:
+                        log_message(info, tag, 0)
                     else:
                         print(info)
                 except Exception:
@@ -397,17 +397,18 @@ def apply_theme(theme_collection, theme_name: str, root, model, additive: bool =
     """
     # シンプルで安全な実装: ネストを浅くして構文ミスのリスクを減らす
     try:
-        from qgis.core import QgsMessageLog, QgsProject
+        from qgis.core import QgsProject
+        from .log import log_message
     except Exception:
-        QgsMessageLog = None
+        log_message = None
         QgsProject = None
 
-    # ログ出力用ユーティリティ（QGIS の QgsMessageLog を優先、なければ print）
+    # ログ出力用ユーティリティ（QGIS の log_message を優先、なければ print）
     def _log(msg: str, level: int = 0) -> None:
         try:
-            if QgsMessageLog is not None:
+            if log_message is not None:
                 try:
-                    QgsMessageLog.logMessage(msg, "GEO-search-plugin", level)
+                    log_message(msg, "GEO-search-plugin", level)
                     return
                 except Exception:  # nosec B110  # 設計上の許容
                     pass
@@ -550,9 +551,9 @@ def apply_theme(theme_collection, theme_name: str, root, model, additive: bool =
                 except Exception:  # nosec B110  # 設計上の許容
                     pass
             except Exception as e:
-                if QgsMessageLog:
+                if log_message:
                     try:
-                        QgsMessageLog.logMessage(f"theme apply error (for log): {e}", "GEO-search-plugin", 2)
+                        log_message(f"theme apply error (for log): {e}", "GEO-search-plugin", 2)
                     except Exception:  # nosec B110  # 設計上の許容
                         pass
                 return
@@ -636,15 +637,15 @@ def apply_theme(theme_collection, theme_name: str, root, model, additive: bool =
     # 非 additivemode: 通常適用
     try:
         theme_collection.applyTheme(theme_name, root, model)
-        if QgsMessageLog:
+        if log_message:
             try:
-                QgsMessageLog.logMessage(f"theme '{theme_name}' applied", "GEO-search-plugin", 0)
+                log_message(f"theme '{theme_name}' applied", "GEO-search-plugin", 0)
             except Exception:  # nosec B110  # 設計上の許容
                 pass
     except Exception as e:
-        if QgsMessageLog:
+        if log_message:
             try:
-                QgsMessageLog.logMessage(f"theme apply error: {e}", "GEO-search-plugin", 2)
+                log_message(f"theme apply error: {e}", "GEO-search-plugin", 2)
             except Exception:  # nosec B110  # 設計上の許容
                 pass
 
@@ -962,12 +963,12 @@ def _apply_categorized_visibility(layer, items, overwrite_all=False, log_func=No
                 except Exception:  # nosec B110  # 設計上の許容
                     pass
             try:
-                from qgis.core import QgsMessageLog
+                from .log import log_message
             except Exception:
-                QgsMessageLog = None
-            if QgsMessageLog is not None:
+                log_message = None
+            if log_message is not None:
                 try:
-                    QgsMessageLog.logMessage(msg, 'GEO-search-plugin', level)
+                    log_message(msg, 'GEO-search-plugin', level)
                     return
                 except Exception:  # nosec B110  # 設計上の許容
                     pass
@@ -1587,7 +1588,7 @@ def get_layer_legend_state(layer):
 def log_layer_legend_state(layer, tag: str = "GEO-search-plugin"):
     """`get_layer_legend_state` の結果をログ出力する。
 
-    - QGIS 実行環境であれば `QgsMessageLog.logMessage` を使う。
+    - QGIS 実行環境であれば `log_message` を使う。
     - それ以外は `print` による出力を行う。
     """
     try:
@@ -1616,17 +1617,17 @@ def log_layer_legend_state(layer, tag: str = "GEO-search-plugin"):
                 # 表示フラグは True に限定しているため常に True
                 messages.append(f"[legend state][item] index={idx} type={itype} label='{label}' visible=True")
 
-    # Try to use QgsMessageLog if available
+    # Try to use log_message if available
     try:
-        from qgis.core import QgsMessageLog
+        from .log import log_message
     except Exception:
-        QgsMessageLog = None
+        log_message = None
 
     for m in messages:
         try:
-            if QgsMessageLog is not None:
+            if log_message is not None:
                 try:
-                    QgsMessageLog.logMessage(m, tag, 0)
+                    log_message(m, tag, 0)
                 except Exception:
                     print(m)
             else:
@@ -1664,12 +1665,12 @@ def log_layer_legend_state_by_name(layer_name: str, project=None, tag: str = "GE
     if not layers:
         msg = f"[legend state] layer '{layer_name}' not found"
         try:
-            from qgis.core import QgsMessageLog
+            from .log import log_message
         except Exception:
-            QgsMessageLog = None
-        if QgsMessageLog is not None:
+            log_message = None
+        if log_message is not None:
             try:
-                QgsMessageLog.logMessage(msg, tag, 1)
+                log_message(msg, tag, 1)
             except Exception:
                 print(msg)
         else:
@@ -1748,9 +1749,9 @@ def collect_visible_layer_reload(snapshot_name: str, project=None, root=None, ta
     Returns True on (attempted) success, False if the snapshot was missing.
     """
     try:
-        from qgis.core import QgsMessageLog
+        from .log import log_message
     except Exception:
-        QgsMessageLog = None
+        log_message = None
 
     def _logmsg(m: str, level: int = 0):
         try:
@@ -1760,9 +1761,9 @@ def collect_visible_layer_reload(snapshot_name: str, project=None, root=None, ta
                     return
                 except Exception:  # nosec B110  # 設計上の許容
                     pass
-            if QgsMessageLog is not None:
+            if log_message is not None:
                 try:
-                    QgsMessageLog.logMessage(m, tag, level)
+                    log_message(m, tag, level)
                     return
                 except Exception:  # nosec B110  # 設計上の許容
                     pass
@@ -2007,7 +2008,8 @@ def save_user_theme(path: str, snapshot=None, project=None, root=None):
     Returns True on success, False on failure.
     """
     try:
-        from qgis.core import QgsProject, QgsMessageLog
+        from qgis.core import QgsProject
+        from .log import log_message
         project = project or QgsProject.instance()
         root = root or (project.layerTreeRoot() if hasattr(project, "layerTreeRoot") else None)
     except Exception:
@@ -2060,14 +2062,14 @@ def save_user_theme(path: str, snapshot=None, project=None, root=None):
         with open(path, "w", encoding="utf-8") as fh:
             json.dump(payload, fh, ensure_ascii=False, indent=2)
         try:
-            QgsMessageLog.logMessage(f"Saved user theme to {path}", 'GEO-search-plugin', 0)
+            log_message(f"Saved user theme to {path}", 'GEO-search-plugin', 0)
         except Exception:  # nosec B110  # 設計上の許容
             pass
         return True
     except Exception as ex:
         try:
-            from qgis.core import QgsMessageLog
-            QgsMessageLog.logMessage(f"Failed to save user theme to {path}: {ex}", 'GEO-search-plugin', 2)
+            from .log import log_message
+            log_message(f"Failed to save user theme to {path}: {ex}", 'GEO-search-plugin', 2)
         except Exception:  # nosec B110  # 設計上の許容
             pass
         return False
@@ -2083,8 +2085,8 @@ def load_user_theme(path: str):
         return data
     except Exception:
         try:
-            from qgis.core import QgsMessageLog
-            QgsMessageLog.logMessage(f"Failed to load user theme from {path}", 'GEO-search-plugin', 2)
+            from .log import log_message
+            log_message(f"Failed to load user theme from {path}", 'GEO-search-plugin', 2)
         except Exception:  # nosec B110  # 設計上の許容
             pass
         return None
@@ -2100,7 +2102,8 @@ def apply_user_theme(data: dict, overwrite_legend: bool = False, project=None, l
     Returns list of applied layer names.
     """
     try:
-        from qgis.core import QgsProject, QgsMessageLog
+        from qgis.core import QgsProject
+        from .log import log_message
         project = project or QgsProject.instance()
     except Exception:
         project = project
@@ -2142,7 +2145,7 @@ def apply_user_theme(data: dict, overwrite_legend: bool = False, project=None, l
 
         if layer is None:
             try:
-                QgsMessageLog.logMessage(f"User theme: layer not found: id={lid} name={name}", 'GEO-search-plugin', 1)
+                log_message(f"User theme: layer not found: id={lid} name={name}", 'GEO-search-plugin', 1)
             except Exception:  # nosec B110  # 設計上の許容
                 pass
             continue
@@ -2154,8 +2157,8 @@ def apply_user_theme(data: dict, overwrite_legend: bool = False, project=None, l
                 _apply_layer_style_by_name(layer, style_name, log_func=(log_func or (lambda m, lv: None)))
             except Exception:
                 try:
-                    from qgis.core import QgsMessageLog
-                    QgsMessageLog.logMessage(f"Failed to apply style '{style_name}' to layer '{layer.name()}'", 'GEO-search-plugin', 1)
+                    from .log import log_message
+                    log_message(f"Failed to apply style '{style_name}' to layer '{layer.name()}'", 'GEO-search-plugin', 1)
                 except Exception:  # nosec B110  # 設計上の許容
                     pass
 
@@ -2167,8 +2170,8 @@ def apply_user_theme(data: dict, overwrite_legend: bool = False, project=None, l
                 apply_legend_visibility(layer, legend_state, overwrite_all=bool(overwrite_legend))
             except Exception:
                 try:
-                    from qgis.core import QgsMessageLog
-                    QgsMessageLog.logMessage(f"Failed to apply legend state to '{layer.name()}'", 'GEO-search-plugin', 1)
+                    from .log import log_message
+                    log_message(f"Failed to apply legend state to '{layer.name()}'", 'GEO-search-plugin', 1)
                 except Exception:  # nosec B110  # 設計上の許容
                     pass
 
@@ -2178,8 +2181,8 @@ def apply_user_theme(data: dict, overwrite_legend: bool = False, project=None, l
             applied.append(name or str(lid))
 
     try:
-        from qgis.core import QgsMessageLog
-        QgsMessageLog.logMessage(f"User theme applied to layers: {applied}", 'GEO-search-plugin', 0)
+        from .log import log_message
+        log_message(f"User theme applied to layers: {applied}", 'GEO-search-plugin', 0)
     except Exception:  # nosec B110  # 設計上の許容
         pass
     return applied

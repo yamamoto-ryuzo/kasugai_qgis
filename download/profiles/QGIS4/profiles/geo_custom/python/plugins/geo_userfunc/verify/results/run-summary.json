@@ -1,0 +1,22 @@
+{
+  "ts": "2026-11-15T22:33:28+09:00",
+  "catalog_methods": [
+    "addSource",
+    "deleteFunction",
+    "evalExpression",
+    "fetchFromUrl",
+    "listFunctions",
+    "listMacros",
+    "listSources",
+    "openLibraryDir",
+    "openManager",
+    "readFunction",
+    "reload",
+    "removeSource",
+    "run",
+    "saveFunction",
+    "setEnabled",
+    "status",
+    "updateFromUpstream"
+  ]
+}

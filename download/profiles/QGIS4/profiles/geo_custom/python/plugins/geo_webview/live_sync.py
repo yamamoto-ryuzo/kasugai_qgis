@@ -6,7 +6,7 @@ QSettings ``kasugai_live_sync`` が有効なとき、レイヤ編集(地物追�
 ツリー可視性変更をデバウンスして検出し、最後のエクスポート先へ
 **差分エクスポート**(``export_kasugai_project(changed=…)`` で
 未変更レイヤのデータ/スタイル書き出しを省略)して
-``.kasc+DATA/+live.json`` を更新する。
+``.kasc+canvas_data/+live.json`` を更新する。
 
 通知は2系統:
 - Canvas アプリ(:8510)稼働時 → ``/api/command`` の ``liveSync``

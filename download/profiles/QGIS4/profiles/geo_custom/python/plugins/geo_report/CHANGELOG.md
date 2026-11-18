@@ -3,6 +3,28 @@
 バージョン表記: VA.B.C
 - 例: V2.0.0（A=2, B=0, C=0）
 
+## V2.10.0 出力前レイアウトプレビュー(issue #13)
+- bridge.py: `previewLayout(layout=None, format="png"|"pdf"|"svg", dpi,
+  path, includeBase64)` を追加。QgsLayoutExporter で一時描画し
+  生成ファイルのパス一覧(複数ページ対応)を返す。`includeBase64` で
+  PNG先頭ページのbase64も返せる
+- bridge.py: `previewThumbnails(layouts=None, dpi=50)` を追加。
+  全(または指定)レイアウトのサムネイルPNGを一括生成し
+  レイアウト名→ファイルの一覧を返す(テンプレート一括適用後の
+  簡易プレビューグリッド相当)
+- plugin.py: パネルに「Preview Layout」ボタンを追加。
+  選択中レイアウトをPNGへ一時描画しプレビューダイアログを表示
+  (複数ページはコンボボックスで切替)
+
+## V2.9.8 bridge createLayout の TypeError を修正
+- bridge.py: `QgsLayoutManager.generateUniqueTitle` はレイアウト名ではなく
+  レイアウト種別 enum を取るため QGIS4 で TypeError になっていた。
+  `layoutByName` の重複チェック+連番付与に置き換えて修正
+
+## V2.9.7 Qt5 残存記述の除去
+- ui/loader.py: docstring/コメントの「QT5/QT6 の両方に対応」を
+  Qt6 専用の記述へ修正(実装は既に Qt6 専用)
+
 ## V2.9.6 個別利用時にGeoSuiteツールバーが表示されない不具合を修正
 - plugin.py: `_geo_toolbar()` に `ensure_visible` 引数を追加し、
   項目追加経路ではツールバーの可視状態を保証するようにした

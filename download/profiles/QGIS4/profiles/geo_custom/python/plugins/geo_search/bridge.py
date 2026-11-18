@@ -52,6 +52,22 @@ def _jsonable(v):
         return repr(v)
 
 
+def _layer_name(layer):
+    """削除済みのC++ラッパーや文字列でも安全にレイヤ名を返す。"""
+    try:
+        return layer.name() if layer is not None else None
+    except Exception:  # nosec B110  # 削除済みQgsMapLayer対策
+        return None
+
+
+def _layer_id(layer):
+    """削除済みのC++ラッパーでも安全にレイヤIDを返す。"""
+    try:
+        return layer.id() if layer is not None else None
+    except Exception:  # nosec B110  # 削除済みQgsMapLayer対策
+        return None
+
+
 def _tr(context, message):
     """Translate a UI message via the plugin's installed translators."""
     try:
@@ -74,9 +90,12 @@ class GeoSearchBridge:
     NAME = "地図検索 (geo_search)"
     SUMMARY = ("レイヤ内の地物を属性値で検索し、結果一覧の表示と"
                "地図ズーム・地物選択を行う。検索対象は設定済みの検索タブ"
-               "(カレントレイヤ/全レイヤ/プロジェクト定義)で決まる。")
+               "(カレントレイヤ/全レイヤ/プロジェクト定義)で決まる。"
+               "searchAddress は住所・地名・施設名のジオコーディング"
+               "(gsi/google/yahoo/osm)で座標取得と地図移動ができる。")
     WHEN_TO_USE = [
         "地名・施設名・市区町村名など属性値で地物を探したい",
+        "住所・地名・施設名から緯度経度を調べて地図を移動したい(ジオコーディング)",
         "検索結果へ地図をズームしたい・結果地物を選択したい",
         "検索タブ(検索対象レイヤ/フィールドの定義)を確認・切り替え・追加/削除したい",
         "マップテーマ(レイヤ表示状態プリセット)の一覧・切替・追加表示をしたい",
@@ -93,6 +112,18 @@ class GeoSearchBridge:
                 "tabはindex/タイトル/{group,title}、省略時は現在タブ。",
             "example": {"method": "search",
                         "args": [{"市区町村名": "渋谷区"}, "市区町村"]},
+        },
+        "searchAddress": {
+            "description":
+                "住所・地名・施設名をジオコーディングして候補(title/address/"
+                "latitude/longitude)を返す。provider=gsi(既定)/google/yahoo/"
+                "osm。座標文字列(35.6,139.7・DMS・北緯東経)はそのまま地点化。"
+                "結果はメモリレイヤのポイントとして地図に表示し、"
+                "zoom=Trueで先頭候補へズームする。検索タブ不要。"
+                "createLayer=Falseならスクラッチレイヤをプロジェクトへ追加しない"
+                "(住所検索タブの『スクラッチレイヤを作成』チェックと連動)。",
+            "example": {"method": "searchAddress",
+                        "args": ["東京都渋谷区宇田川町", "gsi"]},
         },
         "listTabs": {
             "description":
@@ -447,9 +478,8 @@ class GeoSearchBridge:
             items = [self._feature_to_dict(f, layer, names)
                      for f in feats[:cap]]
             out.append({
-                "layer": layer.name() if hasattr(layer, "name") else None,
-                "layer_id": (layer.id() if layer is not None
-                             and hasattr(layer, "id") else None),
+                "layer": _layer_name(layer),
+                "layer_id": _layer_id(layer),
                 "count": len(feats),
                 "features": items,
             })
@@ -602,7 +632,7 @@ class GeoSearchBridge:
         for t in getattr(rd, "_tabs", []) or []:
             layer = t.get("layer")
             result_tabs.append({
-                "layer": layer.name() if hasattr(layer, "name") else None,
+                "layer": _layer_name(layer),
                 "count": len(t.get("features") or []),
             })
         return self._ok({
@@ -701,6 +731,140 @@ class GeoSearchBridge:
             "zoomed": zoomed,
         })
 
+    def _address_setting(self):
+        """住所検索タブの設定(dict)を返す。タブ未設定時は空dict。"""
+        try:
+            from .searchfeature import SearchAddressFeature
+            for f in self._all_features():
+                if isinstance(f, SearchAddressFeature):
+                    return getattr(f, "setting", {}) or {}
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+        return {}
+
+    def _zoom_point_layer(self, layer, feats):
+        """EPSG:4326 メモリレイヤのポイント地物群へズームする。"""
+        from qgis.core import (QgsRectangle, QgsCoordinateTransform,
+                               QgsProject)
+        canvas = self._plugin.iface.mapCanvas()
+        try:
+            canvas_crs = canvas.mapSettings().destinationCrs()
+        except Exception:  # nosec B110  # 設計上の許容
+            canvas_crs = None
+        transform = None
+        try:
+            layer_crs = layer.crs()
+            if (canvas_crs is not None and layer_crs is not None
+                    and layer_crs.isValid() and layer_crs != canvas_crs):
+                transform = QgsCoordinateTransform(
+                    layer_crs, canvas_crs, QgsProject.instance())
+        except Exception:  # nosec B110  # 設計上の許容
+            transform = None
+        rect = None
+        ids = []
+        for f in feats or []:
+            try:
+                ids.append(f.id())
+                g = f.geometry()
+                if g is None or g.isEmpty():
+                    continue
+                r = g.boundingBox()
+                if transform is not None:
+                    r = transform.transformBoundingBox(r)
+                if rect is None:
+                    rect = QgsRectangle(r)
+                else:
+                    rect.combineExtentWith(r)
+            except Exception:  # nosec B112  # 設計上の許容
+                continue
+        if rect is None or rect.isNull():
+            return False
+        try:
+            layer.selectByIds(ids)
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+        if rect.width() == 0 and rect.height() == 0:
+            canvas.setCenter(rect.center())
+        else:
+            canvas.zoomToFeatureExtent(rect)
+        canvas.refresh()
+        return True
+
+    def _address_scratch_enabled(self):
+        """住所検索のスクラッチレイヤ作成ON/OFF(ウィジェット状態→設定)。"""
+        try:
+            from .searchfeature import SearchAddressFeature
+            for f in self._all_features():
+                if isinstance(f, SearchAddressFeature):
+                    try:
+                        return bool(f._scratch_enabled())
+                    except Exception:  # nosec B110  # 設計上の許容
+                        return bool(
+                            (f.setting or {}).get("CreateScratch", True))
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+        return True
+
+    def searchAddress(self, query="", provider=None, zoom=True,
+                      createLayer=None):
+        """住所・地名をジオコーディングして候補を返し地図へ表示する。
+
+        query: 住所/地名/施設名、または座標文字列(35.6,139.7・DMS・北緯東経)
+        provider: gsi(既定)/google/yahoo/osm。google/yahoo は住所検索タブの
+                  ApiKey/YahooAppId か環境変数 GOOGLE_MAPS_API_KEY/YAHOO_APPID
+        zoom: True なら結果ポイントへズーム
+        createLayer: 省略時は住所検索タブの設定/チェックに従う。
+                  False なら結果レイヤをプロジェクトへ追加しない
+        """
+        from . import geocode
+        q = str(query or "").strip()
+        if not q:
+            return self._err("empty query")
+        coord = geocode.parse_coordinate_query(q)
+        if coord:
+            items = [{
+                "title": "{:.6f},{:.6f}".format(
+                    coord["latitude"], coord["longitude"]),
+                "address": q,
+                "latitude": coord["latitude"],
+                "longitude": coord["longitude"],
+                "provider": "coords",
+            }]
+            used_provider = "coords"
+        else:
+            setting = self._address_setting()
+            try:
+                items = geocode.search(
+                    q, provider=provider, setting=setting,
+                    limit=geocode.RESULT_LIMIT)
+            except geocode.GeocodeError as e:
+                return self._err(str(e))
+            except Exception as e:
+                return self._err(f"geocode error: {e}")
+            prov = (provider or setting.get("Provider")
+                    or geocode.DEFAULT_PROVIDER)
+            used_provider = "osm" if str(prov).lower() == "nominatim" \
+                else str(prov).lower()
+        if not items:
+            return self._ok({
+                "provider": used_provider, "count": 0,
+                "results": [], "zoomed": False,
+            })
+        add_layer = self._address_scratch_enabled() \
+            if createLayer is None else bool(createLayer)
+        try:
+            layer = geocode.ensure_address_layer(add_to_project=add_layer)
+            feats = geocode.results_to_features(layer, items)
+        except Exception as e:
+            return self._err(f"address layer error: {e}")
+        zoomed = self._zoom_point_layer(layer, feats) if zoom else False
+        return self._ok({
+            "provider": used_provider,
+            "count": len(items),
+            "results": items,
+            "zoomed": zoomed,
+        })
+
     def results(self, max_features=200):
         """直近の検索結果を返す(再検索はしない)。"""
         feat = getattr(self._plugin, "current_feature", None)
@@ -737,7 +901,7 @@ class GeoSearchBridge:
         feat.zoom_features(ids, layer=layer)
         return self._ok({
             "zoomed": len(ids),
-            "layer": layer.name() if hasattr(layer, "name") else None,
+            "layer": _layer_name(layer),
         })
 
     # ---------- 検索オプション / テーマ / 設定 / タブ管理 ----------
@@ -1244,7 +1408,7 @@ class GeoSearchBridge:
         layer = p.iface.activeLayer()
         if layer is None:
             return self._err("no active layer")
-        layer_name = layer.name() if hasattr(layer, "name") else str(layer)
+        layer_name = _layer_name(layer) or str(layer)
         tab_def = {
             "group": DEFAULT_GROUP_NAME,
             "Title": title or layer_name,

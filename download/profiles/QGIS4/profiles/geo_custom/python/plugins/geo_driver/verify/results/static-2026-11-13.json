@@ -1,0 +1,16 @@
+{
+  "compileall": {
+    "rc": 0,
+    "out": ""
+  },
+  "flake8": {
+    "rc": 0,
+    "out": ""
+  },
+  "bandit": {
+    "rc": 0,
+    "out": "[main]\tINFO\tUsing ini file for skipped tests\n[main]\tINFO\tUsing command line arg for selected targets"
+  },
+  "ran_at": "2026-11-13T23:54:42+09:00",
+  "reload": "skipped(制御チャンネル自身)"
+}

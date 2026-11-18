@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="geo_webview の連携構成図 — QGIS から KASUGAI Canvas・静的ホスト・Re:Earth・ArcGIS へのデータ供給と連携方針">
+<title>1. 連携構成図 | geo_webview ドキュメント</title>
+<link rel="stylesheet" href="style.css">
+<script src="nav.js" defer></script>
+</head>
+<body>
+<div class="container">
+<main>
+<h1>1. 連携構成図</h1>
+<p>geo_webview の役割は <strong>「QGIS を Web 配信側に変える」</strong>
+ことです。 GIS データの編集・スタイル設定は QGIS
+が最適な環境であり、このプラグインは その成果をそのまま Web
+へ持ち出します。</p>
+<pre><code>[QGIS プロジェクト]  レイヤ・スタイル(.qml)・レイヤツリー・視点・テーマ
+        │  geo_webview が .kasc + canvas_data/ へエクスポート
+        ▼
+[.kasc + canvas_data/ パッケージ]  + エンジン本体(KASUGAI Canvas web/)
+        │  Cesium / MapLibre / OpenLayers / Leaflet / GSI Maps で再生
+        ▼  静的ホスティングへ配置
+[ブラウザの WebGIS]  ← サーバーレス（QGIS・専用サーバー不要）</code></pre>
+<ul>
+<li><strong>主機能 = サーバレス配信</strong>: 表示中レイヤと QGIS
+スタイルを <code>.kasc</code>+<code>canvas_data/</code>
+に書き出し、エンジン（KASUGAI Canvas <code>web/</code>）と一緒に
+任意の静的ホストへ置くだけで WebGIS として配信できる。 再生に QGIS
+側サーバーは不要</li>
+<li><strong>補助 = 内蔵 HTTP サーバー</strong>: <code>/kasugai</code>
+起動 API、エクスポート物の <code>/export-data/</code>
+配信、画面共有（<code>/present</code>・<code>/screenshot</code>）、
+受領履歴（<code>/received</code>）、Canvas <code>web/</code>
+の静的フォールバックを提供する。 ※OGC サービス（WMS/WMTS/WFS）は v3.29.0
+で廃止</li>
+</ul>
+<pre><code class="language-mermaid">flowchart TB
+    QGIS[&quot;QGIS プロジェクト&lt;br&gt;レイヤ・スタイル(.qml)・レイヤツリー・視点・テーマ&quot;]
+
+    subgraph GWBOX[&quot;geo_webview（QGIS プラグイン）&quot;]
+        direction LR
+        subgraph FNC[&quot;【▶ WebView】&quot;]
+            GW[&quot;【エクスポート】&lt;br&gt;.kasc + canvas_data/ + &amp;lt;engine&amp;gt;.html&quot;]
+            SRV[&quot;内蔵 HTTP サーバー localhost:8089&quot;]
+        end
+    end
+
+    subgraph WEBBOX[&quot;WebGIS&quot;]
+        WEB[&quot;GitHub Pages / Cloudflare / Vercel 等の静的ホスト&lt;br&gt;.kasc + canvas_data/（エンジンを自ホストに置く場合は web/ 一式。&lt;br&gt;GSI Maps は vendor/ 未同梱なら CDN 版へ自動転送）&quot;]
+    end
+    subgraph GHBOX[&quot;GitHubPages&quot;]
+        CDN[&quot;kasugai-canvas-web&lt;br&gt;5エンジンの CDN&lt;br&gt;GitHub Pages: stable/・unstable/&quot;]
+    end
+    subgraph KCBOX[&quot;【▶ Canvas】&quot;]
+        direction LR
+        KCS[&quot;HTTP サーバー localhost:8510&quot;]
+        KCB[&quot;AI ブリッジハブ localhost:8511&quot;]
+        KCF[&quot;拡張機能: 登録・切替・rclone・&lt;br&gt;自動更新・.kasc 関連付け&quot;]
+        ENG[&quot;マルチエンジン&lt;br&gt;Cesium / MapLibre / OpenLayers / Leaflet / GSI Maps&quot;]
+        KCS ~~~ KCB ~~~ KCF ~~~ ENG
+    end
+    RE[&quot;Re:Earth Visualizer geo_suite（サブ）&lt;br&gt;kasugai_canvas_&amp;lt;ch&amp;gt;.zip を CMS へアップロード →&lt;br&gt;インスペクタに CMS の URL を qgis: URL で指定&quot;]
+
+    AG[&quot;ArcGIS 系&lt;br&gt;独自実装が前提・外部静的ホストで配信&lt;br&gt;（ArcGIS Online では動作不可）&quot;]
+
+    QGIS --&gt; GWBOX
+    GW -.-&gt; KCBOX
+    GW -.-&gt;|&quot;ZIPでダウンロードして配置&quot;| WEB
+    GW -.-&gt;|&quot;ZIPでダウンロードして配置&quot;| RE
+    ENG -.-&gt; CDN
+    CDN -.-&gt; WEB
+    CDN -.-&gt; FNC
+
+    %% 【▶ Canvas】= 別システム(KASUGAI Canvas アプリ)を緑系で区別
+    style KCBOX fill:#eaf5ec,stroke:#2e7d32,stroke-width:2px,color:#1b4d20
+    style KCS fill:#f3faf4,stroke:#5ca86a
+    style KCB fill:#f3faf4,stroke:#5ca86a
+    style KCF fill:#f3faf4,stroke:#5ca86a
+    style ENG fill:#f3faf4,stroke:#5ca86a</code></pre>
+<h2 id="連携方針対応クライアント">連携方針（対応クライアント）</h2>
+<p>geo_webview の連携方針は、プレイヤーを <strong>KASUGAI Canvas
+に一本化</strong> （Cesium・MapLibre・OpenLayers・Leaflet・GSI Maps
+のマルチエンジン構成。 KASUGAI 側で統一開発済み・<code>?engine=</code>
+で切替）し、 <strong>Re:Earth Visualizer
+をサブ</strong>とすることです。</p>
+<p>配信ルートは2系統です。<strong>高機能ルート</strong>は起動中の
+KASUGAI Canvas ローカルサーバー（既定 :8510）の専用 API
+でプロジェクト登録・画面切替 まで行い、<strong>通常ルート</strong>は内蔵
+HTTP サーバーとサーバレス Web 配信で Canvas アプリなしでも即座に Web
+化します （「再生経路（3段フォールバック）」参照）。</p>
+<h3 id="①-セット開発のプレイヤー群">① セット開発のプレイヤー群</h3>
+<p>QGIS
+からエクスポート/配信されたデータ・スタイルを取り込んで再生するクライアント。geo_webview
+はこのプレイヤーの QGIS 側受け皿（配信元）として開発を進めています。</p>
+<table>
+<thead>
+<tr>
+<th scope="col">連携先</th>
+<th scope="col">経路</th>
+<th scope="col">連携の形</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>KASUGAI Canvas</strong></td>
+<td><code>/kasugai</code>（<code>.kasc</code>+<code>canvas_data/</code>）</td>
+<td><strong>統合プレイヤー（主）</strong>。QGIS レイヤツリーを
+<code>.kasc</code>+<code>canvas_data/</code>（ベクター＋<code>.qml</code>
+スタイル）として出力し、起動中の KASUGAI
+へ外部プロジェクト登録・表示切替。パネルの <code>Export</code>
+ボタンはファイル出力のみ、<code>▶ Open</code> /
+<code>GET /kasugai?engine=</code> / <code>kasugaiExport</code>
+ブリッジは登録・起動まで行い、同じ <code>.kasc</code>+<code>canvas_data/</code>
+を全エンジンで再生。EXE 込みインストールでは
+rclone・自動更新・ファイル保存・<code>.kasc</code> 関連付けも利用可</td>
+</tr>
+</tbody>
+</table>
+<h3 id="②-その他クライアント外部サービス">②
+その他クライアント・外部サービス</h3>
+<table>
+<thead>
+<tr>
+<th scope="col">連携先</th>
+<th scope="col">経路</th>
+<th scope="col">連携の形</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Re:Earth Visualizer（geo_suite）</strong></td>
+<td><code>kasugai_canvas_*.zip</code>（<code>qgis:</code>
+インスペクタ行で取込）・<code>/export-data/</code></td>
+<td><strong>サブ</strong>（KASUGAI Canvas と同じ Cesium
+ベース）。下記「Re:Earth Visualizer（geo_suite）への対応方針」参照</td>
+</tr>
+<tr>
+<td><strong>ArcGIS 系</strong></td>
+<td><code>.kasc</code>+<code>canvas_data/</code> ファイル受け渡し → ArcGIS
+側（SDK）の独自実装を<strong>外部静的ホストで配信</strong>（GitHub
+Pages/Cloudflare/Vercel/自前サーバ等。ArcGIS Online
+上では動作不可）</td>
+<td>下記「ArcGIS 系への対応方針」参照</td>
+</tr>
+</tbody>
+</table>
+<h3 id="reearth-visualizergeo_suiteへの対応方針">Re:Earth
+Visualizer（geo_suite）への対応方針</h3>
+<p>Re:Earth Visualizer は <strong>KASUGAI Canvas と同じ Cesium
+ベースのサブプレイヤー</strong> として位置づけます。geo_webview は
+<code>kasugai_canvas_*.zip</code>（パネルの ZIP ボタンまたは
+<code>index.html</code>
+からダウンロードしたエクスポート一式。<code>*</code> は CDN
+チャンネル名）と <code>/export-data/</code>
+経由のファイル・<code>.qml</code> スタイル配信で供給し、取込は geo_suite
+側の <code>qgis:</code> インスペクタ行（ZIP の URL 指定）が担います。3D
+表現は Cesium ベースの KASUGAI Canvas（主）・Re:Earth
+Visualizer（サブ）に集約して開発します。</p>
+<p>詳細: <a
+href="integration.html#reearth-visualizergeo_suiteへの対応方針">geo_webview
+連携方針（<code>integration.html</code>）</a></p>
+<h3 id="arcgis-系への対応方針">ArcGIS 系への対応方針</h3>
+<ul>
+<li>① ArcGIS Online
+上ではカスタムコードを実行できず、本系統の機能は実現不可能</li>
+<li>② Cesium 等のエンジンと同等品を作る場合 — Canvas 側のコード資産は
+SDK が異なり流用できないため、データ構築を含めて一からの開発が必要（3D
+は 3D Tiles→I3S 変換パイプライン経由が前提・ライブ 3D Tiles URL
+は対象外。参照できるのは <code>.kasc</code> 仕様と同一 OSS
+ライブラリのみ）</li>
+<li>③ ArcGIS のセキュリティ（管理環境）内でカスタム WebGIS を動かすなら
+Enterprise 11.0+ の ExB カスタムウィジェットが唯一の経路 —
+それ以外はすべて外部ホスト前提のモデルとなり、導入の意義がない</li>
+</ul>
+<p>詳細（読み込み側要件・ライセンス形態・最小構成・<code>arcgis:</code>
+取り込みの注意点）: <a
+href="integration.html#arcgis-系への対応方針">geo_webview
+連携方針（<code>integration.html</code>）</a></p>
+<nav class="pager"><a href="index.html">← 概要</a><a class="next" href="features.html">主な機能 →</a></nav>
+</main>
+</div>
+<script type="module" src="assets/site.js"></script>
+</body>
+</html>

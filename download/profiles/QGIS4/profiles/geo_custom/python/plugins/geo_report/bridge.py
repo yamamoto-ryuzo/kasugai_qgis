@@ -41,6 +41,7 @@ class GeoReportBridge:
         "レイアウトを選択して印刷範囲を地図キャンバスに表示したい",
         "レイアウトアイテム(テキスト/地図/画像)の位置・サイズ・表示を確認・変更したい",
         "レイアウトプロパティをJSONへ保存/復元したい",
+        "出力前にレイアウトの仕上がりを画像/PDFで確認したい",
         "レイアウトデザイナ(レイアウトマネージャ)を開きたい",
         "レイアウトを削除・名前変更・複製したい(QGISレイアウトマネージャ)",
     ]
@@ -174,6 +175,21 @@ class GeoReportBridge:
             "description":
                 "空の印刷レイアウトを新規作成する(name)。",
             "example": {"method": "createLayout", "args": ["新規図面"]},
+        },
+        "previewLayout": {
+            "description":
+                "レイアウトをQgsLayoutExporterで一時描画し、生成ファイル"
+                "(png/pdf/svg)のパスを返す。layout省略時は選択中レイアウト。"
+                "出力前の仕上がり確認用。",
+            "example": {"method": "previewLayout",
+                        "args": ["A4縦", "png"]},
+        },
+        "previewThumbnails": {
+            "description":
+                "全(または指定)レイアウトのサムネイルPNGを一括生成し、"
+                "レイアウト名→ファイルパスの一覧を返す"
+                "(複数レイアウトの簡易プレビュー一覧)。",
+            "example": {"method": "previewThumbnails", "args": []},
         },
         "status": {
             "description":
@@ -686,9 +702,115 @@ class GeoReportBridge:
             return self._err("name is empty")
         project = QgsProject.instance()
         mgr = project.layoutManager()
+        unique = name
+        i = 2
+        while mgr.layoutByName(unique) is not None:
+            unique = f"{name}{i}"
+            i += 1
         layout = QgsPrintLayout(project)
         layout.initializeDefaults()
-        layout.setName(mgr.generateUniqueTitle(name)
-                       if hasattr(mgr, "generateUniqueTitle") else name)
+        layout.setName(unique)
         mgr.addLayout(layout)
         return self._ok({"created": layout.name()})
+
+    # ---------- レイアウトプレビュー ----------
+
+    @staticmethod
+    def _export_success():
+        from qgis.core import QgsLayoutExporter
+        return getattr(QgsLayoutExporter, "ExportResult",
+                       QgsLayoutExporter).Success
+
+    def previewLayout(self, layout=None, format="png", dpi=None,
+                      path=None, includeBase64=False):
+        """レイアウトを一時描画し生成ファイルのパスを返す。"""
+        from qgis.core import QgsLayoutExporter
+        import tempfile
+        fmt = str(format or "png").lower()
+        if fmt not in ("png", "pdf", "svg"):
+            return self._err(f"unsupported format: {format!r} (png|pdf|svg)")
+        if layout is None:
+            dlg = self._dialog()
+            ly = getattr(dlg, "current_layout", None) if dlg else None
+        else:
+            ly, _layouts = self._find_layout(layout)
+        if ly is None:
+            return self._err(f"layout not found: {layout!r}")
+        if path:
+            if str(path).lower().endswith("." + fmt):
+                outdir = os.path.dirname(os.path.abspath(path))
+                target = os.path.abspath(path)
+            else:
+                outdir = str(path)
+                target = os.path.join(outdir, "preview." + fmt)
+        else:
+            outdir = tempfile.mkdtemp(prefix="geo_report_preview_")
+            target = os.path.join(outdir, "preview." + fmt)
+        os.makedirs(outdir, exist_ok=True)
+        before = set(os.listdir(outdir))
+        exporter = QgsLayoutExporter(ly)
+        if fmt == "png":
+            settings = QgsLayoutExporter.ImageExportSettings()
+            settings.dpi = float(dpi or 96)
+            res = exporter.exportToImage(target, settings)
+        elif fmt == "pdf":
+            res = exporter.exportToPdf(
+                target, QgsLayoutExporter.PdfExportSettings())
+        else:
+            res = exporter.exportToSvg(
+                target, QgsLayoutExporter.SvgExportSettings())
+        if res != self._export_success():
+            return self._err(f"export failed: {res}")
+        files = sorted(
+            os.path.join(outdir, f)
+            for f in (set(os.listdir(outdir)) - before)
+            if f.lower().endswith("." + fmt))
+        payload = {"layout": ly.name(), "format": fmt, "dir": outdir,
+                   "files": files,
+                   "pages": ly.pageCollection().pageCount()}
+        if includeBase64 and files:
+            import base64
+            with open(files[0], "rb") as f:
+                payload["base64"] = base64.b64encode(f.read()).decode("ascii")
+        return self._ok(payload)
+
+    def previewThumbnails(self, layouts=None, dpi=50):
+        """全(または指定)レイアウトのサムネイルPNGを一括生成する。"""
+        from qgis.core import QgsLayoutExporter
+        import tempfile
+        import re
+        mgr = QgsProject.instance().layoutManager()
+        all_layouts = mgr.layouts() if mgr is not None else []
+        if layouts is None:
+            targets = all_layouts
+        else:
+            if not isinstance(layouts, (list, tuple)):
+                layouts = [layouts]
+            targets = []
+            for sel in layouts:
+                ly, _ = self._find_layout(sel)
+                if ly is None:
+                    return self._err(f"layout not found: {sel!r}")
+                targets.append(ly)
+        outdir = tempfile.mkdtemp(prefix="geo_report_thumbs_")
+        ok_enum = self._export_success()
+        out = []
+        for ly in targets:
+            safe = re.sub(r'[\\/:*?"<>|]', "_", ly.name())
+            target = os.path.join(outdir, safe + ".png")
+            before = set(os.listdir(outdir))
+            exporter = QgsLayoutExporter(ly)
+            settings = QgsLayoutExporter.ImageExportSettings()
+            settings.dpi = float(dpi)
+            res = exporter.exportToImage(target, settings)
+            entry = {"layout": ly.name(),
+                     "pages": ly.pageCollection().pageCount()}
+            if res == ok_enum:
+                produced = sorted(set(os.listdir(outdir)) - before)
+                entry["files"] = [os.path.join(outdir, f)
+                                  for f in produced]
+                entry["path"] = entry["files"][0] if produced else None
+            else:
+                entry["error"] = str(res)
+            out.append(entry)
+        return self._ok({"dir": outdir, "thumbnails": out})

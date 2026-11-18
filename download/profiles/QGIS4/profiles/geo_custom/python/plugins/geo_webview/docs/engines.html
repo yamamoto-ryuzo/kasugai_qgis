@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="KASUGAI Canvas マルチエンジン（Cesium/MapLibre/OpenLayers/Leaflet/GSI Maps）の機能比較と GitHub Pages CDN（kasugai-canvas-web）">
+<title>3. マルチエンジン | geo_webview ドキュメント</title>
+<link rel="stylesheet" href="style.css">
+<script src="nav.js" defer></script>
+</head>
+<body>
+<div class="container">
+<main>
+<h1>3. マルチエンジン</h1>
+<p>同じ <code>.kasc</code>+<code>canvas_data/</code>
+を5つのエンジンで再生できます（<code>?engine=</code> または 出力される
+<code>&lt;engine&gt;.html</code> 起動ページで切替）:</p>
+<table>
+<thead>
+<tr>
+<th scope="col">エンジン</th>
+<th scope="col">役割</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Cesium</strong>（既定）</td>
+<td>3D 主エンジン。3D Tiles・地形・GeoJSON ドレープ・Fly モード・AI
+チャット</td>
+</tr>
+<tr>
+<td><strong>MapLibre</strong></td>
+<td>高速 2D。<code>wms:</code>/<code>wmts:</code> 行・duckdb/sql
+クエリ・属性 UI・6タブパネル</td>
+</tr>
+<tr>
+<td><strong>OpenLayers</strong></td>
+<td>2D 汎用。任意 CRS・回転・<code>/present/state</code>
+追従（プレゼン）</td>
+</tr>
+<tr>
+<td><strong>Leaflet</strong></td>
+<td>軽量 2D（OpenLayers の機能サブセット。回転・任意 CRS なし）</td>
+</tr>
+<tr>
+<td><strong>GSI Maps</strong></td>
+<td>地理院地図ベースの 2D。GSI レイヤカタログ表示・取り込み・
+地理院地図 作図・ベースマップ切替</td>
+</tr>
+</tbody>
+</table>
+<p>再生システム本体は <strong>KASUGAI Canvas</strong>
+側で整備されています（マルチエンジン WebGIS。Web
+部分は静的配信で動作し、EXE 側が rclone・自動更新・
+ファイル保存・<code>.kasc</code> 関連付けを担当）。プラグイン内蔵の生成
+HTML ビューア（旧
+<code>/qgis-map</code>・<code>/maplibre</code>・<code>/map3d</code>）は
+v3.24.0 で廃止され、 閲覧は全て KASUGAI Canvas に一本化されました。</p>
+<p>KASUGAI Canvas 側のレイアウト（<code>web/</code>）:</p>
+<pre><code>web/
+  index.html      エンジン選択リダイレクト（?engine=cesium|maplibre|openlayers|leaflet|gsimaps、既定 cesium）
+  cesium/         Cesium フロント（現行アプリ）
+  maplibre/       MapLibre フロント（.kasc プレイヤー実装済み: 全ベクター行・wms:/wmts:・QML・duckdb/sql・属性UI・6タブパネル）
+  openlayers/     OpenLayers フロント（同上）
+  leaflet/        Leaflet フロント（同上・軽量版）
+  gsimaps/        GSI Maps フロント（地理院地図 iframe 連携で .kasc を再生）
+  shared/         エンジン非依存コア（.kasc ローダー・デコーダー・i18n・QML コンパイラ）
+  projects/       プロジェクトデータ（エンジン非依存）
+    projects.json          プロジェクト一覧マニフェスト
+    canvas_data/                  （任意）全プロジェクト共有データ（../canvas_data/ 参照先）
+    &lt;id&gt;/                  プロジェクト（id 単位で複数管理）
+      kasugai_canvas.kasc  プロジェクト設定
+      canvas_data/                プロジェクト専用データ</code></pre>
+<p>geo_webview が出力する <code>.kasc</code>+<code>canvas_data/</code> は
+<code>projects/&lt;id&gt;/</code>
+の1プロジェクトとして配置され、<code>.kasc</code> 行の相対参照は
+<code>projects/&lt;id&gt;/</code> を基準に解決されます。</p>
+<h2
+id="起動ページenginehtml">起動ページ（<code>&lt;engine&gt;.html</code>）</h2>
+<p>起動ページは <code>?kasc=&lt;この.kascのURL&gt;</code>
+付きで対応エンジンへ転送し、 エンジン本体を <code>./ ../ ../../ /</code>
+の順に自動探索します（特殊配置は HTML 内の <code>CANVAS_BASE</code>
+で指定）。</p>
+<h2 id="kasugai-canvas-エンジン比較">KASUGAI Canvas エンジン比較</h2>
+<p>KASUGAI Canvas は5エンジン（Cesium / OpenLayers / MapLibre /
+Leaflet / GSI Maps）構成ですが、ここでは共有コアを持つ4エンジンの
+機能比較を示します（<strong>GSI Maps</strong>
+は地理院地図を iframe で内包する別系統のエンジンのため本表の対象外。
+<code>.kasc</code>+<code>canvas_data/</code> の再生自体は可能）。
+<code>—</code> = 非対応、<code>△</code> =
+部分的対応。すべてのエンジンが同じ <code>.kasc</code>+<code>canvas_data/</code>
+パッケージを読みます（<code>?engine=</code> または出力される
+<code>&lt;engine&gt;.html</code> で切替）。Re:Earth geo_suite
+は別クライアント（<code>kasugai_canvas_*.zip</code>
+経由）のため本表の対象外とし、QGIS
+側の共通サービスは末尾にまとめています。</p>
+<h3 id="データ取り込みレイヤー形式">データ取り込み・レイヤー形式</h3>
+<table class="matrix">
+<thead>
+<tr>
+<th scope="col">機能</th>
+<th scope="col">Cesium</th>
+<th scope="col">OpenLayers</th>
+<th scope="col">MapLibre</th>
+<th scope="col">Leaflet</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>.kasc</code>+<code>canvas_data/</code> 取り込み</td>
+<td>✓（<code>/kasugai</code> 登録 +
+<code>?project=</code>）</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>GeoJSON</td>
+<td>✓（<code>geojson:</code>）</td>
+<td>✓（<code>geojson:</code>/ファイル）</td>
+<td>✓（<code>geojson:</code>/ファイル）</td>
+<td>✓（<code>geojson:</code>）</td>
+</tr>
+<tr>
+<td>GeoPackage</td>
+<td>✓（<code>gpkg:</code>
+Worker・<code>bbox=auto</code> クエリ）</td>
+<td>✓（<code>gpkg:</code> sql.js
+Worker・<code>bbox=auto</code>）</td>
+<td>✓（<code>gpkg:</code> sql.js
+Worker・<code>bbox=auto</code>）</td>
+<td>△</td>
+</tr>
+<tr>
+<td>GeoParquet</td>
+<td>✓（<code>geoparquet:</code>）</td>
+<td>✓（<code>geoparquet:</code>
+hyparquet）</td>
+<td>✓（<code>geoparquet:</code>
+hyparquet）</td>
+<td>△</td>
+</tr>
+<tr>
+<td>FlatGeobuf</td>
+<td>✓（<code>flatgeobuf:</code>）</td>
+<td>✓（<code>flatgeobuf:</code>/<code>fgb:</code>）</td>
+<td>✓（<code>flatgeobuf:</code>/<code>fgb:</code>）</td>
+<td>✓（<code>fgb:</code>）</td>
+</tr>
+<tr>
+<td>CSV/TSV</td>
+<td>✓（<code>duckdb:</code>+<code>format=csv</code>・<code>lon=</code>/<code>lat=</code>/<code>geom=</code>）</td>
+<td>✓（同左）</td>
+<td>✓（同左）</td>
+<td>△</td>
+</tr>
+<tr>
+<td>DuckDB/SQL クエリレイヤー</td>
+<td>✓（<code>duckdb:</code>/<code>sql:</code>・<code>:bbox</code>
+表示範囲連動）</td>
+<td>✓（同左）</td>
+<td>✓（同左）</td>
+<td>—</td>
+</tr>
+<tr>
+<td>レイヤフィルタ（subsetString）</td>
+<td>✓（<code>gpkg:</code>/<code>duckdb:</code>
+の <code>where=</code> または GeoJSON 焼き付け）</td>
+<td>✓（<code>where=</code>）</td>
+<td>✓（<code>where=</code>）</td>
+<td>△（GeoJSON 焼き付けのみ）</td>
+</tr>
+<tr>
+<td>3D Tiles</td>
+<td>✓（<code>3dtiles:</code>）</td>
+<td>△（deck.gl 2.5D 俯瞰）</td>
+<td>△（deck.gl 2.5D 俯瞰）</td>
+<td>—（非対応として一覧通知）</td>
+</tr>
+<tr>
+<td>XYZ タイル・ベースマップ</td>
+<td>✓（<code>xyz:</code>/<code>base:</code>）</td>
+<td>✓（<code>xyz:</code>/<code>base:</code>
+オーバーレイ）</td>
+<td>✓（<code>xyz:</code>/<code>base:</code>
+オーバーレイ）</td>
+<td>✓（<code>xyz:</code>/<code>base:</code>）</td>
+</tr>
+<tr>
+<td>WMS / WMTS ラスタ</td>
+<td>✓（<code>wms:</code>/<code>wmts:</code>
+— GetMap を 256px タイルへ分解 / <code>{z}/{x}/{y}</code>・KVP GetTile
+へ正規化）</td>
+<td>✓（<code>wms:</code>/<code>wmts:</code>
+行）</td>
+<td>✓（<code>wms:</code>/<code>wmts:</code>
+行を Import パネルで取込）</td>
+<td>△（<code>xyz:</code> のみ）</td>
+</tr>
+<tr>
+<td>QGIS スタイル（.qml）</td>
+<td>✓（<code>style=</code>＋GPKG 埋め込み
+layer_styles・entity/primitive 両経路）</td>
+<td>✓（クライアント側コンパイル
+<code>shared/qml-2d.js</code>）</td>
+<td>✓（同左）</td>
+<td>✓（同左）</td>
+</tr>
+</tbody>
+</table>
+<p>※外部 OGC サーバー併用時は、上表の
+<code>wms:</code>/<code>wmts:</code>/<code>xyz:</code> 行経由で WMS
+ラスタや外部 <code>/wfs</code> GeoJSON を参照可能（geo_webview 自身の
+OGC サービスは v3.29.0 で廃止済みのため、外部サーバーが前提）。</p>
+<h3 id="レイヤー管理表示">レイヤー管理・表示</h3>
+<table class="matrix">
+<thead>
+<tr>
+<th scope="col">機能</th>
+<th scope="col">Cesium</th>
+<th scope="col">OpenLayers</th>
+<th scope="col">MapLibre</th>
+<th scope="col">Leaflet</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>レイヤー一覧 UI</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>グループ化（レイヤーツリー継承）</td>
+<td>✓</td>
+<td>—</td>
+<td>△</td>
+<td>—</td>
+</tr>
+<tr>
+<td>表示 on/off</td>
+<td>✓</td>
+<td>—</td>
+<td>✓</td>
+<td>—</td>
+</tr>
+<tr>
+<td>凡例表示</td>
+<td>✓</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>SQL フィルター・対話的再クエリ</td>
+<td>✓（⏷フィルター）</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>描画方式切替（<code>render=entity/primitive</code>）</td>
+<td>✓</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h3 id="検索属性">検索・属性</h3>
+<table class="matrix">
+<thead>
+<tr>
+<th scope="col">機能</th>
+<th scope="col">Cesium</th>
+<th scope="col">OpenLayers</th>
+<th scope="col">MapLibre</th>
+<th scope="col">Leaflet</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>住所検索</td>
+<td>✓</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>ベクトル検索</td>
+<td>✓</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>属性・値一覧</td>
+<td>✓（Attr パネル・全件クエリ）</td>
+<td>△</td>
+<td>△</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Info 表示</td>
+<td>✓</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ビューナビゲーション">ビュー・ナビゲーション</h3>
+<table class="matrix">
+<thead>
+<tr>
+<th scope="col">機能</th>
+<th scope="col">Cesium</th>
+<th scope="col">OpenLayers</th>
+<th scope="col">MapLibre</th>
+<th scope="col">Leaflet</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>視点の引き継ぎ（<code>cam:</code>）</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>回転</td>
+<td>✓（heading）</td>
+<td>✓</td>
+<td>✓</td>
+<td>—</td>
+</tr>
+<tr>
+<td>任意 CRS</td>
+<td>—</td>
+<td>✓</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>マップテーマ</td>
+<td>✓（<code>theme:</code>行＋レイヤパネル選択）</td>
+<td>✓</td>
+<td>✓</td>
+<td>—</td>
+</tr>
+<tr>
+<td>カメラプリセット・ブックマーク</td>
+<td>✓</td>
+<td>—</td>
+<td>✓</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Terrain / Shadow</td>
+<td>✓</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>GeoJSON 3D ドレープ</td>
+<td>✓（terrain / 3D Tiles / both）</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>追従モード（QGIS キャンバス追従）</td>
+<td>✓（<code>/present/state</code>）</td>
+<td>✓（同左）</td>
+<td>✓（同左）</td>
+<td>✓（同左）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="プレゼン共有外部サービス">プレゼン・共有・外部サービス</h3>
+<table class="matrix">
+<thead>
+<tr>
+<th scope="col">機能</th>
+<th scope="col">Cesium</th>
+<th scope="col">OpenLayers</th>
+<th scope="col">MapLibre</th>
+<th scope="col">Leaflet</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fly モード・ルート描画</td>
+<td>✓</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>パーマリンク・共有</td>
+<td>✓（<code>buildShareUrl</code>）</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>双方向ナビ（<code>/received</code>・External Control）</td>
+<td>—</td>
+<td>✓</td>
+<td>✓</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Google 連携</td>
+<td>✓（Google Maps Platform・Photorealistic
+3D Tiles）</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>画面共有プレゼン</td>
+<td>—</td>
+<td>✓（<code>/present</code>・<code>/screenshot</code>）</td>
+<td>✓（同左）</td>
+<td>✓（同左）</td>
+</tr>
+</tbody>
+</table>
+<h3
+id="ai拡張ローカル連携アプリレベル主に-cesium-アプリ側の機能">AI・拡張・ローカル連携（アプリレベル。主に
+Cesium アプリ側の機能）</h3>
+<table class="matrix">
+<thead>
+<tr>
+<th scope="col">機能</th>
+<th scope="col">Cesium</th>
+<th scope="col">OpenLayers</th>
+<th scope="col">MapLibre</th>
+<th scope="col">Leaflet</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AI チャット</td>
+<td>✓（Gemini function
+calling・ツール実行共通化）</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>外部エージェント制御</td>
+<td>✓（<code>/api/command</code> + bridge
+hub → Copilot/Devin/Antigravity）</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>MCP データソース</td>
+<td>✓（<code>/api/mcp</code> 中継）</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>プラグイン機構</td>
+<td>✓（<code>PLUGIN/</code>・IndexedDB
+草稿・<code>.kasp</code>）</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>クラウドストレージ（rclone）</td>
+<td>✓</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>ローカル保存・納品用ローカル化</td>
+<td>✓（<code>/api/files</code>・<code>_local</code>
+ワークスペース）</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>外部プロジェクト登録</td>
+<td>✓（<code>.kasc</code>
+関連付け・群マニフェスト）</td>
+<td>✓（<code>?project=</code> で利用）</td>
+<td>✓（同左）</td>
+<td>✓（同左）</td>
+</tr>
+<tr>
+<td>i18n</td>
+<td>8言語</td>
+<td>△</td>
+<td>△</td>
+<td>△</td>
+</tr>
+</tbody>
+</table>
+<h3 id="geo_webview-が提供する共通サービス">geo_webview
+が提供する共通サービス</h3>
+<p>上記エンジン群へ geo_webview
+が共通して提供する機能です。エンジンごとの差異は「取り込み経路と表現形式」だけで、QGIS
+側の提供機能は共通化されています。</p>
+<table class="matrix">
+<thead>
+<tr>
+<th scope="col">共通サービス</th>
+<th scope="col">Cesium</th>
+<th scope="col">OpenLayers</th>
+<th scope="col">MapLibre</th>
+<th scope="col">Leaflet</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>視点の引き継ぎ（中心・縮尺・回転）</td>
+<td>✓（<code>cam:</code>）</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>タイル行（<code>xyz:</code>/<code>base:</code>/<code>wms:</code>/<code>wmts:</code>）</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+<td>△（<code>xyz:</code>/<code>base:</code>）</td>
+</tr>
+<tr>
+<td>ベクターデータ（<code>canvas_data/</code> ファイル）</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>QGIS スタイル（<code>.qml</code>）</td>
+<td>✓（<code>style=</code>）</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>レイヤ一覧・表示制御</td>
+<td>✓（on/off・グループ）</td>
+<td>—</td>
+<td>✓</td>
+<td>—</td>
+</tr>
+<tr>
+<td>クエリ系記述（<code>duckdb:</code>/<code>sql:</code>/<code>bbox=auto</code>）</td>
+<td>—（未出力）</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>マップテーマ</td>
+<td>✓（<code>theme:</code>行）</td>
+<td>✓</td>
+<td>✓</td>
+<td>—</td>
+</tr>
+<tr>
+<td>追従モード（<code>/present/state</code>）</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>プロジェクト登録・ビュー切替</td>
+<td>✓（<code>/api/projects/register</code> +
+<code>switchProject</code>）</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>視点の引き継ぎ</strong>:
+<code>x,y,scale,rotation,crs</code>（または
+<code>lat,lon,zoom</code>、パーマリンク）で指定した表示状態を各エンジンで再現。<code>.kasc</code>
+の <code>cam:</code> 行として書き出す</li>
+<li><strong>タイル行</strong>: <code>.kasc</code> の
+<code>xyz:</code>/<code>base:</code>/<code>wms:</code>/<code>wmts:</code>
+行としてタイル参照を引き継ぐ（外部タイルサービスを参照。geo_webview
+自身のタイル配信は v3.29.0 で廃止）</li>
+<li><strong>ベクターデータ</strong>: 表示中レイヤを <code>canvas_data/</code>
+フォルダのファイルとして受け渡す（GPKG/GeoJSON/GeoParquet/FlatGeobuf
+は変換せずネイティブ参照）</li>
+<li><strong>スタイル引き継ぎ</strong>: QGIS レンダラを <code>.qml</code>
+ファイルとして受け渡し、クライアント側でコンパイル（Cesium の
+entity/primitive 経路・Re:Earth のトランスレータ）</li>
+<li><strong>クエリ系記述</strong>: <code>/kasugai</code>
+はソースが許す範囲でクエリ系行を出力する —
+CSV/TSV（delimitedtext・ogr）は
+<code>duckdb:</code>（<code>format=</code>/<code>lon=</code>/<code>lat=</code>/<code>geom=</code>）、フィルタ付き
+GPKG は <code>gpkg:</code>+<code>where=</code>、フィルタ付き Parquet は
+<code>duckdb:</code>+<code>format=parquet</code>+<code>where=</code>。<code>sql:</code>（任意
+SELECT）は QGIS に相当ソースが無いため出力しない。3D Tiles
+レイヤ（<code>QgsTiledSceneLayer</code>）は
+<code>3dtiles:</code>、ローカル XYZ
+テンプレート（<code>file:///…/{z}/{x}/{y}.png</code>）はタイルツリーごと
+<code>canvas_data/</code> へ複製。QGIS の WMS
+ラスタレイヤ（<code>type=xyz</code> 以外）は <code>wms:</code>
+行（<code>layers=</code>/<code>styles=</code>/<code>format=</code>
+付き）として出力し、Canvas 側が GetMap を 256px
+タイルへ分解して描画する</li>
+<li><strong>追従モード</strong>:
+<code>?follow</code>/<code>?present</code> 付きで開いた Canvas
+ページ（Cesium 含む4エンジン。GSI Maps は未対応）は <code>/present/state</code>
+をポーリングし、QGIS
+キャンバスの移動にリアルタイム追従（プレゼン・画面共有用）</li>
+<li><strong>双方向ナビゲーション</strong>:
+パーマリンク受信（<code>/received</code>）と External Control
+により、クライアント→QGIS 方向の視点共有も可能。KASUGAI からの逆方向は
+<code>qgis-import</code> プラグインが <code>/kasugai</code>
+を呼ぶ形（取り込みのみ — Canvas 側の編集結果は QGIS へ戻らない）</li>
+</ul>
+<h2 id="githubpages-cdnkasugai-canvas-web">GitHubPages
+CDN（kasugai-canvas-web）</h2>
+<p><a
+href="https://github.com/yamamoto-ryuzo/kasugai-canvas-web">KASUGAI
+Canvas エンジンの公開 CDN</a>。 kasugai_canvas 側の
+<code>web/</code>（Cesium / MapLibre / OpenLayers / Leaflet / GSI Maps
+＋ shared コア）を GitHub Pages で <code>stable/</code>（安定版・既定）と
+<code>unstable/</code>（開発版）の2チャンネル公開し、
+<code>channels.json</code> が各チャンネルのバージョンを返します。
+エンジンは実質上位互換を維持して更新されます。GSI Maps
+は vendored 地理院地図（<code>vendor/gsimaps</code>、約75MB）を
+チャンネルへ同梱して配信します。KASUGAI Canvas
+側ではこの vendor をリポジトリ・配布物に同梱しないため、
+ローカルで <code>vendor/</code> が無い環境の
+<code>gsimaps/</code> はこの CDN 版へ
+<code>?kasc=&lt;ローカル絶対URL&gt;</code> で自動転送されます（他4エンジンが
+jsdelivr 依存なのと同様、GSI Maps は github.io 依存）。</p>
+<p>利用経路:</p>
+<ul>
+<li>【▶ WebView】—
+ホスト版エンジン（<code>stable/&lt;engine&gt;/?kasc=&lt;URL&gt;</code>）で開き、
+データは内蔵サーバー <code>:8089/export-data/</code>
+から供給（<code>via=hosted</code>。 要インターネット・HTTP
+サーバー稼働）</li>
+<li>出力される <code>&lt;engine&gt;.html</code> —
+<code>HOSTED_BASE</code> としてエクスポート時の チャンネル URL
+を焼き込み。ローカルにエンジンが無い環境のフォールバック</li>
+<li><code>index.html</code> 経路3 —
+ホスト版エンジンへの直リンク一覧</li>
+</ul>
+<p>チャンネルはパネルの <code>CDN:</code> コンボ（QSettings
+<code>kasugai_hosted_channel</code>）で
+切替。<code>stable</code>/<code>unstable</code> のほか、末尾
+<code>/</code> の完全URLを書けば自前 CDN/ホストも
+使えます。外部ホスト配信での CDN 利用は <a
+href="features.html#webgis">WebGIS（外部HTTPサーバーへの配信）</a>
+を参照。</p>
+<nav class="pager"><a href="features.html">← 主な機能</a><a class="next" href="getting-started.html">導入ガイド →</a></nav>
+</main>
+</div>
+<script type="module" src="assets/site.js"></script>
+</body>
+</html>

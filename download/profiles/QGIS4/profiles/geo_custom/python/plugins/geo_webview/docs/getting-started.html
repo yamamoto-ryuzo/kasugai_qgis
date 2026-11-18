@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="geo_webview 導入ガイド — インストールとサーバレス配信の流れ">
+<title>4. 導入ガイド | geo_webview ドキュメント</title>
+<link rel="stylesheet" href="style.css">
+<script src="nav.js" defer></script>
+</head>
+<body>
+<div class="container">
+<main>
+<h1>4. 導入ガイド</h1>
+<h2 id="クイックスタート">クイックスタート</h2>
+<h3 id="1-インストール">1. インストール</h3>
+<pre><code class="language-bash"># QGIS プラグインディレクトリに配置
+# Windows: %APPDATA%\QGIS\QGIS3\profiles\default\python\plugins\geo_webview
+# macOS: ~/Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins/geo_webview
+# Linux: ~/.local/share/QGIS/QGIS3/profiles/default/python/plugins/geo_webview</code></pre>
+<p>または QGIS プラグインマネージャーからインストール可能です。</p>
+<h3 id="2-基本的な使い方サーバレス配信">2.
+基本的な使い方（サーバレス配信）</h3>
+<ol>
+<li>QGIS でプロジェクト（.qgs/.qgz）を開く</li>
+<li>メニューから「Web &gt; geo_webview」を選択してパネルを表示</li>
+<li><code>Engine:</code> でエンジンを選び <code>▶ Open</code> —
+エクスポート→登録→ブラウザ起動まで実行される</li>
+<li>配布したい場合は <code>Export</code>
+で出力したフォルダをエンジン（<code>web/</code>）と一緒に静的ホストへアップ</li>
+</ol>
+<figure class="shot">
+<img src="images/mainwindow.webp" loading="lazy"
+alt="QGIS 画面 — 左側にドッキングした geo_webview パネルと地図キャンバス">
+<figcaption>QGIS にドッキングした geo_webview
+パネル（左）と地図キャンバス</figcaption>
+</figure>
+<h2 id="サーバレス配信の流れ">サーバレス配信の流れ</h2>
+<h3 id="1-エクスポート起動">1. エクスポート／起動</h3>
+<p>パネル最上段の「Web Distribution」グループで操作します （3行構成:
+保存行（Export＋保存先＋📁）、CDN行（CDN選択＋ZIP）、
+起動行（Engine選択＋▶WebView＋▶Canvas））。 各ボタン・コンボの詳細は <a
+href="features.html">主な機能</a>
+章を参照してください。</p>
+<figure class="shot">
+<img src="images/panel.png" loading="lazy"
+alt="「Web配信」グループ — 保存行（エクスポート＋保存先）、CDN行（CDN選択＋ZIP）、起動行（エンジン選択＋▶WebView＋▶Canvas）の3行構成">
+<figcaption>「Web配信」グループの3行構成 — 保存行・CDN行・起動行</figcaption>
+</figure>
+<h3 id="2-出力物">2. 出力物</h3>
+<pre><code>&lt;out_dir&gt;/                   # KASUGAI 登録済みなら &lt;install&gt;/QGIS_projects/&lt;プロジェクト名&gt;/
+├─ kasugai_canvas.kasc       # レイヤツリー・参照行・cam:/theme:/bookmark: 等
+├─ index.html                # 起動ページへのリンク一覧＋ZIPダウンロードリンク
+├─ cesium.html / maplibre.html / openlayers.html / leaflet.html / gsimaps.html  # 起動ページ
+├─ project.json              # {&quot;title&quot;: ...}
+├─ bookmarks.xml             # QGIS ブックマーク（emit_bookmarks 時）
+└─ canvas_data/                     # GeoJSON(4326) / ネイティブ形式複製 / .qml / タイル等</code></pre>
+<p><code>.kasc</code> 行の生成規則の詳細は <a href="spec.html"><code>spec.html</code></a> §15
+を参照（GPKG/GeoJSON/ GeoParquet/FlatGeobuf はネイティブ参照、CSV/TSV は
+<code>duckdb:</code>、 フィルタ付きは <code>where=</code>、3D Tiles は
+<code>3dtiles:</code>、XYZ 最下段は <code>base:</code>、 WMS ラスタは
+<code>wms:</code> 行、その他ベクターは GeoJSON 化）。</p>
+<nav class="pager"><a href="engines.html">← マルチエンジン</a><a class="next" href="technical.html">技術資料 →</a></nav>
+</main>
+</div>
+<script type="module" src="assets/site.js"></script>
+</body>
+</html>

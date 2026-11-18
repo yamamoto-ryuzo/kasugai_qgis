@@ -24,7 +24,10 @@
 import re
 
 # Import Qt compatibility module first
-from .qt_compat import QCoreApplication, Qt, QIcon, QAction, QDockWidget, WA_DeleteOnClose, RightDockWidgetArea, QtWidgets
+from qgis.PyQt.QtCore import QCoreApplication, Qt
+from qgis.PyQt.QtGui import QIcon, QAction
+from qgis.PyQt.QtWidgets import QDockWidget
+from qgis.PyQt import QtWidgets
 from .i18n_json import install_translator
 
 from qgis.core import QgsSettings, QgsProject, QgsExpressionContextUtils
@@ -37,6 +40,53 @@ from .resources_rc import *
 # Import the code for the DockWidget
 from .legend_view_dockwidget import LegendViewDockWidget
 import os.path
+
+
+def _qt_dead(w):
+    """QtラッパーのC++側オブジェクトが削除済みかを返す。
+
+    削除済み QAction/QMenu/QToolBar へメソッドを呼ぶと Python 例外では
+    なく access violation になるため、触れる前に判定する。
+    """
+    try:
+        from qgis.PyQt import sip
+        return bool(sip.isdeleted(w))
+    except Exception:
+        try:
+            from PyQt6 import sip
+            return bool(sip.isdeleted(w))
+        except Exception:
+            return False
+
+
+def _defer_remove_actions(iface, menu_name, actions, toolbar=None):
+    """メニュー/ツールバー項目の除去をイベント完了後へ遅延する。
+
+    QMenu のイベント処理中(triggered ハンドラ内の reloadPlugin 経由等)
+    に removePluginMenu/removeAction するとポップアップ処理中の
+    メニュー階層を破壊して access violation になる実績があるため、
+    QTimer で遅延する。除去対象は呼出し時点の参照に限定し、
+    触れる各オブジェクトは _qt_dead で先に判定する。
+    """
+    def _cleanup():
+        for action in actions:
+            if _qt_dead(action):
+                continue
+            try:
+                iface.removePluginMenu(menu_name, action)
+            except Exception:  # nosec B110  # 設計上の許容
+                pass
+            try:
+                if toolbar is not None and not _qt_dead(toolbar):
+                    toolbar.removeAction(action)
+            except Exception:  # nosec B110  # 設計上の許容
+                pass
+
+    try:
+        from qgis.PyQt.QtCore import QTimer
+        QTimer.singleShot(0, _cleanup)
+    except Exception:  # nosec B110  # 設計上の許容
+        _cleanup()
 
 
 class LegendView:
@@ -240,11 +290,11 @@ class LegendView:
 
         # print "** UNLOAD LegendView"
 
-        for action in self.actions:
-            self.iface.removePluginMenu(
-                self.tr(u'&Legend View'),  # Default to English, will be translated
-                action)
-            self._geo_toolbar(ensure_visible=False).removeAction(action)
+        # メニュー/ツールバー項目の除去はイベント完了後へ遅延する
+        # (QMenu イベント処理中の除去は access violation の実績)
+        _defer_remove_actions(
+            self.iface, self.tr(u'&Legend View'), list(self.actions),
+            self._geo_toolbar(ensure_visible=False))
         # No custom toolbar to remove - actions live on shared GeoSuite toolbar
 
     # --------------------------------------------------------------------------
@@ -263,7 +313,7 @@ class LegendView:
             if self.dockwidget is None:
                 # Create the dockwidget (after translation) and keep reference
                 self.dockwidget = LegendViewDockWidget(self.iface)
-                self.dockwidget.setAttribute(WA_DeleteOnClose)
+                self.dockwidget.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
             # connect to provide cleanup on closing of dockwidget
             self.dockwidget.closingPlugin.connect(self.onClosePlugin)
@@ -294,7 +344,7 @@ class LegendView:
         is_floating = s.value("LegendView/isfloating", "0") == "1"
 
         if is_floating:
-            self.iface.addDockWidget(RightDockWidgetArea, self.dockwidget)
+            self.iface.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.dockwidget)
             geometry = s.value("LegendView/geometry", "")
             if not geometry.isEmpty():
                 self.dockwidget.restoreGeometry(bytearray(geometry))
@@ -303,7 +353,7 @@ class LegendView:
         else:
             self.dockwidget.setFloating(False)
             if not self.iface.mainWindow().restoreDockWidget(self.dockwidget):
-                self.iface.addDockWidget(RightDockWidgetArea, self.dockwidget)
+                self.iface.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.dockwidget)
                 self.tabifyWithExistingDock()
 
         self.dockwidget.show()
@@ -315,7 +365,7 @@ class LegendView:
         for dock in main_window.findChildren(QDockWidget):
             if dock is self.dockwidget or dock.isFloating():
                 continue
-            if main_window.dockWidgetArea(dock) != RightDockWidgetArea:
+            if main_window.dockWidgetArea(dock) != Qt.DockWidgetArea.RightDockWidgetArea:
                 continue
             if dock.isVisible():
                 target = dock

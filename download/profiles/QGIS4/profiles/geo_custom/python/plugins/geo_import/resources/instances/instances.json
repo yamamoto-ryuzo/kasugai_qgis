@@ -1,19 +1,11 @@
 [
   {
-    "title": "データカタログ横断検索システム",
-    "url": "https://search.ckan.jp/",
-    "url-api": "https://search.ckan.jp/backend/api/",
+    "title": "e-Govデータポータル (data.e-gov.go.jp)",
+    "url": "https://data.e-gov.go.jp/",
+    "url-api": "https://data.e-gov.go.jp/data/api/3/",
     "type": "CKAN",
     "country": "JP",
-    "description": "日本のオープンデータカタログを横断的に検索できる統合プラットフォーム"
-  },
-  {
-    "title": "DATA GO.JP (日本のオープンデータポータル)",
-    "url": "https://www.data.go.jp/",
-    "url-api": "https://www.data.go.jp/data/api/3/",
-    "type": "CKAN",
-    "country": "JP",
-    "description": "日本政府のオープンデータポータルサイト"
+    "description": "日本政府のオープンデータポータルサイト（旧 data.go.jp 後継）"
   },
   {
     "title": "横浜市オープンデータポータル",

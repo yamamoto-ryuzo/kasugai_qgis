@@ -1,5 +1,43 @@
 # CHANGELOG — geo_excel
 
+## 1.10.0
+
+- bridge.py: 帳票出力前のドライラン検証 `validateRun(script)` と
+  フィールドマッピング表示 `fieldMapping(script)` を追加。
+  `validateRun` は帳票を出力せずにアクティブレイヤ・win32com・
+  選択地物・必須レイヤ変数(充足と式評価)・テンプレート実在・
+  出力先存在/書込・dpi 妥当性を `checks`/`errors`/`warnings` の
+  構造化リストで返す(`ready` が実行可否)。auto_apply 有効時の
+  未設定変数は実行時に既定値が補われる旨を warning で区別する。
+  `fieldMapping` はテンプレートxlsx内の `##Attach::`/`##ListInsert::`/
+  `##AttachFitImage::` プレースホルダを走査し、レイヤフィールド・
+  式・マップテーマとの対応表と未解決プレースホルダを返す
+  (validateRun の `field_mapping` にも同内容を含む)
+
+## 1.9.7
+
+- `exportSingleBulk.py` に `check_same_name_opend` を追加
+  (exportSingle/exportList と同型)。single 出力後などで同名ブックが
+  Excel に開かれたまま bulk を実行すると `wb.SaveAs` が COM 例外
+  「Workbook クラスの SaveAs メソッドが失敗しました。」で落ちていた
+  不具合を修正。ブック作成前に同名オープンを検出して
+  「同じ名前のブックが既に開かれています」を通知し中断する
+
+## 1.9.6
+
+- 任意レイヤ変数 `dpi` 未設定時にメッセージバーへ critical
+  「dpi is not defined!」が表示される不具合を修正
+  (exportSingle/exportSingleBulk)。`get_layer_variable` に
+  `quiet` オプションを追加し、dpi 取得のみ `quiet=True` で呼ぶ。
+  未設定時は従来どおり既定 200 で静かに継続する
+
+## 1.9.5
+
+- 同梱帳票スクリプト(exportList/exportSingle/exportSingleBulk)の
+  import を `PyQt5` から `qgis.PyQt` へ直接修正し、exec 直前に
+  ソース文字列を書き換えていた機構(_PYQT5_RE/_rewrite_source)を撤去。
+  実行時に必要な置換は `[% @layer_id %]` / `[% $id %]` のみに簡素化
+
 ## 1.9.4
 
 - bridge.py: 既定設定の保存(setSettings)と自動テンプレート再生成

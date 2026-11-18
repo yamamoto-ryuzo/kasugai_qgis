@@ -31,7 +31,7 @@
         <item>
          <widget class="QLabel" name="label_webdist_info">
           <property name="text">
-           <string>Export the project as a .kasc+DATA/ package. Engine launcher HTMLs and kasugai_canvas.zip (Re:Earth geo_suite 'qgis:' import) are also written. It plays on Cesium / MapLibre / OpenLayers / Leaflet / GSI Maps / Navara — upload with the engine to a static host for serverless delivery.</string>
+           <string>Export the project as a .kasc+canvas_data/ package. Engine launcher HTMLs and kasugai_canvas.zip (Re:Earth geo_suite 'qgis:' import) are also written. It plays on Cesium / MapLibre / OpenLayers / Leaflet / GSI Maps / Navara — upload with the engine to a static host for serverless delivery.</string>
           </property>
           <property name="wordWrap">
            <bool>true</bool>
@@ -89,7 +89,7 @@
            <string>Export</string>
           </property>
           <property name="toolTip">
-           <string>Export visible layers as a KASUGAI Canvas project (.kasc + DATA/ + engine launcher HTMLs) — files only</string>
+           <string>Export visible layers as a KASUGAI Canvas project (.kasc + canvas_data/ + engine launcher HTMLs) — files only</string>
           </property>
           <property name="minimumSize">
            <size>
@@ -149,7 +149,7 @@
            <string>📁</string>
           </property>
           <property name="toolTip">
-           <string>Open the export folder (.kasc / DATA/ / engine launchers)</string>
+           <string>Open the export folder (.kasc / canvas_data/ / engine launchers)</string>
           </property>
           <property name="minimumSize">
            <size>
@@ -163,6 +163,39 @@
             <height>25</height>
            </size>
           </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_kasugai_vformat">
+        <item>
+         <widget class="QLabel" name="label_vformat">
+          <property name="text">
+           <string>Format:</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QComboBox" name="comboBox_vector_format">
+          <property name="toolTip">
+           <string>Vector export format — 'native' references readable sources as-is; 'recommended' converts all vectors to FlatGeobuf and places them in canvas_data/ (flatgeobuf: lines, bbox=auto range reads in Canvas); 'geojson' converts ALL vectors to GeoJSON for other WebGIS interop</string>
+          </property>
+          <item>
+           <property name="text">
+            <string notr="true">native</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string notr="true">recommended</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string notr="true">geojson</string>
+           </property>
+          </item>
          </widget>
         </item>
        </layout>

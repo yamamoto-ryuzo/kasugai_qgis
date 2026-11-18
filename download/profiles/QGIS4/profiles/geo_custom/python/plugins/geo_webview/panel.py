@@ -114,6 +114,9 @@ class GeoWebViewPanel(QDockWidget):
         self.comboBox_engine = getattr(self.ui, 'comboBox_engine', None)
         # CDN(ホスト版エンジン)選択コンボ(▶ WebView のチャンネル)
         self.comboBox_hosted = getattr(self.ui, 'comboBox_hosted', None)
+        # ベクター出力形式コンボ(推奨形式スイッチのパネル側入口)
+        self.comboBox_vector_format = getattr(
+            self.ui, 'comboBox_vector_format', None)
         # HTTP server toggle checkbox (added to UI)
         self.checkBox_server_toggle = getattr(self.ui, 'checkBox_server_toggle', None)
         # External control checkbox (new in UI)
@@ -237,7 +240,7 @@ class GeoWebViewPanel(QDockWidget):
 
         # ラベル
         if hasattr(self.ui, 'label_webdist_info'):
-            self.ui.label_webdist_info.setText(QCoreApplication.translate('geo_webview', "Export the project as a .kasc+DATA/ package with engine launcher HTMLs. It plays on Cesium / MapLibre / OpenLayers / Leaflet / GSI Maps / Navara — upload with the engine to a static host for serverless delivery. The ZIP button downloads kasugai_canvas_<channel>.zip in the browser (static-host deployment / Re:Earth geo_suite 'qgis:' import)."))
+            self.ui.label_webdist_info.setText(QCoreApplication.translate('geo_webview', "Export the project as a .kasc+canvas_data/ package with engine launcher HTMLs. It plays on Cesium / MapLibre / OpenLayers / Leaflet / GSI Maps / Navara — upload with the engine to a static host for serverless delivery. The ZIP button downloads kasugai_canvas_<channel>.zip in the browser (static-host deployment / Re:Earth geo_suite 'qgis:' import)."))
         if hasattr(self.ui, 'label_engine'):
             self.ui.label_engine.setText(QCoreApplication.translate('geo_webview', "Engine:"))
         if hasattr(self.ui, 'label_hosted'):
@@ -260,7 +263,7 @@ class GeoWebViewPanel(QDockWidget):
             self.ui.pushButton_kasugai_export.setText(QCoreApplication.translate('geo_webview', "Export"))
             self.ui.pushButton_kasugai_export.setToolTip(QCoreApplication.translate(
                 'geo_webview',
-                "Export visible layers as a KASUGAI Canvas project (.kasc + DATA/ + engine launcher HTMLs) — files only"))
+                "Export visible layers as a KASUGAI Canvas project (.kasc + canvas_data/ + engine launcher HTMLs) — files only"))
         if hasattr(self.ui, 'pushButton_kasugai_launch'):
             self.ui.pushButton_kasugai_launch.setText(QCoreApplication.translate('geo_webview', "▶ Canvas"))
         if hasattr(self.ui, 'pushButton_kasugai_launch_hosted'):
@@ -290,12 +293,36 @@ class GeoWebViewPanel(QDockWidget):
                 if idx >= 0:
                     self.ui.comboBox_engine.setCurrentIndex(idx)
             self.ui.comboBox_engine.blockSignals(False)
+        if hasattr(self.ui, 'label_vformat'):
+            self.ui.label_vformat.setText(QCoreApplication.translate('geo_webview', "Format:"))
+        if hasattr(self.ui, 'comboBox_vector_format'):
+            self.ui.comboBox_vector_format.setToolTip(QCoreApplication.translate(
+                'geo_webview',
+                "Vector export format — 'native' references readable sources as-is; 'recommended' converts all vectors to FlatGeobuf and places them in canvas_data/ (flatgeobuf: lines, bbox=auto range reads in Canvas); 'geojson' converts ALL vectors to GeoJSON for other WebGIS interop"))
+            # 項目を itemData 付きで再構成(.ui 側の項目は上書き)
+            try:
+                current = self.ui.comboBox_vector_format.currentData()
+            except Exception:  # nosec B110  # 設計上の許容
+                current = None
+            self.ui.comboBox_vector_format.blockSignals(True)
+            self.ui.comboBox_vector_format.clear()
+            self.ui.comboBox_vector_format.addItem(
+                QCoreApplication.translate('geo_webview', "native (reference as-is)"), 'native')
+            self.ui.comboBox_vector_format.addItem(
+                QCoreApplication.translate('geo_webview', "recommended (FlatGeobuf → canvas_data/)"), 'recommended')
+            self.ui.comboBox_vector_format.addItem(
+                QCoreApplication.translate('geo_webview', "geojson (WEB interop → GeoJSON)"), 'geojson')
+            if current:
+                idx = self.ui.comboBox_vector_format.findData(current)
+                if idx >= 0:
+                    self.ui.comboBox_vector_format.setCurrentIndex(idx)
+            self.ui.comboBox_vector_format.blockSignals(False)
         if hasattr(self.ui, 'pushButton_kasugai_folder'):
             self.ui.pushButton_kasugai_folder.setText('📁')
             self.ui.pushButton_kasugai_folder.setToolTip(
                 QCoreApplication.translate(
                     'geo_webview',
-                    "Open the export folder (.kasc / DATA/ / engine launchers)"))
+                    "Open the export folder (.kasc / canvas_data/ / engine launchers)"))
         if hasattr(self.ui, 'pushButton_kasugai_outdir_reset'):
             self.ui.pushButton_kasugai_outdir_reset.setToolTip(
                 QCoreApplication.translate(

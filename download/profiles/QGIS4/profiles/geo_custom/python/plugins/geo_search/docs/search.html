@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>検索機能（日本語） | geo_search</title>
+<link rel="stylesheet" href="style.css">
+<script src="nav.js" defer></script>
+</head>
+<body>
+<div class="container">
+<header>
+<h1>検索機能（日本語）</h1>
+<p><a href="index.html" style="color:inherit">geo_search ドキュメント</a></p>
+</header>
+<main>
+<p><a href="https://github.com/yamamoto-ryuzo/qgis_live_harness/blob/master/qgis-plugin/geo_search/SEARCH.md">English version: <code>SEARCH.md</code></a></p>
+<h2 id="概要">概要</h2>
+<p>このドキュメントは <code>GEO Search System</code> の検索サブシステムに関する詳細です。地番検索・所有者検索・汎用属性検索の動作、検索ロジック、検索タブ設定やテーマ連携など、システム全体との統合観点を含めて説明します。</p>
+<h2 id="サブシステム図と境界開発者向け">サブシステム図と境界（開発者向け）</h2>
+<p>簡易図（テキスト）:</p>
+<pre><code> UI (検索ダイアログ / SearchTab 設定)
+            |
+            v
+ [Search Subsystem]
+     - Search widgets (SearchTibanWidget, SearchOwnerWidget, SearchTextWidget)
+     - Search features (SearchTibanFeature, SearchOwnerFeature, SearchTextFeature)
+            |
+            +--&gt; Theme Management (selectTheme)  &lt;--&gt; Theme サブシステム
+            |
+            v
+     Result Presentation (レイヤごとのタブ、ViewFields、ページング)
+</code></pre>
+<p>主要実装ファイル:</p>
+<ul>
+<li><code>geo_search/widget/searchwidget.py</code> — SearchTibanWidget / SearchOwnerWidget / SearchTextWidget</li>
+<li><code>geo_search/searchfeature.py</code> — SearchFeature 実装（結果取得・表示）</li>
+<li><code>geo_search/plugin.py</code> — プラグイン起動・タブ設定の読み込みと注釈付与</li>
+</ul>
+<p>連携ポイント（テーマ管理）:</p>
+<ul>
+<li><code>selectTheme</code>（各 SearchTab の設定）: 検索実行前に適用するマップテーマ名を指定できます。</li>
+<li>テーマ適用はテーマサブシステムへ委譲され、追加表示モード（additive）により表示の合成を行えます（<a href="themes.html">themes.html</a> 参照）。</li>
+</ul>
+<hr />
+<h2 id="地番検索">地番検索</h2>
+<ul>
+<li>地番（筆番号）で検索します。正規表現／完全一致／あいまい検索（近傍番号）をサポートします。</li>
+<li>結果はレイヤごとにタブ化されたテーブルでページング表示されます。</li>
+</ul>
+<h2 id="汎用属性検索">汎用属性検索</h2>
+<ul>
+<li>任意の属性フィールドに対する検索です。表示するカラムやページングはタブごとの設定で制御できます。</li>
+</ul>
+<h2 id="所有者検索">所有者検索</h2>
+<ul>
+<li>所有者名で検索します。全角カナ→半角カナ変換や空白処理などの正規化を行い、複数フィールドの組合せ検索や前方一致／部分一致が設定により可能です。</li>
+</ul>
+<h2 id="検索ロジック実装概要">検索ロジック（実装概要）</h2>
+<h3 id="全文検索風">全文検索風</h3>
+<ul>
+<li>実装ファイル: <code>geo_search/widget/searchwidget.py</code>（ウィジェット） と <code>geo_search/searchfeature.py</code>（Feature 実装）。</li>
+<li>動作: 入力された検索語を正規化し、設定された検索フィールド群に対して LIKE 相当の条件を組み立てて検索を実行します。</li>
+</ul>
+<h3 id="地番検索">地番検索</h3>
+<ul>
+<li>実装ファイル: <code>geo_search/widget/searchwidget.py</code> / <code>geo_search/searchfeature.py</code>。</li>
+<li>動作: 地番用の入力を受け取り、正規表現や近傍番号によるあいまい検索を行います。</li>
+</ul>
+<h3 id="所有者検索">所有者検索</h3>
+<ul>
+<li>実装ファイル: <code>geo_search/widget/searchwidget.py</code> / <code>geo_search/searchfeature.py</code>。</li>
+<li>動作: 複数フィールドを選択して検索可能。カナ正規化や空白処理を行い、LIKE 条件で検索します。</li>
+</ul>
+<h3 id="表示レイヤ検索全レイヤ検索">表示レイヤ検索／全レイヤ検索</h3>
+<ul>
+<li><code>SearchTextFeature.show_features</code> は、タブタイトルが <code>表示レイヤ</code> または <code>全レイヤ</code> の場合、現在表示中のレイヤ／プロジェクト内全レイヤを横断して検索し、結果をレイヤごとにタブ表示します。</li>
+</ul>
+<h3 id="補助機能">補助機能</h3>
+<ul>
+<li>サジェスト（補完）機能: <code>unique_values</code> を用いて <code>QCompleter</code> を生成します。</li>
+<li>マップテーマ適用: 各タブの <code>selectTheme</code> に指定されたテーマを検索時に適用可能です。</li>
+</ul>
+<hr />
+<h2 id="ui設定画面">UI設定画面</h2>
+<ul>
+<li>各タブごとの設定（対象レイヤ、検索フィールド、表示フィールド、マップテーマ）を GUI で編集でき、設定はプロジェクトファイルに保存されます。</li>
+</ul>
+<p>クイックスタート（日本語）:</p>
+<ul>
+<li>インストール: <code>geo_search</code> フォルダを QGIS のユーザープラグインディレクトリへ配置するか、ZIP から導入してください。</li>
+<li>起動: QGIS でプラグインを有効化し、ツールバーの起動ボタンから検索ダイアログを開きます。</li>
+<li>検索: タブを選択または設定し、地番・所有者名・属性などを入力して <code>検索</code> を押します。</li>
+<li>結果: レイヤごとのタブに結果が表示され、行をクリックすると地図上で選択・移動します。</li>
+</ul>
+<p>詳細は README を参照してください。</p>
+<hr />
+<h2 id="設定項目">設定項目</h2>
+<p>設定例や <code>setting.json.sample</code> のサンプルはプラグイン同梱のファイルを参照してください。以下は主要項目の要点です。</p>
+<pre><code class="language-json">{
+  &quot;SearchTabs&quot;: [
+    {
+      &quot;Title&quot;: &quot;サンプル&quot;,
+      &quot;Layer&quot;: { &quot;LayerType&quot;: &quot;Database&quot;, &quot;DataType&quot;: &quot;postgres&quot;, &quot;Host&quot;: &quot;Host名&quot;, &quot;Port&quot;: &quot;5432&quot;, &quot;Database&quot;: &quot;データベース名&quot;, &quot;User&quot;: &quot;ユーザー名&quot;, &quot;Password&quot;: &quot;...&quot;, &quot;Schema&quot;: &quot;public&quot;, &quot;Table&quot;: &quot;kihonp&quot;, &quot;Key&quot;: &quot;ogc_fid&quot;, &quot;Geometry&quot;: &quot;wkb_geometry&quot;, &quot;FormatSQL&quot;: &quot;format.sql&quot; },
+      &quot;TibanField&quot;: &quot;地番属性&quot;,
+      &quot;AzaTable&quot;: { &quot;DataType&quot;: &quot;postgres&quot;, &quot;Host&quot;: &quot;...&quot;, &quot;Port&quot;: &quot;5433&quot;, &quot;Database&quot;: &quot;...&quot;, &quot;User&quot;: &quot;...&quot;, &quot;Password&quot;: &quot;...&quot;, &quot;Schema&quot;: &quot;public&quot;, &quot;Table&quot;: &quot;コード表_字&quot;, &quot;Columns&quot;: [ { &quot;Name&quot;: &quot;表示する属性名&quot;, &quot;View&quot;: &quot;表示用名称&quot; } ] },
+      &quot;SearchFields&quot;: [ { &quot;FieldType&quot;: &quot;Text&quot;, &quot;ViewName&quot;: &quot;検索ダイアログのラベル表示名&quot;, &quot;Field&quot;: &quot;検索に使用する属性&quot;, &quot;KanaHankaku&quot;: true } ],
+      &quot;SampleFields&quot;: [&quot;一時テーブルに表示する属性&quot;],
+      &quot;ViewFields&quot;: [&quot;結果に表示する属性&quot;],
+      &quot;Message&quot;: &quot;？ボタンで表示されるメッセージ&quot;,
+      &quot;SampleTableLimit&quot;: 100,
+      &quot;selectTheme&quot;: &quot;テーマ名&quot;
+    }
+  ]
+}
+</code></pre>
+<h3 id="設定要点">設定（要点）</h3>
+<ul>
+<li><code>Title</code>: タブ表示名</li>
+<li><code>Layer</code>: レイヤ読み込み情報（<code>LayerType</code> に <code>Name</code>/<code>File</code>/<code>Database</code> を指定）</li>
+<li><code>SearchFields</code> / <code>SearchField</code>: 検索対象フィールドの指定</li>
+<li><code>ViewFields</code>: 結果表示フィールド（空配列で全フィールド表示）</li>
+<li><code>selectTheme</code>: 検索時に適用するマップテーマ名（<code>&quot;検索前&quot;</code> を指定するとプラグイン起動時に保存された表示状態が適用されます）</li>
+</ul>
+<h3 id="表示フィールの振る舞い">表示フィールの振る舞い</h3>
+<ul>
+<li>未指定または空配列: レイヤの全フィールドを表示</li>
+<li>存在するフィールドのみ指定: 指定されたフィールドのみ表示</li>
+<li>存在しないフィールドが指定されていると空表になる（QGIS メッセージに警告）</li>
+</ul>
+<h3 id="選択後の地図移動">選択後の地図移動</h3>
+<ul>
+<li>ズーム to 選択（デフォルト）: 選択地物に合わせて自動ズーム</li>
+<li>中心パン（ズーム維持）: 縮尺を保ったままパン</li>
+<li>固定スケール表示: 指定スケールでセンタリング</li>
+<li>アニメーションパン: アニメーションで移動してフィット</li>
+<li>選択のみ: 表示変更なし</li>
+</ul>
+<hr />
+<h2 id="設定ソース読み込み元と注釈">設定ソース（読み込み元）と注釈</h2>
+<ul>
+<li><p>読み込み順（結合順）は次のとおりです: <code>setting.json</code> (プラグイン内) → プロジェクト変数 <code>GEO-search-plugin</code> (inline JSON またはファイル参照) → 外部 <code>geo_search_json</code>（環境変数またはプロジェクト変数で指定されたファイル）。</p>
+</li>
+<li><p>各タブ設定には実行時に以下の注釈が付与されます:</p>
+<ul>
+<li><code>_source</code>: 読み込み元トークン（例: <code>setting.json</code>, <code>project variable</code>, <code>geo_search_json</code>）</li>
+<li><code>_source_index</code>: そのソース内での 0-based インデックス（読み込み順に基づく）</li>
+</ul>
+</li>
+<li><p>これらの注釈は、タブの編集・削除を行う際の対象特定に利用されます。削除処理はまず <code>_source_index</code> による直接指定を試み、範囲外や不一致の場合は <code>Title</code> によるフォールバック検索を行います。</p>
+</li>
+<li><p>ファイル更新はバックアップを取りつつ原子的に行われ、成功後にプラグインが UI を再構築して注釈（<code>_source_index</code> 等）を再計算します。</p>
+</li>
+</ul>
+<p>例: UI 上のソース表示は <code>[{short}]</code> から <code>[{short} #{index}]</code> の形式になり、<code>setting.json</code> の 3 番目の要素なら <code>[setting.json #2]</code> のように表示されます。</p>
+<hr />
+<h2 id="設定ファイル説明主要項目">設定ファイル説明（主要項目）</h2>
+<ul>
+<li><code>Title</code>: タブに表示されるタイトル</li>
+<li><code>group</code>: タブをまとめるグループ名</li>
+<li><code>Layer</code>: 読み込むレイヤ情報</li>
+<li><code>SearchField</code> / <code>SearchFields</code>: 検索対象の属性情報</li>
+<li><code>ViewFields</code>: 検索結果で表示する属性（空配列で全フィールド表示）</li>
+<li><code>Message</code>: ヘルプ表示用のテキスト</li>
+<li><code>TibanField</code>: 地番属性名</li>
+<li><code>AzaTable</code>: 地番検索用の字コード設定</li>
+<li><code>angle</code>: 検索時に適用する回転角度（度）</li>
+<li><code>rotateMode</code>: <code>&quot;horizontal&quot;</code>（または <code>&quot;feature&quot;</code>/<code>&quot;target&quot;</code>）を指定すると、検索時に検索対象地物の主軸が水平になるよう地図を自動回転します。<code>rotateHorizontal: true</code> でも有効化できます（<code>angle</code> より優先）</li>
+<li><code>scale</code>: 検索時に適用する縮尺（分母）</li>
+<li><code>selectTheme</code>: 検索時に適用する QGIS マップテーマ名</li>
+</ul>
+<h3 id="住所検索タブジオコーディング">住所検索タブ（ジオコーディング）</h3>
+<p><code>Title</code> が <code>住所検索</code>（別名 <code>Address Search</code> / <code>address_search</code>）のタブは、レイヤ属性ではなく外部ジオコーダを検索します。KASUGAI Canvas の住所検索と同じプロバイダ構成です。</p>
+<pre><code class="language-json">{
+  &quot;Title&quot;: &quot;住所検索&quot;,
+  &quot;Provider&quot;: &quot;gsi&quot;,
+  &quot;Providers&quot;: [&quot;gsi&quot;, &quot;google&quot;, &quot;yahoo&quot;, &quot;osm&quot;],
+  &quot;ApiKey&quot;: &quot;Google Maps APIキー(省略可)&quot;,
+  &quot;YahooAppId&quot;: &quot;YahooアプリケーションID(省略可)&quot;,
+  &quot;CreateScratch&quot;: true
+}
+</code></pre>
+<ul>
+<li><code>Provider</code>: 既定プロバイダ。<code>gsi</code>(国土地理院・キー不要)、<code>google</code>(Geocoding+Placesハイブリッド・要 <code>ApiKey</code>)、<code>yahoo</code>(要 <code>YahooAppId</code>)、<code>osm</code>/<code>nominatim</code>(キー不要)</li>
+<li><code>Providers</code>: コンボに出すプロバイダ一覧（省略時は全件）。キー未設定のものは選択不可になります</li>
+<li><code>ApiKey</code> / <code>YahooAppId</code>: 未設定時は環境変数 <code>GOOGLE_MAPS_API_KEY</code> / <code>YAHOO_APPID</code> を参照</li>
+<li><code>CreateScratch</code>: タブ上の「スクラッチレイヤを作成」チェックの初期値（既定 <code>true</code>）。OFF では結果をプロジェクト非登録のメモリレイヤへ書き込むためレイヤパネルに残りません。結果テーブルとズームは従来どおり動作します</li>
+<li>結果はメモリレイヤ <code>geo_search 住所検索</code>（列: title/address/provider/lon/lat）のポイント地物として保持されるため、既存の結果テーブル・選択・ズームがそのまま使えます</li>
+<li>座標直入力（<code>35.6,139.7</code>・DMS・<code>北緯…東経…</code>）はジオコーディングを通さず直接その地点を表示します</li>
+<li>AI/bridge: <code>searchAddress(query, provider, zoom)</code> でタブ設定なしにジオコーディングできます</li>
+</ul>
+<h3 id="マップテーマ機能概要">マップテーマ機能（概要）</h3>
+<ol>
+<li>プラグイン起動時に現在の表示状態を <code>検索前</code> という名前で自動保存します。</li>
+<li>ツールバーにテーマ選択ドロップダウンを配置し、任意のテーマを即時適用できます。</li>
+<li>各タブの <code>selectTheme</code> を指定すると、検索時にそのテーマが適用されます（<code>検索前</code> を指定すると起動時の保存表示に戻せます）。</li>
+<li>追加表示モード（Additive display mode）: ON の場合、テーマ適用時に現在表示中のレイヤを残したままテーマの可視レイヤを上に追加表示します。OFF の場合はテーマで表示が置換されます。</li>
+</ol>
+<hr />
+<h2 id="課題と注意点">課題と注意点</h2>
+<ul>
+<li>外部ファイルが別プロセスで同時更新されると、UI の表示とファイル中のインデックスが一時的にずれる可能性があります。UI 再構築で整合されます。</li>
+<li><code>ViewFields</code> に存在しないフィールド名を指定すると空の表になります。</li>
+</ul>
+<hr />
+<h2 id="参考ファイル">参考ファイル</h2>
+<ul>
+<li><code>geo_search/widget/searchwidget.py</code></li>
+<li><code>geo_search/searchfeature.py</code></li>
+<li><code>geo_search/plugin.py</code></li>
+<li><code>THEMES.md</code></li>
+</ul>
+<pre><code></code></pre>
+<h1>免責事項</h1>
+<p>本システムは個人のPCで作成・テストされたものです。<br />
+ご利用によるいかなる損害も責任を負いません。</p>
+<p align="center">
+  <a href="https://giphy.com/explore/free-gif" target="_blank">
+    <img src="https://github.com/yamamoto-ryuzo/QGIS_portable_3x/raw/master/imgs/giphy.gif" width="500" title="avvio QGIS">
+  </a>
+</p>
+
+
+</main>
+</div>
+</body>
+</html>

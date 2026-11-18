@@ -22,9 +22,10 @@
 """
 import json
 import os
+import time
 
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import QTimer, Qt, QObject, pyqtSignal, QEvent, QCoreApplication
+from qgis.PyQt.QtCore import QTimer, Qt, QObject, pyqtSignal, QEvent, QCoreApplication, QThread
 from qgis.PyQt.QtGui import QStandardItemModel, QStandardItem, QColor
 from qgis.PyQt.QtWidgets import QDialog, QApplication, QAction, QInputDialog, QLineEdit, QFileDialog
 from .ckanconnector import CkanConnector
@@ -38,6 +39,32 @@ FORM_CLASS, _ = uic.loadUiType(
         'geo_import_dialog_dataproviders.ui'
     )
 )
+
+
+class ServerCheckThread(QThread):
+    """カタログ一覧の死活チェックをバックグラウンドで実行するワーカー。
+    軽量な package_search(rows=0) をQThreadで逐次実行しGUIをブロックしない。
+    結果はサーバーごとに resultReady(api_url, ok, latency_ms, message) で通知する。"""
+    resultReady = pyqtSignal(object)
+
+    def __init__(self, cc, api_urls):
+        super(ServerCheckThread, self).__init__()
+        self._cc = cc
+        self._api_urls = list(api_urls)
+
+    def run(self):
+        for api_url in self._api_urls:
+            if self.isInterruptionRequested():
+                break
+            started = time.monotonic()
+            try:
+                ok, result = self._cc.package_search(
+                    '', None, None, rows=0, api_url=api_url)
+            except Exception as e:
+                ok, result = False, str(e)
+            latency_ms = int((time.monotonic() - started) * 1000)
+            self.resultReady.emit(
+                (api_url, bool(ok), latency_ms, '' if ok else str(result)))
 
 
 class GeoImportDialogDataProviders(QDialog, FORM_CLASS):
@@ -83,6 +110,9 @@ class GeoImportDialogDataProviders(QDialog, FORM_CLASS):
         self.IDC_listProviders.addAction(delete_custom_server_action)
         # self.list_model.setHorizontalHeaderLabels(['CKAN Servers'])
         self.servers = []
+        self._check_thread = None
+        self._check_queued = set()
+        self.finished.connect(self._stop_server_checks)
         self.row_server_selected_in_list = -1
         self.util.msg_log_debug('GeoImportDialogDataProviders constructor')
         # self.IDC_grpManualDataProvider.collapsed = True
@@ -208,18 +238,16 @@ class GeoImportDialogDataProviders(QDialog, FORM_CLASS):
                     if server.api_url is not None:
                         if server.is_custom:
                             i.setBackground(QColor(0, 0, 255, 50))
-                        # 前回接続失敗が記録されているサーバーは赤で明示
-                        err = self.settings.server_error(server.api_url)
-                        if err:
-                            i.setBackground(QColor(255, 0, 0, 40))
-                            i.setToolTip(QCoreApplication.translate(
-                                'GeoImport', 'Last connection failed: {0}').format(err))
+                        # 疎通チェック結果/失敗記録に応じて死活マーカーと色を付ける
+                        self._apply_item_status(i, server)
                         i.setCheckable(True)
                         i.setCheckState(Qt.CheckState.Checked if server.selected else Qt.CheckState.Unchecked)
                         self.list_model.appendRow(i)
         finally:
             self.__update_server_count()
             QApplication.restoreOverrideCursor()
+            # 一覧表示後に全サーバーの死活を非同期で確認する
+            self._start_server_checks()
 
     def process_instances_result(self, result):
         """JSONから読み込んだインスタンス情報を処理"""
@@ -265,6 +293,126 @@ class GeoImportDialogDataProviders(QDialog, FORM_CLASS):
             si = ServerInstance(cs_name, cs_name, url, url, custom_entry=True)
             si.selected = True if si.settings_key in selected_servers else False
             self.servers.append(si)
+
+    _STATUS_MARKS = (u'○ ', u'△ ', u'× ')
+
+    def _is_local_server(self, api_url):
+        return (api_url.startswith('local://')
+                or api_url.startswith('file://')
+                or os.path.isdir(api_url))
+
+    def _apply_item_status(self, item, server):
+        """死活チェック結果に応じて一覧アイテムへ 稼働/遅延/到達不能 を付与する。
+        優先度: 最新チェック結果(TTL内) > 記録済み失敗 > 未チェック(マーカー無し)。"""
+        status = None
+        latency_ms = None
+        error = ''
+        check = self.settings.server_check(server.api_url)
+        if check is not None:
+            status = check.get('status')
+            latency_ms = check.get('latency_ms')
+            error = check.get('error') or ''
+        else:
+            err = self.settings.server_error(server.api_url)
+            if err:
+                status, error = 'down', err
+        live_status = getattr(server, 'check_status', None)
+        if live_status is not None:
+            status = live_status
+            latency_ms = getattr(server, 'check_latency', latency_ms)
+            error = getattr(server, 'check_error', '') or error
+        text = item.text()
+        for mark in self._STATUS_MARKS:
+            if text.startswith(mark):
+                text = text[len(mark):]
+                break
+        if status == 'ok' and latency_ms is not None and latency_ms > 2000:
+            status = 'slow'
+        if status == 'ok':
+            item.setText(self._STATUS_MARKS[0] + text)
+            item.setToolTip(QCoreApplication.translate(
+                'GeoImport', 'Reachable (response {0} ms)').format(latency_ms))
+        elif status == 'slow':
+            item.setText(self._STATUS_MARKS[1] + text)
+            item.setToolTip(QCoreApplication.translate(
+                'GeoImport', 'Slow response ({0} ms)').format(latency_ms))
+        elif status == 'down':
+            item.setText(self._STATUS_MARKS[2] + text)
+            item.setBackground(QColor(255, 0, 0, 40))
+            item.setToolTip(QCoreApplication.translate(
+                'GeoImport', 'Last connection failed: {0}').format(error))
+
+    def _start_server_checks(self):
+        """一覧の全サーバーへ軽量疎通確認を非同期で実行する。
+        TTL内のキャッシュ済み結果は一覧描画時に反映済みのため、
+        残りだけをワーカーへ投げる。"""
+        pending = getattr(self, '_check_queued', set())
+        urls = []
+        for s in self.servers:
+            if not s.api_url or self._is_local_server(s.api_url):
+                continue
+            if self.settings.server_check(s.api_url) is not None:
+                continue
+            if s.api_url in pending:
+                continue
+            urls.append(s.api_url)
+        self._check_queued = pending | set(urls)
+        if not self._check_queued:
+            return
+        thread = getattr(self, '_check_thread', None)
+        if thread is not None and thread.isRunning():
+            return  # 実行中ワーカーの終了時に残分を再投入する
+        self._dequeue_server_checks()
+
+    def _dequeue_server_checks(self):
+        urls = sorted(self._check_queued)
+        self._check_queued = set()
+        if not urls:
+            self._check_thread = None
+            return
+        cc = getattr(self, 'cc', None)
+        if cc is None:
+            cc = self.cc = CkanConnector(self.settings, self.util)
+        # ダイアログ破棄時にQThreadを巻き込まないようparentは付けず、
+        # 終了時にdeleteLaterで後始末する
+        self._check_thread = ServerCheckThread(cc, urls)
+        self._check_thread.resultReady.connect(self._on_server_check_result)
+        self._check_thread.finished.connect(self._on_server_checks_finished)
+        self._check_thread.finished.connect(self._check_thread.deleteLater)
+        self._check_thread.start()
+
+    def _on_server_checks_finished(self):
+        if self._check_queued:
+            self._dequeue_server_checks()
+            return
+        self._check_thread = None
+        try:
+            self.settings.save()  # チェック結果をまとめて永続化
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+
+    def _on_server_check_result(self, payload):
+        api_url, ok, latency_ms, message = payload
+        self.settings.record_server_check(api_url, ok, latency_ms, message)
+        for s in self.servers:
+            if s.api_url == api_url:
+                s.check_status = 'ok' if ok else 'down'
+                s.check_latency = latency_ms
+                s.check_error = message
+                break
+        for row in range(self.list_model.rowCount()):
+            item = self.list_model.item(row)
+            if item is None:
+                continue
+            server = item.data()
+            if isinstance(server, ServerInstance) and server.api_url == api_url:
+                self._apply_item_status(item, server)
+
+    def _stop_server_checks(self):
+        self._check_queued = set()
+        thread = getattr(self, '_check_thread', None)
+        if thread is not None:
+            thread.requestInterruption()
 
     def delete_custom_server(self):
         self.util.msg_log_debug('delete context menu clicked')
@@ -324,12 +472,8 @@ class GeoImportDialogDataProviders(QDialog, FORM_CLASS):
             if result.api_url is not None:
                 if result.is_custom:
                     i.setBackground(QColor(0, 0, 255, 50))
-                # 前回接続失敗が記録されているサーバーは赤で明示
-                err = self.settings.server_error(result.api_url)
-                if err:
-                    i.setBackground(QColor(255, 0, 0, 40))
-                    i.setToolTip(QCoreApplication.translate(
-                        'GeoImport', 'Last connection failed: {0}').format(err))
+                # 疎通チェック結果/失敗記録に応じて死活マーカーと色を付ける
+                self._apply_item_status(i, result)
                 i.setCheckable(True)
                 i.setCheckState(Qt.CheckState.Checked if result.selected else Qt.CheckState.Unchecked)
                 self.list_model.appendRow(i)

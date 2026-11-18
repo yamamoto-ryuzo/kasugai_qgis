@@ -49,6 +49,35 @@ _PRESENT_STRINGS = {
 }
 
 
+def _push_message(iface, *args, **kwargs):
+    """messageBar.pushMessage を次イベントループへ遅延する。
+
+    clicked/toggled 等のイベントハンドラ内から直接呼ぶと Qt6 では
+    QgsMessageBarItem 生成時のスタイルシート/アイコン解決
+    (QIcon/QResource)でアクセス違反を起こすことがあるため、
+    QTimer.singleShot(0) でイベント処理完了後へ送る。
+    plugin.py の _push_message と同じ方針。"""
+    try:
+        from qgis.PyQt.QtCore import QTimer
+
+        def _do():
+            try:
+                iface.messageBar().pushMessage(*args, **kwargs)
+            except Exception:  # nosec B110  # 通知失敗のみ許容
+                pass
+        # context=mainWindow で呼出しスレッドに関わらず GUI スレッド実行
+        # (非対応なら無contextで代替)
+        try:
+            QTimer.singleShot(0, iface.mainWindow(), _do)
+        except TypeError:
+            QTimer.singleShot(0, _do)
+    except Exception:  # nosec B110  # 遅延不能時は即時通知へ戻す
+        try:
+            iface.messageBar().pushMessage(*args, **kwargs)
+        except Exception:  # nosec B110  # 通知失敗のみ許容
+            pass
+
+
 def _localize_page(html):
     """生成HTML内の __T_*__ トークンを現在のUI言語で置換する。"""
     for token, source in _PRESENT_STRINGS.items():
@@ -332,7 +361,8 @@ class GeoWebViewServerManager:
             url_desc = f"http://localhost:{self.server_port}" + (
                 f" / {lan_url}" if lan_url else "")
             QgsMessageLog.logMessage(f"🚀 geo_webview v{self.plugin_version} HTTP server started: {url_desc}", "geo_webview", Qgis.MessageLevel.Info)
-            self.iface.messageBar().pushMessage(
+            _push_message(
+                self.iface,
                 "QMap Permalink",
                 QCoreApplication.translate("geo_webview", "HTTP server started (port: {0})").format(self.server_port)
                 + (f"  {lan_url}" if lan_url else ""),
@@ -342,7 +372,8 @@ class GeoWebViewServerManager:
         except Exception as e:
             from qgis.core import QgsMessageLog, Qgis
             QgsMessageLog.logMessage(f"Failed to start HTTP server: {e}", "geo_webview", Qgis.MessageLevel.Critical)
-            self.iface.messageBar().pushMessage(
+            _push_message(
+                self.iface,
                 QCoreApplication.translate("geo_webview", "QMap Permalink Error"),
                 QCoreApplication.translate("geo_webview", "Failed to start HTTP server: {0}").format(e),
                 duration=5
@@ -2515,7 +2546,7 @@ html,body{margin:0;padding:0;height:100%;background:#111;color:#eee;font-family:
 
         パストラバーサル防止のため出力ディレクトリ外は拒否する。
         Re:Earth inspector の絶対URL参照や Canvas プロジェクト登録時の
-        DATA/ 直接参照に使う。インストール先 projects/<id>/ に出力した
+        canvas_data/ 直接参照に使う。インストール先 projects/<id>/ に出力した
         場合も last_export_dir() でそちらを配信する。
         .html/.js/.css 等も正しい Content-Type で返すため、出力された
         エンジンランチャーHTMLをこのサーバ経由でブラウザ表示できる。
@@ -2560,7 +2591,7 @@ html,body{margin:0;padding:0;height:100%;background:#111;color:#eee;font-family:
     def _handle_canvas_web(self, conn, rel_path, head_only=False):
         """インストール済み KASUGAI Canvas の ``web/`` を静的配信する。
 
-        Canvas サーバ(8510)未起動時に、エクスポート済み .kasc+DATA/ を
+        Canvas サーバ(8510)未起動時に、エクスポート済み .kasc+canvas_data/ を
         開くための最小HTTPサーバとして本サーバを使うためのフォールバック。
         全エンドポイントに一致しなかったパスを web/ 配下へ解決する
         (例: /cesium/index.html → <install>/web/cesium/index.html)。
@@ -2618,9 +2649,16 @@ html,body{margin:0;padding:0;height:100%;background:#111;color:#eee;font-family:
         except Exception:  # nosec B110  # 設計上の許容
             pass
         with self._kasugai_lock:
+            # ?fmt=recommended でベクターを推奨形式(FlatGeobuf/GeoParquet)
+            # へ、?fmt=geojson で全ベクターを GeoJSON へ変換して
+            # canvas_data/ へ配置する。未指定は設定ダイアログの
+            # Vector Export Format(kasugai_vector_format)に従う
+            fmt = str(
+                (params or {}).get('fmt', [''])[0] or '').strip().lower()
             result = kasugai_export.export_kasugai_project(
                 self.iface,
-                out_dir=kasugai_export.preferred_output_dir())
+                out_dir=None,
+                vector_format=fmt or None)
             n_layers = len(result.get('layers') or [])
             n_tiles = len(result.get('tiles') or [])
             if not n_layers and not n_tiles:
@@ -2670,7 +2708,7 @@ html,body{margin:0;padding:0;height:100%;background:#111;color:#eee;font-family:
             if not url and route in ('auto', 'local'):
                 # Canvas未起動/未検出のフォールバック: このHTTPサーバ自体を
                 # 最小配信サーバとして使い、インストール済みCanvasの web/ と
-                # /export-data/ 配下の .kasc+DATA/ でエンジンを開く
+                # /export-data/ 配下の .kasc+canvas_data/ でエンジンを開く
                 try:
                     # 旧単一エンジン構成のインストールは ?kasc= 非対応のため
                     # <engine>/ の存在まで確認する
@@ -2704,7 +2742,8 @@ html,body{margin:0;padding:0;height:100%;background:#111;color:#eee;font-family:
                     {'ok': True, 'url': url, 'via': via,
                      'dir': result.get('dir'),
                      'layers': n_layers, 'tiles': n_tiles,
-                     'engine': engine},
+                     'engine': engine,
+                     'vector_format': result.get('vector_format')},
                     ensure_ascii=False),
                 'application/json; charset=utf-8')
 

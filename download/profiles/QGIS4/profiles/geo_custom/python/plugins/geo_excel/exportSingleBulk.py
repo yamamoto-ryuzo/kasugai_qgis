@@ -25,8 +25,8 @@ from qgis.core import *
 from qgis.gui import *
 from qgis.utils import *
 
-from PyQt5.QtCore import Qt, QDate, QTime, QDateTime, QCoreApplication
-from PyQt5.QtWidgets import QAction, QMessageBox, QApplication, QProgressDialog
+from qgis.PyQt.QtCore import Qt, QDate, QTime, QDateTime, QCoreApplication
+from qgis.PyQt.QtWidgets import QAction, QMessageBox, QApplication, QProgressDialog
 
 # mmへ単位変換する際に使用
 unit_for_mm = {
@@ -47,20 +47,22 @@ OUTPUT_PATH_VARIABLE = "xlsout_output_path_variable"
 DEFAULT_CRS = 30167  # 7系
 
 
-def get_layer_variable(layer_context_name: str, layer: QgsVectorLayer):
+def get_layer_variable(layer_context_name: str, layer: QgsVectorLayer, quiet: bool = False):
     """
     レイヤ変数を取得
 
     Parameters
       layer_context_name -- レイヤ変数名
       layer -- レイヤ
+      quiet -- Trueの場合、変数未定義でもメッセージバーにエラーを表示しない(任意変数向け)
 
     Returns
       定義されている文字列。
-      未定義の場合、メッセージバーにエラーを表示し、空白を返却する。
+      未定義の場合、quietがFalseならメッセージバーにエラーを表示し、空白を返却する。
     """
     if not QgsExpressionContextScope.hasVariable(QgsExpressionContextUtils.layerScope(layer), layer_context_name):
-        iface.messageBar().pushCritical("ERROR", QCoreApplication.translate("geo_excel", "{0} is not defined!").format(layer_context_name))
+        if not quiet:
+            iface.messageBar().pushCritical("ERROR", QCoreApplication.translate("geo_excel", "{0} is not defined!").format(layer_context_name))
         return ""
 
     return QgsExpressionContextScope.variable(QgsExpressionContextUtils.layerScope(layer), layer_context_name)
@@ -786,6 +788,27 @@ def check_save_folder(path: str):
     os.makedirs(target, exist_ok=True)
 
 
+def check_same_name_opend(excel_app, book_name: str):
+    """
+    同名のブックが現在開かれていないか確認する
+
+      Parameters
+        excel_app -- Excelアプリケーション
+        book_name -- ブック名
+
+      Returns
+        既に開かれていた場合エラーをメッセージバーに表示してFalseを返却する。それ以外はTrueを返却する
+    """
+
+    # 同名のブックが開いていないか確認する
+    for wb in excel_app.Workbooks:
+        if wb.Name == book_name:
+            iface.messageBar().pushCritical("ERROR", QCoreApplication.translate("geo_excel", "A workbook named {0} \n is already open.").format(book_name))
+            return False
+
+    return True
+
+
 def output_single_report(excel_app, template_path: str, feature: QgsFeature, output_path: str, dpi: int, progress: QProgressDialog):
     """
     対象地物の情報で単票形式のExcelブックを作成、保存する
@@ -821,6 +844,11 @@ def output_single_report(excel_app, template_path: str, feature: QgsFeature, out
     tmpdir = tempfile.TemporaryDirectory()
 
     try:
+        # 同名のブックが開いていないか確認(開いているとSaveAsが失敗する)
+        book_name = os.path.basename(output_path)
+        if not check_same_name_opend(excel_app, book_name):
+            return False
+
         # Excelで指定テンプレートで新規ブックを作成する
         wb = excel_app.Workbooks.Add(template_path)
         wb.Activate
@@ -962,7 +990,7 @@ while True:
     excel_result = False
 
     # レイヤー変数からテンプレートパス、出力パス、dpiを取得作成する
-    dpi_raw = get_layer_variable("dpi", layer)
+    dpi_raw = get_layer_variable("dpi", layer, quiet=True)
     if dpi_raw:
         # dpiがレイヤ変数に正しく設定されていたら数値変換する
         if not dpi_raw.isdecimal():

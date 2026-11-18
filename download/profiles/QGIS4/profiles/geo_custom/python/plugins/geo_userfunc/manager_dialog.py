@@ -123,6 +123,30 @@ class GeoUserfuncManagerDialog(QDialog):
         rvb.addWidget(self.reg_table)
         layout.addWidget(rbox)
 
+        # ---- テスト/履歴 ----
+        tbox = QGroupBox(_tr("Test / history"))
+        tvb = QVBoxLayout(tbox)
+        trow = QHBoxLayout()
+        trow.addWidget(QLabel(_tr("Function/macro:")))
+        self.test_name = QLineEdit()
+        trow.addWidget(self.test_name)
+        for label, slot in (("Run tests", self._run_tests),
+                            ("Show history", self._show_history)):
+            b = QPushButton(_tr(label))
+            b.clicked.connect(slot)
+            trow.addWidget(b)
+        tvb.addLayout(trow)
+        self.test_cases = QPlainTextEdit()
+        self.test_cases.setPlaceholderText(
+            '[{"args": ["value"], "expect": "expected"}]')
+        self.test_cases.setMaximumHeight(56)
+        tvb.addWidget(self.test_cases)
+        self.test_out = QPlainTextEdit()
+        self.test_out.setReadOnly(True)
+        self.test_out.setMaximumHeight(140)
+        tvb.addWidget(self.test_out)
+        layout.addWidget(tbox)
+
         # ---- 操作ボタン ----
         row = QHBoxLayout()
         for label, slot in (
@@ -278,6 +302,33 @@ class GeoUserfuncManagerDialog(QDialog):
             self.status.setText(_tr("Fetched {0}.").format(res["file"]))
         else:
             QMessageBox.warning(self, "geo_userfunc", res.get("error", ""))
+
+    def _run_tests(self):
+        import json as _json
+        name = self.test_name.text().strip() or (self._selected_file() or "")
+        try:
+            cases = _json.loads(self.test_cases.toPlainText() or "[]")
+        except ValueError as e:
+            self.test_out.setPlainText("cases JSON error: {0}".format(e))
+            return
+        bridge = getattr(self._plugin, "bridge", None)
+        if bridge is None:
+            self.test_out.setPlainText("bridge unavailable")
+            return
+        out = _json.loads(bridge.testFunction(name, cases))
+        self.test_out.setPlainText(
+            _json.dumps(out, ensure_ascii=False, indent=2))
+
+    def _show_history(self):
+        import json as _json
+        name = self.test_name.text().strip() or None
+        bridge = getattr(self._plugin, "bridge", None)
+        if bridge is None:
+            self.test_out.setPlainText("bridge unavailable")
+            return
+        out = _json.loads(bridge.history(name))
+        self.test_out.setPlainText(
+            _json.dumps(out, ensure_ascii=False, indent=2))
 
     def _update_upstream(self):
         results = self._plugin.library.update_from_upstream()

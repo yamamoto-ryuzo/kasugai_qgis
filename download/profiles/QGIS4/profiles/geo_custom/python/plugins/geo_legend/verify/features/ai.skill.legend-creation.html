@@ -1,0 +1,32 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+<title>ai.skill.legend-creation</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+body{font-family:system-ui,sans-serif;margin:2em;line-height:1.6;color:#222}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #ccc;padding:4px 8px;font-size:13px;text-align:left}
+th{background:#f0f0f0}
+.pass{color:#0a7d2c;font-weight:600}.fail{color:#c0392b;font-weight:600}
+.skip,.untested{color:#888}.removed{color:#999;text-decoration:line-through}
+code{background:#f5f5f5;padding:1px 4px}
+.meta{color:#666;font-size:13px}
+h1{font-size:1.4em}h2{font-size:1.1em;border-bottom:1px solid #ddd}
+</style></head><body>
+<h1>同梱スキル legend-creation <code>ai.skill.legend-creation</code></h1>
+<p class='meta'>kind=ai_integration / source=<code>skills/legend-creation.md</code> / signature=<code></code></p>
+<p>凡例作成(applyCategories/applyGraduated/applyRules/addLayoutLegend/exportLegendImage)の手順書。モデルが ai_read_instruction で読む</p>
+<p class='meta'>依存: bridge.applyCategories, bridge.applyGraduated, bridge.applyRules, bridge.addLayoutLegend, bridge.exportLegendImage</p>
+<h2>ロジック</h2>
+<pre class='mermaid'>
+flowchart LR
+  E_ai_skill_legend_creation["AI経路"] --> H_ai_skill_legend_creation["同梱スキル legend-creation"]
+  H_ai_skill_legend_creation --> R_ai_skill_legend_creation["QGIS/ランタイムAPI"]
+  R_ai_skill_legend_creation --> OUT["結果"]
+</pre>
+<h2>検証手順</h2><ul>
+<li><b>連携:</b> <code>ai_list_instructions→skills[]に id=legend-creation &amp; builtin、ai_read_instruction→title/desc/when+本文</code></li>
+</ul>
+<h2>検証結果</h2><p class='removed'><b>REMOVED</b> 2026-11-14T16:20:00+09:00</p>
+<p class='meta'>実QGISで ai_client.list_skills()→builtin=true・path=geo_legend/skills/・when正解、load_instruction→本文取得を確認。ai-plane(devin_acp): モデルがスキルを参照し applyCategories(cat/4分類/Spectral) → QgsCategorizedSymbolRenderer実在をassert、addLayoutLegend(検証用凡例) → QgsLayoutItemLegend実在をassert、両方pass</p>
+<p class='meta'><a href='../index.html'>← 一覧へ</a></p>
+<script>mermaid.initialize({startOnLoad:true});</script></body></html>

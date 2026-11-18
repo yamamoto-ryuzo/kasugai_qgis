@@ -1,5 +1,40 @@
 # CHANGELOG — geo_userfunc
 
+## 1.0.9
+
+- 同梱関数に `line_width(base, minimum, ref_scale, scale)` を追加。
+  縮尺連動の線幅(mm)を返す式関数で、基準縮尺では base mm、
+  ズームアウトで base*ref_scale/scale に反比例・minimum で打止め、
+  ズームイン側は base で頭打ち
+  (`clamp(minimum, base*ref_scale/scale, base)` と等価)。
+  KASUGAI Canvas の `EXPR_FUNCS.line_width` と同一の縮尺則で、
+  `.kasc` エクスポート QML の `line_width(...)` DD が
+  QGIS・Canvas 両側で同じ値に評価される
+- **組込み式展開宣言 `@expr:`** を導入。`@qgsfunction` 関数の
+  docstring に `@expr: <式テンプレート>`（`{引数名}` プレースホルダ付き）
+  を書くと、`analyze_source` が `params`(位置引数名)と `expr` を抽出し、
+  bridge `expansions()` で
+  `{register_name: {args, expr, file}}` として公開する。
+  geo_webview の QML エクスポートがこれを使って QML 内の
+  ユーザー関数呼出しを組込み式へ書き換える
+  （配布物を Canvas 関数実装不要の自己完結形にするため）
+
+## 1.0.8
+
+- **実行履歴**: bridge `run`/`evalExpression` の呼出を関数名・引数・
+  ok/エラー・所要時間(ms)付きで `<profile>/geo_userfunc_history.jsonl`
+  へ記録し、bridge `history(fn, limit)` で新しい順に参照できる
+- **単体テスト実行**: bridge `testFunction(name, cases=[{args,expect}])`
+  で式関数(`name(args...)` の式評価)/マクロ(`context['args']` 経由の
+  main 実行)を複数ケースまとめて実行し pass/fail 表を返す。
+  管理ダイアログに Test/history ペイン(対象名・cases JSON・
+  Run tests/Show history・結果表示)を追加
+- **依存情報**: bridge `dependencies(name)` でライブラリ内ファイルが
+  参照する他プラグイン(`plugins['id'].bridge.m()`・束縛変数経由含む)を
+  AST から抽出し `{plugin_id: {methods:[...]}}` で返す
+- 純粋ロジックは QGIS 非依存の `history.py`(JSONL読書)と
+  `deps.py`(AST抽出)に分離し単体テスト可能にした
+
 ## 1.0.7
 
 - 個別利用時にGeoSuiteツールバーが表示されない不具合を修正。

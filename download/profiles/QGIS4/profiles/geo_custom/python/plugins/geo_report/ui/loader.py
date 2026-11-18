@@ -30,7 +30,6 @@ def load_ui(ui_file_path):
 def load_ui_to_widget(ui_name, parent_widget):
     """
     .ui ファイルを既存のウィジェットにロード
-    QT5/QT6の両方に対応
 
     Args:
         ui_name: UI ファイル名（拡張子なし）。例: 'main_dialog' -> 'main_dialog.ui'
@@ -51,5 +50,5 @@ def load_ui_to_widget(ui_name, parent_widget):
     try:
         uic.loadUi(ui_file_path, parent_widget)
     except Exception as e:
-        # QT6で問題が発生する可能性があるため、詳細なエラー情報を日本語で追加
+        # 詳細なエラー情報を日本語で追加
         raise RuntimeError(f"UI 読み込みに失敗しました: {ui_file_path}: {str(e)}")

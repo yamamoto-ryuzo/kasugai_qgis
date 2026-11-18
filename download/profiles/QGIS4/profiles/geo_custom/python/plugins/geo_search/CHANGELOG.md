@@ -1,3 +1,91 @@
+# V4.5.2 住所検索の結果精度改善と20件ページング化
+- geocode.py: GSI AddressSearch の応答をクライアント側で関連度順に
+  リランク(完全一致>前方一致>部分一致>その他。同位はタイトルが
+  短いもの優先)。API の生順はデータセット順であり「東京」等では
+  「〜町東」「〜市東区」の町字候補が先頭に並ぶため、先頭5件だけ
+  切り出すと無関係な地名しか見えない問題を修正
+- geocode.py: 行政区画接尾辞(都道府県市区町村郡)を持たない短い入力
+  (2〜10文字・数字なし)は "<q>都" の補完リクエストを1本追加し、
+  「東京都」「札幌市」「東京都台東区秋葉原」のような行政区画レベルの
+  候補を拾って結果先頭へマージ(GSIのみ)
+- geocode.py: `search(limit=None)` で全件返却を追加(既定は
+  RESULT_LIMIT=20 件)。OSM Nominatim の limit=20、
+  Google Places の pageSize=20 も追随
+- geocode.py・searchfeature.py・resultdialog.py・plugin.py:
+  **取得・地物化をページ単位で行う巨大結果対応**。住所検索タブは
+  geocode.search で全アイテムを保持し、新設 AddressFeaturePager が
+  ResultDialog のページング(既定20件/頁・タブ設定 "PageLimit"
+  で変更可)に応じて必要分だけメモリレイヤへ追記・地物化する。
+  「東京」等で1000件超の候補が返っても初期表示は先頭1ページ分のみ
+  地物化し、ページを進めるほど全件に到達できる。行番号ラベルが
+  最終ページで実行数とずれる既存バグも修正
+- geocode.py: `addFeatures` は (bool, 追加後地物リスト) を返し
+  渡したオブジェクト側には fid が反映されないため、結果地物の
+  id() が未定義→選択行のズームが「範囲を決定できませんでした」に
+  なる不具合を、返却地物を使う _add_features ヘルパで修正
+
+# V4.5.1 住所検索タブのスクラッチレイヤ作成チェックを角度/縮尺行へ移動
+- widget/searchwidget.py: SearchAddressWidget の
+  「スクラッチレイヤを作成」チェックを入力行(プロバイダ/住所入力の
+  右端)から角度/縮尺表示行の後ろへ移動。入力行が狭い環境でも
+  入力欄が潰れないようにするレイアウト調整
+
+# V4.5.0 住所検索(ジオコーディング)タブを追加
+- geocode.py: KASUGAI Canvas(kasugai_canvas/web)の searchProviders /
+  parseCoordinateQuery を移植。gsi(国土地理院・既定)・google
+  (Geocoding+Placesハイブリッド・要ApiKey)・yahoo(要YahooAppId)・
+  osm(Nominatim) の4プロバイダを QgsBlockingNetworkRequest で同期呼出し
+  (QGISプロキシ/認証設定を継承・15秒タイムアウト)。キーはタブ設定
+  "ApiKey"/"YahooAppId" または環境変数 GOOGLE_MAPS_API_KEY/YAHOO_APPID
+- searchfeature.py: SearchAddressFeature を追加。結果を EPSG:4326
+  メモリレイヤ「geo_search 住所検索」(title/address/provider/lon/lat)
+  のポイント地物として保持するため、既存の結果ダイアログ・地物選択・
+  ズーム機構がそのまま利用できる
+- widget/searchwidget.py: SearchAddressWidget を追加
+  (プロバイダ選択コンボ+1行入力。キー未設定の google/yahoo は
+  CANVAS と同じく選択不可にする)
+- タブTitle "住所検索"(別名 "Address Search"/"address_search")で
+  create_page/フィーチャ生成を配線。座標直入力(35.6,139.7・DMS・
+  北緯/東経表記)はジオコーディングを通さず直接地点化
+- bridge.py: searchAddress(query, provider, zoom) を追加。
+  タブ設定不要でジオコーディング→メモリレイヤ表示→ズームまで実行
+- widget/searchwidget.py・searchfeature.py・geocode.py・bridge.py:
+  **スクラッチレイヤ作成のON/OFF**を追加。タブ上の
+  「スクラッチレイヤを作成」チェック(既定ON、タブ設定
+  "CreateScratch"で初期値変更可)をOFFにすると結果を
+  プロジェクト非登録のメモリレイヤへ書き込み、レイヤパネルに
+  スクラッチを残さない。bridge 側も searchAddress の
+  createLayer 引数で制御可能
+- setting.json: 既定タブに「住所検索」(Provider=gsi)を追加
+- i18n/ 9言語に住所検索関連の訳文を追加
+
+# [Unreleased]
+- prompts/search-features.md: **同梱おすすめプロンプト「地物の
+  検索」**を追加。geo_driver の prompts 種別(チャット入力欄へ
+  挿入する定型文)がプラグイン別 `prompts/` 集約に対応したため、
+  属性検索の定型指示を本プラグインに同梱する
+- skills/navigate-to-place.md: **同梱スキル「地名・住所への地図
+  移動」**を追加。「◯◯へ移動」系の指示では searchAddress
+  bridge(ジオコーディング+スクラッチ表示+ズーム+CRS変換込み)を
+  優先し、直操作が必要な場合の QgsMapCanvas API(ズームレベル
+  ではなく縮尺分母指定・EPSG:4326はキャンバスCRSへ変換)を
+  手順書化した
+
+# V4.4.10 bridgeのレイヤ参照を削除済みC++ラッパー対策で安全化
+- bridge.py: 検索結果一覧・タブ一覧・zoom・タブ定義で参照する
+  `layer.name()`/`layer.id()` を `_layer_name()`/`_layer_id()`
+  ヘルパ経由に変更。削除済みQgsMapLayerのC++ラッパー(sip deleted)
+  へアクセスして RuntimeError になるケースを握り潰し、
+  None を返すようにした
+
+# V4.4.9 Qt5/Qt6 互換シム(qt_compat)を除去
+- qt_compat.py を削除。qgis.PyQt/PyQt6/PySide6 を候補探索する動的
+  ローダーと、QgsMessageLog.logMessage へ旧整数レベル(0/1/2)を許容
+  させる monkey-patch を廃止し、整数レベル変換だけを行う
+  log.py の log_message() ラッパへ集約
+  (plugin/searchdialog/resultdialog/searchfeature/settingsdialog/
+  theme/utils の呼出しを機械置換)。Qt import は全て qgis.PyQt 直接使用
+
 # V4.4.8 個別利用時にGeoSuiteツールバーが表示されない不具合を修正
 - plugin.py: `_geo_toolbar()` に `ensure_visible` 引数を追加し、
   項目追加経路ではツールバーの可視状態を保証するようにした

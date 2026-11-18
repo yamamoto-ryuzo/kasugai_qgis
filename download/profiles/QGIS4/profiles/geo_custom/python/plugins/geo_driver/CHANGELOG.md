@@ -3,7 +3,170 @@
 このプラグインの変更履歴。Keep a Changelog 準拠。
 バージョンは `metadata.txt` の `version` と同期させる。
 
+## [0.16.2] - 2026-11-16
+
+### Added
+- live_driver.py / bridge.py / mcp_http.py / ai_panel.py:
+  **制御コマンドの監査ログ永続化**。`_handle` を通る全コマンド
+  (ファイルJSONL/REST `/api/*`/MCP/AIパネル)を
+  `~/.qgis-live/audit-<date>.jsonl`(QGIS_LIVE_REGISTRY準拠)へ
+  追記する。レコードは ts/id/type/plugin_id/method/args要約/
+  origin(呼出経路)/ok/所要ms を持ち、token・api_key・password
+  等のsecrets系キーはマスク、セッショントークンは記録しない。
+  ファイル経由のトークン不一致(unauthorized)も監査対象。
+  他プラグインへの転送コマンドは転送元で1件だけ記録する。
+  日次ローテーションに加え、QSettings `geo_driver/audit/*` で
+  有効化・ファイルサイズ上限(既定5MB・超過時は時刻付き世代へ
+  退避)・保持世代数(既定14)を管理できる。参照は新規bridge
+  メソッド `auditLog(n, filter)`(フィールド一致dict/部分一致
+  文字列)と `auditSettings(enabled, max_bytes, max_files)`。
+
 ## [Unreleased]
+
+### Added
+- ai_client.py: SYSTEM_PROMPT の Guidelines に地名移動の指針を
+  追加。「場所名への移動は geo_search の searchAddress を優先」
+  「QgsMapCanvas にズームレベルAPIは無く zoomScale(縮尺分母)/
+  setExtent/zoomByFactor/zoomToFeatureExtent を使い、EPSG:4326 の
+  緯度経度はキャンバスCRSへ変換してから setCenter」ことを明記。
+  モデルが不存在の setZoomLevel を試し座標をハードコードする
+  誤りを防ぐ
+- ai_client.py / ai_panel.py / live_driver.py / mcp_http.py:
+  **指示書の第3種別 `prompts`(おすすめプロンプト)**を追加。
+  パネル入力行の「おすすめ…」コンボから選ぶとファイル本文が
+  入力欄へ挿入され、✎ボタン・`/prompt` コマンド・
+  指示書エディタ(kind=Prompts)・`ai_*`/`qgis_instruction`
+  ツール(kind=prompts)で作成・編集できる。配置は agents/
+  skills と同じ bundled `<plugin>/prompts/*.md` + ユーザ
+  `~/.qgis-live/prompts/*.md` 上書きモデル。同梱の定型指示は
+  レイヤ整理・標準線幅・画像保存・状態診断(geo_driver)、
+  凡例作成(geo_legend)、地物検索(geo_search)の6件
+- ai_client.py: **同梱指示書(skills/agents)を全管理プラグインから
+  集約**するように拡張。従来は `geo_driver/skills|agents/` のみだったが、
+  `qgis-plugin/<id>/skills|agents/*.md` を持つ全プラグイン
+  (geo_legend/geo_webview等)をスキャンするため、ドメインごとの
+  手順書を責務プラグイン側に同梱できる。
+  `ai_list_instructions`/`list_skills` の結果メタデータに
+  `when`(use_when ヘッダ行)を追加し、モデルがスキル選択の
+  判断材料を取得できるようにした。
+  併せて `skills/webgis-convert.md` を geo_webview 側へ移動
+  (KASUGAI Canvas は geo_webview の責務のため)
+- scale_style.py + scale_style/default.json: **スケール連動の
+  標準線幅サービス**を追加。CADと異なりGISでは線幅を縮尺に連動
+  できるため、カテゴリ×縮尺帯の標準幅テーブルをプロファイルJSON
+  で管理し(layer_orgと同型: 同梱 + `~/.qgis-live/scale_style/`
+  のユーザ上書き、QSettingsで切替)、bridgeメソッド
+  `scaleStyleProfiles`/`scaleStyleTable`/`setScaleStyleProfile`/
+  `suggestScaleWidth`/`applyScaleWidth` を追加。
+  `applyScaleWidth` の mode: `mm`=現縮尺向けの紙面幅を固定設定、
+  `meters`=実世界幅(m・RenderMetersInMapUnits)でズーム連動、
+  `rules`=縮尺帯ごとに幅が切替わるルールベースレンダラを生成
+  (geo_legend ロード時はその `applyRules` へ委譲、
+  未ロード時は内部実装へフォールバック)。カテゴリはレイヤ名/
+  geomで推定し、`road_major`/`river`/`boundary`/`contour` 等を
+  同梱プロファイルが提供。`status()` にもアクティブ
+  プロファイルを載せた。併せて同梱スキル
+  `skills/scale-line-width.md` を追加し、AIチャットが
+  線幅依頼時に手順をオンデマンド参照できるようにした
+- devin_tasks.py + mcp_http.py/live_driver.py: **Devin CLI 委譲ツール**
+  `qgis_devin_run`/`qgis_devin_status`/`qgis_devin_result`/
+  `qgis_devin_abort` を追加。Devinセッションを
+  バックグラウンドタスクとして起動し、task_id で状態ポーリング・
+  ログ取得・killできる。AIパネル・MCP・RESTの全経路から利用可。
+  エンジンは `engine` 引数で選択:
+  `acp`=`devin acp` をJSON-RPC駆動(IDE認証を共有するため
+  `devin auth login` 不要。session/load による再開、
+  session/request_permission 自動応答、permission_mode→
+  session/set_mode 写像 dangerous→bypass)、
+  `print`=`devin -p`(`devin auth login` 必須。
+  `--respect-workspace-trust false`/`--prompt-file`/`-r`/`--model`
+  対応)、`auto`(既定)=IDE認証があればacp・無ければprint
+- ai_client.py/ai_panel.py: **Devinをプロバイダとして追加**。
+  プロバイダ一覧の各項目に接続方式の種別タグ(【API】/【ACP】/
+  【ブリッジ】)を付与し、Devinを2形態で提供:
+  `devin_acp`(Devin【ACP】)=`devin acp` 常駐セッションをチャット
+  エンジンにし、Devin自身がツールループを回す
+  (devin_tasks.AcpSession: initialize→authenticate(IDE認証共有)→
+  session/new|load→session/prompt、session/cancel による中断、
+  geo_driver自身の /mcp をMCPサーバとして注入するため
+  DevinからQGIS操作も可能。エンドポイント欄=作業dir、
+  APIキー不要)。`devin_bridge`(Devin【ブリッジ】)=OpenAI互換
+  チャットへ qgis_devin_* ツール委譲指示を注入する疑似
+  プロバイダ(ツールループは従来どおりパネル側)。
+  `copilot_acp`(GitHub Copilot【ACP】)=`copilot --acp --stdio`
+  セッションを同じ機構で駆動(認証はCLI側のghログインに委譲、
+  authMethods提示時はbest-effortでauthenticateを試行)。
+  `copilot_bridge`(GitHub Copilot【ブリッジ】)=OpenAI互換
+  チャットへ qgis_copilot_* ツール委譲指示を注入する疑似
+  プロバイダ。コンボ各項目に種別説明ツールチップを付与し、
+  プロバイダ欄の「?」ボタンで3種別の違いをポップアップ表示
+- devin_tasks.py + mcp_http.py/live_driver.py: **Copilot CLI
+  委譲ツール** `qgis_copilot_run`/`qgis_copilot_status`/
+  `qgis_copilot_result`/`qgis_copilot_abort` を追加
+  (devin_tasks.run の agent 引数で共有。`copilot -p` は
+  node+npm-loader.js 直接起動でcmdクォート問題を回避、
+  dangerous=COPILOT_ALLOW_ALL=true で全ツール許可+dir信頼、
+  -r でセッション再開。acp engine も同ワーカーで対応)
+
+### Fixed
+- live_driver.py / qgis-session.mjs: **リロード時の「open_dialog
+  再表示」で管理用ダイアログまで勝手に開く問題**を修正。
+  `reload_plugin_now` とフォールバック `reloadCode` は
+  `open_dialog` を持つ全プラグインへ無条件で open_dialog() を
+  呼んでいたが、プラグイン側が `open_dialog_on_reload = False`
+  を定義した場合は再表示をスキップするよう opt-out を追加。
+  geo_launcher(インストール管理窓)が本フラグを利用する。
+  `open_plugin` コマンドは「開け」の明示要求なので従来通り
+  無条件で開く
+- ai_panel.py: **ツール出力の長い1行(例: `qgis_pyeval` のJSON引数)
+  でドックの横幅が勝手に広がる問題**を修正。tool出力は `<pre>`
+  (改行不能ブロック)で描画されるため QTextDocument の
+  idealWidth が膨張し、QTextBrowser の sizeHint 経由でドックが
+  押し広げられていた。ビューの横方向 sizePolicy を Ignored に
+  してコンテンツ幅をレイアウトへ伝えないようにし、はみ出る分は
+  ビュー内の横スクロールに委ねる。併せて添付画像サムネイルを
+  scaled(220x44, KeepAspectRatio)に変更し、横長パノラマ画像でも
+  attach行がドックを押し広げないようにした
+- __init__.py: **ホットリロード経由の reloadPlugin で access
+  violation になるクラッシュ**を修正。QMenu の triggered ハンドラ内で
+  `unload()` が `iface.removePluginMenu` を呼ぶと、ポップアップ処理中の
+  メニュー階層を書き換えて Qt 内部で落ちる(実績: 旧ID `qgis_live_driver`
+  のホットリロード「すべて再読込」からの geo_driver 再読込)。
+  `_defer_hot_reload` でリロード実行自体を `QTimer.singleShot(0)` で
+  イベント完了後へ遅延し、さらに `unload()`/`initGui` のプラグイン
+  メニュー操作(removePluginMenu・sweep)も `_defer_menu_cleanup` で
+  遅延実行に変更。遅延 sweep が新世代アクションを誤削除しないよう
+  `_sweep_menu_actions` は現行自身のオブジェクトを参照一致で除外する
+- live_driver.py: **`bridge_call` の kwargs 形式引数を正規化**する
+  `_bridge_args` を追加。モデルが `args=[{"k": v,...}]` や
+  `args={"k": v}`、`args=[pos..., {"k": v}]` 形式で呼んだ場合、
+  末尾辞書のキーが未バインドのパラメータ名に収まるときのみ
+  kwargs として展開する(従来は `fn(*args)` で辞書がそのまま
+  先頭位置引数に渡り "layer not found" 等で失敗していた)。
+  普通の dict 引数(geo_report.setItemProperties 等)は
+  キー不一致で従来通り位置引数として渡る
+- __init__.py: **ホットリロード/reloadPlugin 後に
+  `プラグイン > QGIS Live Driver` サブメニューが空になる問題**
+  を修正。旧世代 `unload()` がキューイングした遅延
+  `_menu_cleanup` は新世代 `initGui()` のアクション追加
+  「後」に実行されるが、旧インスタンスは自アクション参照を
+  unload で None に済みのため、`_sweep_menu_actions` の
+  「現行自身を参照一致で除外」が機能せず、テキスト一致で
+  新世代の全アクションを `removeAction`+`deleteLater` していた。
+  モジュール再読込をまたぐ世代識別として `_MENU_OWNER_PROP`
+  トークンを導入し、initGui で発行したトークンを mainWindow
+  (プロセス内不変のQtオブジェクト)と追加する各 QAction/
+  ホットリロード QMenu の menuAction に刻印。sweep は
+  現行トークン所有の項目を除外し、無刻印(旧版の孤児)や
+  死んだ世代の刻印のみ従来通り除去する
+- ai_client.py: Copilot で `/chat/completions` を受け付けない
+  **Responses API 専用モデル(GPT-6 系等)が送信エラーになる問題**
+  を修正。`GET /models` の `supported_endpoints` で事前判別し、
+  未判別のモデルは `model_not_supported` エラーから自動で
+  `POST {api}/responses` へフォールバック・学習する。
+  内部メッセージ列は従来どおり chat 形式で保持し、送信時にのみ
+  Responses 形式(instructions/input/function_call/
+  function_call_output)へ変換する
 
 ### Changed
 - **プラグイン ID を `qgis_live_driver` → `geo_driver` にリネーム**

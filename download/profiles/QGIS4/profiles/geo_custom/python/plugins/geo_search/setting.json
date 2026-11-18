@@ -18,4 +18,11 @@
       "Layer": {},
       "SearchField": {},
       "ViewFields": []
+    },
+    {
+      "group": "各種レイヤ",
+      "Title": "住所検索",
+      "Provider": "gsi",
+      "CreateScratch": true,
+      "ViewFields": []
     }

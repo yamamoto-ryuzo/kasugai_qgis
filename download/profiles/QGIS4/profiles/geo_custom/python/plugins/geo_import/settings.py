@@ -8,6 +8,9 @@ from qgis.core import QgsMessageLog, Qgis
 
 class Settings:
 
+    # 疎通チェック結果キャッシュの有効期間(秒)
+    SERVER_CHECK_TTL = 3600
+
     def __init__(self):
         # プラグインの設定を初期化
         self.debug = True
@@ -17,6 +20,7 @@ class Settings:
         self.selected_ckan_servers = ''
         self.selected_ckan_urls = []  # 複数選択時のアクティブなapi_url一覧(横断検索用)
         self.server_errors = {}  # {api_url: {"error": msg, "time": iso}} 接続失敗の記録
+        self.server_checks = {}  # {api_url: {"status","latency_ms","error","time"}} 疎通チェック結果
         self.custom_servers = {}
         self.authcfg = None
         self.cache_dir = None
@@ -82,6 +86,8 @@ class Settings:
                     self.selected_ckan_urls = loaded_urls if isinstance(loaded_urls, list) else []
                     loaded_errors = data.get('server_errors', {})
                     self.server_errors = loaded_errors if isinstance(loaded_errors, dict) else {}
+                    loaded_checks = data.get('server_checks', {})
+                    self.server_checks = loaded_checks if isinstance(loaded_checks, dict) else {}
                     # 既存データがstrの場合はtype=CKANでラップ
                     loaded_custom = data.get('custom_servers', {})
                     new_custom = {}
@@ -102,12 +108,14 @@ class Settings:
                 self.custom_servers = {}
                 self.local_cache_sites = []
                 self.server_errors = {}
+                self.server_checks = {}
         else:
             self.selected_ckan_servers = ''
             self.selected_ckan_urls = []
             self.custom_servers = {}
             self.local_cache_sites = []
             self.server_errors = {}
+            self.server_checks = {}
         self.debug = qgis_settings.value(self.KEY_SHOW_DEBUG_INFO, False, bool)
         self.authcfg = qgis_settings.value(self.KEY_AUTHCFG, '')
         self.auth_propagate = qgis_settings.value(self.KEY_AUTH_PROPAGATE, False, bool)
@@ -148,7 +156,8 @@ class Settings:
             'selected_ckan_urls': self.selected_ckan_urls if isinstance(self.selected_ckan_urls, list) else [],
             'custom_servers': self.custom_servers,
             'local_cache_sites': self.local_cache_sites if isinstance(self.local_cache_sites, list) else [],
-            'server_errors': self.server_errors if isinstance(self.server_errors, dict) else {}
+            'server_errors': self.server_errors if isinstance(self.server_errors, dict) else {},
+            'server_checks': self.server_checks if isinstance(self.server_checks, dict) else {}
         }
         try:
             with open(servers_path, 'w', encoding='utf-8') as f:
@@ -188,6 +197,40 @@ class Settings:
         entry = (self.server_errors or {}).get(url)
         if isinstance(entry, dict):
             return entry.get('error')
+        return entry
+
+    def record_server_check(self, url, ok, latency_ms, message):
+        """疎通チェック結果を記録する(永続化は呼び出し側でsave)。
+        死活状態は server_errors と同期させ、既存の×表示経路と整合させる。"""
+        if not url:
+            return
+        if not isinstance(self.server_checks, dict):
+            self.server_checks = {}
+        import datetime
+        self.server_checks[url] = {
+            'status': 'ok' if ok else 'down',
+            'latency_ms': int(latency_ms or 0),
+            'error': str(message or '')[:300],
+            'time': datetime.datetime.now().isoformat(timespec='seconds'),
+        }
+        if ok:
+            self.clear_server_error(url)
+        else:
+            self.record_server_error(url, message)
+
+    def server_check(self, url, max_age_seconds=None):
+        """TTL内の疎通チェック結果を返す。古い・未チェックはNone"""
+        entry = (self.server_checks or {}).get(url)
+        if not isinstance(entry, dict):
+            return None
+        ttl = self.SERVER_CHECK_TTL if max_age_seconds is None else max_age_seconds
+        try:
+            import datetime
+            checked = datetime.datetime.fromisoformat(str(entry.get('time', '')))
+            if (datetime.datetime.now() - checked).total_seconds() > ttl:
+                return None
+        except Exception:  # nosec B110  # 設計上の許容
+            return None
         return entry
 
     def use_local_cache(self, url):

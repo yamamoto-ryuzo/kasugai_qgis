@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="geo_webview 技術資料 — 内蔵 HTTP サーバー、エンドポイント一覧、動作環境、開発・カスタマイズ">
+<title>5. 技術資料 | geo_webview ドキュメント</title>
+<link rel="stylesheet" href="style.css">
+<script src="nav.js" defer></script>
+</head>
+<body>
+<div class="container">
+<main>
+<h1>5. 技術資料</h1>
+<h2 id="内蔵-http-サーバー補助機能">内蔵 HTTP サーバー（補助機能）</h2>
+<p>QGIS 内で動く軽量 HTTP サーバー。配信パッケージのライブ参照と 起動
+API の受け皿です（v3.29.0 で OGC サービスは廃止）。</p>
+<table>
+<thead>
+<tr>
+<th scope="col">エンドポイント</th>
+<th scope="col">内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/kasugai</code></td>
+<td>.kasc+canvas_data/ エクスポート＋Canvas
+登録・起動（<code>?engine=</code>・<code>?install=1</code>）</td>
+</tr>
+<tr>
+<td><code>/export-data/&lt;rel&gt;</code></td>
+<td>直近エクスポート物（.kasc/canvas_data/ 等）の配信</td>
+</tr>
+<tr>
+<td><code>/&lt;engine&gt;/</code></td>
+<td>インストール済み KASUGAI Canvas <code>web/</code>
+の静的配信フォールバック</td>
+</tr>
+<tr>
+<td><code>/present</code></td>
+<td>プレゼン用ページ。OpenLayers ベースで QGIS
+キャンバスをウィンドウ共有（視聴者ごとの独立ズーム/パン/回転、キャンバス回転も再現）</td>
+</tr>
+<tr>
+<td><code>/present/state</code></td>
+<td>キャンバス状態 JSON（Canvas 側追従モード用）</td>
+</tr>
+<tr>
+<td><code>/screenshot</code></td>
+<td>現在のキャンバス表示の PNG（回転反映、<code>w</code>/<code>h</code>
+でサイズ指定可。<code>extent</code>/<code>screen</code>/<code>bbox</code>/<code>rot</code>
+でズーム範囲描画、<code>X-Map-Extent</code>/<code>X-Map-Corners</code>
+応答ヘッダ付き）</td>
+</tr>
+<tr>
+<td><code>/received</code></td>
+<td>受領パーマリンク履歴</td>
+</tr>
+</tbody>
+</table>
+<figure class="shot">
+<img src="images/panel_share.png" loading="lazy"
+alt="パネルの「共有」タブ — プレゼン共有ボタン、受領パーマリンク選択、MACアドレス認証の設定欄">
+<figcaption>「共有」タブ — <code>/present</code>
+のプレゼン共有・受領パーマリンク・MACアドレス認証</figcaption>
+</figure>
+<h2 id="パーマリンクexternal-control従来機能">パーマリンク・External
+Control（従来機能）</h2>
+<ul>
+<li>現在の地図ビュー（座標・スケール・回転・テーマ・レイヤ状態）を URL
+で共有</li>
+<li><code>External Control</code> を ON にすると、外部から受信した URL
+で QGIS の表示を自動ナビゲート</li>
+<li>Office ドキュメント（Excel / PowerPoint）への埋め込み、高解像度 PNG
+エクスポート</li>
+</ul>
+<figure class="shot">
+<img src="images/panel_permalink.png" loading="lazy"
+alt="パネルの「パーマリンク」タブ — パーマリンク生成ボタン、生成されたURLとURLコピー、移動先パーマリンクの貼り付け・移動欄">
+<figcaption>「パーマリンク」タブ —
+パーマリンク生成・コピーと受信 URL によるナビゲート</figcaption>
+</figure>
+<h2 id="ネットワーク機能">ネットワーク機能</h2>
+<ul>
+<li><strong>外部アクセス診断</strong>:
+接続性チェック、ファイアウォール検出</li>
+<li><strong>自動ポート設定</strong>: Windows
+ファイアウォールへの自動ルール追加</li>
+<li><strong>柔軟なポート設定</strong>: 80-65535 の全範囲対応</li>
+<li><strong>動的ホスト名解決</strong>:
+外部デバイスからのアクセスに自動対応</li>
+</ul>
+<h2 id="エンドポイント一覧">エンドポイント一覧</h2>
+<table>
+<thead>
+<tr>
+<th scope="col">パス</th>
+<th scope="col">種別</th>
+<th scope="col">内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/kasugai</code></td>
+<td>JSON</td>
+<td>KASUGAI Canvas へエクスポート・登録（<code>?engine=</code>
+で起動エンジン、<code>?install=1</code> で未インストール時の取得）</td>
+</tr>
+<tr>
+<td><code>/export-data/&lt;rel&gt;</code></td>
+<td>file</td>
+<td>エクスポート産物（.kasc/canvas_data/）の配信</td>
+</tr>
+<tr>
+<td><code>/&lt;engine&gt;/</code></td>
+<td>HTML</td>
+<td>インストール済み Canvas <code>web/</code>
+の静的配信フォールバック</td>
+</tr>
+<tr>
+<td><code>/present</code></td>
+<td>HTML</td>
+<td>プレゼン用ウィンドウ共有ページ（OpenLayers。視聴者ごとの独立ズーム/回転対応）</td>
+</tr>
+<tr>
+<td><code>/present/state</code></td>
+<td>JSON</td>
+<td>キャンバス状態（追従モード用）</td>
+</tr>
+<tr>
+<td><code>/screenshot</code></td>
+<td>PNG</td>
+<td>現在のキャンバス画像（<code>extent</code>/<code>screen</code>/<code>bbox</code>/<code>rot</code>
+でズーム範囲指定可）</td>
+</tr>
+<tr>
+<td><code>/received</code></td>
+<td>HTML</td>
+<td>受信パーマリンク履歴</td>
+</tr>
+<tr>
+<td><code>/qgis-map</code></td>
+<td>permalink</td>
+<td>パーマリンクのパス（ページは返さず受領記録・ナビゲートに使う）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="api-経由の呼び出し">API 経由の呼び出し</h3>
+<p>同じ機能を API 経由でも呼べます:</p>
+<ul>
+<li><code>GET /kasugai?engine=&lt;e&gt;</code> —
+外部アプリ・スクリプトからの一発起動（JSON 応答）</li>
+<li>bridge <code>kasugaiExport(engine=...)</code> — Live Driver 経由の
+AI 制御</li>
+<li>KASUGAI Canvas 側 <code>qgis-import</code>
+プラグインの「QGISから取り込み」ボタン — 逆方向からの呼び出し</li>
+</ul>
+<h2 id="geo_suite-との連携">geo_suite との連携</h2>
+<p>本プラグインは <a
+href="https://github.com/yamamoto-ryuzo/geo_suite">geo_suite</a>
+プロジェクトの一部として開発されています。</p>
+<ul>
+<li><strong>geo_webview</strong>: QGIS プロジェクトの Web
+配信（本プラグイン）</li>
+<li><strong>geo_suite</strong>: Re:Earth Visualizer
+上で動くクライアントプラグイン（地図表示・編集）</li>
+<li><strong>シナリオ</strong>: QGIS + geo_webview
+でデータ配信、geo_suite でモバイル/デスクトップから利用</li>
+</ul>
+<p>両方を組み合わせることで、QGIS
+プロジェクトをそのままエンドユーザーに配布できるシステムを構築できます。</p>
+<h2 id="動作環境">動作環境</h2>
+<ul>
+<li>QGIS 4.x / 3.x（Qt5 / Qt6 両対応）</li>
+<li>Windows / macOS / Linux</li>
+<li>ネットワーク環境: LAN またはローカルホスト</li>
+<li>Python 3.7 以上</li>
+</ul>
+<h2 id="kasugai-canvas-連携詳細">KASUGAI Canvas 連携（詳細）</h2>
+<p><code>/kasugai</code> エンドポイント（またはファイル出力のみのパネル
+<code>Export</code> ボタン、 <code>▶ Open</code> ボタン、Live Driver
+経由の <code>kasugaiExport</code> ブリッジ）で、 QGIS プロジェクトを
+KASUGAI Canvas（Cesium / OpenLayers / MapLibre / Leaflet / GSI Maps
+のマルチエンジン地図アプリ）へ送出します。</p>
+<pre><code class="language-bash">curl &quot;http://localhost:8089/kasugai?engine=openlayers&quot;
+# → {&quot;ok&quot;:true,&quot;url&quot;:&quot;http://localhost:8510/?project=...&amp;engine=openlayers&quot;,&quot;dir&quot;:&quot;...&quot;,&quot;layers&quot;:N,&quot;tiles&quot;:M,&quot;engine&quot;:&quot;openlayers&quot;}</code></pre>
+<ul>
+<li>出力先: KASUGAI インストール先を設定で登録済みなら
+<code>&lt;install&gt;/QGIS_projects/&lt;QGISプロジェクト名&gt;/</code>
+へ出力（Canvas 本体の <code>projects/</code> と分離した QGIS
+連携専用フォルダ）。未登録なら既定
+<code>&lt;ドキュメント&gt;/kasugai_canvas_qgis</code>（<code>.kasc</code>
++ <code>canvas_data/</code>）へ出力。いずれも起動中の Canvas
+には外部プロジェクトとして登録される</li>
+<li>GPKG/GeoJSON/GeoParquet/FlatGeobuf はネイティブ参照、その他は
+FlatGeobuf(EPSG:4326・空間インデックス付き) へ変換（ドライバ非搭載時は
+Parquet、失敗時は GeoJSON フォールバック）</li>
+<li>各ベクターレイヤの QGIS スタイルを <code>.qml</code>
+として同梱（KASUGAI 側が Cesium 描画へコンパイル。MapLibre/OpenLayers
+フロントでも QML をクライアント側コンパイルして適用）</li>
+<li>WMS ラスタレイヤ（<code>type=xyz</code> 以外）は <code>wms:</code>
+行（<code>layers=</code>/<code>styles=</code>/<code>format=</code>
+オプション付き）として出力。<code>wmts:</code> 行（RESTful
+テンプレート・KVP GetTile）も Canvas 側で読み込み可能</li>
+<li>出力プロジェクトは
+<code>?engine=cesium|maplibre|openlayers|leaflet|gsimaps</code>
+で全エンジンから開ける（<code>3dtiles:</code> 行は Cesium/maplibre が 3D
+表示、openlayers は deck.gl で真俯瞰の 2.5D 表示。leaflet/gsimaps
+では「未対応行」として明示）</li>
+<li>起動中の KASUGAI へ自動登録・表示切替（未起動時は
+<code>qgis-http</code>/<code>hosted</code>
+フォールバックか出力のみ）</li>
+</ul>
+<p>詳細は <a href="spec.html"><code>spec.html</code></a> の「KASUGAI Canvas 連携」節を参照。</p>
+<figure class="shot">
+<img src="images/settings.png" loading="lazy"
+alt="設定ダイアログ — KASUGAI Canvas のインストール先、ホスト版エンジン（kasugai-canvas-web）のチャンネル、ベースマップグループ名の設定項目">
+<figcaption>設定ダイアログ（パネル右下の歯車）— KASUGAI Canvas
+インストール先・ホスト版チャンネル・ベースマップグループ</figcaption>
+</figure>
+<h2 id="開発カスタマイズ">開発・カスタマイズ</h2>
+<h3 id="アーキテクチャ">アーキテクチャ</h3>
+<pre><code>geo_webview/
+├── plugin.py              # メインプラグイン
+├── panel.py               # UI パネル
+├── panel_base.ui          # パネルレイアウト(Qt Designer)
+├── server_manager.py      # HTTP サーバー管理・ルーティング（/kasugai・/export-data/・/present・/screenshot 等）
+├── http_server.py         # HTTP 応答の低水準送信ユーティリティ
+├── kasugai_export.py      # KASUGAI Canvas 連携（.kasc+canvas_data/ 生成・登録・起動）
+├── scale_zoom.py          # スケール/ズーム換算
+├── settings_dialog.py     # 設定ダイアログ
+└── bridge.py              # AI/外部制御用ブリッジ</code></pre>
+<h3 id="詳細仕様">詳細仕様</h3>
+<p>技術仕様の詳細は <a href="https://github.com/yamamoto-ryuzo/qgis_live_harness/blob/master/qgis-plugin/geo_webview/SPEC.md"><code>SPEC.md</code></a> / <a
+href="spec.html"><code>spec.html</code></a> を参照してください。</p>
+<h3 id="開発手順">開発手順</h3>
+<ol>
+<li><a href="https://github.com/yamamoto-ryuzo/qgis_live_harness/blob/master/qgis-plugin/geo_webview/SPEC.md"><code>SPEC.md</code></a> で仕様を確認</li>
+<li>主要ファイルを把握</li>
+<li>QGIS で動作確認</li>
+<li>変更 → テスト → コミットのサイクル</li>
+</ol>
+<h3 id="翻訳対応">翻訳対応</h3>
+<p>ソース言語は英語。<code>i18n/&lt;lang&gt;.json</code> に9言語 (de,
+es, fr, hi, it, ja, pt, ru, zh)の翻訳カタログを持つ。 JSON
+を直接編集する。未登録の文字列は英語にフォールバック。</p>
+<pre><code class="language-bash"># カタログ未登録の文字列を検出
+python ../../scripts/i18n_tool.py check</code></pre>
+<h2 id="セキュリティ注意事項">セキュリティ注意事項</h2>
+<p>⚠️ <strong>重要</strong>: 本プラグインは社内 LAN
+での利用を前提としています。</p>
+<ul>
+<li>機密データを含む場合は外部公開を避けてください</li>
+<li>外部公開が必要な場合は認証・アクセス制御を実装してください</li>
+<li><code>External Control</code> を有効にすると外部 URL で QGIS
+表示が書き換わるため、信頼できるネットワーク内でのみ使用してください</li>
+<li>ファイアウォール設定を適切に行ってください</li>
+<li>最小限のデータのみを公開してください</li>
+</ul>
+<nav class="pager"><a href="getting-started.html">← 導入ガイド</a><a class="next" href="license.html">ライセンス・履歴・免責 →</a></nav>
+</main>
+</div>
+<script type="module" src="assets/site.js"></script>
+</body>
+</html>

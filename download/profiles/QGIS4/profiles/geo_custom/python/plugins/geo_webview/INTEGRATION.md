@@ -1,6 +1,6 @@
 # geo_webview — Integration policy for external clients & services
 
-[日本語: `INTEGRATION_JP.md`](INTEGRATION_JP.md)
+[日本語: docs/integration.html](https://github.com/yamamoto-ryuzo/qgis_live_harness/blob/master/qgis-plugin/geo_webview/docs/integration.html)
 
 Per-target integration policy of geo_webview. Detailed policy and
 licensing notes are consolidated in this document; the READMEs carry
@@ -13,7 +13,7 @@ flowchart TB
     QGIS["QGIS project<br>layers / styles / view state"]
 
     subgraph GWBOX["geo_webview (QGIS plugin)"]
-        GW["Export<br>.kasc+DATA/ - launcher HTML<br>+ ZIP download"]
+        GW["Export<br>.kasc+canvas_data/ - launcher HTML<br>+ ZIP download"]
         SRV["Embedded HTTP server (default :8089)<br>/kasugai launch API - /export-data/ data<br>/&lt;engine&gt;/ engine static fallback"]
     end
 
@@ -23,7 +23,7 @@ flowchart TB
 
     subgraph NORM["Standard route: local HTTP + web delivery (instant web, no Canvas app)"]
         BR["Local HTTP delivery<br>instant view in a browser"]
-        HOST["Serverless web delivery<br>deploy .kasc+DATA/+engine to a static host<br>(incl. hosted kasugai-canvas-web)"]
+        HOST["Serverless web delivery<br>deploy .kasc+canvas_data/+engine to a static host<br>(incl. hosted kasugai-canvas-web)"]
     end
 
     subgraph G2["② Other clients & external services"]
@@ -85,7 +85,7 @@ follows the policy of *not* treating ArcGIS Online as an extension
 target and instead **limiting integration to file handoff — reading is
 left to the ArcGIS side's own SDK-based implementation**:
 
-- **QGIS → ArcGIS**: the `.kasc`+`DATA/` output is handed over as files
+- **QGIS → ArcGIS**: the `.kasc`+`canvas_data/` output is handed over as files
   and read on the ArcGIS side by its own implementation (note: the
   plugin's own OGC services were removed in v3.29.0)
 
@@ -107,7 +107,7 @@ Separating "delivery on Online" by what is being delivered:
 | What to deliver | Possible on ArcGIS Online? |
 |---|---|
 | The `.kasc` player (the custom-code app itself) | **× No** — Online cannot host or execute custom code. External static hosting is required |
-| The `.kasc`+`DATA/` file set itself | **× No** — Online has no arbitrary static-file hosting |
+| The `.kasc`+`canvas_data/` file set itself | **× No** — Online has no arbitrary static-file hosting |
 | **Data converted and published as AGOL services** | **○ Yes** — GeoJSON/CSV/shapefile/FileGDB → hosted feature layers, tiles → hosted tile layers, 3D → scene layers (I3S; 3D Tiles→I3S conversion needed). Published services can be delivered directly through AGOL's built-in web maps/scenes, Instant Apps, standard ExB widgets, Dashboards and StoryMaps. Requires a Creator-or-above user type (GIS Professional bundles the Pro license) plus storage/generation credits. Public sharing allows anonymous viewing outside the org |
 
 However, the "convert and publish as AGOL services" route is **service
@@ -118,7 +118,7 @@ external-host `.kasc` player route applies).
 
 ### 2. Building an equivalent — development from scratch including data construction
 
-Building a `.kasc`+`DATA/` player on the ArcGIS side equivalent to the other engines (Cesium/MapLibre/OpenLayers/Leaflet/GSI Maps/Navara) means **building a separate system from scratch — Canvas-side code assets cannot be reused because the SDK differs** (only the `.kasc` spec and the same OSS libraries can be carried over).
+Building a `.kasc`+`canvas_data/` player on the ArcGIS side equivalent to the other engines (Cesium/MapLibre/OpenLayers/Leaflet/GSI Maps/Navara) means **building a separate system from scratch — Canvas-side code assets cannot be reused because the SDK differs** (only the `.kasc` spec and the same OSS libraries can be carried over).
 
 Note that **ArcGIS Maps SDK for JavaScript is a web-mapping library in
 the same category as Leaflet/MapLibre/OpenLayers/CesiumJS** (Esri's
@@ -136,7 +136,7 @@ player. Required implementation components:
 | Component | Description |
 |---|---|
 | `.kasc` parser | Interpretation of the leading `kind:` token, `\|` field splitting, `on`/`off` and `key=value` options (authoritative spec: kasugai_canvas `.kasc` inspector spec = `web/shared/kasc.js`) |
-| Reference resolution | Resolve relative paths such as `DATA/` against the `.kasc` URL |
+| Reference resolution | Resolve relative paths such as `canvas_data/` against the `.kasc` URL |
 | `.qml` → ArcGIS renderer translation | Map QGIS renderers (single symbol / categorized / graduated / rule-based) onto `SimpleRenderer`/`UniqueValueRenderer`/`ClassBreaksRenderer` + symbols — fill, line, marker, opacity, labels (`labelingInfo`). GPKG-embedded `layer_styles` (QML) goes through the same path |
 | Data loaders | Per-line-type decode → FeatureLayer/GraphicsLayer (see table below) |
 | Layer display UI | Layer list, visibility toggles, opacity, basemap switching, attribute popups (minimal implementation acceptable per use case) |
@@ -189,25 +189,25 @@ specific need.
 
 | Implementation | Required license / account |
 |---|---|
-| ArcGIS Pro add-in (.NET SDK) reads `.kasc`+`DATA/` | ArcGIS Pro license (Named User via Online org or Enterprise portal, or Single Use) |
+| ArcGIS Pro add-in (.NET SDK) reads `.kasc`+`canvas_data/` | ArcGIS Pro license (Named User via Online org or Enterprise portal, or Single Use) |
 | Custom web app (ArcGIS Maps SDK for JavaScript) reads it | The app can be hosted on any web server. For Esri location services / private content: an API key from ArcGIS Location Platform (formerly Developer account), or OAuth against an Online/Enterprise account |
 | Experience Builder custom widget reads it | Develop with ExB Developer Edition (sign-in requires an Online or Enterprise account; Location Platform accounts do not support ExB). The finished app can run from your own web server even with an Online-only org |
 
 #### Minimum licensing for a `.kasc` player implementation
 
 The minimum licensing for building an ArcGIS-side player that reads and
-reproduces `.kasc`+`DATA/` like the other engines (Cesium/MapLibre/
+reproduces `.kasc`+`canvas_data/` like the other engines (Cesium/MapLibre/
 OpenLayers/Leaflet/GSI Maps/Navara) is as follows — **all are free or low-cost**:
 
 
 
 | Player implementation | Minimum license | Cost notes |
 |---|---|---|
-| Web player (ArcGIS Maps SDK for JavaScript) | An **ArcGIS Online org** or an **ArcGIS Location Platform account** (free sign-up) — no additional purchase for the SDK itself | Reading `.kasc`+`DATA/` (GeoJSON etc.) without Esri services/basemaps incurs no charges; an API key + pay-as-you-go billing (free tier exists) only applies when consuming Esri services |
+| Web player (ArcGIS Maps SDK for JavaScript) | An **ArcGIS Online org** or an **ArcGIS Location Platform account** (free sign-up) — no additional purchase for the SDK itself | Reading `.kasc`+`canvas_data/` (GeoJSON etc.) without Esri services/basemaps incurs no charges; an API key + pay-as-you-go billing (free tier exists) only applies when consuming Esri services |
 | Native player (ArcGIS Maps SDK for Native Apps) | **Runtime Lite** license — free (a license string, or sign-in with a Viewer/Lite user type) | Free. Includes viewing maps, scenes, layers and packages in 2D/3D — sufficient for `.kasc` playback |
 | Desktop integration (ArcGIS Pro add-in) | **ArcGIS Pro (Basic)** | Paid, but Basic is the lowest tier; Named User licensing can be issued via an Online org |
 
-Every route still requires a custom implementation that reads `DATA/`
+Every route still requires a custom implementation that reads `canvas_data/`
 (GeoJSON, native tiles, etc.) and implements the QML→ArcGIS renderer
 translation and layer display features, but for the web player route
 the licensing barrier is effectively zero.
@@ -235,7 +235,7 @@ Once built, the app can be registered in AGOL/Portal as a "Web App"
 item (a URL reference) so the org can reach it.
 
 **This is the same serverless delivery model as KASUGAI Canvas** — a
-static app plus `.kasc`+`DATA/` on a static host, with data served from
+static app plus `.kasc`+`canvas_data/` on a static host, with data served from
 the same origin. It presupposes the player implementation, and the
 set of `.kasc` line types it can reproduce is constrained (GeoJSON/
 CSV/XYZ/MVT natively; `gpkg:`/`geoparquet:`/`flatgeobuf:`/`duckdb:`
@@ -250,7 +250,7 @@ Delivery for the other implementation forms:
 | ArcGIS Pro add-in | Distributed as an `.esriAddinX` file (file share, internal server, download link, etc.) |
 | Native app (ArcGIS Maps SDK for Native Apps) | Desktop = installer distribution (MSI/MSIX, internal rollout), mobile = app stores / MDM |
 
-The `.kasc`+`DATA/` consumed by the app is supplied either by this
+The `.kasc`+`canvas_data/` consumed by the app is supplied either by this
 plugin's `/export-data/` or any static host. **Placing the app and the
 data on the same origin is the simplest setup** (cross-origin also
 works with CORS enabled).

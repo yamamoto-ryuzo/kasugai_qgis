@@ -1,15 +1,15 @@
 # geo_webview — Specification
 
-[日本語版はこちら / Japanese: `SPEC_JP.md`](SPEC_JP.md)
+[日本語: docs/spec.html](https://github.com/yamamoto-ryuzo/qgis_live_harness/blob/master/qgis-plugin/geo_webview/docs/spec.html)
 
 This specification formalizes the features described in the repository README and CHANGELOG, organized by capability. It targets implementers, operators and testers of the `geo_webview` plugin.
 
 Purpose and scope
 - Purpose: Define the expected behavior of the `geo_webview` plugin for implementation, operation and testing.
-- Scope: **serverless web distribution (main feature)** — exporting the open QGIS project as `.kasc`+`DATA/` for the KASUGAI Canvas multi-engine players (Cesium/MapLibre/OpenLayers/Leaflet/GSI Maps/Navara); the embedded HTTP server (`/kasugai`, `/export-data/`, `/present`, `/screenshot`, permalink reception) as the supporting side; permalink generation/navigation, theme application, External Control behavior, CRS policy, and security/operational considerations.
+- Scope: **serverless web distribution (main feature)** — exporting the open QGIS project as `.kasc`+`canvas_data/` for the KASUGAI Canvas multi-engine players (Cesium/MapLibre/OpenLayers/Leaflet/GSI Maps/Navara); the embedded HTTP server (`/kasugai`, `/export-data/`, `/present`, `/screenshot`, permalink reception) as the supporting side; permalink generation/navigation, theme application, External Control behavior, CRS policy, and security/operational considerations.
 
 1. Feature overview
-- **Serverless web distribution (main)**: export the open QGIS project as a `.kasc`+`DATA/` package playable on the KASUGAI Canvas engines (Cesium/MapLibre/OpenLayers/Leaflet/GSI Maps/Navara). Placing the output plus the engine on a static host delivers the map without any server. Launch routes: panel (`Export` = files only / `▶ Open` = register+launch), `GET /kasugai`, and bridge `kasugaiExport`, with a 3-tier fallback (Canvas registration → static serving by this server → hosted engine). See §15.
+- **Serverless web distribution (main)**: export the open QGIS project as a `.kasc`+`canvas_data/` package playable on the KASUGAI Canvas engines (Cesium/MapLibre/OpenLayers/Leaflet/GSI Maps/Navara). Placing the output plus the engine on a static host delivers the map without any server. Launch routes: panel (`Export` = files only / `▶ Open` = register+launch), `GET /kasugai`, and bridge `kasugaiExport`, with a 3-tier fallback (Canvas registration → static serving by this server → hosted engine). See §15.
 - Embedded HTTP server (supporting): provides `/kasugai` `/export-data/` `/present` `/present/state` `/screenshot` `/received` `/layouts` `/layout-pdf` `/live/state` `GET /live/mcp-discover` `POST /live/mcp` `POST /live/camera` `POST /live/selection` `POST /live/writeback` `POST /live/features` (OGC services removed in v3.29.0).
 - **Live bidirectional sync (v4.9.0)**: opt-in via QSettings `kasugai_live_sync` or bridge `liveSyncStart/Stop/Status/Flush` (`live_sync.py`). Layer edits/style/tree changes are debounced (1.2s) into a **delta re-export** (`export_kasugai_project(changed=…)` skips data/style file writes for unchanged layers; structural changes fall back to full export). Exports emit a `live: <base URL>` kasc line + `live.json` manifest ({rev, updated, changed:[{title,data,style}]}). Canvas polls `live.json` or receives a `liveSync` push via `/api/command` and reloads only changed layers when the .kasc text is unchanged. Reverse direction: `POST /live/camera` (Canvas view → canvas center/scale/rotation; accepts {lon,lat,zoom|scale|height,heading} or {bbox}) and `POST /live/selection` (Canvas pick → QGIS layer select by ids/bbox/point+buffer_m), `POST /live/writeback` (Canvas visibility/filter/theme → QGIS project), `POST /live/features` (GeoJSON → scratch layers). `GET /live/state` returns sync state + canvas state (+ `live.qgis_selection` pushed on QGIS-side selection). On-demand GET APIs: `GET /live/layers` (catalog with kasc titles), `GET /live/features` (GeoJSON by layer/bbox/pt/limit), `GET /live/selection` (QGIS selection as GeoJSON), `GET /live/render` (EPSG:4326 bbox → PNG, bg=transparent, optional layer subset — used by Canvas "QGIS render" fallback overlay). POST is accepted only under `/live/` (existing CORS allowlist applies).
 - **Reverse authoring / data injection (v4.11.0)**: `POST /live/writeback` applies Canvas inspector state back to the project — `{layers:[{title,visible,where?}], theme?}`; `title` resolves via the same kasc-title normalization as selection, `visible` toggles the layer-tree node check (ancestors enabled when showing), `where` updates the vector provider subsetString, and `theme` applies a same-named map theme when present. Applied inside `LiveSyncController.suppress()` so the writeback does not trigger a redundant re-export. `POST /live/features` injects `{name, geojson: FeatureCollection|Feature[], replace?}` as memory scratch layer(s) — mixed geometry types are split, properties become fields via `QgsJsonUtils`, layers are tagged with custom property `kasugai_live_name` and added under a top "Canvas" layer-tree group; `replace` (default true) removes previously injected layers of the same name. The same logic is exposed to AI as bridge `liveWriteback(payload)` / `liveAddFeatures(name, geojson, replace)`.
@@ -19,8 +19,8 @@ Purpose and scope
 - External Control: accept requests (for example to `/qgis-map` or `/wms`) and, when permitted, navigate QGIS accordingly.
 
 2. API / Endpoints (high-level)
-- `GET /kasugai` — `.kasc`+`DATA/` export + Canvas registration. Accepts `engine=` (cesium|maplibre|openlayers|leaflet|gsimaps|navara, default cesium) and `install=1` (fetch distribution ZIP when not found). JSON response `{ok,url,via,dir,layers,tiles,engine}`.
-- `GET /export-data/<rel>` — serves files under the latest export directory (.kasc/DATA/, launcher HTMLs).
+- `GET /kasugai` — `.kasc`+`canvas_data/` export + Canvas registration. Accepts `engine=` (cesium|maplibre|openlayers|leaflet|gsimaps|navara, default cesium) and `install=1` (fetch distribution ZIP when not found). JSON response `{ok,url,via,dir,layers,tiles,engine}`.
+- `GET /export-data/<rel>` — serves files under the latest export directory (.kasc/canvas_data/, launcher HTMLs).
 - `GET /<engine>/...` — statically serves the installed KASUGAI Canvas `web/` (fallback resolution for non-endpoint paths).
 - `GET /present` `/present/state` `/screenshot` — window-share page, canvas state JSON, canvas PNG.
 - `GET /layouts` — project print layout list JSON `{ok,layouts:[{name,pages,w_mm,h_mm}]}` (used by the KASUGAI Canvas print dialog).
@@ -58,10 +58,10 @@ Conversion rules:
 
 The plugin's built-in generated viewers (former `/qgis-map`, `/maplibre`,
 `/map3d`) were **removed in v3.24.0** — viewing is consolidated into
-KASUGAI Canvas. Web distribution now centers on the `.kasc`+`DATA/`
+KASUGAI Canvas. Web distribution now centers on the `.kasc`+`canvas_data/`
 export; see §15 for details.
 
-- Output: `kasugai_canvas.kasc`, `index.html`, `<engine>.html` ×6 (cesium/maplibre/openlayers/leaflet/gsimaps/navara), `project.json`, `bookmarks.xml`, `DATA/` (GeoJSON / native formats / .qml / copied tiles).
+- Output: `kasugai_canvas.kasc`, `index.html`, `<engine>.html` ×6 (cesium/maplibre/openlayers/leaflet/gsimaps/navara), `project.json`, `bookmarks.xml`, `canvas_data/` (GeoJSON / native formats / .qml / copied tiles).
 - Launcher HTMLs: redirect to the engine with `?kasc=<.kasc URL>` and auto-detect the engine in `./ ../ ../../ /` order (`CANVAS_BASE` overrides; when no engine is found they link to the hosted engine at `HOSTED_BASE`).
 
 ## 5–9. OGC services (removed in v3.29.0)
@@ -70,7 +70,7 @@ The WMS / WMTS・XYZ / WFS / `/maplibre-style` endpoints and their
 internals (`wms_service.py`, `wmts_service.py`, `wfs_service.py`,
 `sld_renderer.py`, `maplibre/`, ANGLE pipeline, WFS/WMTS caches)
 were removed in v3.29.0. The plugin focuses on serverless
-distribution (`.kasc`+`DATA/` export plus `/export-data/` serving).
+distribution (`.kasc`+`canvas_data/` export plus `/export-data/` serving).
 See git history for the removed implementations.
 
 ## 10. Google Maps / Earth integration (removed in v3.30.0)
@@ -115,7 +115,7 @@ Manual test steps
 2. From another host, request `/qgis-map?x=...&y=...&scale=...` and confirm QGIS navigates.
 3. Confirm `/screenshot` returns a canvas PNG and `/present` opens the share page.
 
-CI note: QGIS modules (`qgis.core`, `PyQt5`) will not be available in typical CI; mock them where needed.
+CI note: QGIS modules (`qgis.core`, `PyQt6`) will not be available in typical CI; mock them where needed.
 
 17. Implementation-file mapping
 - `plugin.py` — main plugin logic and utilities.
@@ -123,7 +123,7 @@ CI note: QGIS modules (`qgis.core`, `PyQt5`) will not be available in typical CI
 - `panel_base.ui` — Qt Designer UI file.
 - `server_manager.py` — embedded HTTP server start/stop and routing.
 - `http_server.py` — low-level HTTP response helpers.
-- `kasugai_export.py` — `.kasc`+`DATA/` export, registration and fallback URL building.
+- `kasugai_export.py` — `.kasc`+`canvas_data/` export, registration and fallback URL building.
 - `bridge.py` — AI/external control bridge.
 
 18. Changelog highlights
@@ -134,7 +134,7 @@ CI note: QGIS modules (`qgis.core`, `PyQt5`) will not be available in typical CI
 Notes
 - After making server-side code changes, restart QGIS or the plugin process to reload module code; long-running Python processes do not auto-reload.
 
-This file mirrors the Japanese `SPEC_JP.md`. If you modify `SPEC_JP.md` again, regenerate this English file to keep both versions in sync.
+This file mirrors the Japanese `docs/spec.html`. If you modify the Japanese spec again, regenerate this English file to keep both versions in sync.
 ## 14. 投影 (CRS) ポリシー
 - `.kasc` エクスポートのベクターは EPSG:4326 に正規化して出力する（ネイティブ参照の GPKG/Parquet/FGB はクライアント側で処理）。
 - WMS は複数 CRS を受け付け、要求 CRS に従ってレンダリングする。
@@ -145,7 +145,7 @@ This file mirrors the Japanese `SPEC_JP.md`. If you modify `SPEC_JP.md` again, r
 ## 15. KASUGAI Canvas 連携（送出）
 
 QGIS プロジェクトのレイヤツリーを、KASUGAI Canvas のプロジェクト
-（`.kasc` + `DATA/`）として書き出す機能。実体は `kasugai_export.py`。
+（`.kasc` + `canvas_data/`）として書き出す機能。実体は `kasugai_export.py`。
 
 ### 起動経路
 
@@ -163,10 +163,11 @@ QGIS プロジェクトのレイヤツリーを、KASUGAI Canvas のプロジェ
 <out_dir>/                    # 既定: <ドキュメント>/kasugai_canvas_qgis
 ├─ kasugai_canvas.kasc        # インスペクタ設定(外部プロジェクト登録対象)
 ├─ project.json               # {"title": ...}
-└─ DATA/
-   ├─ *.geojson               # 変換が必要だったベクター(EPSG:4326)
+└─ canvas_data/
+   ├─ *.geojson               # 変換失敗時の最終フォールバック出力(EPSG:4326)
+   ├─ *.fgb                   # ベクター変換の第1候補出力 / ネイティブ参照の FGB(複製)
    ├─ *.gpkg                  # ネイティブ参照の GPKG(複製)
-   ├─ *.parquet / *.fgb       # ネイティブ参照の Parquet/FGB(複製)
+   ├─ *.parquet               # ネイティブ参照の Parquet(複製)
    ├─ *.csv / *.tsv           # duckdb: 参照の区切りテキスト(複製)
    ├─ <dir>/                  # ローカル 3D Tiles / ローカル XYZ タイルの複製(1GiB 上限)
    ├─ *.qml                   # 各ベクターレイヤの QGIS スタイル
@@ -177,42 +178,91 @@ QGIS プロジェクトのレイヤツリーを、KASUGAI Canvas のプロジェ
 
 | QGIS 側 | .kasc 行 | 備考 |
 |---|---|---|
-| GPKG ソース(地理座標系) | `gpkg: グループ/名 | DATA/x.gpkg | on | table=<表> | style=DATA/x.qml` | ファイルを DATA/ へ複製。複数テーブルは1ファイルを共有 |
+| GPKG ソース(地理座標系) | `gpkg: グループ/名 | canvas_data/x.gpkg | on | table=<表> | style=canvas_data/x.qml` | ファイルを canvas_data/ へ複製。複数テーブルは1ファイルを共有 |
 | GeoJSON/Parquet/FGB ソース | `geojson:` / `geoparquet:` / `flatgeobuf:` 参照行 | ローカルは複製、http(s) は URL をそのまま記述 |
-| CSV/TSV(delimitedtext・ogr) | `duckdb: 名 | DATA/x.csv | on | format=csv | lon=<列> | lat=<列>` | ジオメトリ列は `geom=`。delimitedtext は URI の xField/yField/wktField を引き継ぎ、ogr CSV はヘッダから推定。delimitedtext で非地理座標系の場合は GeoJSON 変換 |
-| フィルタ(subsetString)付き GPKG | `gpkg: … | where=<フィルタ>` | ネイティブ参照のままフィルタ維持 |
-| フィルタ付き Parquet | `duckdb: 名 | DATA/x.parquet | on | format=parquet | where=<フィルタ>` | `geoparquet:` には where= が無いため duckdb: に切替 |
-| フィルタ付き GeoJSON/FGB | GeoJSON(EPSG:4326)へ変換して `geojson:` 行 | フィルタを地物に反映して出力 |
-| 3D Tiles レイヤ(QgsTiledSceneLayer) | `3dtiles: グループ/名 | <tileset.json URL or DATA/x/tileset.json> | on` | http(s) は URL 参照、ローカルはディレクトリごと DATA/ へ複製(1GiB 上限・超過は skipped) |
+| CSV/TSV(delimitedtext・ogr) | `duckdb: 名 | canvas_data/x.csv | on | format=csv | lon=<列> | lat=<列>` | ジオメトリ列は `geom=`。delimitedtext は URI の xField/yField/wktField を引き継ぎ、ogr CSV はヘッダから推定。delimitedtext で非地理座標系の場合は FlatGeobuf 変換(フォールバック時 GeoJSON) |
+| フィルタ(subsetString)付き GPKG | `gpkg: … | where=<フィルタ>` | ネイティブ参照のままフィルタ維持(SQL 評価) |
+| フィルタ付き GeoJSON/FGB・URL Parquet | `geojson:`/`flatgeobuf:`/`geoparquet:` … `| where=<フィルタ>` | Canvas 側 where-eval.js のクライアント評価(OGR SQL WHERE句準拠・`||` 連結対応)。評価器が扱えない式(単独 `|`・`%` 等)は FlatGeobuf 変換でフィルタを地物へ焼き込む(フォールバック時 GeoJSON) |
+| フィルタ付き Parquet(ローカル) | `duckdb: 名 | canvas_data/x.parquet | on | format=parquet | where=<フィルタ>` | duckdb: へ切替えて SQL 評価 |
+| 3D Tiles レイヤ(QgsTiledSceneLayer) | `3dtiles: グループ/名 | <tileset.json URL or canvas_data/x/tileset.json> | on` | http(s) は URL 参照、ローカルはディレクトリごと canvas_data/ へ複製(1GiB 上限・超過は skipped) |
 | XYZ タイルラスタ | `xyz:` 行。表示中の**最下段**のみ `base:` 行（既定ベースマップとして既定群の先頭に置く）。「背景図」「ベースマップ」「basemap」名のグループ内にある XYZ は位置・表示状態に関わらず全て `base:` 行（ベースマップ候補）として登録し、グループ名はタイトルから外す（配下のサブグループは残し、Canvas のベースマップ選択でグループ化表示される）。非表示の候補は `| off` 付きで出力。グループ名は設定ダイアログの Basemap Groups（QSettings `kasugai_basemap_groups`・カンマ区切り）で追加可能 | zmin/zmax → minZoom=/maxZoom=。不透明度は opacity=、限定範囲は bbox=西経,南緯,東経,北緯。縮尺表示は minScale=/maxScale= |
-| XYZ ローカルテンプレート | `xyz:` 行(DATA/<dir>/{z}/{x}/{y}.png) | `file:///…/{z}/{x}/{y}.png` はタイルツリーごと DATA/ へ複製(1GiB 上限・超過は skipped) |
+| XYZ ローカルテンプレート | `xyz:` 行(canvas_data/<dir>/{z}/{x}/{y}.png) | `file:///…/{z}/{x}/{y}.png` はタイルツリーごと canvas_data/ へ複製(1GiB 上限・超過は skipped) |
 | WMS ラスタ(type=xyz 以外) | `wms: グループ/名 | <エンドポイントURL> | on | layers=, styles=, format=` | QGIS の WMS 接続 URI から url=/layers=/styles=/format= を抽出。Canvas 側が GetMap を 256px タイルへ分解して要求 |
-| その他ベクター(SHP/PostGIS/WFS/メモリ等)・非地理座標系 | GeoJSON(EPSG:4326)へ変換して `geojson:` 行 | 再投影は warnings に記録 |
+| その他ベクター(SHP/PostGIS/WFS/メモリ等)・非地理座標系 | FlatGeobuf(EPSG:4326・空間インデックス付き)へ変換して canvas_data/ へ `flatgeobuf:` 行 | ドライバ非搭載時は Parquet、変換失敗時は GeoJSON へフォールバック。再投影は warnings に記録 |
 | 属性テーブルのみ(NoGeometry)・ローカルラスタ・ベクタータイル・メッシュ・点群・アノテーション等 | 出力せず `skipped` に種別/理由付きで記録 | |
 | 非表示レイヤ | `hidden_as_off=True` 時のみ `| off` 付きで出力 | 既定(visible_only=True)では除外 |
 | キャンバス | `cam:` 行(中心座標+概算高度+回転) | |
 || 保存済み3Dビュー(ローカル/グローブ) | `cam:QGIS3D <名>|lat|lon|h=|p=|d=` 行(注視点+dist/pitch/yaw→ENUオフセットでカメラ位置逆算: 高さ=dist·cos(pitch)・水平=dist·sin(pitch)・視線方位=360-yaw・p=pitch-90) + `terrain:` 行(垂直誇張/オフセット/陰影/ジェネレータ) + `scene3d:` 行(背景色/スカイボックス/影/SSAO/EDL・グローブは globe=on) + `light:` 行(平行光源の方位・仰角・強度・色) | 3Dビューが存在する場合のみ出力。シーンCRSはビューごとの `<qgis3d><crs>` を解決し、地心系(QGIS4グローブ・EPSG:4978等)はECEF→測地変換で対応。既定値相当の項目は省略 |
-|| 3Dビューのアニメーション(`<animation3d>`キーフレーム) | `fly_geojson: QGIS3D <名> | DATA/anim3d_<slug>.geojson | speed=<m/s> | view=camera | step=<m>` 行 + カメラ軌道の LineString GeoJSON | 各キーフレーム(注視点+dist/pitch/yaw+時刻)のカメラ位置を計算してカメラ軌道にする。speed=軌道3D総延長÷アニメ時間。キーフレーム2個未満は出力しない |
+|| 3Dビューのアニメーション(`<animation3d>`キーフレーム) | `fly_geojson: QGIS3D <名> | canvas_data/anim3d_<slug>.geojson | speed=<m/s> | view=camera | step=<m>` 行 + カメラ軌道の LineString GeoJSON | 各キーフレーム(注視点+dist/pitch/yaw+時刻)のカメラ位置を計算してカメラ軌道にする。speed=軌道3D総延長÷アニメ時間。キーフレーム2個未満は出力しない |
 | ベクターの3Dレンダラ(立ち上げ) | ベクター行へ `| extrude=<m>`(立ち上げ高さ)・`| z=<m>`(基準高さオフセット) を付与 | QgsVectorLayer3DRenderer のポリゴン/ラインシンボル。Canvas(Cesium)側で polygon の height/extrudedHeight へ反映 |
 | ブックマーク | `bookmarks.xml`(qgis_bookmarks形式・EPSG:4326正規化) + `bookmark:` 行(プロジェクト+アプリケーション両方) | `emit_bookmarks=False` で抑制。Canvas 側が XML を読み込みカメラプリセットへ展開する |
-| アトラス有効な印刷レイアウト | `fly_geojson: Atlas: <レイアウト名> | DATA/atlas_<slug>.geojson | speed= | pitch=-85 | height=0 | view=camera | step=` 行 | `emit_atlas=False` で抑制(v4.8.0〜)。各アトラスページの表示範囲(参照地図 extent)を巡回するプレゼン用フライパス。座標Z値にページを収めるカメラ高(楕円体高)を焼き込み、`properties.heightReference="MSL"` で地形加算を抑止、ページ名一覧は `properties.pages` へ。地図回転付きは warnings に記録のみ |
+| アトラス有効な印刷レイアウト | `fly_geojson: Atlas: <レイアウト名> | canvas_data/atlas_<slug>.geojson | speed= | pitch=-85 | height=0 | view=camera | step=` 行 | `emit_atlas=False` で抑制(v4.8.0〜)。各アトラスページの表示範囲(参照地図 extent)を巡回するプレゼン用フライパス。座標Z値にページを収めるカメラ高(楕円体高)を焼き込み、`properties.heightReference="MSL"` で地形加算を抑止、ページ名一覧は `properties.pages` へ。地図回転付きは warnings に記録のみ |
 
 その他: `attr=` に QGIS レイヤの出典(attribution)を引き継ぐ。
+`where=` は行の**最終オプション**で、値は改行までが式
+(`||` 連結・`'a|b'` リテラル等の `|` を含んでよい)。
+where-eval.js は `||` 連結に対応済み(単独 `|`・`%` は非対応)。
+`off` や他の `key=value` は `where=` より前に置く。
+`view:` の `;where=` は行内トークンのため対象外(値に `|` は書けない)。
 全レイヤ行で `minScale=`/`maxScale=` に QGIS の「縮尺による表示」
 (minimumScale=引き側限界・maximumScale=寄り側限界)を出力する。
 Canvas 側は同じ範囲で表示/非表示を切り替える。
 `.qml` 書き出し後、シンボルレイヤが参照する画像(SvgMarker/RasterMarker/
 SVGFill/RasterFill 等の `name`/`imageFile`/`svgFile`/`file`)を実ファイルへ
-解決して DATA/ へ複製し、.qml 内の参照を DATA/ 内のファイル名へ書き換える
+解決して canvas_data/ へ複製し、.qml 内の参照を canvas_data/ 内のファイル名へ書き換える
 (QGIS 内蔵SVGの `transport/…` 等の相対名は `QgsApplication.svgPaths()` で
 解決。http(s)/data/base64: 参照はそのまま維持。解決不能は warnings 記録)。
-`embed_gpkg_style=True` なら `saveStyleToDatabase` で GPKG の
-`layer_styles` にも既定スタイルを保存する(**元ファイルを更新する**。
-保存は DATA/ へのコピー前に行うため配布コピーにも layer_styles が
-含まれ、同一 GPKG の複数レイヤも全レイヤ分が入る。
-対象はローカル GPKG のみで、http(s) URL 参照の GPKG は対象外)。
 `sql:` 行は QGIS 側に対応する任意クエリソースが無いため出力しない
 （クエリ系は `duckdb:` の宣言的オプションで網羅する）。
+
+### ベクター出力形式（native / recommended / geojson）
+
+ベクターレイヤの出力方針を切り替える「推奨形式スイッチ」
+（QSettings `kasugai_vector_format`、既定 `native`）。
+切替は4経路あり、パネル/設定ダイアログは永続設定を読み書きし、
+URL/bridge は当該エクスポートだけの一時上書き（いずれも相互に同期）:
+
+- パネルの **Format:** コンボ
+  （`native (reference as-is)` / `recommended (FlatGeobuf → canvas_data/)` / `geojson (WEB interop → GeoJSON)`）— 永続
+- 設定ダイアログの **Vector Export Format** コンボ — 永続
+- `GET /kasugai?fmt=recommended|native|geojson` — そのリクエストのみ上書き
+  （応答 JSON に `vector_format` を含む）
+- bridge `kasugaiExport(vector_format='recommended'|'native'|'geojson')` — 呼出しのみ上書き
+
+| モード | ベクターの扱い |
+|---|---|
+| `native`（既定） | 読めるソースはそのまま参照（`gpkg:`/`geojson:`/`shp:`/`wfs:`/`duckdb:`/`flatgeobuf:`/`geoparquet:` 行）。非ネイティブ形式のみ変換（上表のフォールバック） |
+| `recommended` | FlatGeobuf/GeoParquet 以外の全ソースを FlatGeobuf（EPSG:4326・空間インデックス付き）へ変換し canvas_data/ へ `flatgeobuf:` 行で配置。既に FlatGeobuf/GeoParquet のソースは参照を維持（`flatgeobuf:`/`geoparquet:`/`duckdb:+format=parquet` 行）。subsetString・fields/where/limit は変換データへ焼き込み。Canvas 側では `bbox=auto` の Range 範囲読みが効く |
+| `geojson`（WEB連携） | 全ベクター（FlatGeobuf/GeoParquet ソース含む・WFS/メモリ等も）を GeoJSON（EPSG:4326）へ変換し canvas_data/ へ `geojson:` 行で配置。canvas_data/ がオープン標準の GeoJSON のみになるため、KASUGAI Canvas 以外の WebGIS・GIS ツールでもそのまま読み込める相互運用向けモード |
+
+変換ドライバは FlatGeobuf が第1候補（非搭載環境は Parquet）で、
+変換失敗時は GeoJSON(EPSG:4326) へフォールバックする（native モードの非ネイティブ変換と同じ経路）。
+`geojson` モードは GeoJSON 固定（ドライバ切替なし）。
+
+### .qml スタイル出力
+
+スタイル（.qml）はベクターデータ形式とは**独立**で、
+native/recommended/geojson のどのモードでも同じ扱い:
+
+- 出力される全ベクターレイヤについて `layer.saveNamedStyle()` で
+  `canvas_data/<slug>.qml` を書き出し、.kasc 行へ
+  `| style=canvas_data/<slug>.qml` を付与する。
+  ネイティブ参照行（`gpkg:`/`flatgeobuf:` 等）でも
+  変換行（`flatgeobuf:`/`geojson:`）でも付き方は同じ
+- .qml の中身は `<renderer-v2>`（シンボル）・
+  `<labeling>`/`<text-style>`（ラベル）・時間設定等の QGIS レンダラ定義。
+  Canvas 側は `qml-style.js`+`<engine>/qml-render.js` が
+  これをエンジン描画へコンパイルする（データ形式ではなくスタイル再現の責務）
+- ユーザー定義関数（geo_userfunc の `@qgsfunction`）を含む式属性は
+  書き出し時に宣言式へ展開する（配布物を組込み関数のみにする）
+- シンボル画像（SvgMarker/RasterMarker/SVGFill/RasterFill 等）の参照は
+  canvas_data/ へ複製し .qml 内パスを書き換える（前述「その他」の通り）
+- 差分エクスポート（`changed`）では style 変更のあったレイヤのみ
+  .qml を再書き出しし、未変更レイヤは既存 .qml を再利用する
+
+スタイルの配布経路は `.qml`+`style=` の1系統に統一
+（v4.21.0 で GPKG `layer_styles` への書き込み経路
+`embed_gpkg_style` は廃止）。
 
 ### KASUGAI 側への反映
 
@@ -234,7 +284,7 @@ Canvas が使えない場合は次の順でフォールバックする
   パスをインストール済み Canvas の `web/` 配下へ静的解決**する
   （`find_kasugai_web_dir()`）。同一オリジンのため混在コンテンツ問題なし
 - `hosted`: エンジン本体は `kasugai-canvas-web`（GitHub Pages）から取得し、
-  `.kasc`+`DATA/` は本サーバーの `/export-data/` から読む。https→localhost
+  `.kasc`+`canvas_data/` は本サーバーの `/export-data/` から読む。https→localhost
   の fetch は Chrome Private Network Access 対象のため、サーバーは
   `OPTIONS` プリフライトに `Access-Control-Allow-Private-Network: true` で
   応答する。チャンネルは設定 `kasugai_hosted_channel`
@@ -266,7 +316,7 @@ Canvas が使えない場合は次の順でフォールバックする
 
 手動テスト手順（QGIS 実環境）:
 1. QGIS を起動しプラグインをインストール。
-2. `Export` で `.kasc`+`DATA/` を出力し、パネルの `Engine:` でエンジンを選び `▶ Canvas` を押してブラウザでそのエンジンが開くことを確認（未出力時はエクスポートを促すメッセージが出る）。`▶ WebView` は出力→ブラウザ起動まで一発で行う（`/kasugai` と同じフォールバックが働く）。
+2. `Export` で `.kasc`+`canvas_data/` を出力し、パネルの `Engine:` でエンジンを選び `▶ Canvas` を押してブラウザでそのエンジンが開くことを確認（未出力時はエクスポートを促すメッセージが出る）。`▶ WebView` は出力→ブラウザ起動まで一発で行う（`/kasugai` と同じフォールバックが働く）。
 3. `External Control` を ON にして、別ホスト（または同一ホスト）から `/qgis-map?x=...&y=...&scale=...` にアクセスして QGIS がジャンプすることを確認。
 4. `/screenshot` でキャンバス PNG が返ることを確認。
 5. `/present` ページがブラウザで開くことを確認。
@@ -281,7 +331,7 @@ Canvas が使えない場合は次の順でフォールバックする
 - `panel_base.ui` — Qt Designer の UI 定義。
 - `server_manager.py` — 組み込み HTTP サーバーの起動/停止・ルーティング（`/kasugai` `/export-data/` `/present` `/present/state` `/screenshot` `/received` `/layouts` `/layout-pdf` `/<engine>/` 等）。
 - `http_server.py` — HTTP 応答の低水準送信ユーティリティ。
-- `kasugai_export.py` — KASUGAI Canvas 連携（`.kasc`+`DATA/` 生成、起動HTML生成、プロジェクト登録、コマンド送信、フォールバックURL構築）。
+- `kasugai_export.py` — KASUGAI Canvas 連携（`.kasc`+`canvas_data/` 生成、起動HTML生成、プロジェクト登録、コマンド送信、フォールバックURL構築）。
 - `scale_zoom.py` — スケール/ズーム換算。
 - `settings_dialog.py` — 設定ダイアログ（KASUGAI インストール先・ホスト版チャンネル・Basemap Groups）。
 - `bridge.py` — AI/外部制御用ブリッジ（`kasugaiExport` 等）。

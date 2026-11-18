@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>geo_legend ドキュメント | QGIS Live Harness</title>
+<meta name="description" content="Display only the necessary legends in a clear, easy-to-understand manner with Qt6 compatibility">
+<link rel="stylesheet" href="style.css">
+<script src="nav.js" defer></script>
+</head>
+<body>
+<div class="container">
+<header>
+<h1>geo_legend (upstream: QGIS-legendView)</h1>
+<p>Display only the necessary legends in a clear, easy-to-understand manner with Qt6 compatibility</p>
+</header>
+<main>
+<h3 id="今後はgeoreportへ統合予定">今後は　GeoReport　へ統合予定</h3>
+
+<p>　This repository is intended to build a better QGIS environment and to provide mutual assistance among engineers by the shortage engineers by releasing additional functions of QGIS created by the open source ordered by Soja City and by having as many people as possible contribute programs to extend the functions.<br />
+このリポジトリは総社市が発注したオープンソースにより作成されたQGISの追加機能を公開し、多くのユーザーに利用してもらうことで、 機能拡張プログラムの提供をしていただく ことで、よりよいQGIS環境を構築するとともに、不足技術者による技術者間の互助を目的としています。</p>
+<p>　初期バージョンの開発業者：オービタルネット　<a href="https://www.orbitalnet.jp/">https://www.orbitalnet.jp/</a></p>
+<h2 id="internationalization--国際化対応">Internationalization / 国際化対応</h2>
+<p>This plugin supports multiple languages:</p>
+<ul>
+<li>English (en)</li>
+<li>Japanese (ja)</li>
+</ul>
+<p>The interface will automatically display in your system's language if supported, otherwise it will fall back to English.</p>
+<p>このプラグインは複数の言語に対応しています：</p>
+<ul>
+<li>英語（en）</li>
+<li>日本語（ja）</li>
+</ul>
+<p>システムの言語設定に基づいて自動的に対応言語で表示され、対応していない言語の場合は英語が使用されます。</p>
+<h2 id="qt-compatibility--qt互換性">Qt Compatibility / Qt互換性</h2>
+<p>This plugin requires <strong>QGIS 4.0 or later (Qt6/PyQt6)</strong>. Qt5 support was removed in version 2.2.0.</p>
+<p>このプラグインは <strong>QGIS 4.0 以降(Qt6/PyQt6) 専用</strong>です。Qt5サポートはバージョン2.2.0で削除されました。</p>
+<h2 id="version-management--バージョン管理">Version Management / バージョン管理</h2>
+<p>This plugin includes a comprehensive version management system:</p>
+<h3 id="current-version-200">Current Version: 2.0.0</h3>
+<h3 id="version-management-tools">Version Management Tools:</h3>
+<ul>
+<li><code>version.py</code> - Centralized version information</li>
+<li><code>version_manager.py</code> - Version management script</li>
+<li><code>CHANGELOG.md</code> - Detailed change log</li>
+</ul>
+<h3 id="usage-examples">Usage Examples:</h3>
+<pre><code class="language-bash"># Show current version
+python version_manager.py show
+
+# Bump version numbers
+python version_manager.py major    # 2.0.0 -&gt; 3.0.0
+python version_manager.py minor    # 2.0.0 -&gt; 2.1.0  
+python version_manager.py patch    # 2.0.0 -&gt; 2.0.1
+
+# Set pre-release versions
+python version_manager.py alpha    # 2.0.0-alpha
+python version_manager.py beta     # 2.0.0-beta
+python version_manager.py rc       # 2.0.0-rc
+python version_manager.py stable   # 2.0.0 (remove pre-release)
+</code></pre>
+<p>バージョン管理システム:</p>
+<ul>
+<li>セマンティックバージョニング（Semantic Versioning）に準拠</li>
+<li>自動的にmetadata.txtと同期</li>
+<li>CHANGELOGによる変更履歴管理</li>
+<li>プリリリース版とビルドメタデータのサポート</li>
+</ul>
+<h3 id="usage-rules利用方法">usage rules/利用方法</h3>
+<p>　Simply set the project variable legend_group_name_layer_name and specify the order of display as 1,2,3,・・・・.<br />
+プロジェクト変数に　legend_グループ名_レイヤ名 を設定し，表示する順番を　1,2,3,････　と指定するだけです。</p>
+<h4 id="setting-example設定例">Setting Example/設定例</h4>
+<p><img src="https://user-images.githubusercontent.com/86514652/209086882-101a082b-6325-4ebb-9a85-3b9086f01c2b.png" alt="image" />
+<img src="https://user-images.githubusercontent.com/86514652/209077526-44c264dd-4377-461f-9940-5cfe5a7100bc.png" alt="image" /></p>
+<h4 id="display-example表示例">Display example/表示例</h4>
+<p><img src="https://user-images.githubusercontent.com/86514652/209077323-d3b375f9-b713-4ca6-8388-1b82c24b6d50.png" alt="image" />
+<img width="363" height="378" alt="image" src="https://github.com/user-attachments/assets/b3635409-68ef-496b-967e-28f6987e556c" /></p>
+<h1>免責事項</h1>
+<p>本システムは個人のPCで作成・テストされたものです。<br />
+ご利用によるいかなる損害も責任を負いません。</p>
+<p align="center">
+  <a href="https://giphy.com/explore/free-gif" target="_blank">
+    <img src="https://github.com/yamamoto-ryuzo/QGIS_portable_3x/raw/master/imgs/giphy.gif" width="500" title="avvio QGIS">
+  </a>
+</p>
+
+
+
+<h2>関連リンク</h2>
+<ul>
+  <li><a href="https://yamamoto-ryuzo.github.io/qgis_live_harness/plugins.html">プラグイン一覧(サイト)</a></li>
+  <li><a href="https://github.com/yamamoto-ryuzo/qgis_live_harness/blob/master/qgis-plugin/geo_legend/README.md">README(GitHub)</a></li>
+  <li><a href="https://github.com/yamamoto-ryuzo/qgis_live_harness/blob/master/qgis-plugin/geo_legend/CHANGELOG.md">CHANGELOG(GitHub)</a></li>
+</ul>
+<p><small>正本は <code>qgis-plugin/geo_legend/docs/</code>。
+サイトの <code>docs/geo_legend/</code> は
+<code>scripts/build-plugin-docs.py</code> によるミラーです。</small></p>
+</main>
+</div>
+</body>
+</html>

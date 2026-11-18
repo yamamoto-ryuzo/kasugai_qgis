@@ -4,7 +4,7 @@ qgisMinimumVersion=4.0
 qgisMaximumVersion=4.99
 description=ベクターレイヤの属性情報をExcel帳票として出力するスクリプト群(QGIS-exportExcel)の簡易プラグインラッパー
 about=QGIS-exportExcel (https://github.com/yamamoto-ryuzo/QGIS-exportExcel) のレイヤアクション用スクリプト(exportList/exportSingle/exportSingleBulk)を、プラグインメニューからアクティブレイヤ・選択地物に対して実行します。実行にはレイヤ変数(xlsout_*)とwin32com(pywin32)及びExcelが必要です。
-version=1.9.4
+version=1.10.0
 author=yamamoto-ryuzo
 email=ryu@yamakun.net
 homepage=https://github.com/yamamoto-ryuzo/qgis_live_harness/tree/master/qgis-plugin/geo_excel
@@ -12,6 +12,20 @@ tracker=https://github.com/yamamoto-ryuzo/qgis_live_harness/issues
 repository=https://github.com/yamamoto-ryuzo/qgis_live_harness/tree/master/qgis-plugin/geo_excel
 hasProcessingProvider=no
 changelog=
+    Version 1.10.0:
+    - 帳票出力前のドライラン検証 validateRun とテンプレートの
+      プレースホルダ/フィールド対応表 fieldMapping をbridgeに追加
+      (実行せずに変数不足・選択地物・テンプレート実在を確認可能)
+    Version 1.9.7:
+    - exportSingleBulk で同名ブックがExcelで開かれたままだと
+      SaveAs がCOM例外で失敗する不具合を修正
+      (check_same_name_opend ガードを追加し事前検出して中断)
+    Version 1.9.6:
+    - 任意レイヤ変数 dpi 未設定時に critical「dpi is not defined!」が
+      メッセージバーへ出る不具合を修正(quiet取得に変更し既定200で継続)
+    Version 1.9.5:
+    - 同梱スクリプトの import を PyQt5 から qgis.PyQt へ直接修正し、
+      exec 直前のソース書き換え機構(_PYQT5_RE/_rewrite_source)を廃止
     Version 1.9.3:
     - try/except/pass の # nosec 明示(B110/B112)
     Version 1.9.2:

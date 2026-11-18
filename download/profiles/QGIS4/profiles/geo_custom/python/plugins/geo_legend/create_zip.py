@@ -86,7 +86,6 @@ def create_plugin_zip():
         "README.md",
         "icon.png",
         "legend.png",
-        "qt_compat.py",
         "version.py"
     ]
     dirs_to_include = ["i18n"]

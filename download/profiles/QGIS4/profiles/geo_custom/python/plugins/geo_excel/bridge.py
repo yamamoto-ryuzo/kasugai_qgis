@@ -22,9 +22,14 @@ messages として返す(メッセージバー自体にも表示される)。
 
 import inspect
 import json
+import os
+import re
+import zipfile
+from xml.sax.saxutils import unescape
 
 from qgis.PyQt.QtWidgets import QMessageBox
-from qgis.core import QgsExpressionContextUtils, QgsProject, QgsVectorLayer
+from qgis.core import (QgsExpression, QgsExpressionContext,
+                       QgsExpressionContextUtils, QgsProject, QgsVectorLayer)
 
 from . import settings as _settings
 
@@ -112,6 +117,8 @@ class GeoExcelBridge:
         "選択地物または全地物の単票を一括出力したい",
         "帳票出力用レイヤ変数(xlsout_*)の設定状況を確認・変更したい",
         "帳票出力に必要な既定値(出力先・テンプレート)を自動設定したい",
+        "帳票出力前にテンプレート・出力先・選択地物の前提を検証したい",
+        "テンプレートのプレースホルダがどのフィールドに対応するか確認したい",
     ]
     METHOD_DOCS = {
         "run": {
@@ -175,6 +182,22 @@ class GeoExcelBridge:
                 "template_list/template_single/auto_apply。",
             "example": {"method": "setSettings",
                         "args": [{"output_dir": "C:/out", "dpi": "300"}]},
+        },
+        "validateRun": {
+            "description":
+                "帳票スクリプトを実行せず前提条件を検証する。レイヤ変数の"
+                "充足・テンプレート実在・出力先・dpi・選択地物をchecks/"
+                "errors/warningsとして構造化して返し、テンプレートの"
+                "プレースホルダとフィールドの対応表(field_mapping)も含む。"
+                "ready=True の時のみ run() が成功する見込み。",
+            "example": {"method": "validateRun", "args": ["single"]},
+        },
+        "fieldMapping": {
+            "description":
+                "テンプレート内の ##Attach::/##ListInsert::/"
+                "##AttachFitImage:: プレースホルダとレイヤフィールドの"
+                "対応表を返す。未解決プレースホルダは unresolved に列挙。",
+            "example": {"method": "fieldMapping", "args": ["single"]},
         },
         "regenerateTemplates": {
             "description":
@@ -370,6 +393,313 @@ class GeoExcelBridge:
             "layer_id": layer.id(),
             "results": results,
             "messages": dlg.messages,
+        })
+
+    # ---------- ドライラン検証・フィールドマッピング ----------
+
+    _PLACEHOLDER_RE = re.compile(
+        r"##(AttachFitImage|Attach|ListInsert)::([^<]+)")
+
+    @staticmethod
+    def _raw_variable(layer, name):
+        """レイヤ変数の生値を返す(未定義なら None)。"""
+        scope = QgsExpressionContextUtils.layerScope(layer)
+        if scope is None or name not in set(scope.variableNames()):
+            return None
+        return scope.variable(name)
+
+    @staticmethod
+    def _expr_context(layer, feature):
+        """帳票スクリプトの make_expression_context と同じ評価コンテキスト。"""
+        ctx = QgsExpressionContext()
+        ctx.appendScope(QgsExpressionContextUtils.globalScope())
+        ctx.appendScope(QgsExpressionContextUtils.projectScope(
+            QgsProject.instance()))
+        ctx.appendScope(QgsExpressionContextUtils.layerScope(layer))
+        if feature is not None:
+            ctx.setFields(layer.fields())
+            ctx.setFeature(feature)
+        return ctx
+
+    def _eval_variable(self, raw, layer, feature):
+        """create_expression+evaluate と同規則でレイヤ変数値を評価する。
+
+        式でない文字列(パス等)はそのまま返す。式の評価に失敗した
+        場合は None を返す(スクリプト側では変数なし扱いで中断する)。
+        """
+        text = str(raw)
+        exp = QgsExpression(text)
+        if exp.hasParserError():
+            return text
+        if not (exp.referencedColumns() or exp.referencedFunctions()
+                or exp.referencedVariables()):
+            return text
+        value = exp.evaluate(self._expr_context(layer, feature))
+        if exp.hasEvalError() or value is None:
+            return None
+        return str(value)
+
+    @staticmethod
+    def _normalize_path(value):
+        """帳票スクリプトと同じ規則でパスを正規化する(相対=プロジェクトdir)。"""
+        p = str(value)
+        if os.path.isabs(p):
+            return p.replace("\\\\\\\\", "\\\\")
+        base = os.path.dirname(str(QgsProject.instance().fileName()))
+        return os.path.abspath(os.path.join(base, p))
+
+    def _template_placeholders(self, template_path):
+        """xlsx内の ##Attach::/##ListInsert::/##AttachFitImage:: を列挙する。"""
+        found = {}
+        with zipfile.ZipFile(str(template_path)) as z:
+            for name in z.namelist():
+                if (name != "xl/sharedStrings.xml"
+                        and not name.startswith("xl/worksheets/")):
+                    continue
+                try:
+                    text = z.read(name).decode("utf-8", "replace")
+                except Exception:  # nosec B112  # 設計上の許容
+                    continue
+                for m in self._PLACEHOLDER_RE.finditer(text):
+                    kind = m.group(1)
+                    value = unescape(m.group(2)).strip()
+                    key = (kind, value)
+                    if key not in found:
+                        found[key] = {"kind": kind, "value": value,
+                                      "count": 0}
+                    found[key]["count"] += 1
+        return list(found.values())
+
+    @staticmethod
+    def _map_placeholder(ph, layer):
+        """プレースホルダ1件をレイヤフィールド/式/マップテーマと照合する。"""
+        kind, value = ph["kind"], ph["value"]
+        if kind == "AttachFitImage":
+            theme = value.split("::")[0].strip()
+            ph["theme"] = theme
+            themes = QgsProject.instance().mapThemeCollection().mapThemes()
+            ph["resolved"] = theme in themes
+            if not ph["resolved"]:
+                ph["reason"] = f"map theme not found: {theme}"
+            return ph
+        expr = value.split("::")[0].strip()
+        ph["field"] = expr
+        if layer.fields().indexOf(expr) >= 0:
+            ph["resolved"] = True
+            ph["via"] = "field"
+            return ph
+        exp = QgsExpression(expr)
+        if exp.hasParserError():
+            ph["resolved"] = False
+            ph["reason"] = f"invalid expression: {exp.parserErrorString()}"
+            return ph
+        missing = [c for c in exp.referencedColumns()
+                   if layer.fields().indexOf(c) < 0]
+        ph["via"] = "expression"
+        if missing:
+            ph["resolved"] = False
+            ph["reason"] = f"unknown fields: {missing}"
+        else:
+            ph["resolved"] = True
+        return ph
+
+    def _field_mapping(self, layer, template_path):
+        """テンプレートのプレースホルダ対応表を組み立てる。"""
+        mapping = [self._map_placeholder(ph, layer)
+                   for ph in self._template_placeholders(template_path)]
+        unresolved = [p for p in mapping if not p.get("resolved")]
+        return {"template": template_path,
+                "layer_fields": [f.name() for f in layer.fields()],
+                "placeholders": mapping,
+                "unresolved": unresolved}
+
+    def fieldMapping(self, script="single", layer_id=None):
+        """テンプレートのプレースホルダとフィールドの対応表を返す。"""
+        entry = self._script_entry(script)
+        if entry is None:
+            return self._err(
+                f"unknown script: {script} "
+                f"(use {[d['id'] for d in _SCRIPT_DEFS]})")
+        layer = self._layer(layer_id)
+        if layer is None:
+            return self._err("vector layer not found or not active")
+        spec = _settings.SCRIPT_VARS.get(entry["file"], {})
+        tpl_var = (spec.get("required") or [None])[0]
+        raw = self._raw_variable(layer, tpl_var) if tpl_var else None
+        if not raw:
+            return self._err(f"layer variable {tpl_var} is not set")
+        sample = self._sample_feature(layer, None)
+        evaluated = self._eval_variable(raw, layer, sample) or str(raw)
+        path = self._normalize_path(evaluated)
+        if not os.path.isfile(path):
+            return self._err(f"template file not found: {path}")
+        result = self._field_mapping(layer, path)
+        result.update({"script": entry["id"], "layer": layer.name(),
+                       "layer_id": layer.id(),
+                       "template_variable": tpl_var})
+        return self._ok(result)
+
+    @staticmethod
+    def _sample_feature(layer, feature_id):
+        """評価用の代表地物を返す(feature_id→先頭選択→先頭地物)。"""
+        if feature_id is not None:
+            f = layer.getFeature(int(feature_id))
+            return f if f.isValid() else None
+        ids = sorted(layer.selectedFeatureIds())
+        if ids:
+            f = layer.getFeature(ids[0])
+            return f if f.isValid() else None
+        for f in layer.getFeatures():
+            return f if f.isValid() else None
+        return None
+
+    def validateRun(self, script="list", layer_id=None, feature_id=None):
+        """帳票スクリプトを実行せず前提条件を検証する(ドライラン)。"""
+        entry = self._script_entry(script)
+        if entry is None:
+            return self._err(
+                f"unknown script: {script} "
+                f"(use {[d['id'] for d in _SCRIPT_DEFS]})")
+        spec = _settings.SCRIPT_VARS.get(entry["file"], {})
+        required = list(spec.get("required", []))
+        optional = list(spec.get("optional", []))
+        checks, errors, warnings = [], [], []
+
+        def check(cid, ok, message=None, **extra):
+            item = {"check": cid, "ok": bool(ok)}
+            if message:
+                item["message"] = str(message)
+            item.update(extra)
+            checks.append(item)
+            return bool(ok)
+
+        layer = self._layer(layer_id)
+        check("active_layer", layer is not None,
+              "no vector layer (not found or not active)"
+              if layer is None else layer.name())
+        if not check("win32com", self._win32com_available(),
+                     "pywin32 (win32com) is required"):
+            errors.append("win32com (pywin32) is not available")
+        else:
+            checks[-1].pop("message", None)
+        if layer is None:
+            errors.append("no target vector layer")
+            return self._ok({"script": entry["id"], "ready": False,
+                             "checks": checks, "errors": errors,
+                             "warnings": warnings})
+
+        selected = layer.selectedFeatureCount()
+        sample = self._sample_feature(layer, feature_id)
+        if feature_id is not None:
+            check("feature_id", sample is not None,
+                  f"feature_id={feature_id}", feature_id=feature_id)
+            if sample is None:
+                errors.append(
+                    f"feature_id {feature_id} not found in {layer.name()}")
+        if entry["needs_selection"]:
+            if sample is None:
+                check("selection", False,
+                      "no feature_id and no selected features")
+                errors.append(
+                    "no feature selected (requires a selected feature "
+                    "or feature_id)")
+            else:
+                check("selection", True, selected=selected)
+        else:
+            check("selection", True, selected=selected,
+                  message=("all features are used"
+                           if not selected else None))
+
+        auto_apply = _settings.auto_apply_enabled()
+        # 変数評価の地物コンテキストはスクリプト側の規則に合わせる
+        # (single/bulk は地物上で評価、list はレイヤスコープのみ)
+        eval_feature = sample if spec.get("kind") == "single" else None
+        evaluated = {}
+        for name in required + optional:
+            raw = self._raw_variable(layer, name)
+            if raw in (None, ""):
+                if name in required:
+                    if auto_apply:
+                        warnings.append(
+                            f"layer variable {name} is not set "
+                            "(a default will be applied at run)")
+                        check(f"variable:{name}", True, "not set; "
+                              "auto_apply supplies a default",
+                              variable=name)
+                    else:
+                        errors.append(f"layer variable {name} is not set")
+                        check(f"variable:{name}", False, "not set",
+                              variable=name)
+                else:
+                    check(f"variable:{name}", True, "not set (optional)",
+                          variable=name)
+                continue
+            val = self._eval_variable(raw, layer, eval_feature)
+            evaluated[name] = val
+            if val in (None, ""):
+                check(f"variable:{name}", False,
+                      f"evaluates to empty: {raw}", variable=name,
+                      value=str(raw))
+                errors.append(
+                    f"layer variable {name} evaluated empty: {raw}")
+            else:
+                check(f"variable:{name}", True, variable=name,
+                      value=str(raw), evaluated=val)
+
+        keys = required + [None, None, None]
+        tpl_var, out_var, name_var = keys[0], keys[1], keys[2]
+        template_path = None
+        if tpl_var and evaluated.get(tpl_var):
+            template_path = self._normalize_path(evaluated[tpl_var])
+            if not check("template_exists",
+                         os.path.isfile(template_path),
+                         template_path, path=template_path):
+                errors.append(f"template file not found: {template_path}")
+        if out_var and evaluated.get(out_var):
+            outdir = self._normalize_path(evaluated[out_var])
+            ok_dir = os.path.isdir(outdir)
+            if not check("output_dir", ok_dir,
+                         None if ok_dir
+                         else f"output folder does not exist: {outdir}",
+                         path=outdir):
+                errors.append(f"output folder does not exist: {outdir}")
+            else:
+                check("output_writable", os.access(outdir, os.W_OK),
+                      path=outdir)
+        if name_var and name_var in evaluated:
+            check("output_name", bool(evaluated.get(name_var)),
+                  str(evaluated.get(name_var) or "evaluates to empty"),
+                  value=evaluated.get(name_var))
+
+        if "dpi" in evaluated:
+            dv = evaluated.get("dpi")
+            if not check("dpi", bool(dv) and str(dv).isdecimal(),
+                         f"must be a positive integer: {dv}"):
+                errors.append(f"layer variable dpi is invalid: {dv}")
+        else:
+            check("dpi", True, "not set; default 200 is used", value=200)
+
+        field_mapping = None
+        if template_path and os.path.isfile(template_path):
+            try:
+                field_mapping = self._field_mapping(layer, template_path)
+                for p in field_mapping["unresolved"]:
+                    warnings.append(
+                        f"placeholder {p['kind']}::{p['value']} is "
+                        f"unresolved: {p.get('reason', 'no matching field')}")
+            except Exception as e:  # noqa: BLE001
+                warnings.append(f"could not inspect template: {e}")
+
+        return self._ok({
+            "script": entry["id"],
+            "ready": not errors,
+            "layer": {"id": layer.id(), "name": layer.name()},
+            "selected": selected,
+            "auto_apply": auto_apply,
+            "checks": checks,
+            "errors": errors,
+            "warnings": warnings,
+            "field_mapping": field_mapping,
         })
 
     # ---------- 既定設定・環境 ----------

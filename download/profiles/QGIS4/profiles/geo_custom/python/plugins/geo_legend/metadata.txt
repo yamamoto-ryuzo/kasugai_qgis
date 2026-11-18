@@ -7,7 +7,7 @@ name=geo_legend
 qgisMinimumVersion=4.0
 qgisMaximumVersion=4.99
 description=Display only the necessary legends in a clear, easy-to-understand manner with Qt6 compatibility
-version=2.6.8
+version=2.9.0
 author=yamamoto-ryuzo
 email=ryu@yamakun.net
 supportsQt6=True
@@ -24,6 +24,24 @@ hasProcessingProvider=no
 
 # Changelog for version 2.0.2
 changelog=
+    Version 2.9.0:
+    - 凡例エクスポートを拡充(issue #21)。bridge の
+      exportLegend(format='svg')で SVG 出力、exportLegendHtml で
+      data URI 埋め込みの自己完結 HTML スニペット生成、
+      凡例ドックの右クリックメニューから PNG/SVG/HTML
+      エクスポートを起動可能にした
+    Version 2.8.0:
+    - applyRules の spec 拡張(width/width_unit/min_scale/max_scale)と
+      legendSpec への対応項目追加
+    Version 2.7.0:
+    - bridge に凡例作成系メソッドを追加: legendSpec(現在のレンダラ定義)/
+      applyCategories(個別値分類)/applyGraduated(階級区分)/
+      applyRules(ルールベース)/applySingleSymbol(単一化)/
+      addLayoutLegend(印刷レイアウトへ凡例アイテム追加)/
+      exportLegendImage(凡例PNG出力)。AIチャットからの凡例作成に対応
+    Version 2.6.9:
+    - qt_compat.py を廃止し Qt import を legend_view/
+      legend_view_dockwidget へ直接化(Qt6 スコープ列挙型に統一)
     Version 2.6.4:
     - try/except/pass の # nosec 明示(B110/B112)
     Version 2.6.3:

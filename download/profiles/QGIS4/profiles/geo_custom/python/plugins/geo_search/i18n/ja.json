@@ -104,15 +104,20 @@
     "{field_name}:": "{field_name}:"
   },
   "SearchWidget": {
+    "Address Search": "住所検索",
     "Angle (deg):": "角度（度）:",
     "Angle: Not specified": "角度: 未指定",
     "Angle: {0}": "角度: {0}",
     "Angle: {0}°": "角度: {0}°",
+    "Create scratch layer": "スクラッチレイヤを作成",
     "Edit Tab Settings: {0}": "タブ設定の編集: {0}",
+    "Enter an address, place name or coordinates": "住所・施設名・座標を入力",
     "Exact Match": "完全一致",
     "Forward Match": "前方一致",
     "Fuzzy Search": "あいまい検索",
+    "GSI": "地理院",
     "Geo Search: ": "地図検索: ",
+    "Google Maps API key is not set": "Google Maps APIキーが未設定です",
     "OR search for multiple fields": "複数フィールドをOR検索します",
     "Owner Search": "所有者検索",
     "Partial Match": "部分一致",
@@ -122,7 +127,9 @@
     "Scale: {0}": "縮尺: {0}",
     "Search Results: {0} items": "検索結果: {0}件",
     "Search all fields": "全フィールドを検索",
-    "Set current value": "現在の値を設定"
+    "Search failed": "検索に失敗しました",
+    "Set current value": "現在の値を設定",
+    "Yahoo app id is not set": "YahooアプリケーションIDが未設定です"
   },
   "SettingsDialog": {
     "Applied theme to %n layers": "%n レイヤにテーマを適用しました",

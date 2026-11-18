@@ -15,6 +15,8 @@ from qgis.PyQt.QtWidgets import (
     QLayout,
     QLayoutItem,
     QAbstractItemView,
+    QComboBox,
+    QCheckBox,
 )
 
 
@@ -353,3 +355,99 @@ class SearchOwnerWidget(SearchTextWidget):
         spacer = QSpacerItem(20, 40, QSizePolicy.Policy.Expanding)
 
         return [label_layout, self.QHBox, self.line_edit, spacer]
+
+
+# 住所検索(ジオコーディング)
+class SearchAddressWidget(SearchWidget):
+    """住所・施設名を外部ジオコーダで検索するタブ用ウィジェット。
+
+    CANVAS(kasugai_canvas)の住所検索UIに対応: プロバイダ選択コンボ +
+    1行入力。search_widgets は入力欄のみ(bridge の値設定経路を共用)。
+    """
+
+    # CANVAS側と同じ表示名(地理院/Google/Yahoo/OSM)
+    PROVIDER_LABELS = {
+        "gsi": "GSI",
+        "google": "Google",
+        "yahoo": "Yahoo",
+        "osm": "OSM",
+    }
+
+    def create_widgets(self, setting):
+        tab_setting = self.setting if isinstance(self.setting, dict) else {}
+        try:
+            from ..geocode import PROVIDERS, resolve_api_key, resolve_yahoo_app_id
+            providers = list(tab_setting.get("Providers") or PROVIDERS)
+        except Exception:
+            providers = ["gsi"]
+
+        # プロバイダ選択(CANVASと同じくキー未設定のものは無効化)
+        self.provider_combo = QComboBox()
+        try:
+            google_ok = bool(resolve_api_key(tab_setting))
+            yahoo_ok = bool(resolve_yahoo_app_id(tab_setting))
+        except Exception:
+            google_ok = yahoo_ok = False
+        default_provider = str(
+            tab_setting.get("Provider") or "gsi").lower()
+        default_index = 0
+        for i, prov in enumerate(providers):
+            prov = str(prov).lower()
+            self.provider_combo.addItem(
+                self.tr(self.PROVIDER_LABELS.get(prov, prov)), prov)
+            if prov == default_provider:
+                default_index = i
+            # google/yahoo はキー無しでは選択不可(CANVASのupdateSearchProvider相当)
+            if prov == "google" and not google_ok:
+                self.provider_combo.model().item(i).setEnabled(False)
+            if prov == "yahoo" and not yahoo_ok:
+                self.provider_combo.model().item(i).setEnabled(False)
+        self.provider_combo.setCurrentIndex(default_index)
+
+        # スクラッチ(結果)レイヤ作成のON/OFF。既定は作成(従来動作)
+        self.scratch_check = QCheckBox(self.tr("Create scratch layer"))
+        try:
+            self.scratch_check.setChecked(
+                bool(tab_setting.get("CreateScratch", True)))
+        except Exception:  # nosec B110  # 設計上の許容
+            self.scratch_check.setChecked(True)
+
+        self.label = QLabel(self.tr("Address Search") + ": ")
+        self.line_edit = QLineEdit()
+        self.line_edit.setPlaceholderText(
+            self.tr("Enter an address, place name or coordinates"))
+        self.search_widgets = [self.line_edit]
+        self.labels = [self.label]
+
+        widgets = []
+        widgets.append(self.provider_combo)
+        widgets.append(self.label)
+        widgets.append(self.line_edit)
+        return widgets
+
+    def _angle_scale_layout(self):
+        # 「スクラッチレイヤを作成」チェックは角度/縮尺表示の後ろに並べる
+        layout = super()._angle_scale_layout()
+        try:
+            h = layout.itemAt(0).layout()
+            if h is not None:
+                h.insertWidget(2, self.scratch_check)
+            else:
+                layout.addWidget(self.scratch_check)
+        except Exception:
+            layout.addWidget(self.scratch_check)
+        return layout
+
+    def create_scratch(self):
+        """スクラッチ(結果)レイヤをプロジェクトへ作成するかを返す。"""
+        try:
+            return bool(self.scratch_check.isChecked())
+        except Exception:  # nosec B110  # 設計上の許容
+            return True
+
+    def current_provider(self):
+        """選択中プロバイダ名(gsi/google/yahoo/osm)を返す。"""
+        try:
+            return str(self.provider_combo.currentData() or "gsi")
+        except Exception:  # nosec B110  # 設計上の許容
+            return "gsi"

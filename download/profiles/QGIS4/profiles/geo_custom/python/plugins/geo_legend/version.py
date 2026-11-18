@@ -5,7 +5,7 @@ Version information for QGIS Legend View plugin
 
 # Version components
 MAJOR = 2
-MINOR = 5
+MINOR = 8
 PATCH = 0
 
 # Pre-release identifier (alpha, beta, rc) - empty for stable releases

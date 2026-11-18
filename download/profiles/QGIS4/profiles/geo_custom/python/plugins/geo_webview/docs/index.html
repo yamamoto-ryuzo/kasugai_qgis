@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="QGIS プロジェクトを .kasc+canvas_data/ に出力し、KASUGAI Canvas マルチエンジンで再生するサーバレス Web 配信プラグイン geo_webview のドキュメント">
+<title>geo_webview ドキュメント</title>
+<link rel="stylesheet" href="style.css">
+<script src="nav.js" defer></script>
+</head>
+<body>
+<div class="container">
+<main>
+<header class="hero"><h1>geo_webview — サーバレス Web 配信プラグイン
+<span class="ver-badge" data-plugin-version hidden></span></h1>
+<p>開いている QGIS プロジェクトを <code>.kasc</code>+<code>canvas_data/</code> パッケージに出力し、KASUGAI Canvas のマルチエンジン（Cesium / MapLibre / OpenLayers / Leaflet / GSI Maps）で再生する QGIS プラグインの公式ドキュメントです。</p></header>
+<figure class="shot">
+<img src="images/overview.webp"
+alt="QGISを即座にWebGISへ変換 — geo_webview 連携・機能ガイド。.kasc+canvas_data/ のエクスポート・静的ホスト配信、エクスポート／ZIP出力／▶WebView（CDN再生）／▶Canvas（ローカル連携）の4出力モード、Cesium・MapLibre・OpenLayers・Leaflet・GSI Maps の5エンジンを KASUGAI Canvas に一本化して再生">
+<figcaption>geo_webview の全体像 — QGIS の成果物を .kasc+canvas_data/ へ出力し、静的ホストまたは KASUGAI Canvas の5エンジンで再生</figcaption>
+</figure>
+<figure class="shot">
+<video src="images/demo.mp4" controls muted playsinline preload="metadata"></video>
+<figcaption>デモ — QGIS から一瞬で Web 公開：CDN を活用したサーバレス WebGIS</figcaption>
+</figure>
+<p style="text-align:center"><a
+href="https://yamamoto-ryuzo.github.io/kasugai_canvas/web/cesium/"
+target="_blank" rel="noopener"><b>▶ サンプルサイトを開く</b></a>
+— geo_webview の出力物を再生する KASUGAI Canvas（Cesium
+エンジン）の公開デモ。インストール不要でブラウザから確認できます</p>
+<nav class="pillars">
+<a href="architecture.html"><b>連携構成図</b><span>QGIS → geo_webview → WebGIS / CDN /
+Canvas / Re:Earth の全体像と、クライアントごとの連携方針</span></a>
+<a href="features.html"><b>主な機能</b><span>【エクスポート】【ZIP】【▶ WebView】
+【▶ Canvas】と WebGIS 公開 — パネル操作のすべて</span></a>
+<a href="engines.html"><b>マルチエンジン</b><span>Cesium / MapLibre / OpenLayers /
+Leaflet / GSI Maps の使い分け・機能比較と GitHubPages CDN 配信</span></a>
+</nav>
+<blockquote>
+<p><strong><a
+href="https://github.com/yamamoto-ryuzo/geo_suite">geo_suite</a></strong>
+の一部として開発<br />
+開いている QGIS プロジェクトを <code>.kasc</code>+<code>canvas_data/</code>
+パッケージに出力し、 KASUGAI Canvas のマルチエンジン（Cesium / MapLibre
+/ OpenLayers / Leaflet / GSI Maps） で再生する QGIS
+プラグイン。出力物は静的ホスティングだけで配信できる
+<strong>サーバレス構成が本体</strong>であり、内蔵 HTTP
+サーバー（起動API・ <code>/export-data/</code>
+配信・画面共有・受領履歴）がそれを補助します。</p>
+</blockquote>
+<p><a
+href="https://github.com/yamamoto-ryuzo/qgis_live_harness/blob/master/qgis-plugin/geo_webview/README.md">English
+README</a></p>
+
+</main>
+</div>
+<script type="module" src="assets/site.js"></script>
+</body>
+</html>

@@ -5,7 +5,7 @@ qgisMaximumVersion=4.99
 description=Layout Item Selector and Pre-edit Tool for efficient layout management and template creation
 description[en]=A comprehensive QGIS plugin for selecting layouts, pre-editing items, and creating reusable templates for efficient map production workflows
 description[ja]=レイアウト選択、アイテム事前編集、テンプレート作成により効率的な地図作成ワークフローを実現するQGISプラグイン
-version=2.9.6
+version=2.10.0
 author=yamamoto-ryuzo
 email=ryu@yamakun.net
 
@@ -18,6 +18,8 @@ about[ja]=このプラグインは、QGISのレイアウト管理を強化し、
 # Uncomment the following line and add your changelog:
 
 changelog=
+    2.10.0: 出力前のレイアウトプレビューを追加(bridge previewLayout/previewThumbnails + パネルの Preview Layout ボタン、QgsLayoutExporter経由PNG/PDF/SVG、issue #13)
+    2.9.7: ui/loader.py の QT5/QT6 両対応を示す旧記述を Qt6 専用へ修正
     2.9.3: try/except/pass|continue の43箇所に # nosec を付与(設計上の許容を明示)
     2.9.2: Qt6列挙型のスコープ化(Qgis.MessageLevel等35箇所)
     2.9.1: plugins.qgis.org セキュリティスキャン対応(LOW指摘を同梱 .bandit で抑制)

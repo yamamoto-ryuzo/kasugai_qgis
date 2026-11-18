@@ -104,15 +104,19 @@
     "{field_name}:": "{field_name}:"
   },
   "SearchWidget": {
+    "Address Search": "Поиск адреса",
     "Angle (deg):": "Угол (град):",
     "Angle: Not specified": "Угол: не указан",
     "Angle: {0}": "Угол: {0}",
     "Angle: {0}°": "Угол: {0}°",
+    "Create scratch layer": "Создать временный слой",
     "Edit Tab Settings: {0}": "Редактировать параметры вкладки: {0}",
+    "Enter an address, place name or coordinates": "Введите адрес, название места или координаты",
     "Exact Match": "Точное совпадение",
     "Forward Match": "Совпадение по префиксу",
     "Fuzzy Search": "Нечёткий поиск",
     "Geo Search: ": "Гео-поиск: ",
+    "Google Maps API key is not set": "Ключ API Google Maps не задан",
     "OR search for multiple fields": "OR-поиск по нескольким полям",
     "Owner Search": "Поиск владельца",
     "Partial Match": "Частичное совпадение",
@@ -122,7 +126,9 @@
     "Scale: {0}": "Масштаб: {0}",
     "Search Results: {0} items": "Результаты поиска: {0} элементов",
     "Search all fields": "Искать по всем полям",
-    "Set current value": "Установить текущее значение"
+    "Search failed": "Ошибка поиска",
+    "Set current value": "Установить текущее значение",
+    "Yahoo app id is not set": "Идентификатор приложения Yahoo не задан"
   },
   "SettingsDialog": {
     "Applied theme to %n layers": "Тема применена к %n слоям",

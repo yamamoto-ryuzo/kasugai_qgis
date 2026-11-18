@@ -1,0 +1,947 @@
+{
+  "component": "geo_report",
+  "component_type": "qgis_plugin",
+  "version": "2.10.0",
+  "driver": {
+    "type": "qgis_live_harness",
+    "detect": "GET http://127.0.0.1:<http_port>/api/health",
+    "launch": "npm run live:ensure",
+    "ready": "/api/health が ok:true を返す",
+    "control": "POST /api/cmd Bearer <live_dir token>",
+    "detected_from": "scripts/qgis-session.mjs, live_driver.py"
+  },
+  "updated": "2026-11-16T02:57:02+09:00",
+  "features": [
+    {
+      "id": "entry_point.__init__.py:classFactory",
+      "kind": "entry_point",
+      "name": "classFactory",
+      "source": "__init__.py:57",
+      "signature": "classFactory(iface)",
+      "summary": "Load GeoReport class from plugin.py.",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "classFactory→プラグインロード済"
+    },
+    {
+      "id": "action.GeoReport.initGui",
+      "kind": "action",
+      "name": "initGui",
+      "source": "plugin.py:345",
+      "signature": "initGui()",
+      "summary": "Create the menu entries and toolbar icons inside the QGIS GUI.",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call/generic trigger→実在確認"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "action.GeoReport.run",
+      "kind": "action",
+      "name": "run",
+      "source": "plugin.py:441",
+      "signature": "run()",
+      "summary": "Run method that performs all the real work",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call/generic trigger→実在確認"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "action.GeoReport.unload",
+      "kind": "action",
+      "name": "unload",
+      "source": "plugin.py:377",
+      "signature": "unload()",
+      "summary": "Removes the plugin menu item and icon from QGIS GUI.",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call/generic trigger→実在確認"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "dialog.LayoutFileSelectDialog",
+      "kind": "dialog",
+      "name": "LayoutFileSelectDialog",
+      "source": "plugin.py:2625",
+      "signature": "LayoutFileSelectDialog",
+      "summary": "レイアウトファイル選択ダイアログ",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "openDialog→screenshot→closeDialog"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "dialog.LayoutSelectorDialog",
+      "kind": "dialog",
+      "name": "LayoutSelectorDialog",
+      "source": "plugin.py:611",
+      "signature": "LayoutSelectorDialog",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "openDialog→screenshot→closeDialog"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoReport._on_dock_visibility_changed",
+      "kind": "ui_control",
+      "name": "_on_dock_visibility_changed",
+      "source": "plugin.py:391",
+      "signature": "_on_dock_visibility_changed(visible)",
+      "summary": "ドックウィジェットの表示状態が変更されたときの処理",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.LayoutFileSelectDialog.on_file_double_clicked",
+      "kind": "ui_control",
+      "name": "on_file_double_clicked",
+      "source": "plugin.py:2728",
+      "signature": "on_file_double_clicked(item)",
+      "summary": "ファイルがダブルクリックされた時の処理",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.LayoutFileSelectDialog.on_selection_changed",
+      "kind": "ui_control",
+      "name": "on_selection_changed",
+      "source": "plugin.py:2719",
+      "signature": "on_selection_changed(current, previous)",
+      "summary": "選択が変更された時の処理",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.LayoutSelectorDialog._on_layouts_changed",
+      "kind": "ui_control",
+      "name": "_on_layouts_changed",
+      "source": "plugin.py:1050",
+      "signature": "_on_layouts_changed(*args)",
+      "summary": "レイアウト構成の変更時に一覧を再読込する",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.LayoutSelectorDialog.on_item_selected",
+      "kind": "ui_control",
+      "name": "on_item_selected",
+      "source": "plugin.py:1661",
+      "signature": "on_item_selected(current, previous)",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.LayoutSelectorDialog.on_layout_selected",
+      "kind": "ui_control",
+      "name": "on_layout_selected",
+      "source": "plugin.py:1206",
+      "signature": "on_layout_selected(current, previous)",
+      "summary": "レイアウトが選択された時の処理",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.LayoutSelectorDialog.on_property_changed",
+      "kind": "ui_control",
+      "name": "on_property_changed",
+      "source": "plugin.py:1797",
+      "signature": "on_property_changed()",
+      "summary": "プロパティが変更された時の処理（リアルタイム更新のための準備）",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.LayoutSelectorDialog.on_tab_changed",
+      "kind": "ui_control",
+      "name": "on_tab_changed",
+      "source": "plugin.py:1157",
+      "signature": "on_tab_changed(index)",
+      "summary": "タブが切り替わったときの処理。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "bridge.addStandardLayout",
+      "kind": "bridge_method",
+      "name": "addStandardLayout",
+      "source": "bridge.py:513",
+      "signature": "addStandardLayout(name=…)",
+      "summary": "標準レイアウトテンプレートをプロジェクトへ追加する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call addStandardLayout → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.closePanel",
+      "kind": "bridge_method",
+      "name": "closePanel",
+      "source": "bridge.py:316",
+      "signature": "closePanel()",
+      "summary": "ドックパネルを閉じる。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call closePanel → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.createLayout",
+      "kind": "bridge_method",
+      "name": "createLayout",
+      "source": "bridge.py:681",
+      "signature": "createLayout(name)",
+      "summary": "空の印刷レイアウトを新規作成する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call createLayout → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.duplicateLayout",
+      "kind": "bridge_method",
+      "name": "duplicateLayout",
+      "source": "bridge.py:669",
+      "signature": "duplicateLayout(layout, new_name=…)",
+      "summary": "レイアウトを複製する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call duplicateLayout → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "bridge_call応答あり args=['']"
+    },
+    {
+      "id": "bridge.itemProperties",
+      "kind": "bridge_method",
+      "name": "itemProperties",
+      "source": "bridge.py:413",
+      "signature": "itemProperties(item=…)",
+      "summary": "アイテムのプロパティを返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call itemProperties → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.layoutInfo",
+      "kind": "bridge_method",
+      "name": "layoutInfo",
+      "source": "bridge.py:590",
+      "signature": "layoutInfo()",
+      "summary": "選択中レイアウトの情報テキストを返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call layoutInfo → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.listItems",
+      "kind": "bridge_method",
+      "name": "listItems",
+      "source": "bridge.py:392",
+      "signature": "listItems()",
+      "summary": "選択中レイアウトのアイテム一覧を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call listItems → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.listLayouts",
+      "kind": "bridge_method",
+      "name": "listLayouts",
+      "source": "bridge.py:323",
+      "signature": "listLayouts()",
+      "summary": "プロジェクトの印刷レイアウト一覧を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call listLayouts → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.listPropertyFiles",
+      "kind": "bridge_method",
+      "name": "listPropertyFiles",
+      "source": "bridge.py:604",
+      "signature": "listPropertyFiles()",
+      "summary": "~/QGIS_Layouts の保存済みプロパティJSON一覧を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call listPropertyFiles → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.listStandardLayouts",
+      "kind": "bridge_method",
+      "name": "listStandardLayouts",
+      "source": "bridge.py:507",
+      "signature": "listStandardLayouts()",
+      "summary": "同梱 composer/*.qpt の標準レイアウト名一覧を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call listStandardLayouts → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.loadLayoutProperties",
+      "kind": "bridge_method",
+      "name": "loadLayoutProperties",
+      "source": "bridge.py:463",
+      "signature": "loadLayoutProperties(path)",
+      "summary": "JSONからプロパティを読み込み選択中レイアウトへ適用。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call loadLayoutProperties → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "要実引数(応答あり): {'ok': False, 'error': 'path required'}"
+    },
+    {
+      "id": "bridge.manageLayouts",
+      "kind": "bridge_method",
+      "name": "manageLayouts",
+      "source": "bridge.py:488",
+      "signature": "manageLayouts()",
+      "summary": "QGISレイアウトマネージャ(削除・名前変更・複製が可能)を開く。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call manageLayouts → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.openLayoutManager",
+      "kind": "bridge_method",
+      "name": "openLayoutManager",
+      "source": "bridge.py:480",
+      "signature": "openLayoutManager()",
+      "summary": "選択中レイアウトをレイアウトデザイナで開く。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call openLayoutManager → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.openPanel",
+      "kind": "bridge_method",
+      "name": "openPanel",
+      "source": "bridge.py:304",
+      "signature": "openPanel()",
+      "summary": "レイアウト選択ドックパネルを開く。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call openPanel → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.pluginInfo",
+      "kind": "bridge_method",
+      "name": "pluginInfo",
+      "source": "bridge.py:267",
+      "signature": "pluginInfo()",
+      "summary": "プラグインの自己記述(id/summary/when_to_use/methods)を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call pluginInfo → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.printOptions",
+      "kind": "bridge_method",
+      "name": "printOptions",
+      "source": "bridge.py:366",
+      "signature": "printOptions(options=…)",
+      "summary": "スケール・角度の取得/設定。{scale, angle} を渡すと設定。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call printOptions → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.refresh",
+      "kind": "bridge_method",
+      "name": "refresh",
+      "source": "bridge.py:577",
+      "signature": "refresh()",
+      "summary": "アイテム情報とレイアウト情報を再読込する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call refresh → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.removeLayout",
+      "kind": "bridge_method",
+      "name": "removeLayout",
+      "source": "bridge.py:639",
+      "signature": "removeLayout(layout)",
+      "summary": "レイアウトを削除する(確認なし)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call removeLayout → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.renameLayout",
+      "kind": "bridge_method",
+      "name": "renameLayout",
+      "source": "bridge.py:649",
+      "signature": "renameLayout(layout, new_name)",
+      "summary": "レイアウト名を変更する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call renameLayout → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "要実引数(応答あり): {'ok': False, 'error': 'new_name is empty'}"
+    },
+    {
+      "id": "bridge.saveLayoutProperties",
+      "kind": "bridge_method",
+      "name": "saveLayoutProperties",
+      "source": "bridge.py:447",
+      "signature": "saveLayoutProperties(path=…)",
+      "summary": "選択中レイアウトのアイテムプロパティをJSONへ保存。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call saveLayoutProperties → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.selectLayout",
+      "kind": "bridge_method",
+      "name": "selectLayout",
+      "source": "bridge.py:342",
+      "signature": "selectLayout(layout)",
+      "summary": "レイアウトを選択する(index/名前)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call selectLayout → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "bridge_call応答あり args=['']"
+    },
+    {
+      "id": "bridge.setItemProperties",
+      "kind": "bridge_method",
+      "name": "setItemProperties",
+      "source": "bridge.py:428",
+      "signature": "setItemProperties(item, properties)",
+      "summary": "アイテムのプロパティを部分適用する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call setItemProperties → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.showPrintArea",
+      "kind": "bridge_method",
+      "name": "showPrintArea",
+      "source": "bridge.py:379",
+      "signature": "showPrintArea(visible=…)",
+      "summary": "印刷範囲の地図上表示を切り替える。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call showPrintArea → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.status",
+      "kind": "bridge_method",
+      "name": "status",
+      "source": "bridge.py:284",
+      "signature": "status()",
+      "summary": "パネル・選択レイアウト・印刷範囲表示の状態を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call status → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "ai.bridge_route",
+      "kind": "ai_integration",
+      "name": "bridge_call経由全到達",
+      "source": "bridge.py",
+      "signature": "",
+      "summary": "全bridge_methodがAI経路で呼べる",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call 全method→ok/error記録"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "16メソッド到達可能"
+    },
+    {
+      "id": "ai.catalog",
+      "kind": "ai_integration",
+      "name": "describe_plugins登録",
+      "source": "geo_driver経由",
+      "signature": "",
+      "summary": "カタログに載り呼出可能か",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "describe_plugins→plugins[]にid実在+methods非空"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "describe_plugins: methods=23"
+    },
+    {
+      "id": "ai.pluginInfo",
+      "kind": "ai_integration",
+      "name": "pluginInfo自己記述",
+      "source": "bridge.py",
+      "signature": "pluginInfo()",
+      "summary": "summary/when_to_use/methodsの正確性",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call pluginInfo→メタ一致assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "自己記述あり"
+    },
+    {
+      "id": "logic_fn.__init__.py:log_message",
+      "kind": "logic_fn",
+      "name": "log_message",
+      "source": "__init__.py:41",
+      "signature": "log_message(message, level=…)",
+      "summary": "QGIS のログメッセージタブに出力",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.plugin.py:log_message",
+      "kind": "logic_fn",
+      "name": "log_message",
+      "source": "plugin.py:59",
+      "signature": "log_message(message, level=…)",
+      "summary": "QGIS のログメッセージタブに出力",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:33:28+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "bridge.previewLayout",
+      "kind": "bridge_method",
+      "name": "previewLayout",
+      "source": "bridge.py",
+      "signature": "previewLayout(layout=None, format='png', dpi=None, path=None, includeBase64=False)",
+      "summary": "QgsLayoutExporter でレイアウトを一時描画し生成ファイル(png/pdf/svg)のパス一覧を返す",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call listLayouts → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-16T02:57:02+09:00",
+      "note": "bridge_call previewLayout[0,'png']/['AI凡例','pdf'] でPNG/PDF生成確認(実QGIS)"
+    },
+    {
+      "id": "bridge.previewThumbnails",
+      "kind": "bridge_method",
+      "name": "previewThumbnails",
+      "source": "bridge.py",
+      "signature": "previewThumbnails(layouts=None, dpi=50)",
+      "summary": "全(または指定)レイアウトのサムネイルPNGを一括生成しパス一覧を返す",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call listLayouts → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-16T02:57:02+09:00",
+      "note": "bridge_call previewThumbnails[] で3レイアウト分のPNG生成確認(実QGIS)"
+    }
+  ],
+  "static": {
+    "compileall": {
+      "rc": 0,
+      "out": ""
+    },
+    "flake8": {
+      "rc": 0,
+      "out": ""
+    },
+    "bandit": {
+      "rc": 0,
+      "out": "[main]\tINFO\tUsing ini file for skipped tests\n[main]\tINFO\tUsing command line arg for selected targets"
+    },
+    "ran_at": "2026-11-15T22:33:28+09:00",
+    "reload": {
+      "loaded": true,
+      "opened": false,
+      "plugins": [
+        "ImportPhotos",
+        "MetaSearch",
+        "Qgis2threejs",
+        "QuickDEM4JP",
+        "StreetView",
+        "db_manager",
+        "geo_driver",
+        "geo_excel",
+        "geo_import",
+        "geo_launcher",
+        "geo_legend",
+        "geo_report",
+        "geo_search",
+        "geo_userfunc",
+        "geo_webview",
+        "menu_from_project",
+        "mmqgis",
+        "mojxml_plugin",
+        "plateau_plugin",
+        "processing",
+        "qfieldsync",
+        "searchlayers"
+      ]
+    }
+  }
+}

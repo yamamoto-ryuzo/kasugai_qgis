@@ -56,7 +56,7 @@ class SettingsDialog(QtWidgets.QDialog):
 
         kasugai_info = QtWidgets.QLabel(
             QtCore.QCoreApplication.translate('geo_webview',
-                                              "When set, KASUGAI export writes .kasc+DATA/ into "
+                                              "When set, KASUGAI export writes .kasc+canvas_data/ into "
                                               "<install>/QGIS_projects/<project>/ (kept separate from Canvas's own projects/) "
                                               "and registers it via the local API.")
         )
@@ -89,7 +89,7 @@ class SettingsDialog(QtWidgets.QDialog):
             QtCore.QCoreApplication.translate(
                 'geo_webview',
                 "Fallback when KASUGAI Canvas is not installed: the hosted "
-                "engine reads .kasc+DATA/ served by this plugin's HTTP server."))
+                "engine reads .kasc+canvas_data/ served by this plugin's HTTP server."))
         hosted_info.setWordWrap(True)
         hosted_info.setStyleSheet("color: #666;")
         hosted_layout.addWidget(hosted_info)
@@ -128,6 +128,54 @@ class SettingsDialog(QtWidgets.QDialog):
         bm_layout.addWidget(bm_info)
         bm_group.setLayout(bm_layout)
         layout.addWidget(bm_group)
+
+        # Vector export format (.kasc)
+        vf_group = QtWidgets.QGroupBox(
+            QtCore.QCoreApplication.translate(
+                'geo_webview', "Vector Export Format"))
+        vf_layout = QtWidgets.QVBoxLayout()
+        self.kasugai_vector_combo = QtWidgets.QComboBox()
+        self.kasugai_vector_combo.addItem(
+            QtCore.QCoreApplication.translate(
+                'geo_webview', "native (reference as-is)"), 'native')
+        self.kasugai_vector_combo.addItem(
+            QtCore.QCoreApplication.translate(
+                'geo_webview', "recommended (FlatGeobuf → canvas_data/)"),
+            'recommended')
+        self.kasugai_vector_combo.addItem(
+            QtCore.QCoreApplication.translate(
+                'geo_webview', "geojson (WEB interop → GeoJSON)"),
+            'geojson')
+        self.kasugai_vector_combo.setToolTip(
+            QtCore.QCoreApplication.translate(
+                'geo_webview',
+                "Vector export format for .kasc output."))
+        self.kasugai_vector_combo.currentIndexChanged.connect(
+            self._vector_format_changed)
+        vf_layout.addWidget(self.kasugai_vector_combo)
+        vf_rules = QtWidgets.QLabel(
+            QtCore.QCoreApplication.translate(
+                'geo_webview',
+                "<b>recommended:</b> gpkg / geojson / shp / csv / kml / "
+                "wfs and other sources are converted to FlatGeobuf and "
+                "written into canvas_data/ as flatgeobuf: lines (spatial index + "
+                "bbox=auto range reads in Canvas). Sources already in "
+                "FlatGeobuf/GeoParquet keep native references "
+                "(flatgeobuf: / geoparquet: / duckdb:+format=parquet).<br>"
+                "<b>native (default):</b> readable sources are "
+                "referenced as-is (gpkg: / geojson: / shp: / wfs: / duckdb: "
+                "lines); only non-native sources are converted. Layer "
+                "filters (subset) and fields/where/limit are baked into "
+                "the converted FlatGeobuf either way.<br>"
+                "<b>geojson (WEB interop):</b> ALL vectors (including "
+                "FlatGeobuf/GeoParquet sources) are converted to GeoJSON "
+                "and written into canvas_data/ as geojson: lines, so other "
+                "WebGIS and GIS tools can read canvas_data/ as-is."))
+        vf_rules.setWordWrap(True)
+        vf_rules.setStyleSheet("color: #666;")
+        vf_layout.addWidget(vf_rules)
+        vf_group.setLayout(vf_layout)
+        layout.addWidget(vf_group)
 
         layout.addStretch()
 
@@ -180,6 +228,22 @@ class SettingsDialog(QtWidgets.QDialog):
         # Additional basemap group names
         self.kasugai_basemap_groups_input.setText(
             str(self.settings.value('kasugai_basemap_groups', '') or ''))
+
+        # Vector export format
+        mode = str(self.settings.value('kasugai_vector_format', '')
+                   or '').strip().lower()
+        if mode not in ('native', 'recommended', 'geojson'):
+            mode = 'native'
+        idx = self.kasugai_vector_combo.findData(mode)
+        self.kasugai_vector_combo.blockSignals(True)
+        self.kasugai_vector_combo.setCurrentIndex(idx if idx >= 0 else 0)
+        self.kasugai_vector_combo.blockSignals(False)
+
+    def _vector_format_changed(self, index):
+        """ベクター出力モード(native/recommended/geojson)を保存する。"""
+        self.settings.setValue(
+            'kasugai_vector_format',
+            self.kasugai_vector_combo.itemData(index) or 'native')
 
     def _basemap_groups_changed(self):
         """追加のベースマップグループ名(カンマ区切り)を保存する。"""

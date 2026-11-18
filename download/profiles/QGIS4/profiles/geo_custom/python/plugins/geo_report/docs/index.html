@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>geo_report ドキュメント | QGIS Live Harness</title>
+<meta name="description" content="レイアウト選択、アイテム事前編集、テンプレート作成により効率的な地図作成ワークフローを実現するQGISプラグイン">
+<link rel="stylesheet" href="style.css">
+<script src="nav.js" defer></script>
+</head>
+<body>
+<div class="container">
+<header>
+<h1>QGIS Layout Item Selector / レイアウトアイテムセレクター</h1>
+<p>レイアウト選択、アイテム事前編集、テンプレート作成により効率的な地図作成ワークフローを実現するQGISプラグイン</p>
+</header>
+<main>
+
+<p>一つのQGISレイアウトを複数の図面・台帳テンプレートとして活用できる多機能プラグインです。<br />
+This is a multifunctional QGIS plugin that allows you to use a single layout as templates for multiple maps and ledgers.</p>
+<p><img src="images/image.png" alt="alt text" /></p>
+<h2 id="主な機能--main-features">主な機能 / Main Features</h2>
+<ul>
+<li><strong>レイアウト選択・管理 / Layout selection &amp; management</strong>: プロジェクト内の全レイアウトを一覧表示し、選択・管理が可能<br />
+List and manage all layouts in the project.</li>
+<li><strong>アイテム一括編集 / Batch item editing</strong>: レイアウト内の全アイテム（地図・ラベル・凡例・画像など）のプロパティ（位置・サイズ・内容・可視性・回転・スケール等）をGUIで編集<br />
+Edit properties (position, size, content, visibility, rotation, scale, etc.) of all items (map, label, legend, image, etc.) in the layout via GUI.</li>
+<li><strong>テンプレート保存・一括適用 / Save &amp; apply templates</strong>: レイアウト全体のアイテム構成・プロパティをJSONで保存し、他のレイアウトに一括適用<br />
+Save the entire layout's item structure/properties as JSON and apply to other layouts in bulk.</li>
+<li><strong>印刷範囲の地図キャンバス表示 / Show print area on map canvas</strong>: 選択レイアウトの印刷範囲を地図キャンバス上に可視化、スケール・回転・中心座標・角度を調整可能<br />
+Visualize the print area of the selected layout on the map canvas, and adjust scale, rotation, center, and angle.</li>
+<li><strong>印刷範囲のマウス移動 / Move print area by mouse</strong>: 印刷範囲（RubberBand）をマウスドラッグで移動し、地図アイテムの範囲も自動更新<br />
+Move the print area (RubberBand) by mouse drag, and automatically update the map item's extent.</li>
+<li><strong>多言語対応 / Multilingual support</strong>: 日本語・英語・中国語・韓国語・フランス語・ドイツ語・スペイン語・ポルトガル語・イタリア語・ロシア語のUI自動切替<br />
+UI automatically switches among Japanese, English, Chinese, Korean, French, German, Spanish, Portuguese, Italian, and Russian.</li>
+<li><strong>UIメッセージ抑制 / Suppress UI messages</strong>: 通常操作時のメッセージ表示を抑制し、エラーのみ通知<br />
+Suppresses non-error messages during normal operation; only errors are shown.</li>
+<li><strong>安定性向上 / Improved stability</strong>: QFormLayout削除対策などでQGISクラッシュを防止<br />
+Prevents QGIS crashes by handling QFormLayout deletion and other stability improvements.</li>
+</ul>
+<h2 id="使い方--usage">使い方 / Usage</h2>
+<ol>
+<li>プラグインメニューから「Layout Item Selector」を起動<br />
+Launch &quot;Layout Item Selector&quot; from the plugin menu.</li>
+<li>レイアウト一覧から編集対象を選択<br />
+Select the target layout from the list.</li>
+<li>左側でスケール・角度・印刷範囲を調整、右側でアイテム一覧・プロパティを編集<br />
+Adjust scale, angle, and print area on the left; edit item list and properties on the right.</li>
+<li>「レイアウト全体を保存」でテンプレートJSONを作成<br />
+Use &quot;Save Layout&quot; to create a template JSON.</li>
+<li>他のレイアウトで「レイアウト全体を読み込み」して一括適用<br />
+Use &quot;Load Layout&quot; on other layouts to apply the template in bulk.</li>
+</ol>
+<h3 id="印刷範囲の操作--print-area-operations">印刷範囲の操作 / Print area operations</h3>
+<ul>
+<li>「Show Print Area on Map」ボタンで印刷範囲を地図キャンバスに表示<br />
+Show print area on map canvas with the &quot;Show Print Area on Map&quot; button.</li>
+<li>スケール・角度を数値入力で調整<br />
+Adjust scale and angle by entering values.</li>
+<li>印刷範囲をマウスでドラッグして移動可能<br />
+Move the print area by dragging with the mouse.</li>
+</ul>
+<h3 id="アイテム編集--item-editing">アイテム編集 / Item editing</h3>
+<ul>
+<li>アイテム一覧から選択し、右側でプロパティ（位置・サイズ・ラベル内容・画像パス等）を編集<br />
+Select from the item list and edit properties (position, size, label, image path, etc.) on the right.</li>
+<li>編集後「Apply Properties」で即時反映<br />
+Click &quot;Apply Properties&quot; to apply changes immediately.</li>
+</ul>
+<h3 id="テンプレート活用--template-usage">テンプレート活用 / Template usage</h3>
+<ul>
+<li>既存レイアウトの構成・デザインを他レイアウトに一括適用し、図面・台帳の統一管理が可能<br />
+Apply the structure/design of an existing layout to others in bulk for unified management.</li>
+</ul>
+<h2 id="多言語対応--multilingual-support">多言語対応 / Multilingual Support</h2>
+<p>UIはQGISの言語設定に応じて自動で切り替わります。<br />
+The UI automatically switches according to QGIS language settings.</p>
+<p>対応言語 / Supported languages:</p>
+<ul>
+<li>🇯🇵 日本語 (ja) / Japanese</li>
+<li>🇺🇸 英語 (en) / English</li>
+<li>🇫🇷 フランス語 (fr) / French</li>
+<li>🇩🇪 ドイツ語 (de) / German</li>
+<li>🇪🇸 スペイン語 (es) / Spanish</li>
+<li>🇮🇹 イタリア語 (it) / Italian</li>
+<li>🇵🇹 ポルトガル語 (pt) / Portuguese</li>
+<li>🇨🇳 中国語 (zh) / Chinese</li>
+<li>🇷🇺 ロシア語 (ru) / Russian</li>
+<li>🇮🇳 ヒンディー語 (hi) / Hindi</li>
+</ul>
+<h3 id="翻訳のカスタマイズ--translation-customization">翻訳のカスタマイズ / Translation Customization</h3>
+<p>翻訳を編集・追加する場合は <code>i18n/&lt;lang&gt;.json</code> を直接編集する
+(<code>{context: {英語ソース: 翻訳}}</code> 形式。未登録の文字列は英語にフォールバック)。<br />
+To edit or add translations, edit <code>i18n/&lt;lang&gt;.json</code> directly
+(<code>{context: {english_source: translation}}</code>; missing entries fall back to English):</p>
+<ol>
+<li><p>翻訳ファイルの場所 / Translation files location:</p>
+<pre><code>geo_report/i18n/ja.json など (de, es, fr, hi, it, ja, pt, ru, zh)
+</code></pre>
+</li>
+<li><p>カタログ未登録のソース文字列を検出 / Detect untranslated source strings:</p>
+<pre><code class="language-bash">python ../../scripts/i18n_tool.py check
+</code></pre>
+</li>
+</ol>
+<h2 id="インストール--installation">インストール / Installation</h2>
+<ol>
+<li>QGISプラグインマネージャーからインストール、または<br />
+Install from QGIS Plugin Manager, or</li>
+<li>このリポジトリをQGISのプラグインディレクトリに配置し有効化<br />
+Place this repository in the QGIS plugin directory and enable it.</li>
+</ol>
+<h2 id="活用例--use-cases">活用例 / Use Cases</h2>
+<ul>
+<li><strong>図面テンプレート / Drawing templates</strong>: 同じレイアウト構成で複数地域の図面を効率作成<br />
+Efficiently create maps for multiple areas with the same layout structure.</li>
+<li><strong>台帳フォーマット / Ledger formats</strong>: 標準レイアウトの複数案件での再利用<br />
+Reuse standard layouts for multiple projects.</li>
+<li><strong>シリーズ地図 / Series maps</strong>: 統一デザインでの主題図作成<br />
+Create thematic maps with a unified design.</li>
+<li><strong>タイトル・凡例・注記の一括更新 / Batch update of titles, legends, notes</strong>: 全図面のタイトルや凡例、注記を一括で変更<br />
+Batch update titles, legends, and notes for all maps.</li>
+<li><strong>ロゴ・印影配置 / Logo &amp; stamp placement</strong>: 会社ロゴや承認印の位置を全図面で統一<br />
+Standardize the position of company logos and approval stamps across all maps.</li>
+<li><strong>スケールバー・グリッド調整 / Scale bar &amp; grid adjustment</strong>: 縮尺やグリッド表示を一括管理<br />
+Manage scale bars and grid display in bulk.</li>
+</ul>
+<h2 id="バージョン管理--versioning">バージョン管理 / Versioning</h2>
+<p>プラグインのバージョンは <code>metadata.txt</code> の <code>version</code> フィールドで管理されています。<br />
+The plugin version is managed in the <code>version</code> field of <code>metadata.txt</code>.<br />
+新機能追加や修正時は <code>metadata.txt</code> の <code>version</code> を更新してください。<br />
+Please update the <code>version</code> in <code>metadata.txt</code> when adding new features or making fixes.</p>
+<h2 id="開発者--author">開発者 / Author</h2>
+<p>yamamoto-ryuzo</p>
+<h2 id="ライセンス--license">ライセンス / License</h2>
+<p>GPL v2.0</p>
+<h2 id="免責事項">免責事項</h2>
+<p>本システムは個人のPCで作成・テストされたものです。<br />
+ご利用によるいかなる損害も責任を負いません。</p>
+<p align="center">
+  <a href="https://giphy.com/explore/free-gif" target="_blank">
+    <img src="https://github.com/yamamoto-ryuzo/QGIS_portable_3x/raw/master/imgs/giphy.gif" width="500" title="avvio QGIS">
+  </a>
+</p>
+
+<h2 id="バージョン管理">バージョン管理</h2>
+<p>このプラグインのバージョンは <code>metadata.txt</code> の <code>version</code> フィールドで管理されています。
+新しい機能追加や修正時は <code>metadata.txt</code> の <code>version</code> を更新してください。</p>
+
+
+<h2>関連リンク</h2>
+<ul>
+  <li><a href="https://yamamoto-ryuzo.github.io/qgis_live_harness/plugins.html">プラグイン一覧(サイト)</a></li>
+  <li><a href="https://github.com/yamamoto-ryuzo/qgis_live_harness/blob/master/qgis-plugin/geo_report/README.md">README(GitHub)</a></li>
+  <li><a href="https://github.com/yamamoto-ryuzo/qgis_live_harness/blob/master/qgis-plugin/geo_report/CHANGELOG.md">CHANGELOG(GitHub)</a></li>
+</ul>
+<p><small>正本は <code>qgis-plugin/geo_report/docs/</code>。
+サイトの <code>docs/geo_report/</code> は
+<code>scripts/build-plugin-docs.py</code> によるミラーです。</small></p>
+</main>
+</div>
+</body>
+</html>

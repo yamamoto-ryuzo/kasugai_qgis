@@ -104,15 +104,19 @@
     "{field_name}:": "{field_name}:"
   },
   "SearchWidget": {
+    "Address Search": "पता खोज",
     "Angle (deg):": "कोण (डिग्री):",
     "Angle: Not specified": "कोण: निर्दिष्ट नहीं",
     "Angle: {0}": "कोण: {0}",
     "Angle: {0}°": "कोण: {0}°",
+    "Create scratch layer": "स्क्रैच लेयर बनाएं",
     "Edit Tab Settings: {0}": "टैब सेटिंग संपादित करें: {0}",
+    "Enter an address, place name or coordinates": "पता, स्थान का नाम या निर्देशांक दर्ज करें",
     "Exact Match": "सटीक मिलान",
     "Forward Match": "उपसर्ग मिलान",
     "Fuzzy Search": "अस्पष्ट खोज",
     "Geo Search: ": "भू-खोज: ",
+    "Google Maps API key is not set": "Google Maps API कुंजी सेट नहीं है",
     "OR search for multiple fields": "कई फ़ील्ड के लिए OR खोज",
     "Owner Search": "मालिक खोज",
     "Partial Match": "आंशिक मिलान",
@@ -122,7 +126,9 @@
     "Scale: {0}": "स्केल: {0}",
     "Search Results: {0} items": "खोज परिणाम: {0} आइटम",
     "Search all fields": "सभी फ़ील्ड खोजें",
-    "Set current value": "वर्तमान मान सेट करें"
+    "Search failed": "खोज विफल",
+    "Set current value": "वर्तमान मान सेट करें",
+    "Yahoo app id is not set": "Yahoo ऐप आईडी सेट नहीं है"
   },
   "SettingsDialog": {
     "Applied theme to %n layers": "%n लेयर पर थीम लागू की गई",

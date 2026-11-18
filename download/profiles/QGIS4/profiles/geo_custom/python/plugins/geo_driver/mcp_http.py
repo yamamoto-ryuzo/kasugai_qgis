@@ -168,7 +168,9 @@ TOOLS = [
         "description":
             "Manage AI instruction files on this machine. kind=agents "
             "(persistent instructions injected into the assistant's "
-            "system prompt) or skills (on-demand procedural docs). "
+            "system prompt), skills (on-demand procedural docs), or "
+            "prompts (canned prompt text for the panel's suggestion "
+            "list). "
             "op=list|read|save|delete. save writes the user file "
             "(~/.qgis-live/<kind>/<name>.md); a same-id user file "
             "shadows the bundled one. delete works on user files only. "
@@ -180,7 +182,7 @@ TOOLS = [
                 "op": {"type": "string",
                        "enum": ["list", "read", "save", "delete"]},
                 "kind": {"type": "string",
-                         "enum": ["agents", "skills"]},
+                         "enum": ["agents", "skills", "prompts"]},
                 "id": {"type": "string",
                        "description": "対象ファイル名(stem)。read/delete用"},
                 "name": {"type": "string",
@@ -189,6 +191,187 @@ TOOLS = [
                          "description": "ファイル本文(Markdown)。save用"},
             },
             "required": ["op", "kind"],
+        },
+    },
+    {
+        "name": "qgis_devin_run",
+        "description":
+            "Start a Devin CLI agent session as a background task on "
+            "this machine and return a task_id immediately. Devin "
+            "works autonomously in `cwd` (default: user home). Poll "
+            "progress with qgis_devin_status, fetch output with "
+            "qgis_devin_result, stop with qgis_devin_abort. engine: "
+            "'acp' drives `devin acp` over JSON-RPC and shares IDE "
+            "sign-in (no `devin auth login` needed); 'print' runs "
+            "`devin -p` and requires `devin auth login`; 'auto' "
+            "(default) prefers acp when IDE credentials exist. "
+            "session_id resumes a Devin session (acp: session/load, "
+            "print: -r); the new session id appears in "
+            "qgis_devin_status. permission_mode controls how "
+            "permission prompts are auto-answered: 'dangerous' "
+            "(default) auto-approves everything, other modes "
+            "approve once per request. Each run consumes Devin "
+            "credits.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "prompt": {"type": "string",
+                           "description": "Task instruction for Devin"},
+                "cwd": {"type": "string",
+                        "description": "Working directory "
+                                       "(default: user home)"},
+                "session_id": {"type": "string",
+                               "description": "Resume this Devin "
+                                              "session id "
+                                              "(acp: session/load, "
+                                              "print: -r)"},
+                "model": {"type": "string",
+                          "description": "Devin model override"},
+                "permission_mode": {
+                    "type": "string",
+                    "enum": ["normal", "accept-edits", "smart",
+                             "dangerous"],
+                    "description": "Permission auto-answer policy "
+                                   "(default: dangerous)"},
+                "engine": {
+                    "type": "string",
+                    "enum": ["auto", "acp", "print"],
+                    "description": "'acp'=IDE-shared auth JSON-RPC, "
+                                   "'print'=`devin -p` (needs "
+                                   "devin auth login), 'auto'=prefer "
+                                   "acp (default)"},
+            },
+            "required": ["prompt"],
+        },
+    },
+    {
+        "name": "qgis_devin_status",
+        "description":
+            "Check a Devin task's state (running/exited/failed), "
+            "elapsed seconds and recent log output. Omit task_id to "
+            "list all Devin tasks of this QGIS process.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "task_id": {"type": "string"},
+            },
+        },
+    },
+    {
+        "name": "qgis_devin_result",
+        "description":
+            "Fetch a Devin task's captured output (log tail). Call "
+            "after qgis_devin_status shows the task exited. tail = "
+            "max characters returned (default 20000).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "task_id": {"type": "string"},
+                "tail": {"type": "integer"},
+            },
+            "required": ["task_id"],
+        },
+    },
+    {
+        "name": "qgis_devin_abort",
+        "description":
+            "Kill a running Devin task started via qgis_devin_run.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "task_id": {"type": "string"},
+            },
+            "required": ["task_id"],
+        },
+    },
+    {
+        "name": "qgis_copilot_run",
+        "description":
+            "Start a GitHub Copilot CLI agent session as a background "
+            "task on this machine and return a task_id immediately. "
+            "Copilot works autonomously in `cwd` (default: user home). "
+            "Poll progress with qgis_copilot_status, fetch output with "
+            "qgis_copilot_result, stop with qgis_copilot_abort. engine: "
+            "'acp' drives `copilot --acp --stdio` over JSON-RPC; "
+            "'print' runs `copilot -p`; 'auto' (default) prefers acp. "
+            "Both use the CLI's gh sign-in — no API key needed. "
+            "session_id resumes a Copilot session (acp: session/load, "
+            "print: -r). permission_mode 'dangerous' (default) sets "
+            "COPILOT_ALLOW_ALL=true (auto-approve all tools + trust "
+            "cwd); 'accept-edits' passes --allow-all-tools only. Each "
+            "run consumes Copilot premium requests.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "prompt": {"type": "string",
+                           "description": "Task instruction for "
+                                          "Copilot"},
+                "cwd": {"type": "string",
+                        "description": "Working directory "
+                                       "(default: user home)"},
+                "session_id": {"type": "string",
+                               "description": "Resume this Copilot "
+                                              "session id "
+                                              "(acp: session/load, "
+                                              "print: -r)"},
+                "model": {"type": "string",
+                          "description": "Copilot model override "
+                                         "(--model)"},
+                "permission_mode": {
+                    "type": "string",
+                    "enum": ["normal", "accept-edits", "smart",
+                             "dangerous"],
+                    "description": "Permission auto-answer policy "
+                                   "(default: dangerous)"},
+                "engine": {
+                    "type": "string",
+                    "enum": ["auto", "acp", "print"],
+                    "description": "'acp'=`copilot --acp --stdio` "
+                                   "JSON-RPC, 'print'=`copilot -p`, "
+                                   "'auto'=prefer acp (default)"},
+            },
+            "required": ["prompt"],
+        },
+    },
+    {
+        "name": "qgis_copilot_status",
+        "description":
+            "Check a Copilot CLI task's state (running/exited/failed), "
+            "elapsed seconds and recent log output. Omit task_id to "
+            "list all agent tasks of this QGIS process.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "task_id": {"type": "string"},
+            },
+        },
+    },
+    {
+        "name": "qgis_copilot_result",
+        "description":
+            "Fetch a Copilot CLI task's captured output (log tail). "
+            "Call after qgis_copilot_status shows the task exited. "
+            "tail = max characters returned (default 20000).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "task_id": {"type": "string"},
+                "tail": {"type": "integer"},
+            },
+            "required": ["task_id"],
+        },
+    },
+    {
+        "name": "qgis_copilot_abort",
+        "description":
+            "Kill a running Copilot CLI task started via "
+            "qgis_copilot_run.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "task_id": {"type": "string"},
+            },
+            "required": ["task_id"],
         },
     },
 ]
@@ -295,7 +478,8 @@ class _Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _dispatch(self, cmd, timeout=180.0):
-        return self.server.driver.submit(cmd, timeout=timeout)
+        return self.server.driver.submit(cmd, timeout=timeout,
+                                         origin="http")
 
     # ---- REST ----
 

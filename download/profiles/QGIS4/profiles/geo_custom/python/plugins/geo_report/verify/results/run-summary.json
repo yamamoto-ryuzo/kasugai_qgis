@@ -1,0 +1,28 @@
+{
+  "ts": "2026-11-15T22:33:28+09:00",
+  "catalog_methods": [
+    "addStandardLayout",
+    "closePanel",
+    "createLayout",
+    "duplicateLayout",
+    "itemProperties",
+    "layoutInfo",
+    "listItems",
+    "listLayouts",
+    "listPropertyFiles",
+    "listStandardLayouts",
+    "loadLayoutProperties",
+    "manageLayouts",
+    "openLayoutManager",
+    "openPanel",
+    "printOptions",
+    "refresh",
+    "removeLayout",
+    "renameLayout",
+    "saveLayoutProperties",
+    "selectLayout",
+    "setItemProperties",
+    "showPrintArea",
+    "status"
+  ]
+}

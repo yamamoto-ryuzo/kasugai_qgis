@@ -253,8 +253,8 @@ def remove_entry_from_json_file(path, title=None, src_idx=None, container_key='S
             logger(f"Removed entry index={remove_idx} from file: {path} (backup={bak_path})", 0)
         else:
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(f"Removed entry index={remove_idx} from file: {path} (backup={bak_path})", 'GEO-search-plugin', 0)
+                from .log import log_message
+                log_message(f"Removed entry index={remove_idx} from file: {path} (backup={bak_path})", 'GEO-search-plugin', 0)
             except Exception:  # nosec B110  # 設計上の許容
                 pass
     except Exception:  # nosec B110  # 設計上の許容

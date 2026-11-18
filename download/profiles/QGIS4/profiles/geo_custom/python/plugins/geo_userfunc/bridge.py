@@ -22,9 +22,12 @@ AIからの主な利用ループ:
 import inspect
 import json
 import os
+import time
+from datetime import datetime, timezone
 
 from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.core import (
+    QgsApplication,
     QgsExpression,
     QgsExpressionContext,
     QgsExpressionContextUtils,
@@ -32,6 +35,10 @@ from qgis.core import (
     QgsProject,
     QgsVectorLayer,
 )
+
+from . import deps as _deps
+from . import history as _hist
+from .library import _log
 
 
 class _DialogAutoReply:
@@ -196,7 +203,35 @@ class GeoUserfuncBridge:
                 "ライブラリフォルダをOSのファイルマネージャで開く。",
             "example": {"method": "openLibraryDir", "args": []},
         },
+        "history": {
+            "description":
+                "run/evalExpression の実行履歴"
+                "(<profile>/geo_userfunc_history.jsonl)を新しい順に返す。"
+                "fn で対象名に絞り込み、limit で件数を制限する。",
+            "example": {"method": "history", "args": ["zen2han", 20]},
+        },
+        "testFunction": {
+            "description":
+                "式関数/マクロを複数ケースで実行し pass/fail 表を返す。"
+                "式関数は name(args...) の式を評価、マクロは "
+                "context['args']=case['args'] で main を実行する。"
+                "case: {args:[..]|{..}, expect:値, expression:直接式}。"
+                "expect 省略時は実行成功のみを判定する。",
+            "example": {"method": "testFunction",
+                        "args": ["zen2han",
+                                 [{"args": ["ＡＢＣ"], "expect": "abc"}]]},
+        },
+        "dependencies": {
+            "description":
+                "ライブラリ内ファイルが参照する他プラグインの"
+                "bridge依存をASTから抽出して返す"
+                "(実行前の前提プラグイン確認用)。",
+            "example": {"method": "dependencies",
+                        "args": ["my_macro.py"]},
+        },
     }
+
+    HISTORY_FILE = "geo_userfunc_history.jsonl"
 
     def __init__(self, plugin):
         self._plugin = plugin
@@ -238,6 +273,39 @@ class GeoUserfuncBridge:
             out.append(entry)
         return out
 
+    def _history_path(self):
+        """履歴JSONL(<profile>/geo_userfunc_history.jsonl)のパス。"""
+        return os.path.join(
+            QgsApplication.qgisSettingsDirPath(), self.HISTORY_FILE)
+
+    def _record(self, method, target, params, ok, error, ms):
+        """実行履歴をJSONLへ追記する(書込失敗はログのみ)。"""
+        rec = {
+            "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "method": method,
+            "target": target,
+            "params": params,
+            "ok": bool(ok),
+            "ms": round(float(ms), 1),
+        }
+        if error:
+            rec["error"] = str(error)[:500]
+        try:
+            _hist.append_record(self._history_path(), rec)
+        except OSError as e:
+            _log("history write failed: {0}".format(e))
+
+    @staticmethod
+    def _expr_literal(v):
+        """Python値をQGIS式リテラルへ変換する。"""
+        if v is None:
+            return "NULL"
+        if isinstance(v, bool):
+            return "TRUE" if v else "FALSE"
+        if isinstance(v, (int, float)):
+            return repr(v)
+        return "'{0}'".format(str(v).replace("'", "''"))
+
     # ---------- bridge メソッド(JSON文字列を返す) ----------
 
     def pluginInfo(self):
@@ -274,6 +342,26 @@ class GeoUserfuncBridge:
         """ライブラリ内ファイルの一覧と登録済み式関数を返す。"""
         return self._ok(self._plugin.library.describe())
 
+    def expansions(self):
+        """@expr: 宣言のある式関数の展開テーブルを返す。
+
+        geo_webview などが QML エクスポート時にユーザー関数呼出しを
+        組込み式へ展開するために使う。
+        ``{register_name: {args: [...], expr: "...", file: "..."}}``。
+        """
+        out = {}
+        for e in self._plugin.library.entries.values():
+            if not e.enabled or not e.info:
+                continue
+            for f in e.info.get("functions", []):
+                if f.get("expr"):
+                    out[f.get("register_name") or f["name"]] = {
+                        "args": f.get("params") or [],
+                        "expr": f["expr"],
+                        "file": e.file,
+                    }
+        return self._ok({"expansions": out})
+
     def listMacros(self):
         """実行可能マクロ一覧(ライブラリ内+登録済み)を返す。"""
         local = []
@@ -295,6 +383,7 @@ class GeoUserfuncBridge:
 
     def run(self, name, layer_id=None, feature_id=None, args=None, confirm=False):
         """マクロを実行する。共有レジストリ優先、次にライブラリ内。"""
+        t0 = time.monotonic()
         context = self._plugin.library.make_context(layer_id, feature_id, args)
         with _DialogAutoReply(confirm) as dlg:
             reg = self._plugin.registry
@@ -305,13 +394,37 @@ class GeoUserfuncBridge:
         if isinstance(result, dict):
             result["messages"] = dlg.messages
             result.setdefault("ok", True)
-            if result.get("ok"):
-                return self._ok(result)
-            return self._err(result.get("error", "macro failed"))
-        return self._ok({"result": result, "messages": dlg.messages})
+            ok = bool(result.get("ok"))
+            out = (self._ok(result) if ok
+                   else self._err(result.get("error", "macro failed")))
+        else:
+            ok = True
+            out = self._ok({"result": result, "messages": dlg.messages})
+            result = None
+        self._record("run", str(name),
+                     {"layer_id": layer_id, "feature_id": feature_id,
+                      "args": args}, ok,
+                     (result.get("error") if isinstance(result, dict)
+                      else None) if not ok else None,
+                     (time.monotonic() - t0) * 1000)
+        return out
 
     def evalExpression(self, expression, layer_id=None, feature_id=None):
         """式を評価して結果を返す。式関数の動作確認用。"""
+        t0 = time.monotonic()
+        out = self._eval_expression(expression, layer_id, feature_id)
+        try:
+            payload = json.loads(out)
+        except ValueError:
+            payload = {}
+        ok = bool(payload.get("ok"))
+        self._record("evalExpression", str(expression)[:200],
+                     {"layer_id": layer_id, "feature_id": feature_id},
+                     ok, payload.get("error"),
+                     (time.monotonic() - t0) * 1000)
+        return out
+
+    def _eval_expression(self, expression, layer_id=None, feature_id=None):
         ctx = QgsExpressionContext()
         ctx.appendScope(QgsExpressionContextUtils.globalScope())
         ctx.appendScope(
@@ -478,6 +591,116 @@ class GeoUserfuncBridge:
         with open(lib_path, "w", encoding="utf-8") as f:
             json.dump(kept, f, ensure_ascii=False, indent=2)
         return self._ok({"removed": file})
+
+    def history(self, fn=None, limit=100):
+        """run/evalExpression の実行履歴を新しい順に返す。"""
+        path = self._history_path()
+        target = str(fn).strip() if fn else None
+        entries = _hist.read_history(path, target=target,
+                                     limit=max(1, int(limit or 100)))
+        return self._ok({"path": path, "count": len(entries),
+                         "entries": entries})
+
+    def testFunction(self, name, cases=None):
+        """式関数/マクロを複数ケースで実行し pass/fail を返す。
+
+        式関数(register_name一致)は ``name(args...)`` の式を評価し、
+        マクロは ``context['args']=case['args']`` で main を実行する。
+        case: ``{"args": [...]|{...}, "expect": 値, "expression": 直接式}``。
+        expect 省略時は例外なく成功したかのみ判定する。
+        """
+        if cases is None:
+            cases = []
+        if isinstance(cases, str):
+            try:
+                cases = json.loads(cases)
+            except ValueError as e:
+                return self._err("cases must be a JSON list: {0}".format(e))
+        if not isinstance(cases, list):
+            return self._err("cases must be a list of case objects")
+
+        lib = self._plugin.library
+        name = str(name or "").strip()
+        expr_name = None
+        macro_entry = None
+        for e in lib.entries.values():
+            if not (e.enabled and e.ns and e.info):
+                continue
+            for f in e.info["functions"]:
+                if name in (f["register_name"], f["name"]):
+                    expr_name = f["register_name"]
+                    break
+            if expr_name:
+                break
+        if expr_name is None:
+            macro_entry = lib.find_macro(name)
+        if expr_name is None and macro_entry is None:
+            return self._err(
+                "unknown function or macro: {0}".format(name))
+
+        results = []
+        for i, raw in enumerate(cases):
+            case = dict(raw) if isinstance(raw, dict) else {"args": raw}
+            expect_given = "expect" in case
+            expect = case.get("expect")
+            actual = None
+            error = None
+            try:
+                if expr_name:
+                    expr = case.get("expression")
+                    if not expr:
+                        params = ", ".join(
+                            self._expr_literal(a)
+                            for a in (case.get("args") or []))
+                        expr = "{0}({1})".format(expr_name, params)
+                    r = json.loads(self._eval_expression(
+                        expr, case.get("layer_id"),
+                        case.get("feature_id")))
+                    ok = bool(r.get("ok"))
+                    actual = r.get("value")
+                    error = r.get("error")
+                else:
+                    ctx = lib.make_context(case.get("layer_id"),
+                                           case.get("feature_id"),
+                                           case.get("args") or {})
+                    with _DialogAutoReply(case.get("confirm", False)):
+                        r = lib.run_macro(macro_entry.file, ctx)
+                    ok = bool(r.get("ok"))
+                    actual = r.get("result")
+                    error = r.get("error")
+                passed = bool(ok) and (not expect_given or actual == expect)
+            except Exception as e:  # nosec B112  # ケース失敗は結果に畳み込む
+                passed = False
+                error = str(e)
+            try:
+                json.dumps(actual)
+            except (TypeError, ValueError):
+                actual = repr(actual)
+            results.append({
+                "case": i,
+                "input": case,
+                "pass": passed,
+                "actual": actual,
+                "expect": expect if expect_given else None,
+                "error": error,
+            })
+        passed_n = sum(1 for r in results if r["pass"])
+        return self._ok({
+            "name": name,
+            "kind": "expression" if expr_name else "macro",
+            "passed": passed_n,
+            "failed": len(results) - passed_n,
+            "results": results,
+        })
+
+    def dependencies(self, name):
+        """ファイルの他プラグインbridge依存をASTから抽出して返す。"""
+        r = self._plugin.library.read_file(name)
+        if not r.get("ok"):
+            return self._err(r.get("error"))
+        return self._ok({"file": r["file"],
+                         "dependencies": _deps.extract_plugin_deps(
+                             r["source"])})
 
     def openLibraryDir(self):
         """ライブラリフォルダをOSのファイルマネージャで開く。"""

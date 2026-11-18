@@ -1,3 +1,39 @@
+2.10.14 カタログサーバーの死活・遅延を一覧表示し検索前に警告
+- geo_import_dialog_dataproviders.py: サーバー一覧の表示完了後に
+  ServerCheckThread(QThread) で全サーバーへ package_search(rows=0) の
+  軽量疎通確認を非同期実行。結果に応じて ○(接続可)/△(応答2秒超=遅延)/
+  ×(到達不能) のマーカーとツールチップ(応答ms/エラー)を行へ付与し、
+  到達不能は従来の赤ハイライトを維持。local/file スキームは対象外、
+  ダイアログ終了時は requestInterruption で中断する
+- settings.py: チェック結果を server_checks として永続化し
+  TTL=3600秒のキャッシュ参照を追加(record_server_check/server_check)。
+  成功時は従来の server_errors 記録を消去し、失敗時は従来どおり記録する
+- geo_import_dialog.py: 横断検索の直前に
+  _preflight_unreachable_servers() を追加。TTL内キャッシュで
+  到達不能と記録されたサーバーが選択中なら messageBar 経由の
+  非モーダル警告を出した上でそのまま再試行する
+- bridge.py: settings/getSettings/status 応答へ server_checks を
+  server_errors と併記して公開
+- i18n: 新規メッセージ3件(接続可/遅延/到達不能警告)を9言語へ追加
+2.10.13 同梱 instances.json の陳腐化エンドポイントを更新
+- resources/instances/instances.json: 移行済みで全APIが404を返す
+  search.ckan.jp(データカタログ横断検索システム)を削除し、接続不能だった
+  www.data.go.jp を後継の data.e-gov.go.jp(e-Govデータポータル、
+  /data/api/3/ で 200 確認済)へ置き換え。remote(ckan-instances+本repo)/
+  local bundled 両経路と、本ファイルを remote 取得する
+  kasuga_converter 側の混入も解消される
+2.10.12 設定ダイアログのEdit/Clearボタンが潰れて表示される不具合を修正
+- geo_import_dialog_settings.ui: geometry/minimumSizeの高さ470固定を撤廃
+  (最小幅650のみ残し、高さはsizeHintに追従)。QGISアプリスタイルシート等で
+  コンテンツが470pxを超える環境では、縮み代が余白のないwidget_3(ボタン行)に
+  集中してEdit/Clearボタンが0〜数pxに潰れていた
+- IDC_bAuthCfgEdit/IDC_bAuthCfgClearに最小高さ24pxを設定し、ユーザーが
+  ダイアログを縮めた場合も潰れないよう保険を追加
+2.10.11 vendored pyperclip を Qt 標準クリップボードへ置き換え
+- pyperclip/(~600行・PyQt4/5やqtpy等の古い互換層を含む)を削除し、
+  QApplication.clipboard() を使う clipboard.py(15行)へ置き換え。
+  利用箇所は copy() のみ(ckanconnector/geo_import_dialog)のため
+  Qt のクリップボードで完結する
 2.10.10 個別利用時にGeoSuiteツールバーが表示されない不具合を修正
 - geo_import_main.py: GeoSuiteツールバーのfind-or-create後に
   可視状態を保証するようにした(ドライバ非稼働の個別利用では

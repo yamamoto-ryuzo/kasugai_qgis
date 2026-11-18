@@ -103,13 +103,26 @@ def analyze_source(src, path="<string>"):
         for dec in node.decorator_list:
             if _is_qgsfunction_decorator(dec):
                 reg_name = _kw_str(dec, "name") or node.name
-                info["functions"].append({
+                entry = {
                     "name": node.name,
                     "register_name": reg_name,
                     "group": _kw_str(dec, "group") or "Custom",
                     "signature": sig,
                     "doc": doc.split("\n")[0] if doc else "",
-                })
+                }
+                # 式の位置引数名(feature/parent を除く)。@expr 展開の
+                # {引数名} プレースホルダ置換に使う
+                entry["params"] = [
+                    a.arg for a in node.args.args
+                    if a.arg not in ("feature", "parent")]
+                # ドキュメント中の "@expr: <式>" 宣言 — QML エクスポート時に
+                # ユーザー関数呼出しを組込み式へ展開するための式テンプレート
+                for dline in (doc or "").split("\n"):
+                    dline = dline.strip()
+                    if dline.startswith("@expr:"):
+                        entry["expr"] = dline[len("@expr:"):].strip()
+                        break
+                info["functions"].append(entry)
                 break
 
         if node.name in HOOK_NAMES:

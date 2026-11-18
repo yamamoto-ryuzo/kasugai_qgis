@@ -1,7 +1,7 @@
 # データ取得用QThread
 from .util import Util
 from .ckanconnector import CkanConnector
-from .pyperclip import copy
+from .clipboard import copy
 from .geo_import_dialog_dataproviders import GeoImportDialogDataProviders
 from .geo_import_dialog_disclaimer import GeoImportDialogDisclaimer
 from qgis.core import Qgis
@@ -1319,7 +1319,26 @@ class GeoImportDialog(QDialog, FORM_CLASS):
             self.util.msg_log_debug(u'page is not None, cp:{0} pg:{1}'.format(self.current_page, page))
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         # 選択中の全サーバーを対象に横断検索(単一選択時は従来どおり1サーバーのみ)
+        self._preflight_unreachable_servers()
         self._search_package_all()
+
+    def _preflight_unreachable_servers(self):
+        """検索前プリフライト: 前回チェックで到達不能だったサーバーが
+        選択されている場合は非モーダル警告を出した上でそのまま再試行する
+        (死活チェックはTTL内キャッシュを参照するだけで新規通信はしない)。"""
+        try:
+            down = []
+            for url in self._active_server_urls():
+                check = self.settings.server_check(url)
+                if check is not None and check.get('status') == 'down':
+                    down.append(self._server_label(url))
+            if down:
+                self._warn_nonmodal(QCoreApplication.translate(
+                    'GeoImport',
+                    'Servers unreachable at last check (will retry): {0}'
+                ).format(u', '.join(down)))
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
 
     def _search_package_all(self):
         """横断検索: 選択中の各サーバーに対して検索を実行し結果をマージする。

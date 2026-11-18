@@ -1,0 +1,32 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+<title>ai.skill.scale-line-width</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+body{font-family:system-ui,sans-serif;margin:2em;line-height:1.6;color:#222}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #ccc;padding:4px 8px;font-size:13px;text-align:left}
+th{background:#f0f0f0}
+.pass{color:#0a7d2c;font-weight:600}.fail{color:#c0392b;font-weight:600}
+.skip,.untested{color:#888}.removed{color:#999;text-decoration:line-through}
+code{background:#f5f5f5;padding:1px 4px}
+.meta{color:#666;font-size:13px}
+h1{font-size:1.4em}h2{font-size:1.1em;border-bottom:1px solid #ddd}
+</style></head><body>
+<h1>同梱スキル scale-line-width <code>ai.skill.scale-line-width</code></h1>
+<p class='meta'>kind=ai_integration / source=<code>skills/scale-line-width.md</code> / signature=<code></code></p>
+<p>スケール連動の標準線幅(suggestScaleWidth/applyScaleWidth)の手順書。モデルが ai_read_instruction で読む</p>
+<p class='meta'>依存: bridge.scaleStyleProfiles, bridge.suggestScaleWidth, bridge.applyScaleWidth</p>
+<h2>ロジック</h2>
+<pre class='mermaid'>
+flowchart LR
+  E_ai_skill_scale_line_width["AI経路"] --> H_ai_skill_scale_line_width["同梱スキル scale-line-width"]
+  H_ai_skill_scale_line_width --> R_ai_skill_scale_line_width["QGIS/ランタイムAPI"]
+  R_ai_skill_scale_line_width --> OUT["結果"]
+</pre>
+<h2>検証手順</h2><ul>
+<li><b>連携:</b> <code>instruction op=list →skills[]に id=scale-line-width &amp; builtin、op=read→title/desc/when+本文</code></li>
+</ul>
+<h2>検証結果</h2><p class='removed'><b>REMOVED</b> 2026-11-14T06:38:42+09:00</p>
+<p class='meta'>実QGIS(pid28736)の instruction op=list/read で builtin=true・title/desc/when 正解・本文取得を確認済</p>
+<p class='meta'><a href='../index.html'>← 一覧へ</a></p>
+<script>mermaid.initialize({startOnLoad:true});</script></body></html>

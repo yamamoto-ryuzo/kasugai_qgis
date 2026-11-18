@@ -3,7 +3,13 @@
     "&Legend View": "&レジェンドビュー",
     "Legend": "凡例",
     "Other values": "その他の値",
-    "Symbol": "シンボル"
+    "Symbol": "シンボル",
+    "Export legend": "凡例のエクスポート",
+    "Export legend image (PNG)...": "凡例画像を保存 (PNG)...",
+    "Export legend image (SVG)...": "凡例画像を保存 (SVG)...",
+    "Export legend as HTML...": "凡例をHTMLとして保存...",
+    "Legend exported: %1": "凡例をエクスポートしました: %1",
+    "Export failed: %1": "エクスポートに失敗しました: %1"
   },
   "LegendViewDockWidget": {
     "Close": "閉じる",

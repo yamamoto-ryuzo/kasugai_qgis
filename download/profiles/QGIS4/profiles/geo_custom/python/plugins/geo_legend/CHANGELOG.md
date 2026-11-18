@@ -5,6 +5,83 @@ All notable changes to the QGIS Legend View plugin will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- `prompts/create-legend.md`: **同梱おすすめプロンプト「凡例の
+  作成」**を追加。geo_driver の prompts 種別(チャット入力欄へ
+  挿入する定型文)がプラグイン別 `prompts/` 集約に対応したため、
+  凡例作成の定型指示を本プラグインに同梱する
+- `skills/legend-creation.md`: **同梱スキル「凡例作成」**を追加。
+  geo_driver の指示書集約がプラグイン別 `skills/` に対応したため、
+  凡例作成の手順書を本プラグインに同梱する。
+  モデルは `ai_list_instructions`→`ai_read_instruction` で
+  オンデマンドに参照し、メソッド選定表(分類/階級区分/ルール/
+  単一・レイアウト凡例・PNG出力)・引数形式・layer解決・
+  scale_style/webgis-convert との連携を得られる
+
+## [2.9.0] - 2026-11-16
+
+### Added
+- **凡例エクスポートの拡充**(issue #21 の残課題対応)。
+  - `exportLegend(path, layers, title, dpi, format)` —
+    凡例のみの画像を PNG/SVG で出力(format='png'|'svg')。
+    `exportLegendImage` は format='png' の別名として維持
+  - `exportLegendHtml(path, layers, title, icon_size)` —
+    シンボル画像を data URI で埋め込んだ自己完結 HTML を生成。
+    ブラウザ単体での表示や WebGIS/レポートへの貼り付け用
+  - 凡例ドックの凡例一覧(テーブル/リスト)に右クリック
+    コンテキストメニューを追加し、現在レイヤの凡例を
+    PNG/SVG/HTML でエクスポートできる GUI 導線を新設
+- 上記メニュー・ダイアログ用の新規文字列を i18n 全9言語
+  カタログへ追加
+
+## [2.8.0] - 2026-11-14
+
+### Added
+- `applyRules` のルール spec を拡張。`width`(線幅)・
+  `width_unit`('mm'|'pixels'|'map_units'|'meters'=実世界幅)・
+  `min_scale`/`max_scale`(縮尺分母の表示範囲。ルールは
+  min_scale < 分母 <= max_scale で有効)を受け付けるようにし、
+  縮尺帯で線幅が切替わるレンダラを作成可能にした。
+  geo_driver の scale_style サービス(標準線幅テーブル)からも
+  この spec で委譲される。`filter` は縮尺指定時に省略可
+- `legendSpec` のルール項目に `min_scale`/`max_scale`/`width`
+  を追加し、縮尺連動レンダラの内容を確認できるようにした
+
+## [2.7.0] - 2026-11-14
+
+### Added
+- **bridge に凡例作成系メソッドを追加**(AIチャットからの凡例作成に対応)。
+  - `legendSpec(layer)` — 現在のレンダラ(凡例)定義を取得
+    (type/field/項目のlabel・value・lower-upper・filter・color)
+  - `applyCategories(layer, field, ramp, labels, colors)` —
+    属性フィールドの個別値分類レンダラを作成
+  - `applyGraduated(layer, field, classes, ramp, method)` —
+    数値フィールドの階級区分レンダラを作成
+    (equal=等間隔 / quantile=分位数)
+  - `applyRules(layer, rules, else_label)` —
+    ルールベースレンダラを作成
+    (rules=[{"filter","label","color"}])
+  - `applySingleSymbol(layer, color)` — 単一シンボルへ戻す
+  - `addLayoutLegend(layout, title, x, y, w, h, layers, linked_map,
+    filter_by_map)` — 印刷レイアウトへ QgsLayoutItemLegend を追加
+    (layout省略で新規レイアウト自動作成、layersで対象限定)
+  - `exportLegendImage(path, layers, title, dpi)` —
+    凡例のみのPNG画像を出力
+- `pluginInfo` の summary/when_to_use に凡例作成用途を追記し、
+  describe_plugins 経由でAIが発見できるようにした
+
+## [2.6.9] - 2026-11-13
+
+### Changed
+- `qt_compat.py` を削除し、Qt import を `legend_view.py` /
+  `legend_view_dockwidget.py` に直接展開(enum エイリアス・
+  `translate`/`setLabelAlignment`/`createSymbolPreview` 等の
+  ラッパも廃止し `Qt.AlignmentFlag.AlignCenter`・
+  `QgsSymbolLayerUtils.symbolPreviewPixmap` を直接使用)。
+  `import *` による暗黙の依存を解消
+
 ## [2.6.8] - 2026-11-13
 
 ### Changed

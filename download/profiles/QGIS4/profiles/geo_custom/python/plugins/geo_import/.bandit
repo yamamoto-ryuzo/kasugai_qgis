@@ -3,7 +3,7 @@
 # Reviewed-and-accepted LOW findings are skipped here; HIGH/MEDIUM
 # were fixed in code (see CHANGELOG).
 #
-#   B101: assert used for constructor arg type-checking (incl. vendored pyperclip)
+#   B101: assert used for constructor arg type-checking
 #   B110: try/except/pass is an intentional idiom to keep the QGIS GUI thread alive
 #   B112: try/except/continue is an intentional idiom to keep the QGIS GUI thread alive
 #   B404: import subprocess is required by plugin functionality (audit notice)

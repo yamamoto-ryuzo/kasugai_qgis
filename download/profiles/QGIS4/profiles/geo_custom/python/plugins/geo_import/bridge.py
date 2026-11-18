@@ -362,6 +362,7 @@ class GeoImportBridge:
                 "local_cache_sites": getattr(st, "local_cache_sites", None),
                 "current_site_local_cache": cur_cache,
                 "server_errors": getattr(st, "server_errors", {}) or {},
+                "server_checks": getattr(st, "server_checks", {}) or {},
             },
         })
 
@@ -766,6 +767,7 @@ class GeoImportBridge:
             "ckan_url": st.ckan_url,
             "local_cache_sites": list(st.local_cache_sites or []),
             "server_errors": st.server_errors or {},
+            "server_checks": st.server_checks or {},
         })
 
     def selectServers(self, names):
@@ -898,6 +900,7 @@ class GeoImportBridge:
             "boxdrive_support": st.boxdrive_support,
             "long_path_support": st.long_path_support,
             "server_errors": st.server_errors or {},
+            "server_checks": st.server_checks or {},
         })
 
     def setSettings(self, settings=None):

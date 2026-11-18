@@ -4,7 +4,7 @@
 name=geo_import
 qgisMinimumVersion=4.0
 qgisMaximumVersion=4.99
-version=2.10.10
+version=2.10.14
 author=yamamoto-ryuzo
 email=ryu@yamakun.net
 description=さまざまなデータセットを検索・追加できるQGISプラグインです / A QGIS plugin to search and add various datasets.
@@ -15,6 +15,8 @@ homepage=https://github.com/yamamoto-ryuzo/qgis_live_harness/tree/master/qgis-pl
 tracker=https://github.com/yamamoto-ryuzo/qgis_live_harness/issues
 repository=https://github.com/yamamoto-ryuzo/qgis_live_harness/tree/master/qgis-plugin/geo_import
 changelog=
+	2.10.12: 設定ダイアログのgeometry/minimumSize固定(650x470)を撤廃しsizeHint追従化+Edit/Clearボタンに最小高さを設定 — QGISアプリスタイルシートや大きめフォント環境でコンテンツが470pxを超えた際にボタン行が潰れて表示される不具合を修正
+	2.10.11: vendored pyperclip(600行超・PyQt4/5時代の互換層を含む)を撤去し、QApplication.clipboard()を使う15行のclipboard.pyに置き換え
 	2.10.7: 独自CKANインスタンス一覧(instances.json)の配信元をgeo_import upstream repoからqgis_live_harness repo内のプラグイン同梱ファイルへ変更(正本を一元化)
 	2.10.6: vendored pyperclipのQtバックエンドをqgis.PyQtへ変更(PyQt5直接importはQGIS4/Qt6でブロック)、QGIS2時代・upstream由来の不要ファイル(scripts/, INSTALL_INSTRUCTIONS.md, future-plan.md, packages.json, groups.json, ckan_cache.db, icon64.png, zip_ckan_browser_dialog.py)を削除
 	2.10.5: XMLパースをvendored defusedxmlへ切替(B405指摘をコード側で解消。ElementTree facadeのみ同梱、defuse_stdlibはQGISとの相性問題のため除外)

@@ -3,7 +3,13 @@
     "&Legend View": "&图例视图",
     "Legend": "图例",
     "Other values": "其他值",
-    "Symbol": "符号"
+    "Symbol": "符号",
+    "Export legend": "导出图例",
+    "Export legend image (PNG)...": "导出图例图像 (PNG)...",
+    "Export legend image (SVG)...": "导出图例图像 (SVG)...",
+    "Export legend as HTML...": "将图例导出为HTML...",
+    "Legend exported: %1": "图例已导出: %1",
+    "Export failed: %1": "导出失败: %1"
   },
   "LegendViewDockWidget": {
     "Close": "关闭",

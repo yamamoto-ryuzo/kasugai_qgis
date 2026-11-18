@@ -1,5 +1,5 @@
 from qgis.core import QgsProject, QgsVectorLayer, QgsRasterLayer, QgsMapLayer, QgsExpressionContextUtils, QgsLayerTreeGroup, QgsLayerTreeLayer, QgsRenderContext
-from qgis.core import QgsWkbTypes
+from qgis.core import QgsWkbTypes, QgsSymbolLayerUtils
 # -*- coding: utf-8 -*-
 """
 /***************************************************************************
@@ -26,14 +26,17 @@ from qgis.core import QgsWkbTypes
 
 # QMessageBox.information(self,'Message',type(layer).__name__,QMessageBox.StandardButton.Ok)
 
+import json
 import os
 import re
 
-# Import Qt compatibility module
-from .qt_compat import *
-
-# Use QGIS-provided PyQt bindings to remain version independent
-from qgis.PyQt.QtWidgets import QDialog, QVBoxLayout, QPushButton, QInputDialog, QMessageBox, QHBoxLayout
+# Qt imports (QGIS4/Qt6 前提、QGIS 提供の qgis.PyQt 経由)
+from qgis.PyQt import uic, QtWidgets
+from qgis.PyQt.QtCore import QCoreApplication, Qt, QVariant, QSize, pyqtSignal
+from qgis.PyQt.QtGui import QIcon, QFont
+from qgis.PyQt.QtWidgets import (QDialog, QVBoxLayout, QPushButton, QInputDialog,
+                                 QMessageBox, QHBoxLayout, QHeaderView, QTableWidget,
+                                 QTableWidgetItem, QLabel, QAbstractItemView, QStyle)
 
 from qgis.core import *
 from qgis.gui import *
@@ -83,15 +86,21 @@ class LegendViewDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         self.currentLayer = None
         self.root = QgsProject.instance().layerTreeRoot()
 
-        vheader = QHeaderView(QtOrientation.Vertical)
-        hheader = QHeaderView(QtOrientation.Horizontal)
+        vheader = QHeaderView(Qt.Orientation.Vertical)
+        hheader = QHeaderView(Qt.Orientation.Horizontal)
 
         self.tableWidget.setVerticalHeader(vheader)
         self.tableWidget.setHorizontalHeader(hheader)
         self.tableWidget.setHorizontalHeaderLabels([self.tr("Symbol"), self.tr("Legend")])
-        self.tableWidget.setSelectionMode(NoSelection)
+        self.tableWidget.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         self.styleComboBox.setVisible(False)
         self.styleLabel.setVisible(False)
+
+        # 凡例一覧の右クリックからPNG/SVG/HTMLエクスポートを起動する
+        for w in (self.tableWidget, self.listWidget):
+            w.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+            w.customContextMenuRequested.connect(
+                lambda pos, w=w: self._show_legend_export_menu(w, pos))
 
         self.comboDataSet()
         self.comboBox.currentIndexChanged.connect(self.currentIndexChanged)
@@ -145,7 +154,7 @@ class LegendViewDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
             self.tableWidget.setColumnCount(2)
             self.tableWidget.horizontalHeader().setStretchLastSection(True)
 
-            pm_icon_size = self.tableWidget.style().pixelMetric(PM_ListViewIconSize)
+            pm_icon_size = self.tableWidget.style().pixelMetric(QStyle.PixelMetric.PM_ListViewIconSize)
 
             # Symbol icon size based on list view metric
             icon_size = QSize(self.tableWidget.columnWidth(0) - 10, pm_icon_size)
@@ -154,10 +163,10 @@ class LegendViewDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
             for symbol in symbols:
                 _ = QTableWidgetItem()
                 label = QLabel()
-                # Use Qt version-specific alignment function
-                setLabelAlignment(label)
-                # Use Qt version-specific symbol preview function for better SVG support
-                pixmap = createSymbolPreview(symbol, icon_size)
+                label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                pixmap = QgsSymbolLayerUtils.symbolPreviewPixmap(
+                    symbol, QSize(int(icon_size.width() * 0.95),
+                                  int(icon_size.height() * 0.95)))
                 label.setPixmap(pixmap)
                 self.tableWidget.setCellWidget(i, 0, label)
                 i += 1
@@ -352,6 +361,66 @@ class LegendViewDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
 
         nonNumericList.append([layer_id, layer_name])
 
+    def _show_legend_export_menu(self, widget, pos):
+        """凡例一覧の右クリックメニュー(PNG/SVG/HTMLエクスポート)。"""
+        try:
+            if self.currentLayer is None or not self.currentLayer.id():
+                return
+        except RuntimeError:
+            return
+        menu = QtWidgets.QMenu(self)
+        act_png = menu.addAction(
+            self.tr("Export legend image (PNG)..."))
+        act_svg = menu.addAction(
+            self.tr("Export legend image (SVG)..."))
+        act_html = menu.addAction(
+            self.tr("Export legend as HTML..."))
+        chosen = menu.exec(widget.mapToGlobal(pos))
+        fmt = {act_png: "png", act_svg: "svg",
+               act_html: "html"}.get(chosen)
+        if fmt:
+            self._export_legend(fmt)
+
+    def _export_legend(self, fmt):
+        """現在レイヤの凡例をbridge経由でPNG/SVG/HTML出力する。"""
+        layer = self.currentLayer
+        if layer is None:
+            return
+        from qgis.utils import plugins
+        bridge = getattr(plugins.get("geo_legend"), "bridge", None)
+        if bridge is None:
+            return
+        filters = {"png": "PNG image (*.png)",
+                   "svg": "SVG image (*.svg)",
+                   "html": "HTML file (*.html)"}
+        path, _sel = QtWidgets.QFileDialog.getSaveFileName(
+            self, self.tr("Export legend"), f"legend.{fmt}",
+            filters[fmt])
+        if not path:
+            return
+        if fmt == "html":
+            res = bridge.exportLegendHtml(path, [layer.id()],
+                                          layer.name())
+        else:
+            res = bridge.exportLegend(path, [layer.id()],
+                                      layer.name(), 96, fmt)
+        try:
+            obj = json.loads(res)
+        except Exception:
+            obj = {"ok": False, "error": res}
+        if obj.get("ok"):
+            self.iface.messageBar().pushMessage(
+                "LegendView",
+                self.tr("Legend exported: %1").replace(
+                    "%1", str(obj.get("path", path))),
+                level=Qgis.MessageLevel.Success, duration=5)
+        else:
+            self.iface.messageBar().pushMessage(
+                "LegendView",
+                self.tr("Export failed: %1").replace(
+                    "%1", str(obj.get("error", res))),
+                level=Qgis.MessageLevel.Warning, duration=8)
+
     def selectCurrentLayer(self):
         """Select the currently active layer"""
         current_layer = self.iface.activeLayer()
@@ -440,8 +509,8 @@ class LegendViewDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         table.setRowCount(len(vars_list))
         # allow row selection for edit/delete
         try:
-            table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
-            table.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
+            table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
+            table.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.SingleSelection)
         except Exception:  # nosec B110  # 設計上の許容
             pass
 

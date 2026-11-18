@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>geo_search ドキュメント | QGIS Live Harness</title>
+<meta name="description" content="QGIS用の地図検索システム。地番・所有者名・属性検索に対応し、結果はレイヤごとにタブ表示・ページング・表示フィールド選択が可能。タブごとの設定編集UI、マップテーマ切替（selectTheme）、追加表示モード（既存表示に重ねて検索結果を表示）を搭載。QGIS 4.x/Qt6対応。">
+<link rel="stylesheet" href="style.css">
+<script src="nav.js" defer></script>
+</head>
+<body>
+<div class="container">
+<header>
+<h1>GEO Search System（地図検索システム）</h1>
+<p>QGIS用の地図検索システム。地番・所有者名・属性検索に対応し、結果はレイヤごとにタブ表示・ページング・表示フィールド選択が可能。タブごとの設定編集UI、マップテーマ切替（selectTheme）、追加表示モード（既存表示に重ねて検索結果を表示）を搭載。QGIS 4.x/Qt6対応。</p>
+</header>
+<main>
+
+<p><a href="https://github.com/yamamoto-ryuzo/qgis_live_harness/blob/master/qgis-plugin/geo_search/README.md">English / 英語版 (README.md)</a></p>
+<p><a id="overview"></a></p>
+<h2 id="概要">概要</h2>
+<p>このリポジトリは「GEO Search System」を実装するもので、QGIS 上で動作するモジュール群を含みます。主な目的は地番検索、所有者名検索、汎用的な属性検索を提供することです。検索結果はレイヤごとにタブで表示され、表示フィールドやページングを柔軟に設定できます。</p>
+<p>特に「テーマ（map theme）」は検索機能の重要な要素です。本プラグインではタブごとに <code>selectTheme</code> を指定でき、検索実行時にそのテーマを自動的に適用して、レイヤのシンボル・ラベル・可視化状態・レンダリング順などを再現します。テーマの適用はプロジェクト内に保存されたスタイル名を手がかりにベストエフォートで復元し、テーマが見つからない場合でも安全に検索表示が行えるようフォールバックします。</p>
+<p>また「追加表示モード」を使うと、既存のプロジェクト表示を上書きせずに検索結果の可視レイヤを追加表示できます。追加表示モードでは、元の表示とテーマ適用後の可視レイヤの和集合が最終的に表示されるため、検索による見え方を崩さずに結果を重ねて見せることができます。テーマの保存・復元により、検索結果の見え方を一貫して運用できる点が本プラグインの特徴です。</p>
+<p>QGIS 4.x（Qt6）環境に配慮しています。</p>
+<p><a id="features"></a></p>
+<h2 id="主要機能">主要機能</h2>
+<p><a id="search-feature"></a></p>
+<h3 id="検索機能">検索機能</h3>
+<ul>
+<li>地番検索（地籍筆番）・所有者名検索・汎用属性検索をサポート。</li>
+<li>住所検索（ジオコーディング）タブを搭載。KASUGAI Canvas と同じ <code>gsi</code>（国土地理院）・<code>google</code>・<code>yahoo</code>・<code>osm</code>（Nominatim）のプロバイダ構成で、結果はメモリレイヤのポイント地物として表示。</li>
+<li>結果はレイヤごとにタブ表示し、表示フィールドのカスタマイズとページングをサポート。</li>
+<li>結果行をクリックすると地図上で該当フィーチャにズーム／選択。</li>
+</ul>
+<p><a id="theme-mode"></a></p>
+<h3 id="テーマ追加表示モードと管理">テーマ追加表示モードと管理</h3>
+<ul>
+<li>検索結果を既存プロジェクトの表示に&quot;追加&quot;するモードを提供（既存レイヤや凡例を保持したまま上書きしない表示）。</li>
+<li>検索時に適用するテーマ（<code>selectTheme</code>）をタブごとに指定可能。起動時の表示状態は自動的に &quot;検索前&quot; として保存できます。</li>
+<li>テーマ適用はベストエフォートで保存済みのスタイル名を元に再現します。追加表示モードでは、元の表示とテーマ適用後の可視レイヤの和集合が最終表示になります。</li>
+</ul>
+<p><a id="quickstart"></a></p>
+<h2 id="クイックスタート">クイックスタート</h2>
+<ol>
+<li>プラグインのインストール<ul>
+<li><code>geo_search</code> フォルダを QGIS のユーザー用プラグインディレクトリにコピーするか、作成済みの ZIP を QGIS のメニューからインストールします（<code>Plugins → Manage and Install Plugins → Install from ZIP</code>）。</li>
+</ul>
+</li>
+<li>起動<ul>
+<li>QGIS でプラグインを有効化し、ツールバーの起動ボタンをクリックして検索ダイアログを開きます。</li>
+</ul>
+</li>
+<li>検索<ul>
+<li>タブを選択または新規設定し、地番・所有者名・属性などを入力して「検索」を押します。</li>
+</ul>
+</li>
+<li>結果確認<ul>
+<li>結果はレイヤごとのタブに表示されます。列幅が狭い場合はテーブルヘッダーで自動調整してください。</li>
+</ul>
+</li>
+</ol>
+<p>トラブルシュートの基本は、プラグインの再読み込みや QGIS 再起動、README にある診断スニペットの実行です。</p>
+<p><a id="core-details"></a></p>
+<h2 id="コア機能の詳細">コア機能の詳細</h2>
+<p>コアな検索ロジックやタブ設定の詳細は <code>docs/search.html</code> に移行しています。実装ファイルへの参照や設定例はそちらを参照してください。</p>
+<p><a id="tab-settings"></a></p>
+<h2 id="タブごとの設定searchtab">タブごとの設定（SearchTab）</h2>
+<p>各タブは <code>SearchTab</code> 設定で定義します。主なキーは次の通りです（詳細は <code>docs/search.html</code> を参照）：</p>
+<ul>
+<li><code>Title</code>: タブ名（<code>地番検索</code>・<code>所有者検索</code>・<code>住所検索</code> の場合は特殊処理）</li>
+<li><code>group</code>: タブをまとめるグループ名</li>
+<li><code>Layer</code>: 対象レイヤの指定（<code>Name</code> / <code>File</code> / <code>Database</code>）</li>
+<li><code>SearchField</code> / <code>SearchFields</code>: 検索対象フィールド</li>
+<li><code>ViewFields</code>: 結果表示フィールド（空配列で全フィールド表示）</li>
+<li><code>selectTheme</code>: 検索時に適用するマップテーマ名（省略可）</li>
+<li><code>angle</code> / <code>scale</code>: タブ単位で適用する回転角度・縮尺（未指定は適用しない）</li>
+</ul>
+<p>サンプル設定や詳しいフォーマットは <code>setting.json.sample</code> と <code>docs/search.html</code> を参照してください。</p>
+<p><a id="config-sources"></a></p>
+<h2 id="設定ソースと利用者ロール">設定ソースと利用者ロール</h2>
+<p>本プラグインは設定の柔軟性を高めるため、3 種類の設定ソースをサポートします。目的別に誰がどのソースを編集するかを整理すると次の通りです。</p>
+<ol>
+<li><p>システム管理者 — <code>setting.json</code>（プラグイン同梱、サイト／組織のデフォルト）</p>
+<ul>
+<li>目的: プラグイン全体に適用する組織的なデフォルト設定を提供します。</li>
+<li>編集者: プラグイン管理者やシステム管理者（インストール時やバージョンアップ時に更新）</li>
+<li>注意: プラグインインストールフォルダへの書き込み権限が必要。全ユーザーに影響します。</li>
+</ul>
+</li>
+<li><p>編集者 — <code>GEO-search-plugin</code>（プロジェクト変数、プロジェクト単位の設定）</p>
+<ul>
+<li>目的: 該当 QGIS プロジェクトに紐づく設定を保存します。プロジェクトと共に設定を配布したい場合に使用します。</li>
+<li>編集者: プロジェクト作成者や編集担当者</li>
+<li>備考: プロジェクト変数は inline の JSON を直接持つことも、プロジェクト内の外部ファイルパスを指すこともできます。</li>
+</ul>
+</li>
+<li><p>閲覧者 — <code>geo_search_json</code>（外部 JSON ファイル、ユーザー個別または一時的）</p>
+<ul>
+<li>目的: プロジェクトやプラグインのファイルを変更せずに個人用・一時的な設定を追加する用途に便利です。</li>
+<li>編集者: 個々のユーザー（ローカルの設定やちょっとした追加を反映したい場合）</li>
+<li>備考: 環境変数 <code>geo_search_json</code> またはプロジェクト変数でファイルパスを指定して利用できます。</li>
+</ul>
+</li>
+</ol>
+<p><strong>動作のまとめ（運用上の注意）</strong></p>
+<ul>
+<li>読み込み順（結合順）は以下の通りです：<code>setting.json</code>（プラグイン）→ <code>GEO-search-plugin</code>（プロジェクト）→ <code>geo_search_json</code>（外部）。後に読み込まれた項目は末尾に追加されます。</li>
+<li>読み込んだ各タブには <code>_source</code>（読み込み元）と <code>_source_index</code>（そのソース内の 0 ベースの順序）が注釈として付与され、編集・削除処理の対象特定に使われます。</li>
+<li>編集・削除処理は可能な限り <code>_source_index</code> による直接指定を試み、失敗した場合は <code>Title</code> によるフォールバック検索を行います（並行編集や手動編集への耐性を高めるため）。</li>
+<li>プラグインはファイル更新時にバックアップを作成し、原子的に書き換えを行います。更新後は UI を再構築して <code>_source_index</code> を再計算するため、表示上のインデックス不整合は解消されます。</li>
+</ul>
+<p>推奨利用法の早見表：</p>
+<ul>
+<li>サイト全体のデフォルトを管理する場合 → <code>setting.json</code>（システム管理者）</li>
+<li>プロジェクト単位で共有したい場合 → <code>GEO-search-plugin</code>（プロジェクト変数、編集者）</li>
+<li>個人用や一時的な追加・実験用途 → <code>geo_search_json</code>（閲覧者）</li>
+</ul>
+<p><a id="qt6"></a></p>
+<h2 id="qgis-4x--qt6-対応について">QGIS 4.x / Qt6 対応について</h2>
+<ul>
+<li>本プラグインは QGIS 4.0 以上および Qt6 専用となっています。<code>metadata.txt</code> に <code>supportsQt6 = True</code> を設定しています。</li>
+<li>PyQt のインポートは <code>qgis.PyQt</code> 経由に統一しています(Qt5 互換層は廃止済み)。</li>
+<li>Qt6 固有の描画タイミング差に対する UI の安定化（テーブルヘッダーのリサイズや最終列ストレッチ、最小幅設定など）を導入しています。</li>
+</ul>
+<p><a id="troubleshoot"></a></p>
+<h2 id="トラブルシュート画面が空白--属性列が狭い場合">トラブルシュート：画面が空白 / 属性列が狭い場合</h2>
+<ul>
+<li>まずプラグインを無効化→上書き→有効化、または QGIS を再起動してみてください。</li>
+<li>結果ダイアログの列を右クリックして「列を自動調整」を試してください。</li>
+<li>それでも改善しない場合は、Python コンソールでプラグインのダイアログ状態を出力する診断スニペットを実行し、出力をサポートに提供してください（<code>docs/search.html</code> にも診断手順を記載しています）。</li>
+</ul>
+<p><a id="search-logic"></a></p>
+<h2 id="検索ロジック実装概要">検索ロジック（実装概要）</h2>
+<p>詳細な実装や検索アルゴリズムの説明は <code>docs/search.html</code> を参照してください。主要な実装ファイルは <code>geo_search/widget/searchwidget.py</code>、<code>geo_search/searchfeature.py</code> などです。</p>
+<p><a id="pan-mode"></a></p>
+<h2 id="パンモード地図移動挙動">パンモード（地図移動挙動）</h2>
+<p>検索結果を選択した後の地図移動は複数モードで制御できます：</p>
+<ul>
+<li>ズーム to 選択（デフォルト）</li>
+<li>中心パン（ズーム維持）</li>
+<li>固定スケール表示</li>
+<li>アニメーションパン</li>
+<li>選択のみ（ビューを変更しない）</li>
+</ul>
+<p>設定は検索ダイアログの <code>panModeComboBox</code> で行います。</p>
+<p><a id="changelog"></a></p>
+<h2 id="更新履歴">更新履歴</h2>
+<ul>
+<li><strong>V3.3.0</strong> — 設定ソースの多様化：<code>setting.json</code>（プラグイン内）・<code>GEO-search-plugin</code>（プロジェクト変数）・<code>geo_search_json</code>（外部ファイル）の 3 方式を統合して読み込み。各タブに <code>_source</code> / <code>_source_index</code> を付与し、編集・削除フローと UI 表示の改善を行いました。</li>
+<li><strong>V3.0.0</strong> — テーマ選択・追加表示モード等の大きな改善</li>
+<li><strong>V2.0.0</strong> — 初期の UI と互換性改善</li>
+<li><strong>V1.0.0</strong> — 基本検索機能の実装</li>
+</ul>
+<hr />
+<p>詳しい設定例や運用ルール、サンプル JSON は <code>docs/search.html</code> と <code>setting.json.sample</code> を参照してください。</p>
+<h2 id="免責事項">免責事項</h2>
+<p>本システムは個人のPCで作成・テストされたものです。<br />
+ご利用によるいかなる損害も責任を負いません。</p>
+<p align="center">
+  <a href="https://giphy.com/explore/free-gif" target="_blank">
+    <img src="https://github.com/yamamoto-ryuzo/QGIS_portable_3x/raw/master/imgs/giphy.gif" width="500" title="avvio QGIS">
+  </a>
+</p>
+
+
+<h2>ドキュメント</h2>
+<ul>
+  <li><a href="search.html">search.html</a></li>
+  <li><a href="themes.html">themes.html</a></li>
+</ul>
+<h2>関連リンク</h2>
+<ul>
+  <li><a href="https://yamamoto-ryuzo.github.io/qgis_live_harness/plugins.html">プラグイン一覧(サイト)</a></li>
+  <li><a href="https://github.com/yamamoto-ryuzo/qgis_live_harness/blob/master/qgis-plugin/geo_search/README.md">README(GitHub)</a></li>
+  <li><a href="https://github.com/yamamoto-ryuzo/qgis_live_harness/blob/master/qgis-plugin/geo_search/CHANGELOG.md">CHANGELOG(GitHub)</a></li>
+</ul>
+<p><small>正本は <code>qgis-plugin/geo_search/docs/</code>。
+サイトの <code>docs/geo_search/</code> は
+<code>scripts/build-plugin-docs.py</code> によるミラーです。</small></p>
+</main>
+</div>
+</body>
+</html>

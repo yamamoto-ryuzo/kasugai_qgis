@@ -19,8 +19,9 @@ from .widget.searchwidget import (
     SearchTextWidget,
     SearchTibanWidget,
     SearchOwnerWidget,
+    SearchAddressWidget,
 )
-from .constants import OTHER_GROUP_NAME
+from .constants import OTHER_GROUP_NAME, ADDRESS_SEARCH_TITLES
 
 
 UI_FILE = "dialog.ui"
@@ -40,8 +41,8 @@ class SearchDialog(QDialog):
         try:
             self.addLayerButton.clicked.connect(self.add_current_layer_to_project_variable)
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage("addLayerButton connected", "GEO-search-plugin", 0)
+                from .log import log_message
+                log_message("addLayerButton connected", "GEO-search-plugin", 0)
             except Exception:
                 print("addLayerButton connected")
         except Exception:  # nosec B110  # 設計上の許容
@@ -51,8 +52,8 @@ class SearchDialog(QDialog):
         try:
             self.removeTabButton.clicked.connect(self.remove_current_tab_from_project_variable)
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage("removeTabButton connected", "GEO-search-plugin", 0)
+                from .log import log_message
+                log_message("removeTabButton connected", "GEO-search-plugin", 0)
             except Exception:
                 print("removeTabButton connected")
         except Exception:  # nosec B110  # 設計上の許容
@@ -62,8 +63,8 @@ class SearchDialog(QDialog):
         try:
             self.configButton.clicked.connect(self.edit_project_variable)
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage("configButton connected", "GEO-search-plugin", 0)
+                from .log import log_message
+                log_message("configButton connected", "GEO-search-plugin", 0)
             except Exception:
                 print("configButton connected")
         except Exception:  # nosec B110  # 設計上の許容
@@ -146,6 +147,8 @@ class SearchDialog(QDialog):
             return SearchTibanWidget(setting)
         if setting["Title"] == "所有者検索":
             return SearchOwnerWidget(setting)
+        if setting["Title"] in ADDRESS_SEARCH_TITLES:
+            return SearchAddressWidget(setting)
         return SearchTextWidget(setting)
 
     def create_tab_groups(self, searchtabs):
@@ -321,8 +324,8 @@ class SearchDialog(QDialog):
     def add_current_layer_to_project_variable(self):
         try:
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage("add_current_layer_to_project_variable invoked", "GEO-search-plugin", 0)
+                from .log import log_message
+                log_message("add_current_layer_to_project_variable invoked", "GEO-search-plugin", 0)
             except Exception:
                 print("add_current_layer_to_project_variable invoked")
             from qgis.core import QgsProject, QgsExpressionContextUtils
@@ -341,8 +344,8 @@ class SearchDialog(QDialog):
 
             if current_layer is None:
                 try:
-                    from qgis.core import QgsMessageLog
-                    QgsMessageLog.logMessage("add_current_layer: no active layer found", "GEO-search-plugin", 1)
+                    from .log import log_message
+                    log_message("add_current_layer: no active layer found", "GEO-search-plugin", 1)
                 except Exception:
                     print("add_current_layer: no active layer found")
                 return
@@ -370,10 +373,10 @@ class SearchDialog(QDialog):
 
             # Log the JSON to QGIS message log for inspection
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(f"Add current layer JSON: {json.dumps(standard_json, ensure_ascii=False)}", "GEO-search-plugin", 0)
+                from .log import log_message
+                log_message(f"Add current layer JSON: {json.dumps(standard_json, ensure_ascii=False)}", "GEO-search-plugin", 0)
             except Exception:
-                # best-effort: if QgsMessageLog not available, print
+                # best-effort: if log_message not available, print
                 try:
                     print(json.dumps(standard_json, ensure_ascii=False))
                 except Exception:  # nosec B110  # 設計上の許容
@@ -447,8 +450,8 @@ class SearchDialog(QDialog):
 
                 # Log diagnostics
                 try:
-                    from qgis.core import QgsMessageLog
-                    QgsMessageLog.logMessage("Add current layer aborted; diagnostics:\n" + "\n".join(diag), "GEO-search-plugin", 1)
+                    from .log import log_message
+                    log_message("Add current layer aborted; diagnostics:\n" + "\n".join(diag), "GEO-search-plugin", 1)
                 except Exception:
                     print("Add current layer aborted; diagnostics:")
                     for d in diag:
@@ -485,8 +488,8 @@ class SearchDialog(QDialog):
                     merged = [standard_json]
                     # log merged
                     try:
-                        from qgis.core import QgsMessageLog
-                        QgsMessageLog.logMessage(f"Merging: existing empty -> merged={json.dumps(merged, ensure_ascii=False)}", "GEO-search-plugin", 0)
+                        from .log import log_message
+                        log_message(f"Merging: existing empty -> merged={json.dumps(merged, ensure_ascii=False)}", "GEO-search-plugin", 0)
                     except Exception:
                         print("Merging: existing empty -> merged=", json.dumps(merged, ensure_ascii=False))
                     new_value = json.dumps(merged, ensure_ascii=False)
@@ -494,8 +497,8 @@ class SearchDialog(QDialog):
                     # try to parse existing as JSON; coerce non-list to list then append
                     parsed = json.loads(existing)
                     try:
-                        from qgis.core import QgsMessageLog
-                        QgsMessageLog.logMessage(f"Parsed existing value: {json.dumps(parsed, ensure_ascii=False)}", "GEO-search-plugin", 0)
+                        from .log import log_message
+                        log_message(f"Parsed existing value: {json.dumps(parsed, ensure_ascii=False)}", "GEO-search-plugin", 0)
                     except Exception:
                         print("Parsed existing value:", parsed)
 
@@ -506,16 +509,16 @@ class SearchDialog(QDialog):
                         merged = [parsed, standard_json]
 
                     try:
-                        from qgis.core import QgsMessageLog
-                        QgsMessageLog.logMessage(f"Merged JSON to write: {json.dumps(merged, ensure_ascii=False)}", "GEO-search-plugin", 0)
+                        from .log import log_message
+                        log_message(f"Merged JSON to write: {json.dumps(merged, ensure_ascii=False)}", "GEO-search-plugin", 0)
                     except Exception:
                         print("Merged JSON to write:", json.dumps(merged, ensure_ascii=False))
 
                     new_value = json.dumps(merged, ensure_ascii=False)
             except Exception as e:
                 try:
-                    from qgis.core import QgsMessageLog
-                    QgsMessageLog.logMessage(f"Error while merging existing project variable: {e}", "GEO-search-plugin", 1)
+                    from .log import log_message
+                    log_message(f"Error while merging existing project variable: {e}", "GEO-search-plugin", 1)
                 except Exception:
                     print(f"Error while merging existing project variable: {e}")
                 # fallback: set as single-item array string
@@ -530,21 +533,21 @@ class SearchDialog(QDialog):
                         if ok:
                             wrote_ok = True
                             try:
-                                from qgis.core import QgsMessageLog
+                                from .log import log_message
                                 read_back = QgsExpressionContextUtils.projectScope(project).variable('GEO-search-plugin')
-                                QgsMessageLog.logMessage(f"Wrote project variable via helper: {str(read_back)}", "GEO-search-plugin", 0)
+                                log_message(f"Wrote project variable via helper: {str(read_back)}", "GEO-search-plugin", 0)
                             except Exception:  # nosec B110  # 設計上の許容
                                 pass
                         else:
                             try:
-                                from qgis.core import QgsMessageLog
-                                QgsMessageLog.logMessage("set_project_variable returned False when writing GEO-search-plugin", "GEO-search-plugin", 1)
+                                from .log import log_message
+                                log_message("set_project_variable returned False when writing GEO-search-plugin", "GEO-search-plugin", 1)
                             except Exception:
                                 print("set_project_variable returned False when writing GEO-search-plugin")
                     except Exception as err:
                         try:
-                            from qgis.core import QgsMessageLog
-                            QgsMessageLog.logMessage(f"Error while persisting via set_project_variable: {err}", "GEO-search-plugin", 1)
+                            from .log import log_message
+                            log_message(f"Error while persisting via set_project_variable: {err}", "GEO-search-plugin", 1)
                         except Exception:
                             print(f"Error while persisting via set_project_variable: {err}")
                 elif save_target == 'setting_json':
@@ -558,20 +561,20 @@ class SearchDialog(QDialog):
                             wrote_ok = True
                         else:
                             try:
-                                from qgis.core import QgsMessageLog
-                                QgsMessageLog.logMessage("set_project_variable returned False when writing GEO-search-plugin (default route)", "GEO-search-plugin", 1)
+                                from .log import log_message
+                                log_message("set_project_variable returned False when writing GEO-search-plugin (default route)", "GEO-search-plugin", 1)
                             except Exception:
                                 print("set_project_variable returned False when writing GEO-search-plugin (default route)")
                     except Exception as err:
                         try:
-                            from qgis.core import QgsMessageLog
-                            QgsMessageLog.logMessage(f"Error while persisting via set_project_variable (default route): {err}", "GEO-search-plugin", 1)
+                            from .log import log_message
+                            log_message(f"Error while persisting via set_project_variable (default route): {err}", "GEO-search-plugin", 1)
                         except Exception:
                             print(f"Error while persisting via set_project_variable (default route): {err}")
             except Exception as e:
                 try:
-                    from qgis.core import QgsMessageLog
-                    QgsMessageLog.logMessage(f"Error writing settings: {e}", "GEO-search-plugin", 1)
+                    from .log import log_message
+                    log_message(f"Error writing settings: {e}", "GEO-search-plugin", 1)
                 except Exception:
                     print(f"Error writing settings: {e}")
 
@@ -581,8 +584,8 @@ class SearchDialog(QDialog):
                     self.reload_ui("with new layer")
                 except Exception:
                     try:
-                        from qgis.core import QgsMessageLog
-                        QgsMessageLog.logMessage("reload_ui after save failed", "GEO-search-plugin", 2)
+                        from .log import log_message
+                        log_message("reload_ui after save failed", "GEO-search-plugin", 2)
                     except Exception:
                         print("reload_ui after save failed")
                 # exit early since we already reloaded
@@ -596,8 +599,8 @@ class SearchDialog(QDialog):
                 return
         except Exception as e:
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(f"add_current_layer_to_project_variable error: {e}", "GEO-search-plugin", 1)
+                from .log import log_message
+                log_message(f"add_current_layer_to_project_variable error: {e}", "GEO-search-plugin", 1)
             except Exception:
                 print(f"add_current_layer_to_project_variable error: {e}")
 
@@ -666,8 +669,8 @@ class SearchDialog(QDialog):
                 print(f"Failed to set up timer: {e}")
         except Exception as e:
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(f"Failed to refresh UI: {e}", "GEO-search-plugin", 2)
+                from .log import log_message
+                log_message(f"Failed to refresh UI: {e}", "GEO-search-plugin", 2)
             except Exception:
                 print(f"Failed to refresh UI: {e}")
 
@@ -675,8 +678,8 @@ class SearchDialog(QDialog):
         """選択されているタブを削除し、プロジェクト変数から対応する設定を削除します"""
         try:
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage("remove_current_tab_from_project_variable invoked", "GEO-search-plugin", 0)
+                from .log import log_message
+                log_message("remove_current_tab_from_project_variable invoked", "GEO-search-plugin", 0)
             except Exception:
                 print("remove_current_tab_from_project_variable invoked")
 
@@ -698,8 +701,8 @@ class SearchDialog(QDialog):
             try:
                 if src_val is not None or src_idx is not None:
                     try:
-                        from qgis.core import QgsMessageLog
-                        QgsMessageLog.logMessage(
+                        from .log import log_message
+                        log_message(
                             f"_get_current_tab_info provenance: src_val={repr(src_val)} src_idx={repr(src_idx)} title={repr(current_tab_title)} group={repr(current_group_name)}", "GEO-search-plugin", 0)
                     except Exception:
                         print(f"_get_current_tab_info provenance: src_val={repr(src_val)} src_idx={repr(src_idx)} title={repr(current_tab_title)} group={repr(current_group_name)}")
@@ -709,8 +712,8 @@ class SearchDialog(QDialog):
             # タブが選択されていなければ終了
             if current_tab is None or current_tab_title is None:
                 try:
-                    from qgis.core import QgsMessageLog
-                    QgsMessageLog.logMessage("No tab selected or tab information could not be determined", "GEO-search-plugin", 1)
+                    from .log import log_message
+                    log_message("No tab selected or tab information could not be determined", "GEO-search-plugin", 1)
                 except Exception:
                     print("No tab selected or tab information could not be determined")
                 return
@@ -815,8 +818,8 @@ class SearchDialog(QDialog):
                 except Exception:
                     norm_src = str(src_val)
                 try:
-                    from qgis.core import QgsMessageLog
-                    QgsMessageLog.logMessage(f"remove_current_tab: inferred src_val={repr(src_val)} norm={norm_src} src_idx={repr(src_idx)} title={current_tab_title}", "GEO-search-plugin", 0)
+                    from .log import log_message
+                    log_message(f"remove_current_tab: inferred src_val={repr(src_val)} norm={norm_src} src_idx={repr(src_idx)} title={current_tab_title}", "GEO-search-plugin", 0)
                 except Exception:
                     try:
                         print(f"remove_current_tab: inferred src_val={repr(src_val)} norm={norm_src} src_idx={repr(src_idx)} title={current_tab_title}")
@@ -839,8 +842,8 @@ class SearchDialog(QDialog):
 
                     if q != YES_CONST:
                         try:
-                            from qgis.core import QgsMessageLog
-                            QgsMessageLog.logMessage("User cancelled deletion from plugin setting.json (no project variable present)", 'GEO-search-plugin', 0)
+                            from .log import log_message
+                            log_message("User cancelled deletion from plugin setting.json (no project variable present)", 'GEO-search-plugin', 0)
                         except Exception:  # nosec B110  # 設計上の許容
                             pass
                         return
@@ -873,8 +876,8 @@ class SearchDialog(QDialog):
                             q = 0
                     if q != YES_CONST:
                         try:
-                            from qgis.core import QgsMessageLog
-                            QgsMessageLog.logMessage("User cancelled deletion from geo_search_json (no project variable present)", 'GEO-search-plugin', 0)
+                            from .log import log_message
+                            log_message("User cancelled deletion from geo_search_json (no project variable present)", 'GEO-search-plugin', 0)
                         except Exception:  # nosec B110  # 設計上の許容
                             pass
                         return
@@ -915,8 +918,8 @@ class SearchDialog(QDialog):
 
                     if q != YES_CONST:
                         try:
-                            from qgis.core import QgsMessageLog
-                            QgsMessageLog.logMessage("User declined to search external geo_search_json for matching Title", 'GEO-search-plugin', 0)
+                            from .log import log_message
+                            log_message("User declined to search external geo_search_json for matching Title", 'GEO-search-plugin', 0)
                         except Exception:  # nosec B110  # 設計上の許容
                             pass
                         return
@@ -927,8 +930,8 @@ class SearchDialog(QDialog):
                     return
 
                 try:
-                    from qgis.core import QgsMessageLog
-                    QgsMessageLog.logMessage("No project variable exists to remove from", "GEO-search-plugin", 1)
+                    from .log import log_message
+                    log_message("No project variable exists to remove from", "GEO-search-plugin", 1)
                 except Exception:
                     print("No project variable exists to remove from")
                 return
@@ -968,8 +971,8 @@ class SearchDialog(QDialog):
 
                 if parsed is None:
                     try:
-                        from qgis.core import QgsMessageLog
-                        QgsMessageLog.logMessage("Could not parse project variable as JSON nor locate file path.", "GEO-search-plugin", 1)
+                        from .log import log_message
+                        log_message("Could not parse project variable as JSON nor locate file path.", "GEO-search-plugin", 1)
                     except Exception:
                         print("Could not parse project variable as JSON nor locate file path.")
                     QMessageBox.warning(self, self.tr("Unsupported project variable"), self.tr("Project variable 'GEO-search-plugin' does not contain JSON and is not a valid file path."))
@@ -1005,8 +1008,8 @@ class SearchDialog(QDialog):
 
                     if q != YES_CONST:
                         try:
-                            from qgis.core import QgsMessageLog
-                            QgsMessageLog.logMessage("User cancelled deletion from project-backed file", 'GEO-search-plugin', 0)
+                            from .log import log_message
+                            log_message("User cancelled deletion from project-backed file", 'GEO-search-plugin', 0)
                         except Exception:  # nosec B110  # 設計上の許容
                             pass
                         return
@@ -1083,8 +1086,8 @@ class SearchDialog(QDialog):
                         return
 
                     try:
-                        from qgis.core import QgsMessageLog
-                        QgsMessageLog.logMessage(f"Removed entry index={remove_idx} from project-backed file: {project_file_path} (backup={bak_path})", 'GEO-search-plugin', 0)
+                        from .log import log_message
+                        log_message(f"Removed entry index={remove_idx} from project-backed file: {project_file_path} (backup={bak_path})", 'GEO-search-plugin', 0)
                     except Exception:  # nosec B110  # 設計上の許容
                         pass
 
@@ -1111,8 +1114,8 @@ class SearchDialog(QDialog):
                     updated_settings = [item for item in parsed if not (isinstance(item, dict) and item.get('Title') == resolved_title)]
                     if len(updated_settings) == len(parsed):
                         try:
-                            from qgis.core import QgsMessageLog
-                            QgsMessageLog.logMessage(f"Tab '{resolved_title}' not found in project variable (inline)", "GEO-search-plugin", 1)
+                            from .log import log_message
+                            log_message(f"Tab '{resolved_title}' not found in project variable (inline)", "GEO-search-plugin", 1)
                         except Exception:
                             print(f"Tab '{resolved_title}' not found in project variable (inline)")
                         # Nothing changed
@@ -1128,13 +1131,13 @@ class SearchDialog(QDialog):
                             ok = self._save_to_project_variable(project, new_value)
                             if not ok:
                                 try:
-                                    QgsMessageLog.logMessage("set_project_variable returned False when removing tab (inline)", "GEO-search-plugin", 1)
+                                    log_message("set_project_variable returned False when removing tab (inline)", "GEO-search-plugin", 1)
                                 except Exception:
                                     print("set_project_variable returned False when removing tab (inline)")
                         except Exception as e:
                             try:
-                                from qgis.core import QgsMessageLog
-                                QgsMessageLog.logMessage(f"Error updating project variable (inline): {e}", "GEO-search-plugin", 1)
+                                from .log import log_message
+                                log_message(f"Error updating project variable (inline): {e}", "GEO-search-plugin", 1)
                             except Exception:
                                 print(f"Error updating project variable (inline): {e}")
                         self.reload_ui("after removing tab from project variable")
@@ -1150,29 +1153,29 @@ class SearchDialog(QDialog):
                         ok = self._save_to_project_variable(project, new_value)
                         if not ok:
                             try:
-                                from qgis.core import QgsMessageLog
-                                QgsMessageLog.logMessage("set_project_variable returned False when removing tab (by index)", "GEO-search-plugin", 1)
+                                from .log import log_message
+                                log_message("set_project_variable returned False when removing tab (by index)", "GEO-search-plugin", 1)
                             except Exception:
                                 print("set_project_variable returned False when removing tab (by index)")
                     except Exception as e:
                         try:
-                            from qgis.core import QgsMessageLog
-                            QgsMessageLog.logMessage(f"Error updating project variable (by index): {e}", "GEO-search-plugin", 1)
+                            from .log import log_message
+                            log_message(f"Error updating project variable (by index): {e}", "GEO-search-plugin", 1)
                         except Exception:
                             print(f"Error updating project variable (by index): {e}")
                     self.reload_ui("after removing tab from project variable")
                     return
             except Exception as e:
                 try:
-                    from qgis.core import QgsMessageLog
-                    QgsMessageLog.logMessage(f"Error updating project variable: {e}", "GEO-search-plugin", 1)
+                    from .log import log_message
+                    log_message(f"Error updating project variable: {e}", "GEO-search-plugin", 1)
                 except Exception:
                     print(f"Error updating project variable: {e}")
 
         except Exception as e:
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(f"remove_current_tab_from_project_variable error: {e}", "GEO-search-plugin", 1)
+                from .log import log_message
+                log_message(f"remove_current_tab_from_project_variable error: {e}", "GEO-search-plugin", 1)
             except Exception:
                 print(f"remove_current_tab_from_project_variable error: {e}")
 
@@ -1180,8 +1183,8 @@ class SearchDialog(QDialog):
         """現在選択されているタブのレイヤー設定を編集するためのダイアログを表示します"""
         try:
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage("edit_project_variable invoked", "GEO-search-plugin", 0)
+                from .log import log_message
+                log_message("edit_project_variable invoked", "GEO-search-plugin", 0)
             except Exception:
                 print("edit_project_variable invoked")
 
@@ -1200,8 +1203,8 @@ class SearchDialog(QDialog):
             try:
                 if src_val is not None or src_idx is not None:
                     try:
-                        from qgis.core import QgsMessageLog
-                        QgsMessageLog.logMessage(
+                        from .log import log_message
+                        log_message(
                             f"_get_current_tab_info provenance (edit): src_val={repr(src_val)} src_idx={repr(src_idx)} title={repr(current_tab_title)} group={repr(current_group_name)}", "GEO-search-plugin", 0)
                     except Exception:
                         print(f"_get_current_tab_info provenance (edit): src_val={repr(src_val)} src_idx={repr(src_idx)} title={current_tab_title} group={current_group_name}")
@@ -1211,8 +1214,8 @@ class SearchDialog(QDialog):
             # タブが選択されていなければ終了
             if current_tab is None or current_tab_title is None:
                 try:
-                    from qgis.core import QgsMessageLog
-                    QgsMessageLog.logMessage("No tab selected or tab information could not be determined", "GEO-search-plugin", 1)
+                    from .log import log_message
+                    log_message("No tab selected or tab information could not be determined", "GEO-search-plugin", 1)
                 except Exception:
                     print("No tab selected or tab information could not be determined")
                 return
@@ -1226,8 +1229,8 @@ class SearchDialog(QDialog):
             if existing is None or existing == "":
                 existing = "[]"  # 空の配列
                 try:
-                    from qgis.core import QgsMessageLog
-                    QgsMessageLog.logMessage("No existing project variable, creating empty array", "GEO-search-plugin", 0)
+                    from .log import log_message
+                    log_message("No existing project variable, creating empty array", "GEO-search-plugin", 0)
                 except Exception:
                     print("No existing project variable, creating empty array")
 
@@ -1284,8 +1287,8 @@ class SearchDialog(QDialog):
                                 tab_config = current_tab.setting
                         except Exception as err:
                             try:
-                                from qgis.core import QgsMessageLog
-                                QgsMessageLog.logMessage(f"Error getting tab setting: {err}", "GEO-search-plugin", 1)
+                                from .log import log_message
+                                log_message(f"Error getting tab setting: {err}", "GEO-search-plugin", 1)
                             except Exception:
                                 print(f"Error getting tab setting: {err}")
             except Exception as e:
@@ -1296,8 +1299,8 @@ class SearchDialog(QDialog):
                     "ViewFields": []
                 }
                 try:
-                    from qgis.core import QgsMessageLog
-                    QgsMessageLog.logMessage(f"Error parsing project variable: {e}", "GEO-search-plugin", 1)
+                    from .log import log_message
+                    log_message(f"Error parsing project variable: {e}", "GEO-search-plugin", 1)
                 except Exception:
                     print(f"Error parsing project variable: {e}")
 
@@ -1783,8 +1786,8 @@ class SearchDialog(QDialog):
 
         except Exception as e:
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(f"edit_project_variable error: {e}", "GEO-search-plugin", 1)
+                from .log import log_message
+                log_message(f"edit_project_variable error: {e}", "GEO-search-plugin", 1)
             except Exception:
                 print(f"edit_project_variable error: {e}")
 
@@ -1997,8 +2000,8 @@ class SearchDialog(QDialog):
 
             # Log raw and normalized result to help debug selection issues
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(f"choose_save_target_dialog raw_return={repr(raw)} normalized=(item={repr(item)}, ok={ok})", "GEO-search-plugin", 0)
+                from .log import log_message
+                log_message(f"choose_save_target_dialog raw_return={repr(raw)} normalized=(item={repr(item)}, ok={ok})", "GEO-search-plugin", 0)
             except Exception:
                 try:
                     print(f"choose_save_target_dialog raw_return={repr(raw)} normalized=(item={repr(item)}, ok={ok})")
@@ -2122,8 +2125,8 @@ class SearchDialog(QDialog):
             with open(path, 'w', encoding='utf-8') as fh:
                 json.dump(out, fh, ensure_ascii=False, indent=2)
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(f"Wrote settings to plugin setting.json: {path}", 'GEO-search-plugin', 0)
+                from .log import log_message
+                log_message(f"Wrote settings to plugin setting.json: {path}", 'GEO-search-plugin', 0)
             except Exception:
                 print(f"Wrote settings to plugin setting.json: {path}")
         except Exception as e:
@@ -2135,15 +2138,15 @@ class SearchDialog(QDialog):
         try:
             self._write_to_setting_json(item_or_list)
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage("save_to_setting_json: wrote item", 'GEO-search-plugin', 0)
+                from .log import log_message
+                log_message("save_to_setting_json: wrote item", 'GEO-search-plugin', 0)
             except Exception:
                 print("save_to_setting_json: wrote item")
             return True
         except Exception as e:
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(f"save_to_setting_json error: {e}", 'GEO-search-plugin', 2)
+                from .log import log_message
+                log_message(f"save_to_setting_json error: {e}", 'GEO-search-plugin', 2)
             except Exception:
                 print(f"save_to_setting_json error: {e}")
             try:
@@ -2271,16 +2274,16 @@ class SearchDialog(QDialog):
                 raise
 
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(f"Updated setting.json at {path}; index={update_idx} backup={bak_path}", 'GEO-search-plugin', 0)
+                from .log import log_message
+                log_message(f"Updated setting.json at {path}; index={update_idx} backup={bak_path}", 'GEO-search-plugin', 0)
             except Exception:
                 print(f"Updated setting.json at {path}; index={update_idx} backup={bak_path}")
 
             return True
         except Exception as e:
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(f"_update_entry_in_setting_json error: {e}", 'GEO-search-plugin', 1)
+                from .log import log_message
+                log_message(f"_update_entry_in_setting_json error: {e}", 'GEO-search-plugin', 1)
             except Exception:
                 print(f"_update_entry_in_setting_json error: {e}")
             return False
@@ -2322,7 +2325,8 @@ class SearchDialog(QDialog):
                 # If no geo_search_json configured, create a default file
                 # next to the current project with name <project>_search.json.
                 try:
-                    from qgis.core import QgsProject, QgsExpressionContextUtils, QgsMessageLog
+                    from qgis.core import QgsProject, QgsExpressionContextUtils
+                    from .log import log_message
                     proj = QgsProject.instance()
                     proj_file = proj.fileName() or ''
                     if proj_file:
@@ -2337,14 +2341,14 @@ class SearchDialog(QDialog):
                             ok = set_project_variable(proj, 'geo_search_json', path)
                             if not ok:
                                 try:
-                                    QgsMessageLog.logMessage(f"Failed to persist geo_search_json to project variables for path={path}", 'GEO-search-plugin', 1)
+                                    log_message(f"Failed to persist geo_search_json to project variables for path={path}", 'GEO-search-plugin', 1)
                                 except Exception:
                                     print(f"Failed to persist geo_search_json to project variables for path={path}")
                         except Exception:  # nosec B110  # 設計上の許容
                             pass
 
                         try:
-                            QgsMessageLog.logMessage(f"_write_to_geo_search_json: no path configured, using default {path}", 'GEO-search-plugin', 0)
+                            log_message(f"_write_to_geo_search_json: no path configured, using default {path}", 'GEO-search-plugin', 0)
                         except Exception:
                             print(f"_write_to_geo_search_json: no path configured, using default {path}")
                     else:
@@ -2352,15 +2356,15 @@ class SearchDialog(QDialog):
                         plugin_dir = os.path.dirname(__file__)
                         path = os.path.join(plugin_dir, 'untitled_search.json')
                         try:
-                            QgsMessageLog.logMessage(f"_write_to_geo_search_json: unsaved project, using fallback {path}", 'GEO-search-plugin', 1)
+                            log_message(f"_write_to_geo_search_json: unsaved project, using fallback {path}", 'GEO-search-plugin', 1)
                         except Exception:
                             print(f"_write_to_geo_search_json: unsaved project, using fallback {path}")
                 except Exception:
                     # As a last resort, inform user and abort write
                     QMessageBox.warning(self, self.tr("geo_search_json"), self.tr("No geo_search_json path configured and failed to create default path."))
                     try:
-                        from qgis.core import QgsMessageLog
-                        QgsMessageLog.logMessage("_write_to_geo_search_json: no path configured and failed to create default", 'GEO-search-plugin', 2)
+                        from .log import log_message
+                        log_message("_write_to_geo_search_json: no path configured and failed to create default", 'GEO-search-plugin', 2)
                     except Exception:
                         print("_write_to_geo_search_json: no path configured and failed to create default")
                     return
@@ -2379,8 +2383,8 @@ class SearchDialog(QDialog):
                     data = None
 
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(f"_write_to_geo_search_json: resolved path={path} exists={os.path.exists(path)}", 'GEO-search-plugin', 0)
+                from .log import log_message
+                log_message(f"_write_to_geo_search_json: resolved path={path} exists={os.path.exists(path)}", 'GEO-search-plugin', 0)
             except Exception:
                 print(f"_write_to_geo_search_json: resolved path={path} exists={os.path.exists(path)}")
 
@@ -2390,8 +2394,8 @@ class SearchDialog(QDialog):
                 incoming = [new_item_or_list]
 
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(
+                from .log import log_message
+                log_message(
                     f"_write_to_geo_search_json: incoming count={len(incoming)} sample={json.dumps(incoming[0], ensure_ascii=False) if incoming else '[]'}", 'GEO-search-plugin', 0)
             except Exception:
                 print(f"_write_to_geo_search_json: incoming count={len(incoming)}")
@@ -2458,8 +2462,8 @@ class SearchDialog(QDialog):
             with open(path, 'w', encoding='utf-8') as fh:
                 json.dump(out, fh, ensure_ascii=False, indent=2)
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(
+                from .log import log_message
+                log_message(
                     f"Wrote settings to geo_search_json file: {path} (items_written={len(out.get('SearchTabs') if isinstance(out, dict) and out.get('SearchTabs') else out if isinstance(out, list) else 1)})", 'GEO-search-plugin', 0)
             except Exception:
                 print(f"Wrote settings to geo_search_json file: {path}")
@@ -2473,15 +2477,15 @@ class SearchDialog(QDialog):
         try:
             self._write_to_geo_search_json(item_or_list)
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage("save_to_geo_search_json: wrote item", 'GEO-search-plugin', 0)
+                from .log import log_message
+                log_message("save_to_geo_search_json: wrote item", 'GEO-search-plugin', 0)
             except Exception:
                 print("save_to_geo_search_json: wrote item")
             return True
         except Exception as e:
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(f"save_to_geo_search_json error: {e}", 'GEO-search-plugin', 2)
+                from .log import log_message
+                log_message(f"save_to_geo_search_json error: {e}", 'GEO-search-plugin', 2)
             except Exception:
                 print(f"save_to_geo_search_json error: {e}")
             try:
@@ -2496,16 +2500,17 @@ class SearchDialog(QDialog):
             ok = set_project_variable(project, 'GEO-search-plugin', new_value)
             if ok:
                 try:
-                    from qgis.core import QgsExpressionContextUtils, QgsMessageLog
+                    from qgis.core import QgsExpressionContextUtils
+                    from .log import log_message
                     read_back = QgsExpressionContextUtils.projectScope(project).variable('GEO-search-plugin')
-                    QgsMessageLog.logMessage(f"_save_to_project_variable: wrote project variable: {str(read_back)}", 'GEO-search-plugin', 0)
+                    log_message(f"_save_to_project_variable: wrote project variable: {str(read_back)}", 'GEO-search-plugin', 0)
                 except Exception:  # nosec B110  # 設計上の許容
                     pass
                 return True
             else:
                 try:
-                    from qgis.core import QgsMessageLog
-                    QgsMessageLog.logMessage("_save_to_project_variable: set_project_variable returned False", 'GEO-search-plugin', 1)
+                    from .log import log_message
+                    log_message("_save_to_project_variable: set_project_variable returned False", 'GEO-search-plugin', 1)
                 except Exception:
                     print("_save_to_project_variable: set_project_variable returned False")
                 try:
@@ -2515,8 +2520,8 @@ class SearchDialog(QDialog):
                 return False
         except Exception as e:
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(f"_save_to_project_variable error: {e}", 'GEO-search-plugin', 2)
+                from .log import log_message
+                log_message(f"_save_to_project_variable error: {e}", 'GEO-search-plugin', 2)
             except Exception:
                 print(f"_save_to_project_variable error: {e}")
             try:
@@ -2556,8 +2561,8 @@ class SearchDialog(QDialog):
             else:
                 # レイヤーが見つからない場合、現在のフィールドを使用
                 try:
-                    from qgis.core import QgsMessageLog
-                    QgsMessageLog.logMessage(f"Layer '{layer_name}' not found; using current fields.", "GEO-search-plugin", 1)
+                    from .log import log_message
+                    log_message(f"Layer '{layer_name}' not found; using current fields.", "GEO-search-plugin", 1)
                 except Exception:
                     print(f"Layer '{layer_name}' not found; using current fields.")
 
@@ -2619,8 +2624,8 @@ class SearchDialog(QDialog):
 
         except Exception as e:
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(f"edit_view_fields error: {e}", "GEO-search-plugin", 1)
+                from .log import log_message
+                log_message(f"edit_view_fields error: {e}", "GEO-search-plugin", 1)
             except Exception:
                 print(f"edit_view_fields error: {e}")
             QMessageBox.warning(dialog, self.tr("Error"), self.tr("An error occurred while editing display fields:\n{0}").format(e))
@@ -2740,8 +2745,8 @@ class SearchDialog(QDialog):
             fields_dialog.exec()
         except Exception as e:
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(f"edit_search_field error: {e}", "GEO-search-plugin", 1)
+                from .log import log_message
+                log_message(f"edit_search_field error: {e}", "GEO-search-plugin", 1)
             except Exception:
                 print(f"edit_search_field error: {e}")
             QMessageBox.warning(dialog, self.tr("Error"), self.tr("An error occurred while editing the search field:\n{0}").format(e))
@@ -2793,8 +2798,8 @@ class SearchDialog(QDialog):
             dialog.accept()
         except Exception as e:
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(f"_save_search_field error: {e}", "GEO-search-plugin", 1)
+                from .log import log_message
+                log_message(f"_save_search_field error: {e}", "GEO-search-plugin", 1)
             except Exception:
                 print(f"_save_search_field error: {e}")
             QMessageBox.warning(dialog, self.tr("Error"), self.tr("An error occurred while saving the search field:\n{0}").format(e))
@@ -2844,8 +2849,8 @@ class SearchDialog(QDialog):
 
         except Exception as e:
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(f"_save_view_fields error: {e}", "GEO-search-plugin", 1)
+                from .log import log_message
+                log_message(f"_save_view_fields error: {e}", "GEO-search-plugin", 1)
             except Exception:
                 print(f"_save_view_fields error: {e}")
             QMessageBox.warning(dialog, self.tr("Error"), self.tr("An error occurred while saving the display fields:\n{0}").format(e))
@@ -2876,8 +2881,8 @@ class SearchDialog(QDialog):
                             tab_config[field_name] = txt.strip()
                     except Exception as e:
                         try:
-                            from qgis.core import QgsMessageLog
-                            QgsMessageLog.logMessage(f"save_tab_config_by_fields: selectTheme read error: {e}", "GEO-search-plugin", 1)
+                            from .log import log_message
+                            log_message(f"save_tab_config_by_fields: selectTheme read error: {e}", "GEO-search-plugin", 1)
                         except Exception:  # nosec B110  # 設計上の許容
                             pass
                         tab_config[field_name] = ""
@@ -2964,8 +2969,8 @@ class SearchDialog(QDialog):
 
         except Exception as e:
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(f"save_tab_config_by_fields error: {e}", "GEO-search-plugin", 1)
+                from .log import log_message
+                log_message(f"save_tab_config_by_fields error: {e}", "GEO-search-plugin", 1)
             except Exception:
                 print(f"save_tab_config_by_fields error: {e}")
             QMessageBox.warning(self, self.tr("Error"), self.tr("An error occurred while saving the tab settings:\n{0}").format(e))
@@ -3011,8 +3016,8 @@ class SearchDialog(QDialog):
 
             # Log auto-selection decision to help debugging
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(
+                from .log import log_message
+                log_message(
                     f"_update_config_and_save: auto-detected save_target={repr(save_target)} from tab_config._source={repr(tab_config.get('_source') if isinstance(tab_config, dict) else None)}", "GEO-search-plugin", 0)
             except Exception:
                 try:
@@ -3031,8 +3036,8 @@ class SearchDialog(QDialog):
                 # If user cancelled/no selection, abort save and keep edit dialog open
                 if save_target is None:
                     try:
-                        from qgis.core import QgsMessageLog
-                        QgsMessageLog.logMessage("No save target selected; aborting update_config_and_save", "GEO-search-plugin", 0)
+                        from .log import log_message
+                        log_message("No save target selected; aborting update_config_and_save", "GEO-search-plugin", 0)
                     except Exception:
                         print("No save target selected; aborting update_config_and_save")
                     try:
@@ -3047,20 +3052,20 @@ class SearchDialog(QDialog):
                         ok = self._save_to_project_variable(project, new_value)
                         if not ok:
                             try:
-                                from qgis.core import QgsMessageLog
-                                QgsMessageLog.logMessage("set_project_variable returned False when writing GEO-search-plugin", "GEO-search-plugin", 1)
+                                from .log import log_message
+                                log_message("set_project_variable returned False when writing GEO-search-plugin", "GEO-search-plugin", 1)
                             except Exception:
                                 print("set_project_variable returned False when writing GEO-search-plugin")
                         else:
                             try:
                                 read_back = QgsExpressionContextUtils.projectScope(project).variable('GEO-search-plugin')
-                                QgsMessageLog.logMessage(f"Updated project variable via helper: {str(read_back)}", "GEO-search-plugin", 0)
+                                log_message(f"Updated project variable via helper: {str(read_back)}", "GEO-search-plugin", 0)
                             except Exception:  # nosec B110  # 設計上の許容
                                 pass
                     except Exception as err:
                         try:
-                            from qgis.core import QgsMessageLog
-                            QgsMessageLog.logMessage(f"Error while persisting via set_project_variable: {err}", "GEO-search-plugin", 1)
+                            from .log import log_message
+                            log_message(f"Error while persisting via set_project_variable: {err}", "GEO-search-plugin", 1)
                         except Exception:
                             print(f"Error while persisting via set_project_variable: {err}")
                 elif save_target == 'setting_json':
@@ -3097,21 +3102,21 @@ class SearchDialog(QDialog):
                         ok = self._save_to_project_variable(project, new_value)
                         if not ok:
                             try:
-                                from qgis.core import QgsMessageLog
-                                QgsMessageLog.logMessage("set_project_variable returned False when writing GEO-search-plugin (update flow)", "GEO-search-plugin", 1)
+                                from .log import log_message
+                                log_message("set_project_variable returned False when writing GEO-search-plugin (update flow)", "GEO-search-plugin", 1)
                             except Exception:
                                 print("set_project_variable returned False when writing GEO-search-plugin (update flow)")
                     except Exception as e:
                         try:
-                            from qgis.core import QgsMessageLog
-                            QgsMessageLog.logMessage(f"Error while persisting via set_project_variable (update flow): {e}", "GEO-search-plugin", 1)
+                            from .log import log_message
+                            log_message(f"Error while persisting via set_project_variable (update flow): {e}", "GEO-search-plugin", 1)
                         except Exception:
                             print(f"Error while persisting via set_project_variable (update flow): {e}")
 
             except Exception as e:
                 try:
-                    from qgis.core import QgsMessageLog
-                    QgsMessageLog.logMessage(f"Failed to save configuration to chosen target: {e}", "GEO-search-plugin", 1)
+                    from .log import log_message
+                    log_message(f"Failed to save configuration to chosen target: {e}", "GEO-search-plugin", 1)
                 except Exception:
                     print(f"Failed to save configuration to chosen target: {e}")
 
@@ -3123,8 +3128,8 @@ class SearchDialog(QDialog):
 
         except Exception as e:
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(f"_update_config_and_save error: {e}", "GEO-search-plugin", 1)
+                from .log import log_message
+                log_message(f"_update_config_and_save error: {e}", "GEO-search-plugin", 1)
             except Exception:
                 print(f"_update_config_and_save error: {e}")
             try:

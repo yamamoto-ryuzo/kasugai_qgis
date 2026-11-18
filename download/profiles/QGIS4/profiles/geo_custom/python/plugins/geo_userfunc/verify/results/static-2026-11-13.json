@@ -1,0 +1,43 @@
+{
+  "compileall": {
+    "rc": 0,
+    "out": ""
+  },
+  "flake8": {
+    "rc": 1,
+    "out": "C:\\devin\\qgis_live_harness\\qgis-plugin\\geo_userfunc\\functions\\user_functions.py:1:1: F403 'from qgis.core import *' used; unable to detect undefined names\nC:\\devin\\qgis_live_harness\\qgis-plugin\\geo_userfunc\\functions\\user_functions.py:2:1: F403 'from qgis.gui import *' used; unable to detect undefined names\nC:\\devin\\qgis_live_harness\\qgis-plugin\\geo_userfunc\\functions\\user_functions.py:17:2: F405 'qgsfunction' may be undefined, or defined from star imports: qgis.core, qgis.gui\nC:\\devin\\qgis_live_harness\\qgis-plugin\\geo_userfunc\\functions\\user_functions.py:25:5: F841 local variable 'FULLWIDTH_ALL' is assigned to but never used\nC:\\devin\\qgis_live_harness\\qgis-plugin\\geo_userfunc\\functions\\user_functions.py:30:54: W605 invalid escape sequence '\\]'\nC:\\devin\\qgis_live_harness\\qgis-plugin\\geo_userfunc\\functions\\user_functions.py:32:5: F841 local variable 'HALFWIDTH_ALL' is assigned to but never used\nC:\\devin\\qgis_live_harness\\qgis-plugin\\geo_userfunc\\functions\\user_functions.py:48:5: F841 local variable 'FULLWIDTH_ALL' is assigned to but never used\nC:\\devin\\qgis_live_harness\\qgis-plugin\\geo_userfunc\\functions\\user_functions.py:53:54: W605 invalid escape sequence '\\]'\nC:\\devin\\qgis_live_harness\\qgis-plugin\\geo_userfunc\\functions\\user_functions.py:55:5: F841 local variable 'HALFWIDTH_ALL' is assigned to but never used\n<unknown>:30: SyntaxWarning: invalid escape sequence '\\]'\n<unknown>:53: SyntaxWarning: invalid escape sequence '\\]'"
+  },
+  "bandit": {
+    "rc": 1,
+    "out": "Run started:2026-11-13 14:51:14.796274+00:00\n\nTest results:\n>> Issue: [B112:try_except_continue] Try, Except, Continue detected.\n   Severity: Low   Confidence: High\n   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)\n   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b112_try_except_continue.html\n   Location: C:\\devin\\qgis_live_harness\\qgis-plugin\\geo_userfunc\\bridge.py:430:12\n429\t                    data = json.load(f)\n430\t            except Exception:\n431\t                continue\n432\t            for item in data if isinstance(data, list) else []:\n\n--------------------------------------------------\n\nCode scanned:\n\tTotal lines of code: 1491\n\tTotal lines skipped (#nosec): 0\n\tTotal potential issues skipped due to specifically being disabled (e.g., #nosec BXXX): 4\n\nRun metrics:\n\tTotal issues (by severity):\n\t\tUndefined: 0\n\t\tLow: 1\n\t\tMedium: 0\n\t\tHigh: 0\n\tTotal issues (by confidence):\n\t\tUndefined: 0\n\t\tLow: 0\n\t\tMedium: 0\n\t\tHigh: 1\nFiles skipped (0):\n[main]\tINFO\tUsing ini file for skipped tests\n[main]\tINFO\tUsing command line arg for selected targets\n[warnings]\tWARNING\tinvalid escape sequence '\\]'\n\n[warnings]\tWARNING\tinvalid escape sequence '\\]'\n\n[tester]\tWARNING\tnosec encountered (B102), but no failed test on file C:\\devin\\qgis_live_harness\\qgis-plugin\\geo_userfunc\\library.py:256"
+  },
+  "ran_at": "2026-11-13T23:50:08+09:00",
+  "reload": {
+    "loaded": true,
+    "opened": false,
+    "plugins": [
+      "MetaSearch",
+      "Qgis2threejs",
+      "QuickDEM4JP",
+      "StreetView",
+      "db_manager",
+      "geo_driver",
+      "geo_excel",
+      "geo_import",
+      "geo_launcher",
+      "geo_legend",
+      "geo_report",
+      "geo_search",
+      "geo_userfunc",
+      "geo_webview",
+      "menu_from_project",
+      "mmqgis",
+      "mojxml_plugin",
+      "plateau_plugin",
+      "processing",
+      "qfieldsync",
+      "qgis2web",
+      "searchlayers"
+    ]
+  }
+}

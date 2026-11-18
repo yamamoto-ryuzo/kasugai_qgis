@@ -1,0 +1,16 @@
+{
+  "ts": "2026-11-15T22:33:28+09:00",
+  "catalog_methods": [
+    "applyDefaults",
+    "checkExcel",
+    "layerVariables",
+    "listScripts",
+    "openSettings",
+    "regenerateTemplates",
+    "run",
+    "setLayerVariables",
+    "setSettings",
+    "settings",
+    "status"
+  ]
+}

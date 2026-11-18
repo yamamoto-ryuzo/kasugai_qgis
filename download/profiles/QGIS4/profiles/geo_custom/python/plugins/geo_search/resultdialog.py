@@ -90,8 +90,8 @@ class ResultDialog(QDialog):
         tab = self._tabs[idx]
         features = tab.get("features") or []
         try:
-            from qgis.core import QgsMessageLog
-            QgsMessageLog.logMessage(
+            from .log import log_message
+            log_message(
                 f"move_page: tab_index={idx} tab_layer={getattr(tab.get('layer'), 'name', lambda: None)() if tab.get('layer') else 'None'} features_total={len(features)} page={page}", "GEO-search-plugin", 0)
         except Exception:  # nosec B110  # 設計上の許容
             pass
@@ -99,8 +99,8 @@ class ResultDialog(QDialog):
         e = page * self.page_limit
         page_features = features[s:e]
         try:
-            from qgis.core import QgsMessageLog
-            QgsMessageLog.logMessage(f"move_page: s={s} e={e} page_features_count={len(page_features)}", "GEO-search-plugin", 0)
+            from .log import log_message
+            log_message(f"move_page: s={s} e={e} page_features_count={len(page_features)}", "GEO-search-plugin", 0)
         except Exception:  # nosec B110  # 設計上の許容
             pass
 
@@ -109,7 +109,7 @@ class ResultDialog(QDialog):
             rows = self.page_limit
         table = tab.get("table") or self.current_table
         table.setRowCount(rows)
-        table.setVerticalHeaderLabels([f"{i}" for i in range(s, e)])
+        table.setVerticalHeaderLabels([f"{i}" for i in range(s, s + rows)])
         self.set_feature_items(page_features, table, tab.get("fields"))
 
     def set_features(self, fields, features):
@@ -187,14 +187,17 @@ class ResultDialog(QDialog):
         total_count = 0
         for layer, fields, features in layers_with_features:
             # defensive: ensure features is a concrete list (caller may pass an iterator)
+            # _lazy なシーケンス(AddressFeaturePager)はページ単位遅延化を
+            # 維持するため list() 化しない
             try:
-                features = list(features)
+                if not getattr(features, "_lazy", False):
+                    features = list(features)
             except Exception:  # nosec B110  # 設計上の許容
                 pass
             total_count += len(features)
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(f"set_features_by_layer: preparing tab for layer={getattr(layer, '__repr__', lambda: layer)()} features_count={len(features)}", "GEO-search-plugin", 0)
+                from .log import log_message
+                log_message(f"set_features_by_layer: preparing tab for layer={getattr(layer, '__repr__', lambda: layer)()} features_count={len(features)}", "GEO-search-plugin", 0)
             except Exception:  # nosec B110  # 設計上の許容
                 pass
             # ensure fields is a concrete sequence of field objects
@@ -248,8 +251,8 @@ class ResultDialog(QDialog):
 
             name = tab_label if tab_label is not None else (actual_layer.name() if actual_layer is not None else "Results")
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(f"set_features_by_layer: adding tab name={name} features={len(features)}", "GEO-search-plugin", 0)
+                from .log import log_message
+                log_message(f"set_features_by_layer: adding tab name={name} features={len(features)}", "GEO-search-plugin", 0)
             except Exception:  # nosec B110  # 設計上の許容
                 pass
             self.tabWidget.addTab(table, self.tr(name))
@@ -348,7 +351,7 @@ class ResultDialog(QDialog):
         except Exception:  # nosec B110  # 設計上の許容
             pass
         try:
-            from qgis.core import QgsMessageLog
+            from .log import log_message
             # dump internal _tabs structure for debugging
             for i, tab in enumerate(self._tabs):
                 layer = tab.get('layer')
@@ -365,7 +368,7 @@ class ResultDialog(QDialog):
                         feat_type = 'no-features'
                 except Exception:
                     feat_type = str(type(f0))
-                QgsMessageLog.logMessage(
+                log_message(
                     f"set_features_by_layer: tab_index={i} layer={getattr(layer, 'name', lambda: layer)()} fields_count={len(fields)} features_count={len(features)} first_feature={feat_type}", "GEO-search-plugin", 0)
         except Exception:  # nosec B110  # 設計上の許容
             pass
@@ -381,7 +384,9 @@ class ResultDialog(QDialog):
             total = 0
             for layer, fields, features in layers_with_features:
                 try:
-                    features = list(features) if features is not None else []
+                    if features is not None and not getattr(
+                            features, "_lazy", False):
+                        features = list(features)
                 except Exception:
                     features = []
                 total += len(features) if features else 0
@@ -756,8 +761,8 @@ class ResultDialog(QDialog):
                 pass
 
             try:
-                from qgis.core import QgsMessageLog
-                QgsMessageLog.logMessage(f"set_form_by_layer: built form list with {len(self._form_feature_map)} items (first_field={first_field_name})", "GEO-search-plugin", 0)
+                from .log import log_message
+                log_message(f"set_form_by_layer: built form list with {len(self._form_feature_map)} items (first_field={first_field_name})", "GEO-search-plugin", 0)
             except Exception:  # nosec B110  # 設計上の許容
                 pass
 
@@ -792,8 +797,8 @@ class ResultDialog(QDialog):
                     fields = self.fields
         table.clearContents()
         try:
-            from qgis.core import QgsMessageLog
-            QgsMessageLog.logMessage(f"set_feature_items: table={table} fields_count={len(fields) if fields else 0} features_count={len(features)}", "GEO-search-plugin", 0)
+            from .log import log_message
+            log_message(f"set_feature_items: table={table} fields_count={len(fields) if fields else 0} features_count={len(features)}", "GEO-search-plugin", 0)
         except Exception:  # nosec B110  # 設計上の許容
             pass
 
@@ -864,14 +869,14 @@ class ResultDialog(QDialog):
 
         # show sample feature ids/attrs for debugging
         try:
-            from qgis.core import QgsMessageLog
+            from .log import log_message
             sample_info = []
             for i, feat in enumerate(features[:3]):
                 try:
                     sample_info.append({'id': feat.id(), 'attrs': {(f.name() if hasattr(f, 'name') else str(f)): feat[f.name()] if hasattr(f, 'name') else None for f in fields}})
                 except Exception:
                     sample_info.append(str(feat))
-            QgsMessageLog.logMessage(f"set_feature_items: samples={sample_info}", "GEO-search-plugin", 0)
+            log_message(f"set_feature_items: samples={sample_info}", "GEO-search-plugin", 0)
         except Exception:  # nosec B110  # 設計上の許容
             pass
         for index, feature in enumerate(features):

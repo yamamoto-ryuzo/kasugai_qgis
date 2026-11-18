@@ -22,6 +22,10 @@ live dir は WEBENGINE_LIVE_DIR/qgis-<pid>/<plugin_id>/。
    "method": "pluginInfo", "args": [], "token": "..."}
   {"id": 7, "type": "describe_plugins", "token": "..."}
    ← 全プラグインのAI利用可能機能カタログ(bridge+pluginInfo集約)
+  {"id": 8, "type": "devin_run", "prompt": "...",
+   "cwd": "C:/repo", "token": "..."}
+   ← Devin CLI(devin -p)の非同期起動。devin_status/devin_result/
+   devin_abort で追跡・取得・中断する(devin_tasks.py)
 
 認証: 起動ごとにセッショントークンを生成し live_dir/token と
 レジストリJSONに書き出す(どちらもユーザ限定ACL)。ファイル経由
@@ -35,14 +39,17 @@ LiveDriverに転送され、結果は呼び出し元の results.jsonl に返る
 (このドライバが全プラグインの統一制御点になる)。
 """
 
+import datetime
 import hmac
 import inspect
 import itertools
 import json
 import os
 import queue
+import re
 import secrets
 import threading
+import time
 import traceback
 
 from qgis.PyQt.QtCore import QTimer
@@ -67,6 +74,156 @@ def _to_jsonable(v):
     if isinstance(v, (list, tuple, set)):
         return [_to_jsonable(x) for x in v]
     return repr(v)
+
+
+# ---- 監査ログ(~/.qgis-live/audit-<date>.jsonl) ----
+# _handle を通る全コマンド(ファイルJSONL/REST/MCP/AIパネル)を永続化する。
+# secrets系キーは "***" にマスクし、セッショントークンは記録しない。
+_AUDIT_MASK_KEYS = re.compile(
+    r"token|secret|passw|api[-_]?key|authorization|credential", re.I)
+_AUDIT_SUMMARY_LIMIT = 800
+_AUDIT_ERROR_LIMIT = 300
+_AUDIT_DEFAULT_MAX_BYTES = 5 * 1024 * 1024
+_AUDIT_DEFAULT_MAX_FILES = 14
+
+
+def _audit_base_dir():
+    """監査ログの置き場所(接続情報・指示書と同じレジストリdir)。"""
+    return os.environ.get(
+        "QGIS_LIVE_REGISTRY",
+        os.path.join(os.path.expanduser("~"), ".qgis-live"))
+
+
+def _audit_conf():
+    """(enabled, max_bytes, max_files)。QSettings geo_driver/audit/*。"""
+    enabled = True
+    max_bytes = _AUDIT_DEFAULT_MAX_BYTES
+    max_files = _AUDIT_DEFAULT_MAX_FILES
+    try:
+        from qgis.PyQt.QtCore import QSettings
+        s = QSettings()
+        enabled = str(s.value("geo_driver/audit/enabled", True)).lower() \
+            not in ("0", "false", "no")
+        max_bytes = int(s.value("geo_driver/audit/max_bytes", max_bytes))
+        max_files = int(s.value("geo_driver/audit/max_files", max_files))
+    except Exception:  # nosec B110  # QSettings非依存環境は既定値
+        pass
+    return enabled, max(int(max_bytes), 1024), max(int(max_files), 1)
+
+
+def _audit_mask(v, key=None):
+    if key is not None and _AUDIT_MASK_KEYS.search(str(key)):
+        return "***"
+    if isinstance(v, dict):
+        return {str(k): _audit_mask(x, k) for k, x in v.items()}
+    if isinstance(v, (list, tuple)):
+        return [_audit_mask(x) for x in v]
+    return v
+
+
+def _audit_summary(cmd):
+    """ログに残す引数要約。内部キー(_*)は除き、secretsはマスクする。"""
+    body = {k: _audit_mask(v, k) for k, v in cmd.items()
+            if k not in ("id", "type") and not k.startswith("_")}
+    try:
+        s = json.dumps(body, ensure_ascii=False, default=repr)
+    except Exception:  # nosec B110  # 要約不能時はreprで縮退
+        s = repr(body)
+    if len(s) > _AUDIT_SUMMARY_LIMIT:
+        s = s[:_AUDIT_SUMMARY_LIMIT] + "…"
+    return s
+
+
+def _audit_record(driver_pkg, cmd, obj, ms):
+    """1コマンド分の監査レコードをaudit-<date>.jsonlへ追記する。"""
+    enabled, max_bytes, max_files = _audit_conf()
+    if not enabled:
+        return
+    base = _audit_base_dir()
+    path = os.path.join(
+        base, "audit-{0}.jsonl".format(datetime.date.today().isoformat()))
+    ok = "error" not in obj
+    rec = {
+        "ts": datetime.datetime.now().isoformat(timespec="milliseconds"),
+        "id": obj.get("id"),
+        "type": cmd.get("type", "eval"),
+        "plugin_id": cmd.get("plugin_id"),
+        "method": cmd.get("method"),
+        "args": _audit_summary(cmd),
+        "origin": cmd.get("_origin") or "file",
+        "driver": driver_pkg,
+        "ok": ok,
+        "ms": round(float(ms), 1),
+    }
+    if not ok:
+        rec["error"] = str(obj.get("error"))[:_AUDIT_ERROR_LIMIT]
+    line = json.dumps(rec, ensure_ascii=False) + "\n"
+    os.makedirs(base, exist_ok=True)
+    # サイズ上限超過時は時刻付き世代へ退避して新規に開始
+    if os.path.exists(path) and os.path.getsize(path) > max_bytes:
+        stamp = datetime.datetime.now().strftime("%H%M%S")
+        try:
+            os.replace(path, path[:-6] + "-" + stamp + ".jsonl")
+        except OSError:
+            pass
+    with open(path, "a", encoding="utf-8") as f:
+        f.write(line)
+    # 世代数上限: ファイル名降順(新しい順)で max_files だけ残す
+    names = sorted((n for n in os.listdir(base)
+                    if n.startswith("audit-") and n.endswith(".jsonl")),
+                   reverse=True)
+    for old in names[max_files:]:
+        try:
+            os.remove(os.path.join(base, old))
+        except OSError:
+            pass
+
+
+def _audit_match(rec, filt):
+    """auditLog のフィルタ。dict=フィールド一致、str=主要項目の部分一致。"""
+    if filt in (None, ""):
+        return True
+    if isinstance(filt, dict):
+        for k, v in filt.items():
+            rv = rec.get(k)
+            if rv is None or isinstance(rv, bool) or isinstance(v, bool):
+                if rv != v:
+                    return False
+            elif str(v).lower() not in str(rv).lower():
+                return False
+        return True
+    s = str(filt).lower()
+    return any(s in str(rec.get(k) or "").lower()
+               for k in ("type", "method", "plugin_id", "origin", "id"))
+
+
+def _audit_recent(n, filt=None):
+    """audit-*.jsonl から新しい順に最大n件を返す(auditLog bridge用)。"""
+    try:
+        names = sorted(
+            (x for x in os.listdir(_audit_base_dir())
+             if x.startswith("audit-") and x.endswith(".jsonl")),
+            reverse=True)
+    except OSError:
+        return []
+    out = []
+    for name in names:
+        try:
+            with open(os.path.join(_audit_base_dir(), name),
+                      "r", encoding="utf-8") as f:
+                lines = f.readlines()
+        except OSError:
+            continue
+        for line in reversed(lines):
+            try:
+                rec = json.loads(line)
+            except Exception:  # nosec B110  # 壊れ行は読み飛ばす
+                continue
+            if _audit_match(rec, filt):
+                out.append(rec)
+                if len(out) >= n:
+                    return out
+    return out
 
 
 def _loaded_plugins():
@@ -103,7 +260,8 @@ def reload_plugin_now(plugin_id):
         qgis.utils.startPlugin(plugin_id)
     p = qgis.utils.plugins.get(plugin_id)
     opened = False
-    if p is not None and hasattr(p, "open_dialog"):
+    if (p is not None and hasattr(p, "open_dialog")
+            and getattr(p, "open_dialog_on_reload", True)):
         p.open_dialog()
         opened = True
     return {
@@ -334,13 +492,14 @@ class LiveDriver:
         self.timer.timeout.connect(self._poll)
         self.timer.start(POLL_MS)
 
-    def submit(self, cmd, timeout=180.0):
+    def submit(self, cmd, timeout=180.0, origin=None):
         """別スレッドからコマンドを投入し、GUIスレッドでの実行結果を待って返す。
 
         @returns {"id":..., "result": v} or {"id":..., "error": e}
         """
         if cmd.get("id") is None:
             cmd["id"] = f"submit-{next(_AUTO_IDS)}"
+        cmd.setdefault("_origin", origin or "api")
         box = {}
         done = threading.Event()
         self._queue.put((cmd, box, done))
@@ -402,8 +561,11 @@ class LiveDriver:
                 continue
             # ファイル経由コマンドはトークン必須。submit()(HTTP経由)や
             # _forward()(他ドライバ経由)は呼び出し元で認証済みのため対象外
+            cmd["_origin"] = "file"
             if not hmac.compare_digest(str(cmd.get("token") or ""),
                                        self.token):
+                self._audit(cmd, {"id": cmd.get("id"),
+                                  "error": "unauthorized"}, 0.0)
                 self._reply({"id": cmd.get("id"), "error": "unauthorized"})
                 continue
             try:
@@ -412,10 +574,43 @@ class LiveDriver:
                 self._reply({"id": None, "error": repr(e)})
 
     def _handle(self, cmd, reply=None):
+        """コマンドの入口。監査ログを記録してから _dispatch へ渡す。
+
+        _audit_off 指定時(他ドライバからの転送)は監査を記録しない
+        ——転送元ドライバ側で既に記録されるため二重記録を防ぐ。
+        """
         reply = reply or self._reply
+        if cmd.get("_audit_off"):
+            return self._dispatch(cmd, reply)
+        t0 = time.monotonic()
+
+        def _audited(obj, _reply=reply):
+            self._audit(cmd, obj, (time.monotonic() - t0) * 1000.0)
+            _reply(obj)
+        try:
+            return self._dispatch(cmd, _audited)
+        except Exception:
+            self._audit(cmd, {"id": cmd.get("id"),
+                              "error": traceback.format_exc()},
+                        (time.monotonic() - t0) * 1000.0)
+            raise
+
+    def _audit(self, cmd, obj, ms):
+        """dispatch結果を監査jsonlへ記録(失敗しても呼出は妨げない)。"""
+        try:
+            _audit_record(__package__, cmd, obj, ms)
+        except Exception:  # nosec B110  # 監査失敗で制御面を止めない
+            pass
+
+    def _dispatch(self, cmd, reply):
         cid = cmd.get("id") or f"auto-{next(_AUTO_IDS)}"
         ctype = cmd.get("type", "eval")
         pid = cmd.get("plugin_id")
+        # devin_*/copilot_* は常にこのドライバが処理する
+        # (他プラグインへ転送しない)
+        if ctype.startswith("devin_") or ctype.startswith("copilot_"):
+            self._agent_task(cid, ctype, cmd, reply)
+            return
         # plugin_id が他プラグインを指すコマンドはそのドライバへ転送。
         # 結果は注入したreply経由でこのlive dirのresults.jsonlに返る。
         if pid and pid != __package__ and ctype not in _LOCAL_TYPES:
@@ -450,7 +645,7 @@ class LiveDriver:
             "pass plugin_id of a WebEngine plugin to route "
             "(eval/devreload/screenshot), or use "
             "pyeval/status/open_plugin/reload_plugin/bridge_call/"
-            "describe_plugins",
+            "describe_plugins/devin_*",
         })
 
     def _forward(self, cid, pid, cmd, reply):
@@ -467,6 +662,8 @@ class LiveDriver:
                    "redeploy+reload it to update live_driver.py"})
             return
         fwd = {k: v for k, v in cmd.items() if k != "plugin_id"}
+        # 監査は転送元(このドライバ)が記録するため転送先では抑制
+        fwd["_audit_off"] = True
         try:
             return drv._handle(fwd, reply=reply)
         except Exception:
@@ -482,9 +679,10 @@ class LiveDriver:
             from . import ai_client
             op = cmd.get("op") or ""
             kind = cmd.get("kind") or ""
-            if kind not in ("agents", "skills"):
+            if kind not in ("agents", "skills", "prompts"):
                 reply({"id": cid,
-                       "error": f"kind must be agents|skills: {kind!r}"})
+                       "error": "kind must be agents|skills|prompts: "
+                                f"{kind!r}"})
                 return
             if op == "list":
                 reply({"id": cid, "result":
@@ -513,6 +711,44 @@ class LiveDriver:
             else:
                 reply({"id": cid,
                        "error": f"op must be list|read|save|delete: {op!r}"})
+        except Exception:
+            reply({"id": cid, "error": traceback.format_exc()})
+
+    def _agent_task(self, cid, ctype, cmd, reply):
+        """qgis_devin_*/qgis_copilot_* ツールの実体。
+        エージェントCLI(devin -p / copilot -p / acp)の非同期タスク管理。
+
+        起動・状態確認ともブロックしない(Popen/ログ読みのみ)ため、
+        他コマンドと同じくGUIスレッドのdispatchで処理してよい。
+        """
+        from . import devin_tasks
+        try:
+            agent, _, op = ctype.partition("_")  # devin_run→(devin,run)
+            if op == "run":
+                reply({"id": cid, "result": devin_tasks.run(
+                    cmd.get("prompt") or "", cwd=cmd.get("cwd"),
+                    session_id=cmd.get("session_id"),
+                    model=cmd.get("model"),
+                    permission_mode=(cmd.get("permission_mode")
+                                     or "dangerous"),
+                    engine=cmd.get("engine") or "auto",
+                    agent=agent,
+                    live_dir=self.dir)})
+            elif op == "status":
+                reply({"id": cid, "result": devin_tasks.status(
+                    cmd.get("task_id"))})
+            elif op == "result":
+                reply({"id": cid, "result": devin_tasks.result(
+                    cmd.get("task_id") or "",
+                    tail=cmd.get("tail") or 20000)})
+            elif op == "abort":
+                reply({"id": cid, "result": devin_tasks.abort(
+                    cmd.get("task_id") or "")})
+            else:
+                reply({"id": cid, "error":
+                       f"op must be run|status|result|abort: {ctype!r}"})
+        except devin_tasks.TaskError as e:
+            reply({"id": cid, "error": str(e)})
         except Exception:
             reply({"id": cid, "error": traceback.format_exc()})
 
@@ -582,6 +818,39 @@ class LiveDriver:
         except Exception:
             reply({"id": cid, "error": traceback.format_exc()})
 
+    @staticmethod
+    def _bridge_args(fn, args):
+        """bridge_call の args を (位置引数, kwargs) に正規化する。
+
+        モデルが kwargs 形式で渡すケースを吸収する:
+        - args={"k": v, ...}      (リストでなく辞書)
+        - args=[{"k": v, ...}]    (辞書1個だけのリスト)
+        - args=[pos..., {"k": v}] (末尾辞書=残パラメータへの kwargs)
+        末尾辞書のキーが未バインドのパラメータ名に収まる場合のみ
+        kwargs 化し、収まらない辞書(普通のdict引数)は従来通り
+        位置引数として渡す。
+        """
+        if isinstance(args, dict):
+            pos, cand = [], dict(args)
+        else:
+            pos = list(args)
+            cand = pos.pop() if pos and isinstance(pos[-1], dict) else None
+        if not cand:
+            return list(args) if isinstance(args, (list, tuple)) else [], {}
+        try:
+            params = inspect.signature(fn).parameters
+        except (TypeError, ValueError):
+            return args, {}
+        has_varkw = any(p.kind == inspect.Parameter.VAR_KEYWORD
+                        for p in params.values())
+        names = [n for n, p in params.items()
+                 if p.kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                               inspect.Parameter.KEYWORD_ONLY)]
+        bound = set(names[:len(pos)])
+        if has_varkw or (set(cand) <= set(names) and not set(cand) & bound):
+            return pos, cand
+        return args, {}
+
     def _bridge_call(self, cid, cmd, reply):
         """プラグインのbridgeオブジェクトのメソッドをプロセス内で直接呼ぶ。
 
@@ -617,7 +886,8 @@ class LiveDriver:
                        f"no bridge method '{method}'. methods: "
                        f"{[m for m in dir(bridge) if not m.startswith('_')] if bridge else 'no bridge'}"})
                 return
-            res = fn(*args)
+            b_args, b_kwargs = self._bridge_args(fn, args)
+            res = fn(*b_args, **b_kwargs)
             if isinstance(res, str):
                 try:
                     res = json.loads(res)

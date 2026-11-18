@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>geo_driver ドキュメント | QGIS Live Harness</title>
+<meta name="description" content="Localhost-only remote control driver for QGIS (token-authenticated MCP/REST/file API for local AI tools) plus a built-in AI assistant panel for OpenAI-compatible APIs and a hot-reload watcher for plugin development">
+<link rel="stylesheet" href="style.css">
+<script src="nav.js" defer></script>
+</head>
+<body>
+<div class="container">
+<header>
+<h1>QGIS Live Driver (`geo_driver`)</h1>
+<p>Localhost-only remote control driver for QGIS (token-authenticated MCP/REST/file API for local AI tools) plus a built-in AI assistant panel for OpenAI-compatible APIs and a hot-reload watcher for plugin development</p>
+</header>
+<main>
+
+<p>実行中のQGISプロセスを<strong>同じPC上のクライアント(AIツール等)から遠隔操作</strong>するための、
+UIを持たない制御専用プラグイン。
+<code>python/plugins/</code> へのコピーだけで任意のQGISインストールに単独導入できる
+(リポジトリ・Node不要)。</p>
+<p>このプラグインは <code>QWebEngineView</code> を持たないため、
+<strong>WebEngineを使わない任意のQGIS環境・任意の他プラグイン</strong>に対しても
+<code>pyeval</code> 経由の遠隔操作面を提供できる。</p>
+<ul>
+<li>コマンド: <code>pyeval</code>(任意Python実行) / <code>screenshot</code> / <code>status</code> /
+<code>open_plugin</code> / <code>reload_plugin</code> / <code>bridge_call</code> + <code>plugin_id</code> 転送(hub)</li>
+<li>接続面(4系統・全て同じdispatchへ): ファイルJSONL /
+HTTP REST <code>/api/*</code> / MCP Streamable HTTP <code>/mcp</code> / MCP stdio (<code>mcp_stdio.py</code>)</li>
+</ul>
+<p><strong>詳細ドキュメント(コマンド一覧・制御範囲・RESTエンドポイント等):</strong>
+<a href="https://yamamoto-ryuzo.github.io/qgis_live_harness/driver.html">https://yamamoto-ryuzo.github.io/qgis_live_harness/driver.html</a></p>
+<h2 id="有効化">有効化</h2>
+<pre><code class="language-powershell"># このリポジトリから(全プラグイン一括deploy)
+powershell -ExecutionPolicy Bypass -File scripts/deploy-plugin.ps1 -Install
+
+# または手動: このフォルダを python/plugins/geo_driver/ へコピーし、
+# QGISのプラグイン管理で有効化
+</code></pre>
+<h3 id="クイックスタート初回">クイックスタート(初回)</h3>
+<ol>
+<li>プラグインを導入・有効化(上記)。</li>
+<li><code>プラグイン &gt; QGIS Live Driver &gt; Remote Control (localhost only)</code> をONにし
+警告を承認すると、接続に必要な全情報(MCP URL・トークン・
+レジストリパス・live dir)を載せた <strong>Connection Info</strong> ダイアログが
+自動で開く。以降は <code>プラグイン &gt; QGIS Live Driver &gt; Connection Info</code>
+でいつでも開き直せる。</li>
+<li>表示された設定をMCPクライアントへ貼り付ける:<ul>
+<li><strong>stdio</strong>(推奨): 同梱 <code>mcp_stdio.py</code> を起動し、
+稼働中QGISセッションを自動検出するためポート/トークン設定は不要。</li>
+<li><strong>Streamable HTTP</strong>: <code>http://127.0.0.1:&lt;port&gt;/mcp</code> に
+表示の <code>Authorization: Bearer &lt;token&gt;</code> を付与。</li>
+<li>プレーンRESTも <code>curl</code> 例として表示される。</li>
+</ul>
+</li>
+<li>(開発のみ) プラグインを <code>qgis_live_harness</code> リポジトリへ紐付けるには
+(Deploy Mode / ホットリロードに必要)、Connection Infoダイアログの
+<strong>Harnessリポジトリを選択…</strong> または <code>プラグイン &gt; QGIS Live Driver &gt; Deploy Mode</code> の <strong>参照…</strong> でリポジトリフォルダを指定する。
+パスはQSettingsへ保存され、marker・junction自動推定より優先される。</li>
+</ol>
+<p>有効化は2経路(既定ではOFF・無害):</p>
+<ul>
+<li><strong>メニュートグル</strong>: <code>プラグイン &gt; QGIS Live Driver &gt; リモート制御 (localhostのみ)</code>。
+初回ON時に警告ダイアログを表示し、QSettingsに保存されるため次回起動から自動有効。</li>
+</ul>
+<p>なお本プラグインは <strong>GeoSuite共有ツールバー</strong> を作成し、先頭に
+deployモードバッジ(開発モード/利用モードの常時表示)を載せる。
+クリックするとDeploy Modeダイアログを開く。Harness管理下の
+他プラグイン(geo_search等)のツールバー項目もこのツールバーに集約される。</p>
+<ul>
+<li><strong>環境変数</strong>: <code>WEBENGINE_LIVE_DIR</code> 設定時は起動時に即座に有効(開発用途。
+<code>scripts/verify-in-qgis.ps1</code> が付与して起動する)。</li>
+</ul>
+<h2 id="ai-アシスタントパネル">AI アシスタントパネル</h2>
+<p><code>プラグイン &gt; QGIS Live Driver &gt; AI アシスタント</code> で、
+<strong>LLM APIを接続してQGISを対話操作するチャットドック</strong>を開ける
+(<code>ai_panel.py</code> + <code>ai_client.py</code>)。</p>
+<ul>
+<li><p><strong>プロバイダ</strong>(コンボで選択。設定はプロバイダごとに別保存。
+各項目の先頭には接続方式の種別タグ 【API】/【ACP】/【ブリッジ】
+が付く):</p>
+<ul>
+<li><strong>OpenAI互換</strong>: Chat Completions
+(<code>POST {base}/chat/completions</code> + function calling)。
+エンドポイントを変えれば Ollama (<code>http://localhost:11434/v1</code>)・
+LM Studio・OpenRouter・xAI Grok (<code>https://api.x.ai/v1</code>)・
+Mistral・Groq・DeepSeek等のローカル/互換サーバも使える。
+AWS Bedrock・Vertex AI等の独自API系も LiteLLM 等の
+OpenAI互換プロキシ経由なら接続できる</li>
+<li><strong>Anthropic (Claude)</strong>: Anthropic Messages API
+(<code>POST {base}/v1/messages</code>、tools = <code>input_schema</code>、
+認証は <code>x-api-key</code> + <code>anthropic-version</code>)。
+APIキーは Anthropic Console で発行。既定モデル <code>claude-sonnet-4-5</code></li>
+<li><strong>Gemini</strong>: Google Gemini API
+(<code>POST {base}/models/{model}:generateContent</code> +
+functionDeclarations、認証は <code>x-goog-api-key</code>)。
+APIキーは AI Studio で発行。既定モデル <code>gemini-2.5-flash</code></li>
+<li><strong>Azure OpenAI</strong>: Azure OpenAI Service の Chat Completions
+(<code>{resource}/openai/deployments/&lt;deployment&gt;/chat/completions ?api-version=…</code>、認証は <code>api-key</code> ヘッダ)。
+エンドポイントにはデプロイ先URLを、モデル欄にはデプロイ名を
+入れる。<code>api-version</code> は省略時 <code>2024-10-21</code></li>
+<li><strong>GitHub Copilot</strong>: OpenAI互換のCopilot API
+(<code>POST {api}/chat/completions</code>)。<strong>GitHub Copilotの契約が必要</strong>。
+APIキー欄にはGitHubトークン(<code>gho_</code>/<code>ghu_</code>/<code>ghp_</code>…)を入れる。
+内部で <code>api.github.com/copilot_internal/v2/token</code> に交換し、
+応答の <code>endpoints.api</code> (individual/business/enterprise)へ送る。
+<code>v2/token</code> が応答しない環境では <code>copilot_internal/user</code> で
+API先だけを解決しGitHubトークンをそのままBearerに使う
+(<code>@github/copilot</code> CLIと同じ動作)に自動フォールバック。
+<strong>「GitHubでサインイン」ボタン</strong>でOAuthデバイスフローによる
+トークン取得もできる(既定のclient_idはVS Codeの公開OAuth App。
+<code>QGIS_LIVE_GITHUB_CLIENT_ID</code> で差し替え可)。
+エンドポイントを既定から変えた場合はトークン交換せず
+GitHubトークンをそのままBearerに使うため、
+copilot-api等の互換プロキシにも繋がる。
+<strong>対応プラン</strong>: Pro/Free/Business/Enterprise/EMU
+(Enterprise Managed Users。EMUはエンタープライズから
+Business/Enterpriseシートを付与された場合に使える)。
+Business/Enterprise/EMUでは <code>endpoints.api</code> が
+<code>api.business.</code>/<code>api.enterprise.githubcopilot.com</code> を返すため
+同じ経路で自動解決される。EMUではPAT発行が企業ポリシーで
+制限されうるため「GitHubでサインイン」(デバイスフロー)推奨。
+組織のCopilotモデルポリシーで無効化されたモデルは
+一覧・使用とも不可。IdP条件付きアクセス等の企業側制限は
+アプリ側では回避不可。
+GPT-6系等の一部モデルは <code>/chat/completions</code> を受け付けない
+<strong>Responses API 専用</strong>(<code>POST {api}/responses</code>)だが、
+<code>GET /models</code> の <code>supported_endpoints</code>(未取得時は
+<code>model_not_supported</code> エラーからのフォールバック)で
+自動判別してルーティングする</li>
+<li><strong>Devin【ブリッジ】</strong>: OpenAI互換チャットに「実作業は
+<code>qgis_devin_*</code> ツールでDevinへ委譲せよ」という指示を注入する
+疑似プロバイダ。ツールループは従来どおりパネル側で動く。
+エンドポイント/APIキー/モデルは委譲元チャット用の
+OpenAI互換接続先を設定する</li>
+<li><strong>GitHub Copilot【ブリッジ】</strong>: OpenAI互換チャットに
+「実作業は <code>qgis_copilot_*</code> ツールでCopilot CLIへ委譲せよ」
+という指示を注入する疑似プロバイダ(Devin【ブリッジ】と同型)</li>
+<li><strong>Devin【ACP】</strong>: Devin CLI(<code>devin acp</code>)のセッションを
+チャットエンジンにするプロバイダ。送信は <code>session/prompt</code>
+に流れ、ツールループはDevin自身が回す(geo_driverの <code>/mcp</code>
+をMCPサーバとして渡すため、Devinから <code>qgis_pyeval</code> 等で
+QGIS操作も可能)。<strong>APIキー不要</strong>でIDEのDevin認証
+(credentials.toml の windsurf_api_key)を共有する。
+エンドポイント欄はセッションの作業ディレクトリ
+(既定: ホーム)。会話履歴はDevin側が保持するので
+<code>session/load</code> 相当の継続会話になる。中断ボタンは
+<code>session/cancel</code> でターンを止める</li>
+<li><strong>GitHub Copilot【ACP】</strong>: GitHub Copilot CLI
+(<code>copilot --acp --stdio</code>)のセッションをチャットエンジンにする。
+機構は Devin【ACP】と同じで、認証はCLI側のghログインを使う
+(APIキー欄は不要)。エンドポイント欄はセッションの
+作業ディレクトリ</li>
+</ul>
+</li>
+<li><p><strong>モデル選択</strong>: モデル欄は編集可コンボ。隣の「取得」ボタンで
+<code>GET {base}/models</code> から利用可能モデル一覧を取り込める
+(GeminiではgenerateContent非対応モデルを除外)。
+一覧は種別(テキスト/画像入力可・画像生成・埋め込み等)で
+グループ化され、各項目に価格(入力/出力, $/1Mトークン)を併記。
+価格はOpenRouter等が返す <code>pricing</code>/<code>modality</code>/<code>context_length</code>
+を優先し、無ければ主要モデルの既知価格表(参考値)を使う。
+既定エンドポイント利用時は「取得」前から推奨モデル一覧を表示。
+モデル欄の下に選択中モデルの種別・価格・コンテキスト長も出る</p>
+</li>
+<li><p><strong>エージェント/スキル(指示書)</strong>: Markdownファイル2系統で振る舞いを拡張:</p>
+<ul>
+<li><strong><code>~/.qgis-live/agents/*.md</code></strong> — 常時注入の指示書(役割・方針)。
+パネルの「エージェント」コンボで1件選択するとsystem promptに
+本文が注入される。「編集」ボタンで作成・編集・削除できる
+(複数定義して切替可能。チャットごとに選択も記憶される)</li>
+<li><strong><code>~/.qgis-live/skills/*.md</code></strong> — オンデマンドの手順書。
+プロンプトにはid+説明(+<code>use_when</code>)の一覧のみ載り、
+モデルが該当タスク時に <code>qgis_pyeval</code> の <code>open()</code> で本文を
+読む(常時注入しないのでトークン節約)。
+<strong>設定方法はAPI設定の「スキル」行 — 全件がコンボに列挙され
+(選択不要・全件が自動で一覧に載る)、「編集」ダイアログで
+作成・編集・削除する</strong></li>
+<li>両者とも <code>&lt;plugin&gt;/&lt;kind&gt;/</code> にプラグイン同梱デフォルトを置け、
+ユーザ側の同名ファイルが優先される。書式: 先頭 <code># </code>行=タイトル、
+次の非空行=説明文、その直後の <code>use_when: &lt;使いどき&gt;</code> 行
+(省略可。別名 when/when_to_use/用途/使いどき)=起動条件として
+プロンプト一覧に <code>use when:</code> で載る(同梱デフォルトは任意。
+現在の同梱品なし)</li>
+<li><strong>AI自身も指示書を編集・選択できる</strong>: <code>ai_list_instructions</code> /
+<code>ai_read_instruction</code> / <code>ai_save_instruction</code> /
+<code>ai_delete_instruction</code> に加え <code>ai_select_agent</code>(選択中
+エージェントの切替)をモデルに渡す。エージェント一覧は
+スキルと同様にid+説明がプロンプトに載るため、モデルが
+タスクに合うエージェントを自律選択できる。保存は常に
+ユーザ側へ書き、同梱品は同名保存で実質上書き(削除は
+ユーザ側のみ)。変更後はパネルのコンボも自動で再構築される</li>
+<li><strong>「編集」ダイアログは非モーダル</strong>: 開いている間もチャット
+入力欄は通常通り使える。ダイアログ下部のプロンプト欄に修正
+指示を書いて「AIに修正を依頼」すると、編集欄の本文と共に
+チャットのAIへ送られ、AIが <code>ai_save_instruction</code> で保存した
+結果が編集欄へ反映される(未保存の手編集がある間は上書き
+しない)。新規作成中に同名ファイルが保存された場合は
+そのファイルが選択状態になる</li>
+<li><strong>チャット入力からも直接編集できる</strong>: <code>/</code> で始まる入力はAPIへ
+送らずローカルコマンドとして実行される。<code>/agent</code>(一覧+現在値)、
+<code>/agent &lt;名&gt;</code>(切替)、<code>/agent &lt;名&gt; &lt;本文&gt;</code>(保存して選択)、
+<code>/skill</code>(一覧)、<code>/skill &lt;名&gt;</code>(本文表示)、<code>/skill &lt;名&gt; &lt;本文&gt;</code>
+(保存)。本文は2行目以降に改行して書ける。<code>/help</code> で一覧表示</li>
+<li><strong>外部AIからも操作できる</strong>: MCP/REST側の <code>qgis_instruction</code>
+ツール(op=list|read|save|delete)で、オーケストレーターが
+指示書を発見・編集可能(<code>QGIS_LIVE_TOOLS</code> の許可対象)</li>
+</ul>
+</li>
+<li><p><strong>表示</strong>: AI応答はMarkdownレンダリング(見出し/リスト/表/
+コードブロック)。「新しいチャット」で現在の会話を履歴コンボへ
+保存して新規開始。履歴コンボから過去チャットを開くと
+表示とコンテキストが復元され会話を継続できる。
+履歴は <code>~/.qgis-live/chats.json</code> に永続化され(最新50件)
+QGIS再起動後も残る。「↓」で表示中チャットをMarkdown保存、
+「✕」で表示中の履歴チャットを削除できる</p>
+</li>
+<li><p><strong>送信/中断/再送</strong>: Enter(または「送信」)で送信、
+Shift+Enterで改行。入力が空の間は「送信」は無効で、
+実行中はボタンが赤色の「■ 中断」に変わって
+往復の境界でループを止められる(進行中のAPI応答やツール実行
+そのものは完了を待つ)。「再送」は最後の質問+応答を取り消して
+同じ質問を送り直す。長い会話は古いターンから自動で切り詰める
+(MAX_HISTORY_CHARS)ためコンテキスト過大でAPIエラーにならない。
+右下にコンテキスト/コスト表示
+(<code>ctx 9k/128k (6%) · Σ13k · $0.0023</code>)。
+ctx は直近API応答のprompt_tokens実測値(未取得時は~付きで
+文字数÷3推定)、Σ はチャット毎の累計トークン、$ は
+価格情報があるモデルでの推定コスト(定額制のCopilot等では
+Σのみ表示)。usageとともにチャット履歴へ保存される</p>
+</li>
+<li><p><strong>画像添付</strong>: 入力欄へのクリップボード貼付(Ctrl+V)・
+画像ファイルのドラッグ&amp;ドロップ・「📎」ボタンで画像を添付
+できる。サムネイルチップとして入力欄の上に並び、送信時に
+ユーザメッセージへ同梱される(履歴にも残り、後続ターンでも
+モデルが参照できる)。画像はPNGへ正規化し長辺2048pxに縮小して
+一時ファイルへ保存する。<strong>画像非対応と推定されるモデル
+(一覧の「画像入力可」グループ外)選択中は添付できず</strong>、
+📎ボタンも無効化される(手入力モデルは名前ヒントで推定)</p>
+</li>
+<li><p><strong>確認モード</strong>: 「ツール実行の前に確認する」をONにすると
+各ツール呼び出しで実行可否を都度確認する(任意コード実行の
+pyevalを自動で回したくない場合に)</p>
+</li>
+<li><p><strong>ツール</strong>: <code>mcp_http.TOOLS</code> と同じセット
+(<code>qgis_pyeval</code> / <code>qgis_screenshot</code> / <code>qgis_status</code> /
+<code>qgis_eval</code> / <code>qgis_devreload</code> / <code>qgis_open_plugin</code> /
+<code>qgis_reload_plugin</code> / <code>qgis_bridge_call</code> /
+<code>qgis_instruction</code> / <code>qgis_devin_*</code> / <code>qgis_copilot_*</code>)に加え、
+指示書を
+読み書きするパネルローカルツール <code>ai_*</code>、および外部MCPサーバの
+ツール <code>mcp_*</code> をモデルに渡し、戻ってきたtool_callを
+<code>driver.submit()</code>(qgis_<em>)またはローカル実行(ai_</em>/mcp_*)で
+処理するエージェントループ(上限25往復)</p>
+</li>
+<li><p><strong>外部MCPサーバ接続</strong>: API設定の「MCP」行→「設定」で
+<code>~/.qgis-live/mcp_servers.json</code> を編集(Claude Desktop互換形式):</p>
+<pre><code class="language-json">{&quot;mcpServers&quot;: {
+  &quot;fs&quot;:  {&quot;command&quot;: &quot;npx&quot;,
+          &quot;args&quot;: [&quot;-y&quot;, &quot;@modelcontextprotocol/server-filesystem&quot;, &quot;C:/work&quot;]},
+  &quot;api&quot;: {&quot;url&quot;: &quot;http://localhost:3000/mcp&quot;,
+          &quot;headers&quot;: {&quot;Authorization&quot;: &quot;Bearer ...&quot;}},
+  &quot;box&quot;: {&quot;url&quot;: &quot;https://mcp.box.com&quot;,
+          &quot;oauth&quot;: {&quot;authorize_url&quot;:
+                      &quot;https://account.box.com/api/oauth2/authorize&quot;,
+                    &quot;token_url&quot;: &quot;https://api.box.com/oauth2/token&quot;,
+                    &quot;client_id&quot;: &quot;...&quot;, &quot;client_secret&quot;: &quot;...&quot;,
+                    &quot;redirect_uri&quot;: &quot;http://127.0.0.1:8020/callback&quot;}},
+  &quot;ccg&quot;: {&quot;url&quot;: &quot;https://example.com/mcp&quot;,
+          &quot;oauth&quot;: {&quot;token_url&quot;: &quot;https://example.com/oauth/token&quot;,
+                    &quot;client_id&quot;: &quot;...&quot;, &quot;client_secret&quot;: &quot;...&quot;,
+                    &quot;extra&quot;: {&quot;box_subject_type&quot;: &quot;enterprise&quot;,
+                              &quot;box_subject_id&quot;: &quot;...&quot;}}}
+}}
+</code></pre>
+<p><code>command</code>=stdioで子プロセス起動(Windowsではコンソール窓を出さない)、
+<code>url</code>=Streamable HTTP。
+<strong>秘密値は資格情報ストアへ</strong>: <code>oauth.client_secret</code> に平文を
+書いて保存するとOSの資格情報ストア(credential_store。
+APIキーと同じ保存先)へ自動で移され、設定ファイルには
+<code>&quot;$store:mcp:&lt;サーバ&gt;:client_secret&quot;</code> 参照だけが残る。
+ストア保存に失敗した場合はエラーになり平文では保存しない。
+<code>headers</code>/<code>env</code>/<code>oauth.client_id</code> の値も <code>&quot;$store:&lt;キー&gt;&quot;</code> と
+書けば接続時にストアから解決される(手動で参照を書く場合は
+資格情報ストアへ事前登録が必要)。平文のclient_secretが
+残っている既存設定は、設定ダイアログで再保存すれば移行される。
+認証は <code>headers</code> で固定値を渡すか、
+<code>oauth</code> で2種類のOAuthを使う:
+<code>authorize_url</code> あり=<strong>authorization_code+PKCE</strong>(初回送信時に
+ブラウザが開き同意画面、トークンは <code>~/.qgis-live/mcp_tokens.json</code>
+に保存して以降は refresh_token で自動更新。mcp.box.com等の
+ユーザー同意型サーバ用。redirect_uriはアプリ側に登録が必要)、
+<code>authorize_url</code> 無し=<strong>client_credentials</strong>(client_id+secret、
+<code>extra</code>でプロバイダ固有のformパラメータ)。
+401で1回リトライ。接続に失敗した場合はエラーと一緒に
+「①Redirect URIの登録 ②authorization_code有効 ③id/secret一致」
+の確認ガイドを表示する。
+mcp.box.com を使う場合はさらに Box側で Business プラン以上、
+Admin Console での MCP 有効化、Custom App で標準OAuth2
+(CCGのみのServer Appは不可)が必要。
+取得トークンは <code>~/.qgis-live/mcp_tokens.json</code> に平文保存される
+(アクセス/refreshトークンを含むため取り扱い注意)。
+初回送信時に接続・tools/listを行い、
+各ツールは <code>mcp_&lt;サーバ&gt;__&lt;ツール&gt;</code> としてモデルに公開される。
+設定を保存すると次の送信で再接続される。接続失敗したサーバは
+チャット欄にエラー表示され他サーバは継続する。
+注意: QGIS自身のドライバMCPエンドポイントを指定すると、
+tools/callがGUIスレッドdispatchを経由する自己参照になるため
+実用上は他サーバを指すこと</p>
+</li>
+<li><p><strong>リモート制御トグルOFFでも動く</strong>: パネル専用の内部LiveDriver
+(レジストリ・HTTP公開面なし)を使うため、外部公開を有効化せずに
+AI操作だけを試せる</p>
+</li>
+<li><p><strong>画像送信</strong>: <code>qgis_screenshot</code> の結果は <code>image_url</code> contentで、
+添付画像(貼付/📎)はユーザメッセージへ同梱されて画像として
+モデルへ送られる。画像非対応と推定されるモデルでは
+スクショ結果はテキスト(パス)のみ返され、添付自体もできない</p>
+</li>
+<li><p>設定(エンドポイント/モデル)はQSettingsに保存。
+<strong>APIキーはOSの資格情報ストアに保存</strong>(<code>credential_store.py</code>):
+WindowsはDPAPI(ブラウザのパスワード保存と同じユーザ紐付け暗号化)、
+macOSはキーチェーン、LinuxはSecret Service(secret-tool)。
+いずれも無い環境のみ <code>~/.qgis-live/ai-secrets.json</code>(600権限・平文)に
+フォールバック。パネルの「キー保存先」欄で現バックエンドを確認できる。
+<strong>ストア書込み自体に失敗した場合はエラー表示し、平文では保存しない</strong></p>
+</li>
+</ul>
+<h2 id="セキュリティモデルlocalhost限定">セキュリティモデル(localhost限定)</h2>
+<p><code>pyeval</code> は <strong>任意コード実行</strong> のため、全チャネルを以下で保護する:</p>
+<ul>
+<li><strong>127.0.0.1 バインドのみ</strong> — 外部ネットワークからは到達不能</li>
+<li><strong>セッショントークン必須</strong> — 起動ごとに自動生成。HTTPは
+<code>Authorization: Bearer</code> 等、commands.jsonl は各行の <code>token</code> フィールドで照合。
+トークンは <code>~/.qgis-live/&lt;pid&gt;-geo_driver.json</code> (レジストリ)と
+<code>live_dir/token</code> にのみ書き出され、ユーザ限定ACLを適用</li>
+<li><strong>Host/Origin 検証</strong> — HostまたはOriginがloopback以外を指すHTTP要求は拒否
+(DNSリバインド・ブラウザ経由のドライブバイ対策)</li>
+<li><code>QGIS_LIVE_TOOLS</code> で公開コマンド種別を絞れる(例 <code>status,screenshot</code>)</li>
+</ul>
+<p><strong>脅威モデルの境界</strong>: トークンはユーザ専用ファイルに置くため、
+同一ユーザ権限で任意コードを実行できるプロセスまでは防げない
+(これはあらゆるlocalhostサービスの限界)。信頼境界はローカルユーザアカウント。</p>
+<p>ローカルのMCPクライアント(<code>mcp_stdio.py</code> 等)はレジストリからトークンを
+自動で読むため、利用側の手順は変わらない。</p>
+<h1>免責事項</h1>
+<p>本システムは個人のPCで作成・テストされたものです。<br />
+ご利用によるいかなる損害も責任を負いません。</p>
+<p align="center">
+  <a href="https://giphy.com/explore/free-gif" target="_blank">
+    <img src="https://github.com/yamamoto-ryuzo/QGIS_portable_3x/raw/master/imgs/giphy.gif" width="500" title="avvio QGIS">
+  </a>
+</p>
+
+
+
+<h2>関連リンク</h2>
+<ul>
+  <li><a href="https://yamamoto-ryuzo.github.io/qgis_live_harness/plugins.html">プラグイン一覧(サイト)</a></li>
+  <li><a href="https://github.com/yamamoto-ryuzo/qgis_live_harness/blob/master/qgis-plugin/geo_driver/README.md">README(GitHub)</a></li>
+  <li><a href="https://github.com/yamamoto-ryuzo/qgis_live_harness/blob/master/qgis-plugin/geo_driver/CHANGELOG.md">CHANGELOG(GitHub)</a></li>
+</ul>
+<p><small>正本は <code>qgis-plugin/geo_driver/docs/</code>。
+サイトの <code>docs/geo_driver/</code> は
+<code>scripts/build-plugin-docs.py</code> によるミラーです。</small></p>
+</main>
+</div>
+</body>
+</html>

@@ -1,0 +1,43 @@
+{
+  "compileall": {
+    "rc": 0,
+    "out": ""
+  },
+  "flake8": {
+    "rc": 1,
+    "out": "C:\\devin\\qgis_live_harness\\qgis-plugin\\geo_webview\\defusedxml\\ElementTree.py:28:1: E402 module level import not at top of file\nC:\\devin\\qgis_live_harness\\qgis-plugin\\geo_webview\\defusedxml\\ElementTree.py:35:1: E402 module level import not at top of file\nC:\\devin\\qgis_live_harness\\qgis-plugin\\geo_webview\\kasc_import.py:509:32: E741 ambiguous variable name 'l'\nC:\\devin\\qgis_live_harness\\qgis-plugin\\geo_webview\\kasugai_export.py:3982:79: F523 '...'.format(...) has unused arguments at position(s): 0, 1\nC:\\devin\\qgis_live_harness\\qgis-plugin\\geo_webview\\reearth_cms.py:199:5: F841 local variable 'ws' is assigned to but never used\nC:\\devin\\qgis_live_harness\\qgis-plugin\\geo_webview\\reearth_cms.py:419:5: F841 local variable 'st' is assigned to but never used"
+  },
+  "bandit": {
+    "rc": 1,
+    "out": "'REEARTH_CMS_TOKEN'\n   Severity: Low   Confidence: Medium\n   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)\n   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b105_hardcoded_password_string.html\n   Location: C:\\devin\\qgis_live_harness\\qgis-plugin\\geo_webview\\reearth_cms.py:48:12\n47\tDEFAULT_API_BASE = 'https://api.cms.reearth.io/api'\n48\tENV_TOKEN = 'REEARTH_CMS_TOKEN'\n49\t\n\n--------------------------------------------------\n>> Issue: [B105:hardcoded_password_string] Possible hardcoded password: 'reearth_cms_token'\n   Severity: Low   Confidence: Medium\n   CWE: CWE-259 (https://cwe.mitre.org/data/definitions/259.html)\n   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b105_hardcoded_password_string.html\n   Location: C:\\devin\\qgis_live_harness\\qgis-plugin\\geo_webview\\reearth_cms.py:54:13\n53\tSKEY_MODEL = 'reearth_cms_model'\n54\tSKEY_TOKEN = 'reearth_cms_token'\n55\t\n\n--------------------------------------------------\n>> Issue: [B310:blacklist] Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.\n   Severity: Medium   Confidence: High\n   CWE: CWE-22 (https://cwe.mitre.org/data/definitions/22.html)\n   More Info: https://bandit.readthedocs.io/en/1.9.4/blacklists/blacklist_calls.html#b310-urllib-urlopen\n   Location: C:\\devin\\qgis_live_harness\\qgis-plugin\\geo_webview\\reearth_cms.py:147:13\n146\t    try:\n147\t        with urllib.request.urlopen(req, timeout=_TIMEOUT) as res:\n148\t            data = res.read()\n\n--------------------------------------------------\n\nCode scanned:\n\tTotal lines of code: 13570\n\tTotal lines skipped (#nosec): 0\n\tTotal potential issues skipped due to specifically being disabled (e.g., #nosec BXXX): 8\n\nRun metrics:\n\tTotal issues (by severity):\n\t\tUndefined: 0\n\t\tLow: 2\n\t\tMedium: 1\n\t\tHigh: 0\n\tTotal issues (by confidence):\n\t\tUndefined: 0\n\t\tLow: 0\n\t\tMedium: 2\n\t\tHigh: 1\nFiles skipped (0):\n[main]\tINFO\tUsing ini file for skipped tests\n[main]\tINFO\tUsing command line arg for selected targets"
+  },
+  "ran_at": "2026-11-18T02:15:18+09:00",
+  "reload": {
+    "loaded": true,
+    "opened": true,
+    "plugins": [
+      "ImportPhotos",
+      "MetaSearch",
+      "Qgis2threejs",
+      "QuickDEM4JP",
+      "StreetView",
+      "db_manager",
+      "geo_driver",
+      "geo_excel",
+      "geo_import",
+      "geo_launcher",
+      "geo_legend",
+      "geo_report",
+      "geo_search",
+      "geo_userfunc",
+      "geo_webview",
+      "menu_from_project",
+      "mmqgis",
+      "mojxml_plugin",
+      "plateau_plugin",
+      "processing",
+      "qfieldsync",
+      "searchlayers"
+    ]
+  }
+}

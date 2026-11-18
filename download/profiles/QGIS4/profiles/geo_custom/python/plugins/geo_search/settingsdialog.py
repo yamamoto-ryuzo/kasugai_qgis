@@ -261,7 +261,8 @@ class SettingsDialog(QDialog):
             QMessageBox.warning(self, self.tr("geo_search_json"), self.tr("No file selected."))
             return
         try:
-            from qgis.core import QgsProject, QgsMessageLog
+            from qgis.core import QgsProject
+            from .log import log_message
             proj = QgsProject.instance()
             try:
                 # プロジェクトが保存されている場合はプロジェクトディレクトリ基準の相対パスに変換して保存する
@@ -291,19 +292,19 @@ class SettingsDialog(QDialog):
                     ok = set_project_variable(proj, 'geo_search_json', save_val)
                     try:
                         if ok:
-                            QgsMessageLog.logMessage(f"Set project variable 'geo_search_json' to: {save_val}", 'GEO-search-plugin', 0)
+                            log_message(f"Set project variable 'geo_search_json' to: {save_val}", 'GEO-search-plugin', 0)
                         else:
-                            QgsMessageLog.logMessage(f"Failed to persist 'geo_search_json' via helper, attempted value: {save_val}", 'GEO-search-plugin', 1)
+                            log_message(f"Failed to persist 'geo_search_json' via helper, attempted value: {save_val}", 'GEO-search-plugin', 1)
                     except Exception:  # nosec B110  # 設計上の許容
                         pass
                 except Exception:
                     try:
-                        QgsMessageLog.logMessage("Failed to set project variable 'geo_search_json' via helper", 'GEO-search-plugin', 2)
+                        log_message("Failed to set project variable 'geo_search_json' via helper", 'GEO-search-plugin', 2)
                     except Exception:  # nosec B110  # 設計上の許容
                         pass
             except Exception as e:
                 try:
-                    QgsMessageLog.logMessage(f"Failed to set project variable 'geo_search_json': {e}", 'GEO-search-plugin', 2)
+                    log_message(f"Failed to set project variable 'geo_search_json': {e}", 'GEO-search-plugin', 2)
                 except Exception:  # nosec B110  # 設計上の許容
                     pass
         except Exception:  # nosec B110  # 設計上の許容

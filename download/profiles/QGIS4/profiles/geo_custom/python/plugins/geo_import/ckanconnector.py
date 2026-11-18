@@ -9,7 +9,7 @@ import sys
 from .httpcall import HttpCall
 from .httpcall import RequestsExceptionTimeout
 from .httpcall import RequestsExceptionConnectionError
-from .pyperclip import copy
+from .clipboard import copy
 from qgis.PyQt.QtCore import QCoreApplication
 
 

@@ -1,0 +1,33 @@
+{
+  "ts": "2026-11-15T22:33:28+09:00",
+  "catalog_methods": [
+    "addTab",
+    "addTabFromCurrentLayer",
+    "applyTheme",
+    "closeDialog",
+    "getSettings",
+    "listTabs",
+    "listThemes",
+    "loadUserTheme",
+    "openDialog",
+    "openSettings",
+    "reloadDialog",
+    "removeTab",
+    "resultDisplayMode",
+    "resultPage",
+    "results",
+    "saveUserTheme",
+    "search",
+    "searchAddress",
+    "searchOptions",
+    "selectTab",
+    "setSettings",
+    "setTabSetting",
+    "status",
+    "suggest",
+    "tabOptions",
+    "tabSetting",
+    "themeAdditive",
+    "zoom"
+  ]
+}

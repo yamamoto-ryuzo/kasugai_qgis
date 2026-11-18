@@ -3,7 +3,13 @@
     "&Legend View": "&लीजेंड व्यू",
     "Legend": "लीजेंड",
     "Other values": "अन्य मान",
-    "Symbol": "सिंबल"
+    "Symbol": "सिंबल",
+    "Export legend": "लीजेंड निर्यात करें",
+    "Export legend image (PNG)...": "लीजेंड छवि निर्यात करें (PNG)...",
+    "Export legend image (SVG)...": "लीजेंड छवि निर्यात करें (SVG)...",
+    "Export legend as HTML...": "लीजेंड को HTML के रूप में निर्यात करें...",
+    "Legend exported: %1": "लीजेंड निर्यात किया गया: %1",
+    "Export failed: %1": "निर्यात विफल: %1"
   },
   "LegendViewDockWidget": {
     "Close": "बंद करें",

@@ -55,13 +55,18 @@ class GeoDriverBridge:
             "summary": "QGISプロセス内の遠隔制御ハブ。pyeval/status/"
                        "bridge_call/describe_plugins等をファイルJSONL・"
                        "REST・MCPの全経路で提供する。layer_org サービスで"
-                       "追加レイヤのグループ整理・命名を標準化できる",
+                       "追加レイヤのグループ整理・命名を標準化できる。"
+                       "scale_style サービスで縮尺に応じた標準線幅の"
+                       "提案・適用(実幅m/縮尺帯ルール)ができる",
             "when_to_use": [
                 "QGIS内部(iface/QgsProject/地物/レイヤ)を直接操作・検査したい",
                 "他プラグインの機能をbridge_callで呼び出したい",
                 "地図キャンバスやウィンドウのスクリーンショットが欲しい",
                 "プラグインのロード・再読み込みを行いたい",
                 "取り込んだレイヤをルールでグループ整理・リネームしたい",
+                "レイヤの線幅を現在縮尺に適した標準値にしたい",
+                "線幅を実世界の幅(m)で設定してズームに連動させたい",
+                "縮尺帯で線幅が変わるルールベースレンダラを作りたい",
             ],
             "invoke": {"type": "command",
                        "note": "bridge_callではなくドライバのコマンド面"
@@ -93,6 +98,36 @@ class GeoDriverBridge:
                  "signature": "placeLayer(layer_id=None, ctx=None)",
                  "description": "単一レイヤをルールへ配置"
                                 "(省略時=アクティブレイヤ)"},
+                {"name": "scaleStyleProfiles",
+                 "signature": "scaleStyleProfiles()",
+                 "description": "標準線幅プロファイル一覧とアクティブを返す"
+                                "(~/.qgis-live/scale_style/*.json + 同梱)"},
+                {"name": "scaleStyleTable",
+                 "signature": "scaleStyleTable(profile=None)",
+                 "description": "プロファイルの縮尺帯・カテゴリ別線幅"
+                                "テーブルを返す(省略時=アクティブ)"},
+                {"name": "setScaleStyleProfile",
+                 "signature": "setScaleStyleProfile(name)",
+                 "description": "アクティブな線幅プロファイルを切替"
+                                "(QSettings永続化)"},
+                {"name": "suggestScaleWidth",
+                 "signature": "suggestScaleWidth(layer_id=None, "
+                              "category=None, scale=None, profile=None)",
+                 "description": "レイヤ/カテゴリと縮尺から標準的な線幅を"
+                                "提案する。scale省略時=現在のキャンバス縮尺。"
+                                "category省略時はレイヤ名から推定"
+                                "(road/boundary/river等)。"
+                                "width_mm(紙面幅)とreal_width_m(実幅)を返す"},
+                {"name": "applyScaleWidth",
+                 "signature": "applyScaleWidth(layer_id=None, category=None,"
+                              " scale=None, mode='mm', profile=None,"
+                              " dry=False)",
+                 "description": "レイヤに標準線幅を適用する。"
+                                "mode='mm'=現縮尺向けの紙面幅を固定設定、"
+                                "'meters'=実世界幅(m)で設定しズーム連動、"
+                                "'rules'=縮尺帯ごとに幅が切替わるルール"
+                                "レンダラを生成(geo_legendロード時は"
+                                "applyRulesへ委譲)。dry=Trueで予定のみ"},
                 {"name": "openAiPanel",
                  "signature": "openAiPanel()",
                  "description": "AIアシスタントパネル(ドック)を開く"},
@@ -115,6 +150,16 @@ class GeoDriverBridge:
                  "signature": "remoteControl(enabled=None)",
                  "description": "リモート制御(ファイルJSONL/HTTP面)の"
                                 "有効状態を取得/設定する"},
+                {"name": "auditLog",
+                 "signature": "auditLog(n=50, filter=None)",
+                 "description": "監査ログ(~/.qgis-live/audit-*.jsonl)の"
+                                "直近n件を新しい順に返す。filterは"
+                                "フィールド一致dictまたは部分一致文字列"},
+                {"name": "auditSettings",
+                 "signature": "auditSettings(enabled=None, max_bytes=None,"
+                              " max_files=None)",
+                 "description": "監査ログの有効化・ファイルサイズ/世代数"
+                                "上限を取得/設定(QSettings永続化)"},
             ],
         })
 
@@ -136,6 +181,9 @@ class GeoDriverBridge:
             "commands": [c["name"] for c in _COMMANDS],
             "layer_org": (org.active_profile_name()
                           if org is not None else None),
+            "scale_style": (
+                self._styler().active_profile_name()
+                if self._styler() is not None else None),
         })
 
     def deployMode(self):
@@ -220,6 +268,85 @@ class GeoDriverBridge:
         rep = org.place_all([(layer, dict(ctx or {}))])
         return self._ok(rep)
 
+    # ---- 標準線幅(scale_style) ----
+
+    def _styler(self):
+        return getattr(self._plugin, "scale_style", None)
+
+    def scaleStyleProfiles(self):
+        """利用可能な標準線幅プロファイル一覧とアクティブを返す。"""
+        from . import scale_style as ss
+        styler = self._styler()
+        return self._ok({
+            "profiles": ss.list_profiles(),
+            "active": (styler.active_profile_name()
+                       if styler is not None else None),
+        })
+
+    def scaleStyleTable(self, profile=None):
+        """プロファイルの縮尺帯・カテゴリ別線幅テーブルを返す。"""
+        styler = self._styler()
+        if styler is None:
+            return self._err("scale_style not available")
+        desc = styler.describe(profile)
+        if desc is None:
+            return self._err(
+                f"profile not found or disabled: "
+                f"{profile or styler.active_profile_name()}")
+        return self._ok(desc)
+
+    def setScaleStyleProfile(self, name):
+        """アクティブな線幅プロファイルを切り替える(QSettings永続化)。"""
+        styler = self._styler()
+        if styler is None:
+            return self._err("scale_style not available")
+        return json.dumps(styler.set_active_profile(name),
+                          ensure_ascii=False)
+
+    def suggestScaleWidth(self, layer_id=None, category=None, scale=None,
+                          profile=None):
+        """レイヤ/カテゴリと縮尺から標準的な線幅を提案する。
+
+        scale 省略時は現在のキャンバス縮尺。category 省略時は
+        レイヤ名から推定。layer 省略時はアクティブレイヤ。
+        """
+        styler = self._styler()
+        if styler is None:
+            return self._err("scale_style not available")
+        layer = None
+        if layer_id is not None or category is None:
+            layer = styler._find_layer(layer_id)
+            if layer is None:
+                return self._err(
+                    "layer not found (pass layer_id or activate one)")
+        return self._ok(
+            styler.suggest(layer=layer, category=category,
+                           scale=scale, profile_name=profile))
+
+    def applyScaleWidth(self, layer_id=None, category=None, scale=None,
+                        mode="mm", profile=None, dry=False):
+        """レイヤのレンダラに標準線幅を適用する。
+
+        mode:
+          "mm"     — 現縮尺向けの紙面幅(mm)を固定設定
+          "meters" — 実世界幅(m)で設定しズーム連動
+          "rules"  — 縮尺帯ごとに幅が切替わるルールレンダラを生成
+        dry=True で適用せず予定内容のみ返す。
+        """
+        styler = self._styler()
+        if styler is None:
+            return self._err("scale_style not available")
+        layer = styler._find_layer(layer_id)
+        if layer is None:
+            return self._err(
+                "layer not found (pass layer_id or activate one)")
+        rep = styler.apply(layer, mode=mode, category=category,
+                           scale=scale, profile_name=profile,
+                           dry=bool(dry))
+        if rep.get("ok"):
+            return self._ok(rep)
+        return self._err(rep)
+
     # ---- ドライバ自身のUI/運用 ----
 
     def openAiPanel(self):
@@ -294,3 +421,47 @@ class GeoDriverBridge:
         return self._ok({"enabled": d is not None,
                          "live_dir": getattr(d, "dir", None),
                          "http_port": getattr(d, "http_port", None)})
+
+    # ---- 監査ログ ----
+
+    def auditLog(self, n=50, filter=None):
+        """監査ログの直近n件を新しい順に返す。
+
+        ~/.qgis-live/audit-*.jsonl(日次+サイズ上限で世代分割)を読む。
+        filter は {"type":"pyeval","plugin_id":"x","ok":false} 等の
+        フィールド一致dict、または type/method/plugin_id/origin を
+        対象にした部分一致文字列。args内のsecretsは記録時点で
+        マスク済み。
+        """
+        try:
+            from .live_driver import _audit_recent
+            entries = _audit_recent(max(int(n or 50), 1), filter)
+            return self._ok({"count": len(entries), "entries": entries})
+        except Exception as e:
+            return self._err(f"auditLog failed: {e}")
+
+    def auditSettings(self, enabled=None, max_bytes=None, max_files=None):
+        """監査ログの設定を取得/変更する(QSettings永続化)。
+
+        enabled=記録の有効/無効、max_bytes=1ファイルのサイズ上限
+        (超過時は時刻付き世代へローテーション)、max_files=保持世代数。
+        """
+        try:
+            from .live_driver import _audit_base_dir, _audit_conf
+            if enabled is not None or max_bytes is not None \
+                    or max_files is not None:
+                from qgis.PyQt.QtCore import QSettings
+                s = QSettings()
+                if enabled is not None:
+                    s.setValue("geo_driver/audit/enabled", bool(enabled))
+                if max_bytes is not None:
+                    s.setValue("geo_driver/audit/max_bytes",
+                               int(max_bytes))
+                if max_files is not None:
+                    s.setValue("geo_driver/audit/max_files",
+                               int(max_files))
+            on, mb, mf = _audit_conf()
+            return self._ok({"enabled": on, "max_bytes": mb,
+                             "max_files": mf, "dir": _audit_base_dir()})
+        except Exception as e:
+            return self._err(f"auditSettings failed: {e}")

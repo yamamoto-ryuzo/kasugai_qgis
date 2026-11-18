@@ -1,9 +1,7 @@
 """QGIS plugin entrypoint.
 
 Avoid heavy imports at module import time to prevent circular imports during
-QGIS plugin loading. Import the compatibility shim here inside classFactory so
-it runs before the plugin instance is created but does not execute during
-partial package initialization.
+QGIS plugin loading.
 """
 
 
@@ -30,17 +28,6 @@ def classFactory(iface):
                 sys.stderr = _StderrProxy()
     except Exception:  # nosec B110  # 設計上の許容
         # best-effort: do not prevent plugin from loading
-        pass
-
-    # Ensure qt_compat is imported so its runtime monkey-patches (e.g. for
-    # QgsMessageLog) are applied before the plugin runs, but do this lazily to
-    # avoid circular imports during package initialization.
-    try:
-        import importlib
-        importlib.import_module('geo_search.qt_compat')
-    except Exception:  # nosec B110  # 設計上の許容
-        # best-effort: if importing the shim fails, continue; plugin should
-        # still try to run without the compatibility helpers.
         pass
 
     # Import plugin implementation and return an instance

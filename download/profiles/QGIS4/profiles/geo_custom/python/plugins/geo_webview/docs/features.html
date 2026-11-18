@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="geo_webview の主な機能 — エクスポート・ZIP・▶ WebView・▶ Canvas と WebGIS 外部ホスト配信">
+<title>2. 主な機能 | geo_webview ドキュメント</title>
+<link rel="stylesheet" href="style.css">
+<script src="nav.js" defer></script>
+</head>
+<body>
+<div class="container">
+<main>
+<h1>2. 主な機能</h1>
+<p>パネル「Web配信」グループの主要ボタンです。</p>
+<figure class="shot">
+<img src="images/panel.png" loading="lazy"
+alt="geo_webview パネル全体 — 上から Web配信（エクスポート・CDN・ZIP・エンジン選択・▶WebView・▶Canvas）、HTTPサーバー稼働状況、テーマ／パーマリンク／共有タブ">
+<figcaption>geo_webview パネル — 「Web配信」グループと HTTP
+サーバー状態、テーマ／パーマリンク／共有タブ</figcaption>
+</figure>
+<h2 id="エクスポート">【エクスポート】</h2>
+<p><code>.kasc + canvas_data/ + &lt;engine&gt;.html + index.html</code>
+を出力します。
+<strong>ファイル出力のみ</strong>で、起動・登録は行いません（kasugai_canvas*.zip
+も 生成しません — ZIP
+は下記【ZIP】ボタンでダウンロード時に生成します）。
+出力先は<strong>保存先フォルダ名ボタン</strong>で変更します（現在の出力先を中央省略で表示。クリックでフォルダ選択、<code>↺</code>
+で既定にリセット。<code>📁</code>
+で出力フォルダをファイルマネージャで開く）。 既定は Canvas
+インストール先
+<code>&lt;install&gt;/QGIS_projects/&lt;プロジェクト名&gt;</code>、未検出時は
+<code>&lt;ドキュメント&gt;/kasugai_canvas_qgis</code> です。</p>
+<h2 id="zip">【ZIP】</h2>
+<p>エクスポート物一式を
+<code>kasugai_canvas_&lt;チャンネル&gt;.zip</code> としてブラウザで
+ダウンロードします（ファイル名は CDN コンボのチャンネルを反映。 例:
+<code>kasugai_canvas_stable.zip</code>）。クリック時にその場で ZIP
+を生成するため <strong>常に最新内容</strong>です（要 HTTP
+サーバー稼働）。 静的ホストへの配置・Re:Earth <code>qgis:</code>
+取り込み用に使います。</p>
+<h2 id="-webview">【▶ WebView】</h2>
+<p>ホスト版 <code>kasugai-canvas-web</code>（<a
+href="engines.html#githubpages-cdnkasugai-canvas-web">GitHubPages CDN</a>）の
+エンジンで開き、データは <code>:8089/export-data/</code>
+から供給します。 エクスポート →
+ブラウザ起動まで一発実行。<strong>要インターネット・ HTTP
+サーバー稼働</strong>（Canvas 未インストールでも可）。 使用チャンネルは
+<code>CDN:</code> コンボで選択します。</p>
+<p><strong><code>CDN:</code> コンボ</strong>: <code>▶ WebView</code>
+が使うホスト版チャンネルと ZIP ファイル名の
+<code>&lt;チャンネル&gt;</code> 部を選択します
+（<code>stable</code>/<code>unstable</code>/カスタムURL。QSettings
+<code>kasugai_hosted_channel</code> に保存）。</p>
+<p><strong><code>Engine:</code> コンボ</strong>:
+<code>▶ WebView</code>/<code>▶ Canvas</code> が開くエンジンを選択します
+（Cesium/MapLibre/OpenLayers/Leaflet/GSI Maps。選択は QSettings
+<code>kasugai_engine</code> に保存）。</p>
+<h2 id="-canvas">【▶ Canvas】</h2>
+<p><strong>エクスポート済み</strong>のプロジェクトを稼働中の KASUGAI
+Canvas ローカルサーバー（:8510）へ登録・表示切替・ブラウザ起動します。
+<strong>エクスポートは行わない</strong>ため、未出力の場合は Export
+を先に実行するよう メッセージで案内します。Canvas 未検出時はボタンが
+<strong>Install KASUGAI Canvas</strong> 表示になり、セットアップ（.kasc
+関連付けあり）/ ポータブルZIP
+を選んでバックグラウンドインストール後に起動します。</p>
+<h3 id="ルート解決フォールバック">ルート解決（フォールバック）</h3>
+<p><code>▶ Open</code>・<code>/kasugai</code>・<code>kasugaiExport</code>
+は応答の <code>via</code> で供給元を返します:</p>
+<table>
+<thead>
+<tr>
+<th scope="col"><code>via</code></th>
+<th scope="col">条件</th>
+<th scope="col">開く URL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>kasugai</code></td>
+<td>Canvas ローカルサーバー（既定 port 8510）稼働</td>
+<td><code>http://localhost:8510/&lt;engine&gt;/?project=&lt;id&gt;</code></td>
+</tr>
+<tr>
+<td><code>qgis-http</code></td>
+<td>Canvas はインストール済みだが未起動</td>
+<td>本サーバーが <code>&lt;install&gt;/web/</code>
+を静的配信＋<code>/export-data/</code> でデータ供給</td>
+</tr>
+<tr>
+<td><code>hosted</code></td>
+<td>Canvas 未インストール（要インターネット）</td>
+<td>ホスト版エンジン（kasugai-canvas-web / GitHub Pages、チャンネルは
+<code>CDN:</code> コンボ）＋<code>/export-data/</code></td>
+</tr>
+<tr>
+<td><code>null</code></td>
+<td>いずれも不可</td>
+<td>出力のみ成功（<code>.kasc</code> を手動で開く）</td>
+</tr>
+</tbody>
+</table>
+<h2 id="webgis">WebGIS</h2>
+<p>出力フォルダとエンジン（<code>web/</code> の中身）を一般的な Web
+サーバー （GitHub Pages / Cloudflare / Vercel /
+レンタルサーバー等の静的ホスト） へアップするだけで、<strong>QGIS
+なしで動く単独の WebGIS</strong> になります （Canvas の
+<code>?kasc=</code> 直読みモード）。配信に特別なサーバーサイド処理は
+不要で、<code>.kasc</code>+<code>canvas_data/</code>+システム一式を切り出して配布単位とすることも
+できます。</p>
+<p>外部ホストへの配信は、エンジン本体（<code>web/</code>
+の中身）の置き場所で2パターンに 分かれます。</p>
+<table>
+<thead>
+<tr>
+<th scope="col"></th>
+<th scope="col">A. kasugai-canvas-web の CDN を利用（既定）</th>
+<th scope="col">B. エンジンを同一ホストに同梱</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<th scope="row">構成</th>
+<td>ホストには <code>.kasc</code>+<code>canvas_data/</code> のみ。<code>https://yamamoto-ryuzo.github.io/kasugai-canvas-web/&lt;stable|unstable&gt;/&lt;engine&gt;/?kasc=&lt;.kascのURL&gt;</code> を開く</td>
+<td>ホストに <code>.kasc</code>+<code>canvas_data/</code>+<code>web/</code>（エンジン一式）を配置。<code>&lt;engine&gt;.html</code> が同階層のエンジンを自動探索して開く</td>
+</tr>
+<tr>
+<th scope="row">初回読込</th>
+<td>GitHub Pages の
+CDN（Fastly）がエッジ配信。エンジンJSの取得は速い</td>
+<td>LAN/閉域内なら最速。一般公開ではホストの性能次第</td>
+</tr>
+<tr>
+<th scope="row">安定性</th>
+<td>高可用だがインターネット必須。github.io
+到達不能だと表示されない</td>
+<td>同一オリジンなので CORS 不要。ただしエンジン JS
+本体は各エンジンが jsdelivr から取得し、GSI Maps は
+vendor/ 未同梱なら kasugai-canvas-web の CDN 版へ転送されるため、
+<strong>完全オフラインにはライブラリ群と vendor/
+のローカル同梱が別途必要</strong></td>
+</tr>
+<tr>
+<th scope="row">CORS</th>
+<td><strong>データ側ホストで <code>Access-Control-Allow-Origin</code>
+が必要</strong>（github.io のエンジンが <code>.kasc</code>
+をクロスオリジン fetch するため）。GitHub Pages は <code>*</code>
+を付与済み、Cloudflare Pages/Vercel 等は <code>_headers</code>
+等で設定</td>
+<td>同一オリジンなので不要</td>
+</tr>
+<tr>
+<th scope="row">HTTPS</th>
+<td><strong>データ側ホストは HTTPS が実質必須</strong>（https
+のエンジンから http ホストへの fetch は Mixed Content
+でブロックされる。localhost は例外で動作）</td>
+<td>不要（http のみでも動く）</td>
+</tr>
+<tr>
+<th scope="row">転送量・保守</th>
+<td>エクスポート物はデータのみで軽量。エンジン更新は kasugai-canvas-web
+側に追従</td>
+<td>エンジン分（数十MB級）も自分の帯域。エンジン更新は手動</td>
+</tr>
+</tbody>
+</table>
+<p>目安: <strong>公開配信は A（CDN）が既定</strong>。B
+は閉域網・オフライン利用・ CORS/HTTPS
+を設定できないホスト・自己完結アーカイブ向けです。 どちらでも
+<code>.kasc</code>+<code>canvas_data/</code>
+は自ホストから読むため、体感速度の大半は データ配信側で決まります。</p>
+<p>起動HTMLは <code>./ ../ ../../ /</code>
+の順にエンジンを自動探索し、同一ホストに
+あればそちらを優先、無ければホスト版へのリンクを出すため A/B の混在も
+安全です（<code>index.html</code> 経路3からもホスト版へ辿れます）。自前
+CDN/ホストを 使う場合はパネルの <code>CDN:</code> コンボ（QSettings
+<code>kasugai_hosted_channel</code>）に 完全URL（末尾 <code>/</code>
+付き）を設定します。kasugai-canvas-web のチャンネルは
+<code>stable</code>（既定）と <code>unstable</code>
+の2系統で、エンジンは実質上位互換を維持して 更新されています。</p>
+<nav class="pager"><a href="architecture.html">← 連携構成図</a><a class="next" href="engines.html">マルチエンジン →</a></nav>
+</main>
+</div>
+<script type="module" src="assets/site.js"></script>
+</body>
+</html>

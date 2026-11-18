@@ -50,6 +50,7 @@ from qgis.PyQt.QtWidgets import (
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
+    QSizePolicy,
     QSplitter,
     QTextBrowser,
     QVBoxLayout,
@@ -60,7 +61,12 @@ from qgis.PyQt.QtWidgets import (
 from . import ai_client, credential_store
 
 _SETTING = "geo_driver/ai_{}"
-_PROVIDER_IDS = list(ai_client.PROVIDERS.keys())
+# 表示順は【API】→【ACP】→【ブリッジ】(ai_client.PROVIDER_ORDER)。
+# ORDER に無い将来プロバイダは定義順で末尾に足す
+_PROVIDER_IDS = (
+    [p for p in ai_client.PROVIDER_ORDER if p in ai_client.PROVIDERS]
+    + [p for p in ai_client.PROVIDERS
+       if p not in ai_client.PROVIDER_ORDER])
 _MODEL_HINT = QT_TRANSLATE_NOOP(
     "geo_driver",
     "Press \"Fetch\" to list models from the endpoint. "
@@ -207,9 +213,15 @@ class AiPanel(QDockWidget):
         box = QGroupBox(self.tr("API settings"), root)
         form = QFormLayout(box)
         self.cmb_provider = QComboBox(box)
-        for pid in _PROVIDER_IDS:
-            self.cmb_provider.addItem(ai_client.tr_label(
-                ai_client.PROVIDERS[pid]["label"]), pid)
+        for i, pid in enumerate(_PROVIDER_IDS):
+            d = ai_client.PROVIDERS[pid]
+            self.cmb_provider.addItem(
+                d.get("tag", "") + ai_client.tr_label(d["label"]), pid)
+            tip = ai_client.PROVIDER_TAGS.get(d.get("tag"), "")
+            if tip:
+                self.cmb_provider.setItemData(
+                    i, d["tag"] + " " + ai_client.tr_label(tip),
+                    Qt.ItemDataRole.ToolTipRole)
         self.ed_endpoint = QLineEdit(box)
         self.ed_key = QLineEdit(box)
         self.ed_key.setEchoMode(QLineEdit.EchoMode.Password)
@@ -313,7 +325,18 @@ class AiPanel(QDockWidget):
         lbl.setStyleSheet("color:#666; font-size:11px")
         sr.addWidget(lbl, 1)
         self.w_signin.setVisible(False)
-        form.addRow(self.tr("Provider"), self.cmb_provider)
+        prov_row = QWidget(box)
+        pr = QHBoxLayout(prov_row)
+        pr.setContentsMargins(0, 0, 0, 0)
+        pr.addWidget(self.cmb_provider, 1)
+        btn_prov_help = QPushButton("?", prov_row)
+        btn_prov_help.setFixedWidth(24)
+        btn_prov_help.setToolTip(
+            self.tr("Explain the provider type tags "
+                    "【API】/【ACP】/【ブリッジ】"))
+        btn_prov_help.clicked.connect(self._provider_help)
+        pr.addWidget(btn_prov_help)
+        form.addRow(self.tr("Provider"), prov_row)
         form.addRow(self.tr("Endpoint"), self.ed_endpoint)
         form.addRow(self.tr("API key"), self.ed_key)
         form.addRow("", self.w_signin)
@@ -360,6 +383,12 @@ class AiPanel(QDockWidget):
         # ---- チャット表示 ----
         self.view = QTextBrowser(root)
         self.view.setOpenExternalLinks(True)
+        # pre(改行不能ブロック)のツール出力や長いコードブロックで
+        # ドキュメントのsizeHintが膨張しドック幅が勝手に広がるのを
+        # 防ぐ。横はsizeHintを無視し、はみ出る分はビュー内の
+        # 横スクロールに委ねる
+        self.view.setSizePolicy(
+            QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Expanding)
         lay.addWidget(self.view, 1)
 
         # ---- 添付画像(入力欄への貼付・D&D・📎ボタンで追加) ----
@@ -383,6 +412,22 @@ class AiPanel(QDockWidget):
         lay.addWidget(self.input)
 
         row = QHBoxLayout()
+        self.cmb_prompt = QComboBox(root)
+        self.cmb_prompt.setMaximumWidth(170)
+        self.cmb_prompt.setToolTip(self.tr(
+            "Suggested prompts: picking one inserts the prompt text "
+            "into the input field.\n"
+            "Lists bundled <plugin>/prompts/*.md and user "
+            "~/.qgis-live/prompts/*.md.\n"
+            "Edit them via /prompt or the instruction editor."))
+        self.cmb_prompt.activated.connect(self._on_prompt_activated)
+        row.addWidget(self.cmb_prompt)
+        self.btn_prompt_edit = QPushButton("✎", root)
+        self.btn_prompt_edit.setFixedWidth(30)
+        self.btn_prompt_edit.setToolTip(self.tr(
+            "Create, edit, or delete suggested prompts (.md)"))
+        self.btn_prompt_edit.clicked.connect(self._edit_prompts)
+        row.addWidget(self.btn_prompt_edit)
         self.btn_attach = QPushButton("📎", root)
         self.btn_attach.setFixedWidth(30)
         self.btn_attach.setToolTip(self.tr(
@@ -458,6 +503,19 @@ class AiPanel(QDockWidget):
         self.sig_open_url.connect(
             lambda u: QDesktopServices.openUrl(QUrl(u)))
 
+    def _provider_help(self):
+        """「?」ボタン: 【API】/【ACP】/【ブリッジ】の違いを説明する。"""
+        lines = []
+        for tag in ("【API】", "【ブリッジ】", "【ACP】"):
+            names = [ai_client.tr_label(ai_client.PROVIDERS[p]["label"])
+                     for p in _PROVIDER_IDS
+                     if ai_client.PROVIDERS[p].get("tag") == tag]
+            lines.append(
+                f"{tag} {', '.join(names)}\n"
+                f"　{ai_client.tr_label(ai_client.PROVIDER_TAGS[tag])}")
+        QMessageBox.information(
+            self, self.tr("Provider types"), "\n\n".join(lines))
+
     # ---- 設定の永続化 ----
 
     def _provider(self):
@@ -483,6 +541,7 @@ class AiPanel(QDockWidget):
         self.box_api.setVisible(self.btn_settings.isChecked())
         self._refresh_agents(s.value(_SETTING.format("agent"), ""))
         self._refresh_skills()
+        self._refresh_prompts()
         self._update_mcp_label()
 
     def _on_settings_toggled(self, on):
@@ -551,6 +610,43 @@ class AiPanel(QDockWidget):
         self._open_instruction_editor(
             "skills", self.cmb_skill.currentData())
 
+    # ---- おすすめプロンプト(入力欄へ挿入する定型文) ----
+
+    def _refresh_prompts(self):
+        """プロンプトコンボを各プラグイン同梱 + ~/.qgis-live/prompts/
+        で再構築する。先頭はプレースホルダ(選択で入力欄へ挿入)。"""
+        self.cmb_prompt.blockSignals(True)
+        self.cmb_prompt.clear()
+        self.cmb_prompt.addItem(self.tr("Suggested…"), None)
+        for s in ai_client.list_prompts():
+            label = s["title"] + (self.tr(" (bundled)")
+                                  if s["builtin"] else "")
+            self.cmb_prompt.addItem(label, s["id"])
+            tip = s["path"]
+            if s.get("desc"):
+                tip = s["desc"] + "\n" + tip
+            self.cmb_prompt.setItemData(
+                self.cmb_prompt.count() - 1, tip,
+                Qt.ItemDataRole.ToolTipRole)
+        self.cmb_prompt.setCurrentIndex(0)
+        self.cmb_prompt.blockSignals(False)
+
+    def _on_prompt_activated(self, idx):
+        """おすすめプロンプト選択 → 本文を入力欄へ挿入する。"""
+        pid = self.cmb_prompt.itemData(idx)
+        self.cmb_prompt.setCurrentIndex(0)
+        if not pid:
+            return
+        body = ai_client.prompt_body(pid)
+        if body is None:
+            return
+        self.input.setPlainText(body)
+        self.input.setFocus()
+
+    def _edit_prompts(self):
+        self._open_instruction_editor(
+            "prompts", self.cmb_prompt.currentData())
+
     # ---- 指示書編集 ----
     # 「編集」ダイアログは非モーダル。開いている間もチャット入力欄は
     # 通常通り使え、ダイアログ内のプロンプト欄からAIへ本文の修正を
@@ -588,6 +684,7 @@ class AiPanel(QDockWidget):
         """AIのai_*ツールが指示書を更新した後のコンボ再構築。"""
         self._refresh_agents()
         self._refresh_skills()
+        self._refresh_prompts()
         if self._instr_dlg is not None:
             self._instr_dlg.refresh_external()
 
@@ -842,6 +939,8 @@ class AiPanel(QDockWidget):
         取得済み一覧(_model_infos)のkindを優先し、手入力の未知
         モデルは classify_model の名前ヒントで推定する。
         """
+        if self._provider() in ("devin_acp", "copilot_acp"):
+            return True  # ACP promptCapabilities.image=true
         mid = (self._current_model()
                or ai_client.PROVIDERS[self._provider()]["model"])
         info = self._model_infos.get(mid)
@@ -992,8 +1091,10 @@ class AiPanel(QDockWidget):
         cl.setContentsMargins(2, 2, 2, 2)
         cl.setSpacing(2)
         thumb = QLabel(chip)
-        thumb.setPixmap(QPixmap.fromImage(img).scaledToHeight(
-            44, Qt.TransformationMode.SmoothTransformation))
+        thumb.setPixmap(QPixmap.fromImage(img).scaled(
+            220, 44,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation))
         thumb.setToolTip(path)
         cl.addWidget(thumb)
         btn = QPushButton("✕", chip)
@@ -1218,6 +1319,7 @@ class AiPanel(QDockWidget):
         self._alive = False
         self._signin_abort = True
         self._reset_mcp()
+        ai_client.close_acp_sessions()
 
     def _emit(self, sig, *args):
         """ワーカースレッドからのemit。パネル消去後は無視。"""
@@ -1345,6 +1447,13 @@ class AiPanel(QDockWidget):
         """送信ボタン: 実行中なら中断フラグを立てる。"""
         if self._busy:
             self._abort = True
+            prov = getattr(self, "_active_prov", None)
+            abort = getattr(prov, "abort", None)
+            if abort:
+                try:
+                    abort()  # devin_acp: session/cancel でターン中断
+                except Exception:  # nosec B110  # 設計上の許容
+                    pass
             self.lbl_status.setText(self.tr("Aborting…"))
             # 中断要求を受理したことが見えるようボタン側も変える
             self.btn_send.setText(self.tr("Aborting…"))
@@ -1450,7 +1559,8 @@ class AiPanel(QDockWidget):
     # チャット入力のローカルコマンド(APIへは送らない)。
     # '/<cmd> <名前>' のあと同一行または改行以降を指示書本文とする。
     _CHAT_CMDS = {"/agent": "agents", "/agents": "agents",
-                  "/skill": "skills", "/skills": "skills"}
+                  "/skill": "skills", "/skills": "skills",
+                  "/prompt": "prompts", "/prompts": "prompts"}
 
     _CMD_USAGE = QT_TRANSLATE_NOOP(
         "geo_driver",
@@ -1461,12 +1571,15 @@ class AiPanel(QDockWidget):
         "  /skill               List skills\n"
         "  /skill <name>        Show a skill's body\n"
         "  /skill <name> <body> Save a skill\n"
+        "  /prompt              List suggested prompts\n"
+        "  /prompt <name>       Insert a prompt into the input\n"
+        "  /prompt <name> <body> Save a suggested prompt\n"
         "(The body can span multiple lines starting from line 2)")
 
     def _chat_command(self, text):
-        """'/agent' '/skill' 系の入力をローカルコマンドとして処理する。
+        """'/agent' '/skill' '/prompt' 系をローカルコマンドとして処理。
 
-        指示書(agents|skills の .md)の保存・切替・参照をAPIを介さず
+        指示書(agents|skills|prompts の .md)の保存・切替・参照をAPIを介さず
         直接行う。処理した場合True(APIへは送らない)。該当しない
         コマンド名の '/' 入力はFalse(通常メッセージとして送信)。
         """
@@ -1496,6 +1609,8 @@ class AiPanel(QDockWidget):
             if not body:
                 if kind == "agents":
                     self._cmd_select_agent(name)
+                elif kind == "prompts":
+                    self._cmd_insert_prompt(name)
                 else:
                     self._cmd_show_instruction(kind, name)
                 return True
@@ -1516,6 +1631,20 @@ class AiPanel(QDockWidget):
         self._append("cmd", self.tr("Switched agent to '{0}'")
                      .format(stem))
 
+    def _cmd_insert_prompt(self, name):
+        """'/prompt <名前>' — おすすめプロンプトを入力欄へ挿入する。"""
+        stem = re.sub(r'[\\/:*?"<>|\s]+', "_", name)
+        body = ai_client.prompt_body(stem)
+        if body is None:
+            raise ai_client.ApiError(
+                self.tr("prompt '{0}' not found "
+                        "(provide a body to save it as new)")
+                .format(stem))
+        self.input.setPlainText(body)
+        self.input.setFocus()
+        self._append("cmd", self.tr("Inserted prompt '{0}'")
+                     .format(stem))
+
     def _cmd_show_instruction(self, kind, name):
         """'/skill <名前>' — 指示書の本文を表示する。"""
         stem = re.sub(r'[\\/:*?"<>|\s]+', "_", name)
@@ -1532,8 +1661,9 @@ class AiPanel(QDockWidget):
         p = ai_client.save_instruction(kind, name, body)
         stem = os.path.splitext(os.path.basename(p))[0]
         self._refresh_instructions()
-        label = (self.tr("agent") if kind == "agents"
-                 else self.tr("skill"))
+        label = {"agents": self.tr("agent"),
+                 "prompts": self.tr("prompt")}.get(
+                     kind, self.tr("skill"))
         if kind == "agents":
             self._on_agent_changed(stem)
             self._append(
@@ -1561,6 +1691,13 @@ class AiPanel(QDockWidget):
             self._emit(self.sig_status, "")
             self._emit(self.sig_busy, False)
             return
+        self._active_prov = prov
+        # ACP系: ターン中の進行状況をステータス行へ流す
+        prov.on_event = lambda kind, u: self._emit(
+            self.sig_status,
+            "{0}: {1}".format(
+                ai_client.tr_label(prov.label),
+                u.get("title") or kind or "…"))
         self._ensure_mcp()
         system = self._build_system(plugins, cfg.get("agent"))
         msgs = prov.build_messages(
@@ -1662,7 +1799,7 @@ class AiPanel(QDockWidget):
             cmd["path"] = ai_client.screenshot_temp_path()
         self._emit(self.sig_status,
                    self.tr("{0} running…").format(name))
-        rep = driver.submit(cmd)
+        rep = driver.submit(cmd, origin="ai_panel")
         text = ai_client.reply_to_text(rep)
         self._emit(self.sig_append, "tool",
                    f"→ {text[:2000]}"
@@ -1876,12 +2013,14 @@ class _InstructionsDialog(QDialog):
     _KINDS = [("agents",
                QT_TRANSLATE_NOOP("geo_driver", "Agents")),
               ("skills",
-               QT_TRANSLATE_NOOP("geo_driver", "Skills"))]
+               QT_TRANSLATE_NOOP("geo_driver", "Skills")),
+              ("prompts",
+               QT_TRANSLATE_NOOP("geo_driver", "Prompts"))]
 
     def __init__(self, parent, kind="agents", select=None):
         super().__init__(parent)
         self.setWindowTitle(
-            self.tr("Edit instructions (agents/skills)"))
+            self.tr("Edit instructions"))
         self.resize(760, 480)
         lay = QVBoxLayout(self)
         self.cmb_kind = QComboBox(self)
@@ -2008,12 +2147,16 @@ class _InstructionsDialog(QDialog):
         self._items = {a["id"]: a for a in
                        ai_client.list_instruction_files(kind)}
         self.lbl_hint.setText(
-            self.tr(
+            {"agents": self.tr(
                 "Agents: the selected one is injected into the system "
                 "prompt on every request. Format: \"# Title\" → "
-                "description → \"use_when: when to use\" (optional)")
-            if kind == "agents" else
-            self.tr(
+                "description → \"use_when: when to use\" (optional)"),
+             "prompts": self.tr(
+                "Prompts: shown in the panel's suggestion list; the "
+                "body after the header is inserted into the chat "
+                "input when picked. Format: \"# Title\" → "
+                "description → \"use_when: when to use\" (optional) "
+                "→ prompt text")}.get(kind) or self.tr(
                 "Skills: only the list of id+description+use_when "
                 "appears in the prompt; the model reads the body via "
                 "qgis_pyeval's open() when needed. Format: \"# Title\" "

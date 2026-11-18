@@ -4,19 +4,12 @@
 upstream(QGIS-exportExcel)のスクリプトは「レイヤアクション」として実行される
 前提で書かれており、QGISアクションの置換変数([% @layer_id %] / [% $id %])を
 含む。本プラグインはプラグインメニューからの実行時に、これらをアクティブ
-レイヤ/選択地物の値で置き換えて exec することで、スクリプトを無改変で
-再利用する。
-
-またスクリプト内の `from PyQt5.…` 固定importは、exec直前にソース文字列を
-`from qgis.PyQt.…` へ書き換えて吸収する(QGISのQt6ビルドでは PyQt5 のimportが
-qgis.utils._import フックで禁止されるため、sys.modules shim では不可)。
-ファイル自体は upstream のまま維持する。
+レイヤ/選択地物の値で置き換えて exec することで再利用する。
 
 実行には win32com(pywin32) と Excel が必要。
 """
 
 import os
-import re
 
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.PyQt.QtWidgets import QAction, QMessageBox
@@ -28,19 +21,52 @@ from .i18n_json import install_translator
 
 PLUGIN_DIR = os.path.dirname(__file__)
 
-# PyQt5 固定importを qgis.PyQt(Qt5/Qt6 自動切替)へ書き換える
-_PYQT5_RE = re.compile(r"PyQt5(?=[\.\s])")
 
+def _qt_dead(w):
+    """QtラッパーのC++側オブジェクトが削除済みかを返す。
 
-def _rewrite_source(src):
-    """アクション置換変数と Qt5 固有記法を実行用に書き換える。
-
-    - `PyQt5.` / `from PyQt5 import` → `qgis.PyQt`
-    - `Qt.WaitCursor` → `Qt.CursorShape.WaitCursor`
-      (Qt6で非スコープenumは廃止。Qt5でもスコープ記法は有効)
+    削除済み QAction/QMenu/QToolBar へメソッドを呼ぶと Python 例外では
+    なく access violation になるため、触れる前に判定する。
     """
-    src = _PYQT5_RE.sub("qgis.PyQt", src)
-    return src.replace("Qt.WaitCursor", "Qt.CursorShape.WaitCursor")
+    try:
+        from qgis.PyQt import sip
+        return bool(sip.isdeleted(w))
+    except Exception:
+        try:
+            from PyQt6 import sip
+            return bool(sip.isdeleted(w))
+        except Exception:
+            return False
+
+
+def _defer_remove_actions(iface, menu_name, actions, toolbar=None):
+    """メニュー/ツールバー項目の除去をイベント完了後へ遅延する。
+
+    QMenu のイベント処理中(triggered ハンドラ内の reloadPlugin 経由等)
+    に removePluginMenu/removeAction するとポップアップ処理中の
+    メニュー階層を破壊して access violation になる実績があるため、
+    QTimer で遅延する。除去対象は呼出し時点の参照に限定し、
+    触れる各オブジェクトは _qt_dead で先に判定する。
+    """
+    def _cleanup():
+        for action in actions:
+            if _qt_dead(action):
+                continue
+            try:
+                iface.removePluginMenu(menu_name, action)
+            except Exception:  # nosec B110  # 設計上の許容
+                pass
+            try:
+                if toolbar is not None and not _qt_dead(toolbar):
+                    toolbar.removeAction(action)
+            except Exception:  # nosec B110  # 設計上の許容
+                pass
+
+    try:
+        from qgis.PyQt.QtCore import QTimer
+        QTimer.singleShot(0, _cleanup)
+    except Exception:  # nosec B110  # 設計上の許容
+        _cleanup()
 
 
 def _active_vector_layer(iface):
@@ -108,8 +134,10 @@ class plugin(object):
         # 登録できたなら自前の実行メニューは外す(二重表示防止。
         # pull経路=geo_excelが先に自前メニューを作った後でも統一される)
         self._registered_to_userfunc = True
-        for action in self.macro_actions:
-            self.iface.removePluginMenu(self.menu_name, action)
+        # 除去はイベント完了後へ遅延する(QMenu イベント処理中の除去は
+        # access violation の実績)
+        _defer_remove_actions(
+            self.iface, self.menu_name, list(self.macro_actions))
         self.macro_actions = []
 
     def _macro_run(self, ctx, script, needs_fid):
@@ -192,8 +220,11 @@ class plugin(object):
                 except Exception:  # nosec B110  # 設計上の許容
                     pass
             self._registered_to_userfunc = False
-        for action in self.actions + self.macro_actions:
-            self.iface.removePluginMenu(self.menu_name, action)
+        # 除去はイベント完了後へ遅延する(QMenu イベント処理中の除去は
+        # access violation の実績)
+        _defer_remove_actions(
+            self.iface, self.menu_name,
+            list(self.actions) + list(self.macro_actions))
         self.actions = []
         self.macro_actions = []
         if self._settings_dialog is not None:
@@ -264,7 +295,6 @@ class plugin(object):
         src = src.replace("[% @layer_id %]", layer_id)
         if fid is not None:
             src = src.replace("[% $id %]", str(fid))
-        src = _rewrite_source(src)
 
         ns = {"__name__": f"geo_excel.{script_name}", "__file__": path}
         try:

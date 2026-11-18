@@ -1,0 +1,1985 @@
+{
+ "component": "geo_excel",
+ "component_type": "qgis_plugin",
+ "version": "1.9.5",
+ "driver": {
+  "type": "qgis_live_harness",
+  "detect": "GET http://127.0.0.1:<http_port>/api/health",
+  "launch": "npm run live:ensure",
+  "ready": "/api/health が ok:true を返す",
+  "control": "POST /api/cmd Bearer <live_dir token>",
+  "detected_from": "scripts/qgis-session.mjs, live_driver.py"
+ },
+ "updated": "2026-11-15T23:27:25+09:00",
+ "features": [
+  {
+   "id": "entry_point.__init__.py:classFactory",
+   "kind": "entry_point",
+   "name": "classFactory",
+   "source": "__init__.py:5",
+   "signature": "classFactory(iface)",
+   "summary": "",
+   "needs_runtime": false,
+   "standalone_ok": true,
+   "depends": [],
+   "verify": {
+    "standalone": "import→呼出→戻り値assert",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "pass",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "standalone経路のみ(要runtime依存無し)"
+  },
+  {
+   "id": "action.plugin.initGui",
+   "kind": "action",
+   "name": "initGui",
+   "source": "plugin.py:136",
+   "signature": "initGui()",
+   "summary": "",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "bridge_call/generic trigger→実在確認"
+   },
+   "last_result": "pass",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "属性/シンボル実在確認(pyeval)"
+  },
+  {
+   "id": "action.plugin.unload",
+   "kind": "action",
+   "name": "unload",
+   "source": "plugin.py:165",
+   "signature": "unload()",
+   "summary": "",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "bridge_call/generic trigger→実在確認"
+   },
+   "last_result": "pass",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "属性/シンボル実在確認(pyeval)"
+  },
+  {
+   "id": "dialog.GeoExcelSettingsDialog",
+   "kind": "dialog",
+   "name": "GeoExcelSettingsDialog",
+   "source": "settings_dialog.py:41",
+   "signature": "GeoExcelSettingsDialog",
+   "summary": "geo_excel の既定設定とレイヤ変数を管理するダイアログ。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "openDialog→screenshot→closeDialog"
+   },
+   "last_result": "pass",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "属性/シンボル実在確認(pyeval)"
+  },
+  {
+   "id": "bridge.applyDefaults",
+   "kind": "bridge_method",
+   "name": "applyDefaults",
+   "source": "bridge.py:391",
+   "signature": "applyDefaults(layer_id=…, script=…)",
+   "summary": "不足レイヤ変数へ既定値を適用する(script省略で全スクリプト)。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [
+    "QGISプラグインロード",
+    "geo_driver"
+   ],
+   "verify": {
+    "standalone": "",
+    "integrated": "bridge_call applyDefaults → 応答assert"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+  },
+  {
+   "id": "bridge.checkExcel",
+   "kind": "bridge_method",
+   "name": "checkExcel",
+   "source": "bridge.py:412",
+   "signature": "checkExcel()",
+   "summary": "Excelを実際にCOM起動して検証する(数秒ブロックする)。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [
+    "QGISプラグインロード",
+    "geo_driver"
+   ],
+   "verify": {
+    "standalone": "",
+    "integrated": "bridge_call checkExcel → 応答assert"
+   },
+   "last_result": "pass",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "bridge_call応答あり args=[]"
+  },
+  {
+   "id": "bridge.layerVariables",
+   "kind": "bridge_method",
+   "name": "layerVariables",
+   "source": "bridge.py:304",
+   "signature": "layerVariables(layer_id=…)",
+   "summary": "対象レイヤの xlsout_*/dpi レイヤ変数を返す。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [
+    "QGISプラグインロード",
+    "geo_driver"
+   ],
+   "verify": {
+    "standalone": "",
+    "integrated": "bridge_call layerVariables → 応答assert"
+   },
+   "last_result": "pass",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "bridge_call応答あり args=[]"
+  },
+  {
+   "id": "bridge.listScripts",
+   "kind": "bridge_method",
+   "name": "listScripts",
+   "source": "bridge.py:299",
+   "signature": "listScripts()",
+   "summary": "帳票スクリプト一覧を返す。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [
+    "QGISプラグインロード",
+    "geo_driver"
+   ],
+   "verify": {
+    "standalone": "",
+    "integrated": "bridge_call listScripts → 応答assert"
+   },
+   "last_result": "pass",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "bridge_call応答あり args=[]"
+  },
+  {
+   "id": "bridge.openSettings",
+   "kind": "bridge_method",
+   "name": "openSettings",
+   "source": "bridge.py:419",
+   "signature": "openSettings()",
+   "summary": "設定ダイアログを開く。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [
+    "QGISプラグインロード",
+    "geo_driver"
+   ],
+   "verify": {
+    "standalone": "",
+    "integrated": "bridge_call openSettings → 応答assert"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+  },
+  {
+   "id": "bridge.pluginInfo",
+   "kind": "bridge_method",
+   "name": "pluginInfo",
+   "source": "bridge.py:272",
+   "signature": "pluginInfo()",
+   "summary": "プラグインの自己記述(id/summary/when_to_use/methods)を返す。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [
+    "QGISプラグインロード",
+    "geo_driver"
+   ],
+   "verify": {
+    "standalone": "",
+    "integrated": "bridge_call pluginInfo → 応答assert"
+   },
+   "last_result": "pass",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "bridge_call応答あり args=[]"
+  },
+  {
+   "id": "bridge.regenerateTemplates",
+   "kind": "bridge_method",
+   "name": "regenerateTemplates",
+   "source": "bridge.py:449",
+   "signature": "regenerateTemplates(layer_id=…)",
+   "summary": "自動生成テンプレートを再生成し不足変数へ既定値を適用する。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [
+    "QGISプラグインロード",
+    "geo_driver"
+   ],
+   "verify": {
+    "standalone": "",
+    "integrated": "bridge_call regenerateTemplates → 応答assert"
+   },
+   "last_result": "pass",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "bridge_call応答あり args=[]"
+  },
+  {
+   "id": "bridge.run",
+   "kind": "bridge_method",
+   "name": "run",
+   "source": "bridge.py:324",
+   "signature": "run(script=…, feature_id=…, confirm=…)",
+   "summary": "帳票スクリプトを実行する(結果・メッセージを返す)。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [
+    "QGISプラグインロード",
+    "geo_driver"
+   ],
+   "verify": {
+    "standalone": "",
+    "integrated": "bridge_call run → 応答assert"
+   },
+   "last_result": "fail",
+   "last_verified": "2026-11-15T23:27:25+09:00",
+   "note": "実帳票 end-to-end 検証: list/single は xlsx 実出力 pass。bulk は single 出力ブックが Excel に残った状態で SaveAs COM 例外 (Issue #8)。dpi 任意変数未設定時に critical 誤表示 (Issue #9)"
+  },
+  {
+   "id": "bridge.setLayerVariables",
+   "kind": "bridge_method",
+   "name": "setLayerVariables",
+   "source": "bridge.py:312",
+   "signature": "setLayerVariables(variables, layer_id=…)",
+   "summary": "レイヤ変数を設定する。{変数名: 値}、値Noneで削除。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [
+    "QGISプラグインロード",
+    "geo_driver"
+   ],
+   "verify": {
+    "standalone": "",
+    "integrated": "bridge_call setLayerVariables → 応答assert"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+  },
+  {
+   "id": "bridge.setSettings",
+   "kind": "bridge_method",
+   "name": "setSettings",
+   "source": "bridge.py:424",
+   "signature": "setSettings(settings=…)",
+   "summary": "既定設定を保存する(output_dir/dpi/テンプレート/auto_apply)。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [
+    "QGISプラグインロード",
+    "geo_driver"
+   ],
+   "verify": {
+    "standalone": "",
+    "integrated": "bridge_call setSettings → 応答assert"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+  },
+  {
+   "id": "bridge.settings",
+   "kind": "bridge_method",
+   "name": "settings",
+   "source": "bridge.py:377",
+   "signature": "settings()",
+   "summary": "既定設定・環境チェック・必要物の列挙を返す。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [
+    "QGISプラグインロード",
+    "geo_driver"
+   ],
+   "verify": {
+    "standalone": "",
+    "integrated": "bridge_call settings → 応答assert"
+   },
+   "last_result": "pass",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "bridge_call応答あり args=[]"
+  },
+  {
+   "id": "bridge.status",
+   "kind": "bridge_method",
+   "name": "status",
+   "source": "bridge.py:288",
+   "signature": "status()",
+   "summary": "実行時状態(アクティブレイヤ・選択数・依存環境)を返す。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [
+    "QGISプラグインロード",
+    "geo_driver"
+   ],
+   "verify": {
+    "standalone": "",
+    "integrated": "bridge_call status → 応答assert"
+   },
+   "last_result": "pass",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "bridge_call応答あり args=[]"
+  },
+  {
+   "id": "integration.bridge.py:284",
+   "kind": "integration",
+   "name": "self._win32com_available",
+   "source": "bridge.py:284",
+   "signature": "self._win32com_available(…)",
+   "summary": "外部連携呼出",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "連携先の実在/生成物を確認"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+  },
+  {
+   "id": "integration.bridge.py:292",
+   "kind": "integration",
+   "name": "self._win32com_available",
+   "source": "bridge.py:292",
+   "signature": "self._win32com_available(…)",
+   "summary": "外部連携呼出",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "連携先の実在/生成物を確認"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+  },
+  {
+   "id": "integration.bridge.py:334",
+   "kind": "integration",
+   "name": "self._win32com_available",
+   "source": "bridge.py:334",
+   "signature": "self._win32com_available(…)",
+   "summary": "外部連携呼出",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "連携先の実在/生成物を確認"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+  },
+  {
+   "id": "integration.exportList.py:623",
+   "kind": "integration",
+   "name": "Dispatch",
+   "source": "exportList.py:623",
+   "signature": "Dispatch(…)",
+   "summary": "外部連携呼出",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "連携先の実在/生成物を確認"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+  },
+  {
+   "id": "integration.exportSingle.py:974",
+   "kind": "integration",
+   "name": "Dispatch",
+   "source": "exportSingle.py:974",
+   "signature": "Dispatch(…)",
+   "summary": "外部連携呼出",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "連携先の実在/生成物を確認"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+  },
+  {
+   "id": "integration.exportSingleBulk.py:1019",
+   "kind": "integration",
+   "name": "Dispatch",
+   "source": "exportSingleBulk.py:1019",
+   "signature": "Dispatch(…)",
+   "summary": "外部連携呼出",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "連携先の実在/生成物を確認"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+  },
+  {
+   "id": "integration.settings.py:167",
+   "kind": "integration",
+   "name": "Dispatch",
+   "source": "settings.py:167",
+   "signature": "Dispatch(…)",
+   "summary": "外部連携呼出",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "連携先の実在/生成物を確認"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+  },
+  {
+   "id": "integration.settings.py:182",
+   "kind": "integration",
+   "name": "win32com_available",
+   "source": "settings.py:182",
+   "signature": "win32com_available(…)",
+   "summary": "外部連携呼出",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "連携先の実在/生成物を確認"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+  },
+  {
+   "id": "ai.bridge_route",
+   "kind": "ai_integration",
+   "name": "bridge_call経由全到達",
+   "source": "bridge.py",
+   "signature": "",
+   "summary": "全bridge_methodがAI経路で呼べる",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "bridge_call 全method→ok/error記録"
+   },
+   "last_result": "pass",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "8メソッド到達可能"
+  },
+  {
+   "id": "ai.catalog",
+   "kind": "ai_integration",
+   "name": "describe_plugins登録",
+   "source": "geo_driver経由",
+   "signature": "",
+   "summary": "カタログに載り呼出可能か",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "describe_plugins→plugins[]にid実在+methods非空"
+   },
+   "last_result": "pass",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "describe_plugins: methods=11"
+  },
+  {
+   "id": "ai.pluginInfo",
+   "kind": "ai_integration",
+   "name": "pluginInfo自己記述",
+   "source": "bridge.py",
+   "signature": "pluginInfo()",
+   "summary": "summary/when_to_use/methodsの正確性",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "bridge_call pluginInfo→メタ一致assert"
+   },
+   "last_result": "pass",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "自己記述あり"
+  },
+  {
+   "id": "logic_fn.settings.py:auto_apply_enabled",
+   "kind": "logic_fn",
+   "name": "auto_apply_enabled",
+   "source": "settings.py:98",
+   "signature": "auto_apply_enabled()",
+   "summary": "",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "pass",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "属性/シンボル実在確認(pyeval)"
+  },
+  {
+   "id": "logic_fn.settings.py:check_excel_launch",
+   "kind": "logic_fn",
+   "name": "check_excel_launch",
+   "source": "settings.py:156",
+   "signature": "check_excel_launch()",
+   "summary": "Excelを実際にCOM起動して検証する(既存インスタンスがあれば再利用しQuitしない)。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "pass",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "属性/シンボル実在確認(pyeval)"
+  },
+  {
+   "id": "logic_fn.settings.py:configured_template",
+   "kind": "logic_fn",
+   "name": "configured_template",
+   "source": "settings.py:232",
+   "signature": "configured_template(kind)",
+   "summary": "QSettingsのテンプレート指定(未設定なら空文字)。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "pass",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "属性/シンボル実在確認(pyeval)"
+  },
+  {
+   "id": "logic_fn.settings.py:current_settings",
+   "kind": "logic_fn",
+   "name": "current_settings",
+   "source": "settings.py:102",
+   "signature": "current_settings()",
+   "summary": "UI/bridge表示用の現在の既定値セット。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "pass",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "属性/シンボル実在確認(pyeval)"
+  },
+  {
+   "id": "logic_fn.settings.py:documents_dir",
+   "kind": "logic_fn",
+   "name": "documents_dir",
+   "source": "settings.py:67",
+   "signature": "documents_dir()",
+   "summary": "OSのドキュメントフォルダを返す(取得不可なら ~/Documents)。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "pass",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "属性/シンボル実在確認(pyeval)"
+  },
+  {
+   "id": "logic_fn.settings.py:ensure_layer_variables",
+   "kind": "logic_fn",
+   "name": "ensure_layer_variables",
+   "source": "settings.py:274",
+   "signature": "ensure_layer_variables(layer, script_file)",
+   "summary": "不足している必須レイヤ変数へ既定値を適用する。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "pass",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "属性/シンボル実在確認(pyeval)"
+  },
+  {
+   "id": "logic_fn.settings.py:environment_report",
+   "kind": "logic_fn",
+   "name": "environment_report",
+   "source": "settings.py:179",
+   "signature": "environment_report()",
+   "summary": "設定UI/bridge用の環境サマリ。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "pass",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "属性/シンボル実在確認(pyeval)"
+  },
+  {
+   "id": "logic_fn.settings.py:excel_registered",
+   "kind": "logic_fn",
+   "name": "excel_registered",
+   "source": "settings.py:138",
+   "signature": "excel_registered()",
+   "summary": "ExcelのCOM登録(HKCR\\Excel.Application)の有無をレジストリで確認。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "pass",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "属性/シンボル実在確認(pyeval)"
+  },
+  {
+   "id": "logic_fn.settings.py:generate_template",
+   "kind": "logic_fn",
+   "name": "generate_template",
+   "source": "settings.py:380",
+   "signature": "generate_template(path, layer, kind)",
+   "summary": "レイヤのフィールドから最小限の帳票テンプレートxlsxを生成する。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "pass",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "属性/シンボル実在確認(pyeval)"
+  },
+  {
+   "id": "logic_fn.settings.py:generated_template_path",
+   "kind": "logic_fn",
+   "name": "generated_template_path",
+   "source": "settings.py:225",
+   "signature": "generated_template_path(kind, layer)",
+   "summary": "自動生成テンプレートのパス: <出力先>/templates/<レイヤ名>_<種別>.xlsx",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "pass",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "属性/シンボル実在確認(pyeval)"
+  },
+  {
+   "id": "logic_fn.settings.py:output_dir",
+   "kind": "logic_fn",
+   "name": "output_dir",
+   "source": "settings.py:90",
+   "signature": "output_dir()",
+   "summary": "帳票の既定出力先。既定は <ドキュメント>/geo_excel。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "pass",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "属性/シンボル実在確認(pyeval)"
+  },
+  {
+   "id": "logic_fn.settings.py:requirements",
+   "kind": "logic_fn",
+   "name": "requirements",
+   "source": "settings.py:191",
+   "signature": "requirements()",
+   "summary": "実行に必要なものの列挙(UIの案内文とbridgeの情報用)。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "pass",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "属性/シンボル実在確認(pyeval)"
+  },
+  {
+   "id": "logic_fn.settings.py:save_settings",
+   "kind": "logic_fn",
+   "name": "save_settings",
+   "source": "settings.py:114",
+   "signature": "save_settings(output_dir_value=…, dpi=…, template_list=…, template_single=…, auto_apply=…)",
+   "summary": "UIからまとめて保存。Noneの項目は変更しない。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "pass",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "属性/シンボル実在確認(pyeval)"
+  },
+  {
+   "id": "logic_fn.settings.py:script_variable_spec",
+   "kind": "logic_fn",
+   "name": "script_variable_spec",
+   "source": "settings.py:205",
+   "signature": "script_variable_spec()",
+   "summary": "帳票スクリプトごとの必須/任意レイヤ変数定義を返す。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "pass",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "属性/シンボル実在確認(pyeval)"
+  },
+  {
+   "id": "logic_fn.settings.py:set_setting",
+   "kind": "logic_fn",
+   "name": "set_setting",
+   "source": "settings.py:81",
+   "signature": "set_setting(key, value)",
+   "summary": "空文字/Noneはキー自体を削除(=デフォルトに戻す)。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "pass",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "属性/シンボル実在確認(pyeval)"
+  },
+  {
+   "id": "logic_fn.settings.py:setting",
+   "kind": "logic_fn",
+   "name": "setting",
+   "source": "settings.py:76",
+   "signature": "setting(key, default=…)",
+   "summary": "",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "pass",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "属性/シンボル実在確認(pyeval)"
+  },
+  {
+   "id": "logic_fn.settings.py:win32com_available",
+   "kind": "logic_fn",
+   "name": "win32com_available",
+   "source": "settings.py:130",
+   "signature": "win32com_available()",
+   "summary": "",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "pass",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "属性/シンボル実在確認(pyeval)"
+  },
+  {
+   "id": "logic_fn.settings.py:write_xlsx",
+   "kind": "logic_fn",
+   "name": "write_xlsx",
+   "source": "settings.py:316",
+   "signature": "write_xlsx(path, rows, sheet_name=…)",
+   "summary": "最小構成のxlsxを生成する(inlineStrセルのみ)。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "pass",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "属性/シンボル実在確認(pyeval)"
+  },
+  {
+   "id": "logic_fn.exportList.py:append_list_insert",
+   "kind": "template_fn",
+   "name": "append_list_insert",
+   "source": "exportList.py:250",
+   "signature": "append_list_insert(ws, cell, list_insert_list, extent)",
+   "summary": "",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportList.py:check_same_name_opend",
+   "kind": "template_fn",
+   "name": "check_same_name_opend",
+   "source": "exportList.py:538",
+   "signature": "check_same_name_opend(excel_app, book_name)",
+   "summary": "同名のブックが現在開かれていないか確認する",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportList.py:check_save_folder",
+   "kind": "template_fn",
+   "name": "check_save_folder",
+   "source": "exportList.py:481",
+   "signature": "check_save_folder(path)",
+   "summary": "保存ファイルパスのディレクトリが存在しなければ再帰的に作成する",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportList.py:contains_text_in_first_cell",
+   "kind": "template_fn",
+   "name": "contains_text_in_first_cell",
+   "source": "exportList.py:231",
+   "signature": "contains_text_in_first_cell(ws, text)",
+   "summary": "",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportList.py:create_expression",
+   "kind": "template_fn",
+   "name": "create_expression",
+   "source": "exportList.py:160",
+   "signature": "create_expression(text)",
+   "summary": "引数の文字列から新しい式を作成するオブジェクトを作成",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportList.py:evaluate_attach_text",
+   "kind": "template_fn",
+   "name": "evaluate_attach_text",
+   "source": "exportList.py:120",
+   "signature": "evaluate_attach_text(text, layer=…, feature=…)",
+   "summary": "##ListInsert:: / ##Attach:: の後に続く指定文字列を評価して結果を返却する。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportList.py:excel_value_text",
+   "kind": "template_fn",
+   "name": "excel_value_text",
+   "source": "exportList.py:102",
+   "signature": "excel_value_text(value)",
+   "summary": "評価結果をExcel出力用の値に変換する。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportList.py:find_list_insert",
+   "kind": "template_fn",
+   "name": "find_list_insert",
+   "source": "exportList.py:294",
+   "signature": "find_list_insert(ws, list_insert_list, extent)",
+   "summary": "シート内の##ListInsert::を含むセルから一覧の行として繰り返す情報をリストにする。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportList.py:get_layer_variable",
+   "kind": "template_fn",
+   "name": "get_layer_variable",
+   "source": "exportList.py:39",
+   "signature": "get_layer_variable(layer_context_name, layer)",
+   "summary": "レイヤ変数を取得",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportList.py:get_layer_variable_evaluated",
+   "kind": "template_fn",
+   "name": "get_layer_variable_evaluated",
+   "source": "exportList.py:201",
+   "signature": "get_layer_variable_evaluated(layer_context_name, layer)",
+   "summary": "指定の名前のレイヤ変数を取得し、式なら評価後の文字列を返却する。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportList.py:insert_list",
+   "kind": "template_fn",
+   "name": "insert_list",
+   "source": "exportList.py:451",
+   "signature": "insert_list(wb, layer)",
+   "summary": "ワークブックの全シートに一覧を作成する",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportList.py:insert_list_values",
+   "kind": "template_fn",
+   "name": "insert_list_values",
+   "source": "exportList.py:347",
+   "signature": "insert_list_values(ws, layer, list_insert_list, extent)",
+   "summary": "一覧の行として繰り返す情報リストを元に、レイヤの全地物の情報をシートに出力する.",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportList.py:make_expression_context",
+   "kind": "template_fn",
+   "name": "make_expression_context",
+   "source": "exportList.py:58",
+   "signature": "make_expression_context(layer=…, feature=…)",
+   "summary": "式評価用のコンテキストを作成する。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportList.py:output_list_report",
+   "kind": "template_fn",
+   "name": "output_list_report",
+   "source": "exportList.py:496",
+   "signature": "output_list_report(excel_app, layer, template_path, output_path)",
+   "summary": "一覧出力",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportSingle.py:add_temp_theme_from_current_state",
+   "kind": "template_fn",
+   "name": "add_temp_theme_from_current_state",
+   "source": "exportSingle.py:672",
+   "signature": "add_temp_theme_from_current_state()",
+   "summary": "現在の状態で仮のテーマを作成する",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportSingle.py:append_attach",
+   "kind": "template_fn",
+   "name": "append_attach",
+   "source": "exportSingle.py:283",
+   "signature": "append_attach(ws, cell, attach_list)",
+   "summary": "",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportSingle.py:append_attach_fit_image",
+   "kind": "template_fn",
+   "name": "append_attach_fit_image",
+   "source": "exportSingle.py:358",
+   "signature": "append_attach_fit_image(ws, cell, attach_list, image_dict, tmpdir, default_scale)",
+   "summary": "",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportSingle.py:change_theme",
+   "kind": "template_fn",
+   "name": "change_theme",
+   "source": "exportSingle.py:646",
+   "signature": "change_theme(theme_name)",
+   "summary": "テーマ変更",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportSingle.py:check_same_name_opend",
+   "kind": "template_fn",
+   "name": "check_same_name_opend",
+   "source": "exportSingle.py:866",
+   "signature": "check_same_name_opend(excel_app, book_name)",
+   "summary": "同名のブックが現在開かれていないか確認する",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportSingle.py:check_save_folder",
+   "kind": "template_fn",
+   "name": "check_save_folder",
+   "source": "exportSingle.py:786",
+   "signature": "check_save_folder(path)",
+   "summary": "保存ファイルパスのディレクトリが存在しなければ再帰的に作成する",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportSingle.py:contains_text_in_first_cell",
+   "kind": "template_fn",
+   "name": "contains_text_in_first_cell",
+   "source": "exportSingle.py:264",
+   "signature": "contains_text_in_first_cell(ws, text)",
+   "summary": "",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportSingle.py:create_expression",
+   "kind": "template_fn",
+   "name": "create_expression",
+   "source": "exportSingle.py:172",
+   "signature": "create_expression(text)",
+   "summary": "引数の文字列から新しい式を作成するオブジェクトを作成",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportSingle.py:create_map_image",
+   "kind": "template_fn",
+   "name": "create_map_image",
+   "source": "exportSingle.py:511",
+   "signature": "create_map_image(filepath, map_scale, pt_width, pt_height, dpi, theme_name)",
+   "summary": "地図画像を作成する",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportSingle.py:create_map_images",
+   "kind": "template_fn",
+   "name": "create_map_images",
+   "source": "exportSingle.py:461",
+   "signature": "create_map_images(image_dict, dpi)",
+   "summary": "地図画像ファイルを一時フォルダに作成する。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportSingle.py:evaluate_attach_text",
+   "kind": "template_fn",
+   "name": "evaluate_attach_text",
+   "source": "exportSingle.py:132",
+   "signature": "evaluate_attach_text(text, layer=…, feature=…)",
+   "summary": "##Attach:: / ##ListInsert:: の後に続く指定文字列を評価して結果を返却する。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportSingle.py:excel_value_text",
+   "kind": "template_fn",
+   "name": "excel_value_text",
+   "source": "exportSingle.py:114",
+   "signature": "excel_value_text(value)",
+   "summary": "評価結果をExcel出力用の値に変換する。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportSingle.py:find_attach",
+   "kind": "template_fn",
+   "name": "find_attach",
+   "source": "exportSingle.py:313",
+   "signature": "find_attach(wb, feature, attach_list)",
+   "summary": "指定ブックの全てのシート内から「##Attach::（地物属性名または式）」文字列を検索し、その情報をリストに登録。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportSingle.py:find_attach_fit_image",
+   "kind": "template_fn",
+   "name": "find_attach_fit_image",
+   "source": "exportSingle.py:409",
+   "signature": "find_attach_fit_image(wb, attach_list, tmpdir, default_scale, dpi)",
+   "summary": "指定ブックの全てのシート内から「##AttachFitImage::（テーマ名）::（縮尺）」文字列を検索し、",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportSingle.py:get_layer_variable",
+   "kind": "template_fn",
+   "name": "get_layer_variable",
+   "source": "exportSingle.py:51",
+   "signature": "get_layer_variable(layer_context_name, layer)",
+   "summary": "レイヤ変数を取得",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportSingle.py:get_layer_variable_on_feature",
+   "kind": "template_fn",
+   "name": "get_layer_variable_on_feature",
+   "source": "exportSingle.py:235",
+   "signature": "get_layer_variable_on_feature(layer_context_name, layer, feature, noerror=…)",
+   "summary": "レイヤ変数を取得し、指定地物の属性値から文字列を作成する",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportSingle.py:insert_images",
+   "kind": "template_fn",
+   "name": "insert_images",
+   "source": "exportSingle.py:754",
+   "signature": "insert_images(wb, attach_image_list)",
+   "summary": "指定ブックの全シートの該当セルにリストの内容に従い画像を挿入する",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportSingle.py:make_expression_context",
+   "kind": "template_fn",
+   "name": "make_expression_context",
+   "source": "exportSingle.py:70",
+   "signature": "make_expression_context(layer=…, feature=…)",
+   "summary": "式評価用のコンテキストを作成する。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportSingle.py:output_single_report",
+   "kind": "template_fn",
+   "name": "output_single_report",
+   "source": "exportSingle.py:801",
+   "signature": "output_single_report(excel_app, template_path, feature, output_path, dpi)",
+   "summary": "対象地物の情報で単票形式のExcelブックを作成、保存する",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportSingle.py:replace_attach",
+   "kind": "template_fn",
+   "name": "replace_attach",
+   "source": "exportSingle.py:714",
+   "signature": "replace_attach(wb, attach_list)",
+   "summary": "指定ブックの全シートの該当セルの値をリストの内容で置換する",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportSingle.py:restore_from_temp_theme",
+   "kind": "template_fn",
+   "name": "restore_from_temp_theme",
+   "source": "exportSingle.py:697",
+   "signature": "restore_from_temp_theme(temp_theme_name, map_scale)",
+   "summary": "指定の仮のテーマを適用後、削除する",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportSingle.py:variable_based_on_feature",
+   "kind": "template_fn",
+   "name": "variable_based_on_feature",
+   "source": "exportSingle.py:213",
+   "signature": "variable_based_on_feature(text, feature, layer=…)",
+   "summary": "地物の属性値を使用して文字列を作成",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証)"
+  },
+  {
+   "id": "logic_fn.exportSingleBulk.py:add_temp_theme_from_current_state",
+   "kind": "template_fn",
+   "name": "add_temp_theme_from_current_state",
+   "source": "exportSingleBulk.py:660",
+   "signature": "add_temp_theme_from_current_state()",
+   "summary": "現在の状態で仮のテーマを作成する",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証) / bulk経路 SaveAs 不具合 Issue #8"
+  },
+  {
+   "id": "logic_fn.exportSingleBulk.py:append_attach",
+   "kind": "template_fn",
+   "name": "append_attach",
+   "source": "exportSingleBulk.py:271",
+   "signature": "append_attach(ws, cell, attach_list)",
+   "summary": "",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証) / bulk経路 SaveAs 不具合 Issue #8"
+  },
+  {
+   "id": "logic_fn.exportSingleBulk.py:append_attach_fit_image",
+   "kind": "template_fn",
+   "name": "append_attach_fit_image",
+   "source": "exportSingleBulk.py:347",
+   "signature": "append_attach_fit_image(ws, cell, attach_list, image_dict, tmpdir, default_scale)",
+   "summary": "",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証) / bulk経路 SaveAs 不具合 Issue #8"
+  },
+  {
+   "id": "logic_fn.exportSingleBulk.py:change_theme",
+   "kind": "template_fn",
+   "name": "change_theme",
+   "source": "exportSingleBulk.py:634",
+   "signature": "change_theme(theme_name)",
+   "summary": "テーマ変更",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証) / bulk経路 SaveAs 不具合 Issue #8"
+  },
+  {
+   "id": "logic_fn.exportSingleBulk.py:check_save_folder",
+   "kind": "template_fn",
+   "name": "check_save_folder",
+   "source": "exportSingleBulk.py:774",
+   "signature": "check_save_folder(path)",
+   "summary": "保存ファイルパスのディレクトリが存在しなければ再帰的に作成する",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証) / bulk経路 SaveAs 不具合 Issue #8"
+  },
+  {
+   "id": "logic_fn.exportSingleBulk.py:contains_text_in_first_cell",
+   "kind": "template_fn",
+   "name": "contains_text_in_first_cell",
+   "source": "exportSingleBulk.py:252",
+   "signature": "contains_text_in_first_cell(ws, text)",
+   "summary": "",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証) / bulk経路 SaveAs 不具合 Issue #8"
+  },
+  {
+   "id": "logic_fn.exportSingleBulk.py:create_expression",
+   "kind": "template_fn",
+   "name": "create_expression",
+   "source": "exportSingleBulk.py:171",
+   "signature": "create_expression(text)",
+   "summary": "引数の文字列から新しい式を作成するオブジェクトを作成",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証) / bulk経路 SaveAs 不具合 Issue #8"
+  },
+  {
+   "id": "logic_fn.exportSingleBulk.py:create_map_image",
+   "kind": "template_fn",
+   "name": "create_map_image",
+   "source": "exportSingleBulk.py:499",
+   "signature": "create_map_image(filepath, map_scale, pt_width, pt_height, dpi, theme_name)",
+   "summary": "地図画像を作成する",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証) / bulk経路 SaveAs 不具合 Issue #8"
+  },
+  {
+   "id": "logic_fn.exportSingleBulk.py:create_map_images",
+   "kind": "template_fn",
+   "name": "create_map_images",
+   "source": "exportSingleBulk.py:450",
+   "signature": "create_map_images(image_dict, dpi)",
+   "summary": "地図画像ファイルを一時フォルダに作成する。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証) / bulk経路 SaveAs 不具合 Issue #8"
+  },
+  {
+   "id": "logic_fn.exportSingleBulk.py:evaluate_attach_text",
+   "kind": "template_fn",
+   "name": "evaluate_attach_text",
+   "source": "exportSingleBulk.py:131",
+   "signature": "evaluate_attach_text(text, layer=…, feature=…)",
+   "summary": "##Attach:: の後に続く指定文字列を評価して結果を返却する。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証) / bulk経路 SaveAs 不具合 Issue #8"
+  },
+  {
+   "id": "logic_fn.exportSingleBulk.py:excel_value_text",
+   "kind": "template_fn",
+   "name": "excel_value_text",
+   "source": "exportSingleBulk.py:113",
+   "signature": "excel_value_text(value)",
+   "summary": "評価結果をExcel出力用の値に変換する。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証) / bulk経路 SaveAs 不具合 Issue #8"
+  },
+  {
+   "id": "logic_fn.exportSingleBulk.py:find_attach",
+   "kind": "template_fn",
+   "name": "find_attach",
+   "source": "exportSingleBulk.py:302",
+   "signature": "find_attach(wb, feature, attach_list)",
+   "summary": "指定ブックの全てのシート内から「##Attach::（地物属性名または式）」文字列を検索し、その情報をリストに登録。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証) / bulk経路 SaveAs 不具合 Issue #8"
+  },
+  {
+   "id": "logic_fn.exportSingleBulk.py:find_attach_fit_image",
+   "kind": "template_fn",
+   "name": "find_attach_fit_image",
+   "source": "exportSingleBulk.py:398",
+   "signature": "find_attach_fit_image(wb, attach_list, tmpdir, default_scale, dpi)",
+   "summary": "指定ブックの全てのシート内から「##AttachFitImage::（テーマ名）::（縮尺）」文字列を検索し、",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証) / bulk経路 SaveAs 不具合 Issue #8"
+  },
+  {
+   "id": "logic_fn.exportSingleBulk.py:get_exp_variable_for_feature",
+   "kind": "template_fn",
+   "name": "get_exp_variable_for_feature",
+   "source": "exportSingleBulk.py:234",
+   "signature": "get_exp_variable_for_feature(exp, feature, layer=…)",
+   "summary": "指定の式に地物を設定し、評価した結果を返却する",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証) / bulk経路 SaveAs 不具合 Issue #8"
+  },
+  {
+   "id": "logic_fn.exportSingleBulk.py:get_exp_variable_for_layer",
+   "kind": "template_fn",
+   "name": "get_exp_variable_for_layer",
+   "source": "exportSingleBulk.py:895",
+   "signature": "get_exp_variable_for_layer(raw)",
+   "summary": "テンプレートファイルパス、出力ファイルパスの辞書から、式として成り立つものを抽出して辞書にして返却する",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証) / bulk経路 SaveAs 不具合 Issue #8"
+  },
+  {
+   "id": "logic_fn.exportSingleBulk.py:get_layer_variable",
+   "kind": "template_fn",
+   "name": "get_layer_variable",
+   "source": "exportSingleBulk.py:50",
+   "signature": "get_layer_variable(layer_context_name, layer)",
+   "summary": "レイヤ変数を取得",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証) / bulk経路 SaveAs 不具合 Issue #8"
+  },
+  {
+   "id": "logic_fn.exportSingleBulk.py:get_raw_variable_for_layer",
+   "kind": "template_fn",
+   "name": "get_raw_variable_for_layer",
+   "source": "exportSingleBulk.py:863",
+   "signature": "get_raw_variable_for_layer(layer)",
+   "summary": "レイヤ変数からテンプレートファイルパス、出力ファイルパスを取得し、設定値を辞書にして返却する",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証) / bulk経路 SaveAs 不具合 Issue #8"
+  },
+  {
+   "id": "logic_fn.exportSingleBulk.py:get_variable_for_feature",
+   "kind": "template_fn",
+   "name": "get_variable_for_feature",
+   "source": "exportSingleBulk.py:920",
+   "signature": "get_variable_for_feature(feature, raw, exp, variable_name)",
+   "summary": "レイヤ変数からテンプレートファイルパス、出力ファイルパスを抽出し、文字列あるいは式を評価した結果を返却する",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証) / bulk経路 SaveAs 不具合 Issue #8"
+  },
+  {
+   "id": "logic_fn.exportSingleBulk.py:insert_images",
+   "kind": "template_fn",
+   "name": "insert_images",
+   "source": "exportSingleBulk.py:742",
+   "signature": "insert_images(wb, attach_image_list)",
+   "summary": "指定ブックの全シートの該当セルにリストの内容に従い画像を挿入する",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証) / bulk経路 SaveAs 不具合 Issue #8"
+  },
+  {
+   "id": "logic_fn.exportSingleBulk.py:make_expression_context",
+   "kind": "template_fn",
+   "name": "make_expression_context",
+   "source": "exportSingleBulk.py:69",
+   "signature": "make_expression_context(layer=…, feature=…)",
+   "summary": "式評価用のコンテキストを作成する。",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証) / bulk経路 SaveAs 不具合 Issue #8"
+  },
+  {
+   "id": "logic_fn.exportSingleBulk.py:output_single_report",
+   "kind": "template_fn",
+   "name": "output_single_report",
+   "source": "exportSingleBulk.py:789",
+   "signature": "output_single_report(excel_app, template_path, feature, output_path, dpi, progress)",
+   "summary": "対象地物の情報で単票形式のExcelブックを作成、保存する",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証) / bulk経路 SaveAs 不具合 Issue #8"
+  },
+  {
+   "id": "logic_fn.exportSingleBulk.py:replace_attach",
+   "kind": "template_fn",
+   "name": "replace_attach",
+   "source": "exportSingleBulk.py:702",
+   "signature": "replace_attach(wb, attach_list)",
+   "summary": "指定ブックの全シートの該当セルの値をリストの内容で置換する",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証) / bulk経路 SaveAs 不具合 Issue #8"
+  },
+  {
+   "id": "logic_fn.exportSingleBulk.py:restore_from_temp_theme",
+   "kind": "template_fn",
+   "name": "restore_from_temp_theme",
+   "source": "exportSingleBulk.py:685",
+   "signature": "restore_from_temp_theme(temp_theme_name, map_scale)",
+   "summary": "指定の仮のテーマを適用後、削除する",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証) / bulk経路 SaveAs 不具合 Issue #8"
+  },
+  {
+   "id": "logic_fn.exportSingleBulk.py:variable_based_on_feature",
+   "kind": "template_fn",
+   "name": "variable_based_on_feature",
+   "source": "exportSingleBulk.py:212",
+   "signature": "variable_based_on_feature(text, feature, layer=…)",
+   "summary": "地物の属性値を使用して文字列を作成",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で属性実在+必要なら呼出"
+   },
+   "last_result": "skip",
+   "last_verified": "2026-11-15T22:33:28+09:00",
+   "note": "exec用テンプレ(bridge run経由で検証) / bulk経路 SaveAs 不具合 Issue #8"
+  }
+ ],
+ "static": {
+  "compileall": {
+   "rc": 0,
+   "out": ""
+  },
+  "flake8": {
+   "rc": 0,
+   "out": ""
+  },
+  "bandit": {
+   "rc": 0,
+   "out": "[main]\tINFO\tUsing ini file for skipped tests\n[main]\tINFO\tUsing command line arg for selected targets\n[tester]\tWARNING\tnosec encountered (B112), but no failed test on file C:\\devin\\qgis_live_harness\\qgis-plugin\\geo_excel\\settings.py:151"
+  },
+  "ran_at": "2026-11-15T22:33:28+09:00",
+  "reload": {
+   "loaded": true,
+   "opened": false,
+   "plugins": [
+    "ImportPhotos",
+    "MetaSearch",
+    "Qgis2threejs",
+    "QuickDEM4JP",
+    "StreetView",
+    "db_manager",
+    "geo_driver",
+    "geo_excel",
+    "geo_import",
+    "geo_launcher",
+    "geo_legend",
+    "geo_report",
+    "geo_search",
+    "geo_userfunc",
+    "geo_webview",
+    "menu_from_project",
+    "mmqgis",
+    "mojxml_plugin",
+    "plateau_plugin",
+    "processing",
+    "qfieldsync",
+    "searchlayers"
+   ]
+  }
+ }
+}
