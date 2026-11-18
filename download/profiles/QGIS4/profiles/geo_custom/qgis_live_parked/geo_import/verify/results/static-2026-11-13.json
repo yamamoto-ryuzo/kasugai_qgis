@@ -1,0 +1,43 @@
+{
+  "compileall": {
+    "rc": 0,
+    "out": ""
+  },
+  "flake8": {
+    "rc": 1,
+    "out": "C:\\devin\\qgis_live_harness\\qgis-plugin\\geo_import\\defusedxml\\ElementTree.py:28:1: E402 module level import not at top of file\nC:\\devin\\qgis_live_harness\\qgis-plugin\\geo_import\\defusedxml\\ElementTree.py:35:1: E402 module level import not at top of file"
+  },
+  "bandit": {
+    "rc": 0,
+    "out": "[main]\tINFO\tUsing ini file for skipped tests\n[main]\tINFO\tUsing command line arg for selected targets"
+  },
+  "ran_at": "2026-11-13T23:54:42+09:00",
+  "reload": {
+    "loaded": true,
+    "opened": false,
+    "plugins": [
+      "MetaSearch",
+      "Qgis2threejs",
+      "QuickDEM4JP",
+      "StreetView",
+      "db_manager",
+      "geo_driver",
+      "geo_excel",
+      "geo_import",
+      "geo_launcher",
+      "geo_legend",
+      "geo_report",
+      "geo_search",
+      "geo_userfunc",
+      "geo_webview",
+      "menu_from_project",
+      "mmqgis",
+      "mojxml_plugin",
+      "plateau_plugin",
+      "processing",
+      "qfieldsync",
+      "qgis2web",
+      "searchlayers"
+    ]
+  }
+}

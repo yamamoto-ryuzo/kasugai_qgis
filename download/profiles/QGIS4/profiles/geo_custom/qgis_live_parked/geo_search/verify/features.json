@@ -1,0 +1,1513 @@
+{
+  "component": "geo_search",
+  "component_type": "qgis_plugin",
+  "version": "4.5.0",
+  "driver": {
+    "type": "qgis_live_harness",
+    "detect": "GET http://127.0.0.1:<http_port>/api/health",
+    "launch": "npm run live:ensure",
+    "ready": "/api/health が ok:true を返す",
+    "control": "POST /api/cmd Bearer <live_dir token>",
+    "detected_from": "scripts/qgis-session.mjs, live_driver.py"
+  },
+  "updated": "2026-11-14T07:09:57+09:00",
+  "features": [
+    {
+      "id": "entry_point.__init__.py:classFactory",
+      "kind": "entry_point",
+      "name": "classFactory",
+      "source": "__init__.py:8",
+      "signature": "classFactory(iface)",
+      "summary": "",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "standalone経路のみ(要runtime依存無し)"
+    },
+    {
+      "id": "action.SearchFeature.unload",
+      "kind": "action",
+      "name": "unload",
+      "source": "searchfeature.py:288",
+      "signature": "unload()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call/generic trigger→実在確認"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "action.SearchOwnerFeature.unload",
+      "kind": "action",
+      "name": "unload",
+      "source": "searchfeature.py:2003",
+      "signature": "unload()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call/generic trigger→実在確認"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "action.SearchTextFeature.unload",
+      "kind": "action",
+      "name": "unload",
+      "source": "searchfeature.py:1386",
+      "signature": "unload()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call/generic trigger→実在確認"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "action.SearchTibanFeature.unload",
+      "kind": "action",
+      "name": "unload",
+      "source": "searchfeature.py:1843",
+      "signature": "unload()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call/generic trigger→実在確認"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "action.plugin.initGui",
+      "kind": "action",
+      "name": "initGui",
+      "source": "plugin.py:82",
+      "signature": "initGui()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call/generic trigger→実在確認"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "action.plugin.run",
+      "kind": "action",
+      "name": "run",
+      "source": "plugin.py:1444",
+      "signature": "run(state=…, layer=…, view_fields=…)",
+      "summary": "検索ダイアログを表示する",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call/generic trigger→実在確認"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "action.plugin.unload",
+      "kind": "action",
+      "name": "unload",
+      "source": "plugin.py:838",
+      "signature": "unload()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call/generic trigger→実在確認"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "dialog.ResultDialog",
+      "kind": "dialog",
+      "name": "ResultDialog",
+      "source": "resultdialog.py:15",
+      "signature": "ResultDialog",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "openDialog→screenshot→closeDialog"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "dialog.SearchDialog",
+      "kind": "dialog",
+      "name": "SearchDialog",
+      "source": "searchdialog.py:29",
+      "signature": "SearchDialog",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "openDialog→screenshot→closeDialog"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "dialog.SearchWidget",
+      "kind": "dialog",
+      "name": "SearchWidget",
+      "source": "widget/searchwidget.py:21",
+      "signature": "SearchWidget",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "openDialog→screenshot→closeDialog"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "dialog.SettingsDialog",
+      "kind": "dialog",
+      "name": "SettingsDialog",
+      "source": "settingsdialog.py:12",
+      "signature": "SettingsDialog",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "openDialog→screenshot→closeDialog"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.ResultDialog._on_tab_changed",
+      "kind": "ui_control",
+      "name": "_on_tab_changed",
+      "source": "resultdialog.py:965",
+      "signature": "_on_tab_changed(index)",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.plugin._on_additive_toggled",
+      "kind": "ui_control",
+      "name": "_on_additive_toggled",
+      "source": "plugin.py:353",
+      "signature": "_on_additive_toggled(checked)",
+      "summary": "Handler for additive_theme_action.toggled",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.plugin._on_map_themes_changed",
+      "kind": "ui_control",
+      "name": "_on_map_themes_changed",
+      "source": "plugin.py:806",
+      "signature": "_on_map_themes_changed(*args, **kwargs)",
+      "summary": "Wrapper for mapThemesChanged signal: log and delegate.",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.plugin._on_theme_collection_changed",
+      "kind": "ui_control",
+      "name": "_on_theme_collection_changed",
+      "source": "plugin.py:822",
+      "signature": "_on_theme_collection_changed(*args, **kwargs)",
+      "summary": "Wrapper for legacy theme collection 'changed' signal.",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.plugin.on_group_changed",
+      "kind": "ui_control",
+      "name": "on_group_changed",
+      "source": "plugin.py:423",
+      "signature": "on_group_changed(index)",
+      "summary": "Called when user selects a group; filter themes accordingly.",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.plugin.on_project_saved",
+      "kind": "ui_control",
+      "name": "on_project_saved",
+      "source": "plugin.py:1624",
+      "signature": "on_project_saved()",
+      "summary": "プロジェクトが保存された時の処理",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "bridge.addTab",
+      "kind": "bridge_method",
+      "name": "addTab",
+      "source": "bridge.py:1517",
+      "signature": "addTab(config, target=…, rebuild=…)",
+      "summary": "任意のタブ定義dictを検索タブとして追加する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call addTab → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "要実引数(応答あり): {'ok': False, 'error': 'config must be an object with Title'}"
+    },
+    {
+      "id": "bridge.addTabFromCurrentLayer",
+      "kind": "bridge_method",
+      "name": "addTabFromCurrentLayer",
+      "source": "bridge.py:1250",
+      "signature": "addTabFromCurrentLayer(title=…, rebuild=…)",
+      "summary": "現在のアクティブレイヤを検索タブとして追加する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call addTabFromCurrentLayer → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.applyTheme",
+      "kind": "bridge_method",
+      "name": "applyTheme",
+      "source": "bridge.py:1041",
+      "signature": "applyTheme(name, additive=…)",
+      "summary": "マップテーマを適用する。additive指定時は追加表示モードも変更。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call applyTheme → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.closeDialog",
+      "kind": "bridge_method",
+      "name": "closeDialog",
+      "source": "bridge.py:1644",
+      "signature": "closeDialog()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call closeDialog → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.getSettings",
+      "kind": "bridge_method",
+      "name": "getSettings",
+      "source": "bridge.py:1143",
+      "signature": "getSettings()",
+      "summary": "検索設定の由来(ファイル/プロジェクト変数/env)と値を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call getSettings → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.listTabs",
+      "kind": "bridge_method",
+      "name": "listTabs",
+      "source": "bridge.py:635",
+      "signature": "listTabs()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call listTabs → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.listThemes",
+      "kind": "bridge_method",
+      "name": "listThemes",
+      "source": "bridge.py:1009",
+      "signature": "listThemes()",
+      "summary": "マップテーマ一覧・グループ・現在選択・追加表示モードを返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call listThemes → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.loadUserTheme",
+      "kind": "bridge_method",
+      "name": "loadUserTheme",
+      "source": "bridge.py:1130",
+      "signature": "loadUserTheme(path)",
+      "summary": "ユーザーテーマJSONを読み込んで現在のプロジェクトに適用する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call loadUserTheme → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "要実引数(応答あり): {'ok': False, 'error': 'failed to read user theme: '}"
+    },
+    {
+      "id": "bridge.openDialog",
+      "kind": "bridge_method",
+      "name": "openDialog",
+      "source": "bridge.py:1636",
+      "signature": "openDialog()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call openDialog → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.openSettings",
+      "kind": "bridge_method",
+      "name": "openSettings",
+      "source": "bridge.py:1393",
+      "signature": "openSettings()",
+      "summary": "設定ダイアログを非modalで開く。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call openSettings → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.pluginInfo",
+      "kind": "bridge_method",
+      "name": "pluginInfo",
+      "source": "bridge.py:578",
+      "signature": "pluginInfo()",
+      "summary": "プラグインの自己記述(id/summary/when_to_use/methods)を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call pluginInfo → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.reloadDialog",
+      "kind": "bridge_method",
+      "name": "reloadDialog",
+      "source": "bridge.py:1211",
+      "signature": "reloadDialog(show=…)",
+      "summary": "検索ダイアログを再構築する(設定・タブ変更の反映用)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call reloadDialog → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.removeTab",
+      "kind": "bridge_method",
+      "name": "removeTab",
+      "source": "bridge.py:1303",
+      "signature": "removeTab(tab=…, rebuild=…)",
+      "summary": "検索タブを設定ソースから削除し、ダイアログを再構築する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call removeTab → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.resultDisplayMode",
+      "kind": "bridge_method",
+      "name": "resultDisplayMode",
+      "source": "bridge.py:1622",
+      "signature": "resultDisplayMode(mode=…)",
+      "summary": "結果ダイアログの表示モードを取得/設定する('table'/'form')。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call resultDisplayMode → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.resultPage",
+      "kind": "bridge_method",
+      "name": "resultPage",
+      "source": "bridge.py:1603",
+      "signature": "resultPage(page=…)",
+      "summary": "結果ダイアログの表示ページを取得/設定する(1始まり)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call resultPage → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.results",
+      "kind": "bridge_method",
+      "name": "results",
+      "source": "bridge.py:719",
+      "signature": "results(max_features=…)",
+      "summary": "直近の検索結果を返す(再検索はしない)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call results → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.saveUserTheme",
+      "kind": "bridge_method",
+      "name": "saveUserTheme",
+      "source": "bridge.py:1104",
+      "signature": "saveUserTheme(path=…)",
+      "summary": "現在の表示状態をユーザーテーマJSON(.usertheme.json)に保存する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call saveUserTheme → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.search",
+      "kind": "bridge_method",
+      "name": "search",
+      "source": "bridge.py:670",
+      "signature": "search(query=…, tab=…, show=…, zoom=…, max_features=…, options=…)",
+      "summary": "検索を実行する(検索ボタン押下と同じ show_features 経路)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call search → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.searchOptions",
+      "kind": "bridge_method",
+      "name": "searchOptions",
+      "source": "bridge.py:842",
+      "signature": "searchOptions(options=…)",
+      "summary": "検索オプションを取得/設定する(設定時は全タブへ適用)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call searchOptions → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.selectTab",
+      "kind": "bridge_method",
+      "name": "selectTab",
+      "source": "bridge.py:654",
+      "signature": "selectTab(tab=…)",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call selectTab → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.setSettings",
+      "kind": "bridge_method",
+      "name": "setSettings",
+      "source": "bridge.py:1176",
+      "signature": "setSettings(settings=…, rebuild=…)",
+      "summary": "geo_search_json(検索設定JSONのパス)を設定する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call setSettings → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.setTabSetting",
+      "kind": "bridge_method",
+      "name": "setTabSetting",
+      "source": "bridge.py:1450",
+      "signature": "setTabSetting(tab=…, config=…, rebuild=…)",
+      "summary": "既存タブの設定JSONを更新して由来ソースへ書き戻す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call setTabSetting → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.status",
+      "kind": "bridge_method",
+      "name": "status",
+      "source": "bridge.py:601",
+      "signature": "status()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call status → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.suggest",
+      "kind": "bridge_method",
+      "name": "suggest",
+      "source": "bridge.py:973",
+      "signature": "suggest(tab=…, field=…, limit=…)",
+      "summary": "検索フィールドのユニーク値一覧(サジェスト相当)を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call suggest → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.tabOptions",
+      "kind": "bridge_method",
+      "name": "tabOptions",
+      "source": "bridge.py:882",
+      "signature": "tabOptions(tab=…, options=…)",
+      "summary": "タブ固有の検索コントロールを取得/設定する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call tabOptions → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.tabSetting",
+      "kind": "bridge_method",
+      "name": "tabSetting",
+      "source": "bridge.py:1237",
+      "signature": "tabSetting(tab=…)",
+      "summary": "検索タブの設定JSON(由来_source/_source_index含む)を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call tabSetting → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.themeAdditive",
+      "kind": "bridge_method",
+      "name": "themeAdditive",
+      "source": "bridge.py:1082",
+      "signature": "themeAdditive(enabled=…)",
+      "summary": "テーマ適用の追加表示モードを取得/設定する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call themeAdditive → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.zoom",
+      "kind": "bridge_method",
+      "name": "zoom",
+      "source": "bridge.py:732",
+      "signature": "zoom(feature_ids=…, tab_index=…)",
+      "summary": "結果地物へズームする。feature_ids省略時はそのタブの全件。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call zoom → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "ai.bridge_route",
+      "kind": "ai_integration",
+      "name": "bridge_call経由全到達",
+      "source": "bridge.py",
+      "signature": "",
+      "summary": "全bridge_methodがAI経路で呼べる",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call 全method→ok/error記録"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "20メソッド到達可能"
+    },
+    {
+      "id": "ai.catalog",
+      "kind": "ai_integration",
+      "name": "describe_plugins登録",
+      "source": "geo_driver経由",
+      "signature": "",
+      "summary": "カタログに載り呼出可能か",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "describe_plugins→plugins[]にid実在+methods非空"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "describe_plugins: methods=27"
+    },
+    {
+      "id": "ai.pluginInfo",
+      "kind": "ai_integration",
+      "name": "pluginInfo自己記述",
+      "source": "bridge.py",
+      "signature": "pluginInfo()",
+      "summary": "summary/when_to_use/methodsの正確性",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call pluginInfo→メタ一致assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "自己記述あり"
+    },
+    {
+      "id": "ai.prompt.search-features",
+      "kind": "ai_integration",
+      "name": "同梱おすすめプロンプト search-features",
+      "source": "prompts/search-features.md",
+      "signature": "",
+      "summary": "地物検索の定型指示(パネルのおすすめコンボで選択→入力欄へ挿入)",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "instruction op=list kind=prompts → id=search-features & builtin、path=geo_search/prompts/"
+      },
+      "last_result": "removed",
+      "last_verified": "2026-11-14T06:46:49+09:00",
+      "note": "実QGIS(pid28736)で確認済"
+    },
+    {
+      "id": "logic_fn.log.py:log_message",
+      "kind": "logic_fn",
+      "name": "log_message",
+      "source": "log.py:11",
+      "signature": "log_message(message, tag=…, level=…)",
+      "summary": "QgsMessageLog.logMessage 相当。整数レベル可・失敗しても例外を投げない。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.theme.py:apply_legend_visibility",
+      "kind": "logic_fn",
+      "name": "apply_legend_visibility",
+      "source": "theme.py:1703",
+      "signature": "apply_legend_visibility(layer, legend_state, log_func=…, overwrite_all=…)",
+      "summary": "Apply visible-only legend flags from `legend_state` to `layer`.",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.theme.py:apply_theme",
+      "kind": "logic_fn",
+      "name": "apply_theme",
+      "source": "theme.py:387",
+      "signature": "apply_theme(theme_collection, theme_name, root, model, additive=…)",
+      "summary": "Apply a map theme via the provided theme_collection.",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.theme.py:apply_user_theme",
+      "kind": "logic_fn",
+      "name": "apply_user_theme",
+      "source": "theme.py:2095",
+      "signature": "apply_user_theme(data, overwrite_legend=…, project=…, log_func=…)",
+      "summary": "Apply a loaded user-theme dict to the current project.",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.theme.py:collect_visible_layer_reload",
+      "kind": "logic_fn",
+      "name": "collect_visible_layer_reload",
+      "source": "theme.py:1742",
+      "signature": "collect_visible_layer_reload(snapshot_name, project=…, root=…, tag=…, log_func=…)",
+      "summary": "Restore visible-layer state from an in-memory snapshot by making those",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.theme.py:collect_visible_layer_snapshot",
+      "kind": "logic_fn",
+      "name": "collect_visible_layer_snapshot",
+      "source": "theme.py:114",
+      "signature": "collect_visible_layer_snapshot(root, log_layer_legend_state_func=…, tag=…, snapshot_name=…)",
+      "summary": "Collect visible layers and optionally save a snapshot.",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.theme.py:get_layer_legend_state",
+      "kind": "logic_fn",
+      "name": "get_layer_legend_state",
+      "source": "theme.py:1469",
+      "signature": "get_layer_legend_state(layer)",
+      "summary": "レイヤの凡例（レジェンド）チェック状態を取得して構造化して返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.theme.py:get_visible_layer_snapshot",
+      "kind": "logic_fn",
+      "name": "get_visible_layer_snapshot",
+      "source": "theme.py:1684",
+      "signature": "get_visible_layer_snapshot(name)",
+      "summary": "Return a previously saved visible-layer snapshot by name.",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.theme.py:group_themes",
+      "kind": "logic_fn",
+      "name": "group_themes",
+      "source": "theme.py:689",
+      "signature": "group_themes(theme_names)",
+      "summary": "テーマ名リストをグループ化して辞書で返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.theme.py:list_visible_layer_snapshots",
+      "kind": "logic_fn",
+      "name": "list_visible_layer_snapshots",
+      "source": "theme.py:1695",
+      "signature": "list_visible_layer_snapshots()",
+      "summary": "Return the list of snapshot names currently stored in memory.",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.theme.py:load_user_theme",
+      "kind": "logic_fn",
+      "name": "load_user_theme",
+      "source": "theme.py:2078",
+      "signature": "load_user_theme(path)",
+      "summary": "Load a user-theme JSON file and return the parsed dict or None on error.",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.theme.py:log_layer_legend_state",
+      "kind": "logic_fn",
+      "name": "log_layer_legend_state",
+      "source": "theme.py:1588",
+      "signature": "log_layer_legend_state(layer, tag=…)",
+      "summary": "`get_layer_legend_state` の結果をログ出力する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.theme.py:log_layer_legend_state_by_name",
+      "kind": "logic_fn",
+      "name": "log_layer_legend_state_by_name",
+      "source": "theme.py:1642",
+      "signature": "log_layer_legend_state_by_name(layer_name, project=…, tag=…)",
+      "summary": "レイヤ名からレイヤを検索して凡例状態をログ出力するユーティリティ。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.theme.py:parse_theme_group",
+      "kind": "logic_fn",
+      "name": "parse_theme_group",
+      "source": "theme.py:670",
+      "signature": "parse_theme_group(theme_name)",
+      "summary": "テーマ名からグループ名を抽出する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.theme.py:remove_temp_theme",
+      "kind": "logic_fn",
+      "name": "remove_temp_theme",
+      "source": "theme.py:324",
+      "signature": "remove_temp_theme(theme_collection, tmp_name, log_func=…)",
+      "summary": "Remove a temporary theme by name from the collection without applying it.",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.theme.py:restore_temp_theme",
+      "kind": "logic_fn",
+      "name": "restore_temp_theme",
+      "source": "theme.py:255",
+      "signature": "restore_temp_theme(theme_collection, tmp_name, root=…, model=…, log_func=…, short_func=…)",
+      "summary": "Apply (restore) a temporary theme by name without removing it.",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.theme.py:save_current_state_as_temp_theme",
+      "kind": "logic_fn",
+      "name": "save_current_state_as_temp_theme",
+      "source": "theme.py:30",
+      "signature": "save_current_state_as_temp_theme(theme_collection, tmp_name, root=…, model=…, log_func=…, summarize_func=…)",
+      "summary": "Create a theme object from the current project state and save it",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.theme.py:save_user_theme",
+      "kind": "logic_fn",
+      "name": "save_user_theme",
+      "source": "theme.py:2003",
+      "signature": "save_user_theme(path, snapshot=…, project=…, root=…)",
+      "summary": "Save a minimal \"user theme\" as JSON containing layer order/id/name,",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.utils.py:get_feature_by_id",
+      "kind": "logic_fn",
+      "name": "get_feature_by_id",
+      "source": "utils.py:44",
+      "signature": "get_feature_by_id(layer, feature_id)",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.utils.py:name2layer",
+      "kind": "logic_fn",
+      "name": "name2layer",
+      "source": "utils.py:15",
+      "signature": "name2layer(name)",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.utils.py:name2layers",
+      "kind": "logic_fn",
+      "name": "name2layers",
+      "source": "utils.py:22",
+      "signature": "name2layers(name)",
+      "summary": "指定した名前の全てのレイヤを取得する",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.utils.py:remove_entry_from_json_file",
+      "kind": "logic_fn",
+      "name": "remove_entry_from_json_file",
+      "source": "utils.py:103",
+      "signature": "remove_entry_from_json_file(path, title=…, src_idx=…, container_key=…, parent=…, logger=…)",
+      "summary": "Remove an entry from a JSON file safely.",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.utils.py:set_project_variable",
+      "kind": "logic_fn",
+      "name": "set_project_variable",
+      "source": "utils.py:54",
+      "signature": "set_project_variable(project, key, value, group=…)",
+      "summary": "Robustly set a project-scoped variable across QGIS versions.",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.utils.py:unique_values",
+      "kind": "logic_fn",
+      "name": "unique_values",
+      "source": "utils.py:29",
+      "signature": "unique_values(layer, field_name)",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "action.SearchAddressFeature.unload",
+      "kind": "action",
+      "name": "unload",
+      "source": "searchfeature.py:2116",
+      "signature": "unload()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call/generic trigger→実在確認"
+      },
+      "last_result": "",
+      "last_verified": "",
+      "note": "住所検索タブ(未検証)"
+    },
+    {
+      "id": "bridge.searchAddress",
+      "kind": "bridge_method",
+      "name": "searchAddress",
+      "source": "bridge.py:791",
+      "signature": "searchAddress(query=…, provider=…, zoom=…, createLayer=…)",
+      "summary": "住所・地名をジオコーディングして候補を返し地図へ表示する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call searchAddress → 応答assert"
+      },
+      "last_result": "",
+      "last_verified": "",
+      "note": "新規(未検証)"
+    }
+  ],
+  "static": {
+    "compileall": {
+      "rc": 0,
+      "out": ""
+    },
+    "flake8": {
+      "rc": 0,
+      "out": ""
+    },
+    "bandit": {
+      "rc": 0,
+      "out": "[main]\tINFO\tUsing ini file for skipped tests\n[main]\tINFO\tUsing command line arg for selected targets\n[tester]\tWARNING\tnosec encountered (B608), but no failed test on file C:\\devin\\qgis_live_harness\\qgis-plugin\\geo_search\\searchfeature.py:1880\n[tester]\tWARNING\tnosec encountered (B608), but no failed test on file C:\\devin\\qgis_live_harness\\qgis-plugin\\geo_search\\searchfeature.py:1880"
+    },
+    "ran_at": "2026-11-14T07:09:57+09:00",
+    "reload": {
+      "loaded": true,
+      "opened": false,
+      "plugins": [
+        "ImportPhotos",
+        "MetaSearch",
+        "QuickDEM4JP",
+        "StreetView",
+        "db_manager",
+        "geo_driver",
+        "geo_excel",
+        "geo_import",
+        "geo_launcher",
+        "geo_legend",
+        "geo_report",
+        "geo_search",
+        "geo_userfunc",
+        "geo_webview",
+        "menu_from_project",
+        "mmqgis",
+        "mojxml_plugin",
+        "plateau_plugin",
+        "processing",
+        "qfieldsync",
+        "searchlayers"
+      ]
+    }
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "name": "default",
+  "description": "Generic layout: map services / vectors by geometry / raster / tables",
+  "root": "Imported Data",
+  "rules": [
+    {
+      "match": {"format": ["wms", "wmts", "wfs", "xyz", "georss"]},
+      "group": "Services"
+    },
+    {
+      "match": {"provider": ["wms", "wcs"]},
+      "group": "Services"
+    },
+    {
+      "match": {"layer_type": "vector", "geom": "point"},
+      "group": "Vector/Points"
+    },
+    {
+      "match": {"layer_type": "vector", "geom": "line"},
+      "group": "Vector/Lines"
+    },
+    {
+      "match": {"layer_type": "vector", "geom": "polygon"},
+      "group": "Vector/Polygons"
+    },
+    {
+      "match": {"layer_type": "vector"},
+      "group": "Vector/Other"
+    },
+    {
+      "match": {"layer_type": "raster"},
+      "group": "Raster"
+    },
+    {
+      "match": {"layer_type": ["mesh", "pointcloud", "vector_tile"]},
+      "group": "Other"
+    }
+  ],
+  "fallback": "Other"
+}

@@ -1,0 +1,31 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+<title>logic_fn.ai_client.py:close_acp_sessions</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+body{font-family:system-ui,sans-serif;margin:2em;line-height:1.6;color:#222}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #ccc;padding:4px 8px;font-size:13px;text-align:left}
+th{background:#f0f0f0}
+.pass{color:#0a7d2c;font-weight:600}.fail{color:#c0392b;font-weight:600}
+.skip,.untested{color:#888}.removed{color:#999;text-decoration:line-through}
+code{background:#f5f5f5;padding:1px 4px}
+.meta{color:#666;font-size:13px}
+h1{font-size:1.4em}h2{font-size:1.1em;border-bottom:1px solid #ddd}
+</style></head><body>
+<h1>close_acp_sessions <code>logic_fn.ai_client.py:close_acp_sessions</code></h1>
+<p class='meta'>kind=logic_fn / source=<code>ai_client.py:2946</code> / signature=<code>close_acp_sessions()</code></p>
+<p>devin_acp で開いた全セッションを閉じる(パネル破棄時)。</p>
+<h2>ロジック</h2>
+<pre class='mermaid'>
+flowchart LR
+  E_logic_fn_ai_client_py_close_acp_sessions["呼出元"] --> H_logic_fn_ai_client_py_close_acp_sessions["close_acp_sessions"]
+  H_logic_fn_ai_client_py_close_acp_sessions --> R_logic_fn_ai_client_py_close_acp_sessions["QGIS/ランタイムAPI"]
+  R_logic_fn_ai_client_py_close_acp_sessions --> OUT["結果"]
+</pre>
+<h2>検証手順</h2><ul>
+<li><b>連携:</b> <code>pyeval で属性実在+必要なら呼出</code></li>
+</ul>
+<h2>検証結果</h2><p class='pass'><b>PASS</b> 2026-11-14T07:09:57+09:00</p>
+<p class='meta'>属性/シンボル実在確認(pyeval)</p>
+<p class='meta'><a href='../index.html'>← 一覧へ</a></p>
+<script>mermaid.initialize({startOnLoad:true});</script></body></html>

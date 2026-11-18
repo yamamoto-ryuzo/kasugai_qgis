@@ -1,0 +1,28 @@
+{
+  "ts": "2026-11-14T07:12:30+09:00",
+  "catalog_methods": [
+    "addLayoutLegend",
+    "applyCategories",
+    "applyGraduated",
+    "applyRules",
+    "applySingleSymbol",
+    "closeDock",
+    "deleteLegendVariable",
+    "exportLegendImage",
+    "legend",
+    "legendSpec",
+    "legendVariables",
+    "listDatasets",
+    "listStyles",
+    "opacity",
+    "openDock",
+    "refresh",
+    "registerCurrentLayer",
+    "registerLayer",
+    "selectCurrentLayer",
+    "selectDataset",
+    "setLegendVariable",
+    "setStyle",
+    "status"
+  ]
+}

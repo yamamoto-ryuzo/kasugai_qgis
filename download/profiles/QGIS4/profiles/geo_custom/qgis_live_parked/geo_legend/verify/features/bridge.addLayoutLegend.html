@@ -1,0 +1,32 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+<title>bridge.addLayoutLegend</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+body{font-family:system-ui,sans-serif;margin:2em;line-height:1.6;color:#222}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #ccc;padding:4px 8px;font-size:13px;text-align:left}
+th{background:#f0f0f0}
+.pass{color:#0a7d2c;font-weight:600}.fail{color:#c0392b;font-weight:600}
+.skip,.untested{color:#888}.removed{color:#999;text-decoration:line-through}
+code{background:#f5f5f5;padding:1px 4px}
+.meta{color:#666;font-size:13px}
+h1{font-size:1.4em}h2{font-size:1.1em;border-bottom:1px solid #ddd}
+</style></head><body>
+<h1>addLayoutLegend <code>bridge.addLayoutLegend</code></h1>
+<p class='meta'>kind=bridge_method / source=<code>bridge.py:915</code> / signature=<code>addLayoutLegend(layout=…, title=…, x=…, y=…, w=…, h=…, layers=…, linked_map=…, filter_by_map=…)</code></p>
+<p>印刷レイアウトに凡例アイテムを追加する。</p>
+<p class='meta'>依存: QGISプラグインロード, geo_driver</p>
+<h2>ロジック</h2>
+<pre class='mermaid'>
+flowchart LR
+  E_bridge_addLayoutLegend["AI/bridge_call"] --> H_bridge_addLayoutLegend["addLayoutLegend"]
+  H_bridge_addLayoutLegend --> R_bridge_addLayoutLegend["QGIS/ランタイムAPI"]
+  R_bridge_addLayoutLegend --> OUT["結果"]
+</pre>
+<h2>検証手順</h2><ul>
+<li><b>連携:</b> <code>bridge_call addLayoutLegend → レイアウトに凡例アイテム実在assert(実測pass)</code></li>
+</ul>
+<h2>検証結果</h2><p class='pass'><b>PASS</b> 2026-11-14T07:12:30+09:00</p>
+<p class='meta'>bridge_call応答あり args=[]</p>
+<p class='meta'><a href='../index.html'>← 一覧へ</a></p>
+<script>mermaid.initialize({startOnLoad:true});</script></body></html>

@@ -1,0 +1,932 @@
+{
+  "component": "geo_launcher",
+  "component_type": "qgis_plugin",
+  "version": "1.1.2",
+  "driver": {
+    "type": "qgis_live_harness",
+    "detect": "GET http://127.0.0.1:<http_port>/api/health",
+    "launch": "npm run live:ensure",
+    "ready": "/api/health が ok:true を返す",
+    "control": "POST /api/cmd Bearer <live_dir token>",
+    "detected_from": "scripts/qgis-session.mjs, live_driver.py"
+  },
+  "updated": "2026-11-14T07:09:57+09:00",
+  "features": [
+    {
+      "id": "entry_point.__init__.py:classFactory",
+      "kind": "entry_point",
+      "name": "classFactory",
+      "source": "__init__.py:5",
+      "signature": "classFactory(iface)",
+      "summary": "",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "standalone経路のみ(要runtime依存無し)"
+    },
+    {
+      "id": "action.plugin.initGui",
+      "kind": "action",
+      "name": "initGui",
+      "source": "plugin.py:51",
+      "signature": "initGui()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call/generic trigger→実在確認"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "action.plugin.open_dialog",
+      "kind": "action",
+      "name": "open_dialog",
+      "source": "plugin.py:97",
+      "signature": "open_dialog()",
+      "summary": "状態パネルを開く(既にあれば前面に出す)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call/generic trigger→実在確認"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "action.plugin.unload",
+      "kind": "action",
+      "name": "unload",
+      "source": "plugin.py:83",
+      "signature": "unload()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call/generic trigger→実在確認"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "dialog.GeoLauncherDialog",
+      "kind": "dialog",
+      "name": "GeoLauncherDialog",
+      "source": "dialog.py:18",
+      "signature": "GeoLauncherDialog",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "openDialog→screenshot→closeDialog"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "dialog.GeoLauncherSettingsDialog",
+      "kind": "dialog",
+      "name": "GeoLauncherSettingsDialog",
+      "source": "settings_dialog.py:14",
+      "signature": "GeoLauncherSettingsDialog",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "openDialog→screenshot→closeDialog"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoLauncherDialog._on_dl_progress",
+      "kind": "ui_control",
+      "name": "_on_dl_progress",
+      "source": "dialog.py:156",
+      "signature": "_on_dl_progress(_recv, _total)",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.Installer._on_finished",
+      "kind": "ui_control",
+      "name": "_on_finished",
+      "source": "launcher.py:225",
+      "signature": "_on_finished()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.Installer._on_installer_done",
+      "kind": "ui_control",
+      "name": "_on_installer_done",
+      "source": "launcher.py:287",
+      "signature": "_on_installer_done(code, _status)",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.Installer._on_progress",
+      "kind": "ui_control",
+      "name": "_on_progress",
+      "source": "launcher.py:216",
+      "signature": "_on_progress(received, total)",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.Installer._on_ready_read",
+      "kind": "ui_control",
+      "name": "_on_ready_read",
+      "source": "launcher.py:221",
+      "signature": "_on_ready_read()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "bridge.getSettings",
+      "kind": "bridge_method",
+      "name": "getSettings",
+      "source": "bridge.py:215",
+      "signature": "getSettings()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call getSettings → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.install",
+      "kind": "bridge_method",
+      "name": "install",
+      "source": "bridge.py:198",
+      "signature": "install(silent=…)",
+      "summary": "setup.exe を DL→インストーラー起動(非同期。installStatus で追跡)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call install → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.installStatus",
+      "kind": "bridge_method",
+      "name": "installStatus",
+      "source": "bridge.py:203",
+      "signature": "installStatus()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call installStatus → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.isInstalled",
+      "kind": "bridge_method",
+      "name": "isInstalled",
+      "source": "bridge.py:186",
+      "signature": "isInstalled()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call isInstalled → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.launch",
+      "kind": "bridge_method",
+      "name": "launch",
+      "source": "bridge.py:191",
+      "signature": "launch()",
+      "summary": "ランチャーを GUI モード(WebView2 窓)で起動する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call launch → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.openDialog",
+      "kind": "bridge_method",
+      "name": "openDialog",
+      "source": "bridge.py:232",
+      "signature": "openDialog()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call openDialog → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.openDocs",
+      "kind": "bridge_method",
+      "name": "openDocs",
+      "source": "bridge.py:240",
+      "signature": "openDocs()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call openDocs → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.openSettings",
+      "kind": "bridge_method",
+      "name": "openSettings",
+      "source": "bridge.py:236",
+      "signature": "openSettings()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call openSettings → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.pluginInfo",
+      "kind": "bridge_method",
+      "name": "pluginInfo",
+      "source": "bridge.py:154",
+      "signature": "pluginInfo()",
+      "summary": "プラグインの自己記述(id/summary/when_to_use/methods)を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call pluginInfo → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.setSettings",
+      "kind": "bridge_method",
+      "name": "setSettings",
+      "source": "bridge.py:218",
+      "signature": "setSettings(new_settings=…)",
+      "summary": "設定を保存する(exe_path/silent_install)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call setSettings → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.status",
+      "kind": "bridge_method",
+      "name": "status",
+      "source": "bridge.py:172",
+      "signature": "status()",
+      "summary": "インストール/起動経由/設定の総合状態を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call status → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.uninstall",
+      "kind": "bridge_method",
+      "name": "uninstall",
+      "source": "bridge.py:206",
+      "signature": "uninstall(silent=…)",
+      "summary": "アンインストーラーを起動する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call uninstall → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "integration.bridge.py:242",
+      "kind": "integration",
+      "name": "QDesktopServices.openUrl",
+      "source": "bridge.py:242",
+      "signature": "QDesktopServices.openUrl(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.dialog.py:73",
+      "kind": "integration",
+      "name": "QDesktopServices.openUrl",
+      "source": "dialog.py:73",
+      "signature": "QDesktopServices.openUrl(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.launcher.py:147",
+      "kind": "integration",
+      "name": "QgsNetworkAccessManager.instance",
+      "source": "launcher.py:147",
+      "signature": "QgsNetworkAccessManager.instance(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.launcher.py:268",
+      "kind": "integration",
+      "name": "QProcess",
+      "source": "launcher.py:268",
+      "signature": "QProcess(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.launcher.py:48",
+      "kind": "integration",
+      "name": "QProcess",
+      "source": "launcher.py:48",
+      "signature": "QProcess(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.launcher.py:80",
+      "kind": "integration",
+      "name": "QProcess.startDetached",
+      "source": "launcher.py:80",
+      "signature": "QProcess.startDetached(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.launcher.py:94",
+      "kind": "integration",
+      "name": "QProcess.startDetached",
+      "source": "launcher.py:94",
+      "signature": "QProcess.startDetached(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.launcher.py:95",
+      "kind": "integration",
+      "name": "QDesktopServices.openUrl",
+      "source": "launcher.py:95",
+      "signature": "QDesktopServices.openUrl(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "ai.bridge_route",
+      "kind": "ai_integration",
+      "name": "bridge_call経由全到達",
+      "source": "bridge.py",
+      "signature": "",
+      "summary": "全bridge_methodがAI経路で呼べる",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call 全method→ok/error記録"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "4メソッド到達可能"
+    },
+    {
+      "id": "ai.catalog",
+      "kind": "ai_integration",
+      "name": "describe_plugins登録",
+      "source": "geo_driver経由",
+      "signature": "",
+      "summary": "カタログに載り呼出可能か",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "describe_plugins→plugins[]にid実在+methods非空"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "describe_plugins: methods=11"
+    },
+    {
+      "id": "ai.pluginInfo",
+      "kind": "ai_integration",
+      "name": "pluginInfo自己記述",
+      "source": "bridge.py",
+      "signature": "pluginInfo()",
+      "summary": "summary/when_to_use/methodsの正確性",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call pluginInfo→メタ一致assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "自己記述あり"
+    },
+    {
+      "id": "logic_fn.launcher.py:exe_version",
+      "kind": "logic_fn",
+      "name": "exe_version",
+      "source": "launcher.py:39",
+      "signature": "exe_version(exe=…)",
+      "summary": "`qgis_launcher.exe --version` の出力からバージョン文字列を取り出す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.launcher.py:find_uninstaller",
+      "kind": "logic_fn",
+      "name": "find_uninstaller",
+      "source": "launcher.py:108",
+      "signature": "find_uninstaller(exe=…)",
+      "summary": "インストール先の uninstall.exe を返す。見つからなければ None。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.launcher.py:launch",
+      "kind": "logic_fn",
+      "name": "launch",
+      "source": "launcher.py:69",
+      "signature": "launch()",
+      "summary": "qgis_launcher.exe を GUI モード(WebView2 窓)で startDetached 起動する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.launcher.py:launched_via_role",
+      "kind": "logic_fn",
+      "name": "launched_via_role",
+      "source": "launcher.py:57",
+      "signature": "launched_via_role()",
+      "summary": "この QGIS が kasugai_qgis 経由で起動した場合、その role を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.launcher.py:run_installer",
+      "kind": "logic_fn",
+      "name": "run_installer",
+      "source": "launcher.py:98",
+      "signature": "run_installer(installer_path, silent=…)",
+      "summary": "DL 済みのセットアップを実行する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.launcher.py:uninstall",
+      "kind": "logic_fn",
+      "name": "uninstall",
+      "source": "launcher.py:117",
+      "signature": "uninstall(silent=…)",
+      "summary": "アンインストーラー(uninstall.exe)を startDetached で実行する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.settings.py:current_settings",
+      "kind": "logic_fn",
+      "name": "current_settings",
+      "source": "settings.py:64",
+      "signature": "current_settings()",
+      "summary": "UI/bridge 表示用の設定スナップショットを返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.settings.py:detect_exe",
+      "kind": "logic_fn",
+      "name": "detect_exe",
+      "source": "settings.py:34",
+      "signature": "detect_exe()",
+      "summary": "qgis_launcher.exe の実在パスを返す。見つからなければ None。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.settings.py:exe_path",
+      "kind": "logic_fn",
+      "name": "exe_path",
+      "source": "settings.py:24",
+      "signature": "exe_path()",
+      "summary": "設定された qgis_launcher.exe のパス(未設定時は空文字)を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.settings.py:save_settings",
+      "kind": "logic_fn",
+      "name": "save_settings",
+      "source": "settings.py:75",
+      "signature": "save_settings(exe_path_value=…, silent_install_value=…)",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.settings.py:set_exe_path",
+      "kind": "logic_fn",
+      "name": "set_exe_path",
+      "source": "settings.py:30",
+      "signature": "set_exe_path(path)",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.settings.py:set_silent_install",
+      "kind": "logic_fn",
+      "name": "set_silent_install",
+      "source": "settings.py:60",
+      "signature": "set_silent_install(flag)",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.settings.py:silent_install",
+      "kind": "logic_fn",
+      "name": "silent_install",
+      "source": "settings.py:50",
+      "signature": "silent_install()",
+      "summary": "セットアップを /S でサイレント実行するか(既定: ON)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    }
+  ],
+  "static": {
+    "compileall": {
+      "rc": 0,
+      "out": ""
+    },
+    "ran_at": "2026-11-14T07:09:57+09:00",
+    "reload": {
+      "loaded": true,
+      "opened": true,
+      "plugins": [
+        "ImportPhotos",
+        "MetaSearch",
+        "QuickDEM4JP",
+        "StreetView",
+        "db_manager",
+        "geo_driver",
+        "geo_excel",
+        "geo_import",
+        "geo_launcher",
+        "geo_legend",
+        "geo_report",
+        "geo_search",
+        "geo_userfunc",
+        "geo_webview",
+        "menu_from_project",
+        "mmqgis",
+        "mojxml_plugin",
+        "plateau_plugin",
+        "processing",
+        "qfieldsync",
+        "searchlayers"
+      ]
+    }
+  }
+}

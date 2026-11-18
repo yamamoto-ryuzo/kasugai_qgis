@@ -1,0 +1,32 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+<title>bridge.kascImport</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+body{font-family:system-ui,sans-serif;margin:2em;line-height:1.6;color:#222}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #ccc;padding:4px 8px;font-size:13px;text-align:left}
+th{background:#f0f0f0}
+.pass{color:#0a7d2c;font-weight:600}.fail{color:#c0392b;font-weight:600}
+.skip,.untested{color:#888}.removed{color:#999;text-decoration:line-through}
+code{background:#f5f5f5;padding:1px 4px}
+.meta{color:#666;font-size:13px}
+h1{font-size:1.4em}h2{font-size:1.1em;border-bottom:1px solid #ddd}
+</style></head><body>
+<h1>kascImport <code>bridge.kascImport</code></h1>
+<p class='meta'>kind=bridge_method / source=<code>bridge.py:1186</code> / signature=<code>kascImport(source=…, add_to_project=…, only_visible=…, apply_camera=…, group_prefix=…, replace=…)</code></p>
+<p>.kasc+DATA/ を QGIS プロジェクトへ逆取り込みする。</p>
+<p class='meta'>依存: QGISプラグインロード, geo_driver</p>
+<h2>ロジック</h2>
+<pre class='mermaid'>
+flowchart LR
+  E_bridge_kascImport["AI/bridge_call"] --> H_bridge_kascImport["kascImport"]
+  H_bridge_kascImport --> R_bridge_kascImport["QGIS/ランタイムAPI"]
+  R_bridge_kascImport --> OUT["結果"]
+</pre>
+<h2>検証手順</h2><ul>
+<li><b>連携:</b> <code>bridge_call kascImport → added/skipped/warnings + pyeval でレイヤ実在assert</code></li>
+</ul>
+<h2>検証結果</h2><p class='skip'><b>SKIP</b> 2026-11-14T07:09:57+09:00</p>
+<p class='meta'>要実引数(応答あり): {&#x27;ok&#x27;: False, &#x27;error&#x27;: &#x27;source (.kasc path or URL) is required&#x27;}</p>
+<p class='meta'><a href='../index.html'>← 一覧へ</a></p>
+<script>mermaid.initialize({startOnLoad:true});</script></body></html>

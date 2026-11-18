@@ -1,0 +1,42 @@
+{
+  "LegendView": {
+    "&Legend View": "&लीजेंड व्यू",
+    "Legend": "लीजेंड",
+    "Other values": "अन्य मान",
+    "Symbol": "सिंबल"
+  },
+  "LegendViewDockWidget": {
+    "Close": "बंद करें",
+    "Confirm delete": "हटाने की पुष्टि करें",
+    "Could not remove variable": "वेरिएबल हटाया नहीं जा सका",
+    "Could not update variable": "वेरिएबल अपडेट नहीं हो सका",
+    "Delete": "हटाएँ",
+    "Delete variable %s?": "वेरिएबल %s हटाएँ?",
+    "Edit": "संपादित करें",
+    "Edit variable": "वेरिएबल संपादित करें",
+    "Error": "त्रुटि",
+    "Legend": "लीजेंड",
+    "Legend variables": "लीजेंड वेरिएबल",
+    "Other values": "अन्य मान",
+    "Symbol": "सिंबल",
+    "Value": "मान",
+    "Value for %s": "%s का मान",
+    "Variable": "वेरिएबल"
+  },
+  "LegendViewDockWidgetBase": {
+    "Current": "वर्तमान",
+    "Layer Name": "लेयर नाम",
+    "Legend View": "लीजेंड व्यू",
+    "New Column": "नया कॉलम",
+    "Opacity": "अपारदर्शिता",
+    "Prio": "प्रायो",
+    "Priority for the legend variable (numeric)": "लीजेंड वेरिएबल की प्राथमिकता (संख्यात्मक)",
+    "Register": "रजिस्टर करें",
+    "Register the current layer as a project variable (legend_...)": "वर्तमान लेयर को प्रोजेक्ट वेरिएबल (legend_...) के रूप में रजिस्टर करें",
+    "Select the currently active layer": "वर्तमान में सक्रिय लेयर चुनें",
+    "Set numeric priority for the legend variable": "लीजेंड वेरिएबल के लिए संख्यात्मक प्राथमिकता सेट करें",
+    "Show existing legend_ project variables": "मौजूदा legend_ प्रोजेक्ट वेरिएबल दिखाएँ",
+    "Style": "स्टाइल",
+    "Vars": "वेरिएबल"
+  }
+}

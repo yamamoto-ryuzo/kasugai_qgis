@@ -1,0 +1,42 @@
+{
+  "LegendView": {
+    "&Legend View": "&Вид легенды",
+    "Legend": "Легенда",
+    "Other values": "Другие значения",
+    "Symbol": "Символ"
+  },
+  "LegendViewDockWidget": {
+    "Close": "Закрыть",
+    "Confirm delete": "Подтвердить удаление",
+    "Could not remove variable": "Не удалось удалить переменную",
+    "Could not update variable": "Не удалось обновить переменную",
+    "Delete": "Удалить",
+    "Delete variable %s?": "Удалить переменную %s?",
+    "Edit": "Изменить",
+    "Edit variable": "Изменить переменную",
+    "Error": "Ошибка",
+    "Legend": "Легенда",
+    "Legend variables": "Переменные легенды",
+    "Other values": "Другие значения",
+    "Symbol": "Символ",
+    "Value": "Значение",
+    "Value for %s": "Значение для %s",
+    "Variable": "Переменная"
+  },
+  "LegendViewDockWidgetBase": {
+    "Current": "Текущий",
+    "Layer Name": "Имя слоя",
+    "Legend View": "Вид легенды",
+    "New Column": "Новый столбец",
+    "Opacity": "Непрозрачность",
+    "Prio": "Приор.",
+    "Priority for the legend variable (numeric)": "Приоритет переменной легенды (числовой)",
+    "Register": "Зарегистрировать",
+    "Register the current layer as a project variable (legend_...)": "Зарегистрировать текущий слой как переменную проекта (legend_...)",
+    "Select the currently active layer": "Выбрать текущий активный слой",
+    "Set numeric priority for the legend variable": "Задать числовой приоритет для переменной легенды",
+    "Show existing legend_ project variables": "Показать существующие переменные проекта legend_",
+    "Style": "Стиль",
+    "Vars": "Переменные"
+  }
+}

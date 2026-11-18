@@ -1,0 +1,1054 @@
+{
+  "component": "geo_legend",
+  "component_type": "qgis_plugin",
+  "version": "2.8.0",
+  "driver": {
+    "type": "qgis_live_harness",
+    "detect": "GET http://127.0.0.1:<http_port>/api/health",
+    "launch": "npm run live:ensure",
+    "ready": "/api/health が ok:true を返す",
+    "control": "POST /api/cmd Bearer <live_dir token>",
+    "detected_from": "scripts/qgis-session.mjs, live_driver.py"
+  },
+  "updated": "2026-11-14T07:12:30+09:00",
+  "features": [
+    {
+      "id": "entry_point.__init__.py:classFactory",
+      "kind": "entry_point",
+      "name": "classFactory",
+      "source": "__init__.py:28",
+      "signature": "classFactory(iface)",
+      "summary": "Load LegendView class from file LegendView.",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "standalone経路のみ(要runtime依存無し)"
+    },
+    {
+      "id": "action.LegendView.initGui",
+      "kind": "action",
+      "name": "initGui",
+      "source": "legend_view.py:210",
+      "signature": "initGui()",
+      "summary": "Create the menu entries and toolbar icons inside the QGIS GUI.",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call/generic trigger→実在確認"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "action.LegendView.run",
+      "kind": "action",
+      "name": "run",
+      "source": "legend_view.py:255",
+      "signature": "run()",
+      "summary": "Run method that loads and starts the plugin",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call/generic trigger→実在確認"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "action.LegendView.unload",
+      "kind": "action",
+      "name": "unload",
+      "source": "legend_view.py:241",
+      "signature": "unload()",
+      "summary": "Removes the plugin menu item and icon from QGIS GUI.",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call/generic trigger→実在確認"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "dialog.LegendViewDockWidget",
+      "kind": "dialog",
+      "name": "LegendViewDockWidget",
+      "source": "legend_view_dockwidget.py:52",
+      "signature": "LegendViewDockWidget",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "openDialog→screenshot→closeDialog"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "bridge.addLayoutLegend",
+      "kind": "bridge_method",
+      "name": "addLayoutLegend",
+      "source": "bridge.py:915",
+      "signature": "addLayoutLegend(layout=…, title=…, x=…, y=…, w=…, h=…, layers=…, linked_map=…, filter_by_map=…)",
+      "summary": "印刷レイアウトに凡例アイテムを追加する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call addLayoutLegend → レイアウトに凡例アイテム実在assert(実測pass)"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.applyCategories",
+      "kind": "bridge_method",
+      "name": "applyCategories",
+      "source": "bridge.py:721",
+      "signature": "applyCategories(layer=…, field=…, ramp=…, labels=…, colors=…)",
+      "summary": "個別値分類レンダラを作成し凡例を作る。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call applyCategories → renderer=categorizedSymbol+legendSymbolItems assert(実測pass)"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.applyGraduated",
+      "kind": "bridge_method",
+      "name": "applyGraduated",
+      "source": "bridge.py:761",
+      "signature": "applyGraduated(layer=…, field=…, classes=…, ramp=…, method=…)",
+      "summary": "数値フィールドの階級区分レンダラを作成し凡例を作る。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call applyGraduated → renderer=graduatedSymbol+レンジassert(実測pass)"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.applyRules",
+      "kind": "bridge_method",
+      "name": "applyRules",
+      "source": "bridge.py:842",
+      "signature": "applyRules(layer=…, rules=…, else_label=…)",
+      "summary": "ルールベースレンダラを作成し凡例を作る。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call applyRules → renderer=RuleRenderer+ルールラベルassert(実測pass)"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.applySingleSymbol",
+      "kind": "bridge_method",
+      "name": "applySingleSymbol",
+      "source": "bridge.py:903",
+      "signature": "applySingleSymbol(layer=…, color=…)",
+      "summary": "単一シンボルレンダラに戻す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call applySingleSymbol → renderer=singleSymbol assert(実測pass)"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.closeDock",
+      "kind": "bridge_method",
+      "name": "closeDock",
+      "source": "bridge.py:335",
+      "signature": "closeDock()",
+      "summary": "凡例ドックを閉じる。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call closeDock → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.deleteLegendVariable",
+      "kind": "bridge_method",
+      "name": "deleteLegendVariable",
+      "source": "bridge.py:497",
+      "signature": "deleteLegendVariable(name)",
+      "summary": "legend_* プロジェクト変数を削除する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call deleteLegendVariable → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.exportLegendImage",
+      "kind": "bridge_method",
+      "name": "exportLegendImage",
+      "source": "bridge.py:969",
+      "signature": "exportLegendImage(path=…, layers=…, title=…, dpi=…)",
+      "summary": "凡例だけの画像(PNG)を出力する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call exportLegendImage → PNG生成(10KB)+内容目視assert(実測pass)"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.legend",
+      "kind": "bridge_method",
+      "name": "legend",
+      "source": "bridge.py:383",
+      "signature": "legend()",
+      "summary": "選択中レイヤの凡例項目一覧を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call legend → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.legendSpec",
+      "kind": "bridge_method",
+      "name": "legendSpec",
+      "source": "bridge.py:669",
+      "signature": "legendSpec(layer=…)",
+      "summary": "レイヤの現在のレンダラ(凡例)定義を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call legendSpec → type/items/legend_items応答assert(実測pass)"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.legendVariables",
+      "kind": "bridge_method",
+      "name": "legendVariables",
+      "source": "bridge.py:531",
+      "signature": "legendVariables()",
+      "summary": "legend_* プロジェクト変数の一覧を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call legendVariables → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.listDatasets",
+      "kind": "bridge_method",
+      "name": "listDatasets",
+      "source": "bridge.py:342",
+      "signature": "listDatasets()",
+      "summary": "凡例対象コンボの一覧を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call listDatasets → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.listStyles",
+      "kind": "bridge_method",
+      "name": "listStyles",
+      "source": "bridge.py:422",
+      "signature": "listStyles()",
+      "summary": "選択中レイヤの名前付きスタイル一覧を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call listStyles → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.opacity",
+      "kind": "bridge_method",
+      "name": "opacity",
+      "source": "bridge.py:407",
+      "signature": "opacity(value=…)",
+      "summary": "選択中レイヤの不透明度を取得/設定する(0.0-1.0)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call opacity → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.openDock",
+      "kind": "bridge_method",
+      "name": "openDock",
+      "source": "bridge.py:323",
+      "signature": "openDock()",
+      "summary": "凡例ドックを開く。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call openDock → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.pluginInfo",
+      "kind": "bridge_method",
+      "name": "pluginInfo",
+      "source": "bridge.py:284",
+      "signature": "pluginInfo()",
+      "summary": "プラグインの自己記述(id/summary/when_to_use/methods)を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call pluginInfo → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.refresh",
+      "kind": "bridge_method",
+      "name": "refresh",
+      "source": "bridge.py:523",
+      "signature": "refresh()",
+      "summary": "凡例対象コンボを再構築する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call refresh → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.registerCurrentLayer",
+      "kind": "bridge_method",
+      "name": "registerCurrentLayer",
+      "source": "bridge.py:458",
+      "signature": "registerCurrentLayer(priority=…)",
+      "summary": "アクティブレイヤを legend_* プロジェクト変数として登録する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call registerCurrentLayer → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.registerLayer",
+      "kind": "bridge_method",
+      "name": "registerLayer",
+      "source": "bridge.py:462",
+      "signature": "registerLayer(layer_id=…, priority=…)",
+      "summary": "指定レイヤを legend_* プロジェクト変数として登録する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call registerLayer → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.selectCurrentLayer",
+      "kind": "bridge_method",
+      "name": "selectCurrentLayer",
+      "source": "bridge.py:448",
+      "signature": "selectCurrentLayer()",
+      "summary": "凡例対象をアクティブレイヤに合わせる。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call selectCurrentLayer → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.selectDataset",
+      "kind": "bridge_method",
+      "name": "selectDataset",
+      "source": "bridge.py:354",
+      "signature": "selectDataset(dataset)",
+      "summary": "凡例対象を選択する(index/表示名/layer_id)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call selectDataset → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "要実引数(応答あり): {'ok': False, 'error': 'dataset not found: {}'}"
+    },
+    {
+      "id": "bridge.setLegendVariable",
+      "kind": "bridge_method",
+      "name": "setLegendVariable",
+      "source": "bridge.py:483",
+      "signature": "setLegendVariable(name, value)",
+      "summary": "legend_* プロジェクト変数の値を設定する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call setLegendVariable → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.setStyle",
+      "kind": "bridge_method",
+      "name": "setStyle",
+      "source": "bridge.py:434",
+      "signature": "setStyle(name)",
+      "summary": "選択中レイヤの名前付きスタイルを切り替える。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call setStyle → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.status",
+      "kind": "bridge_method",
+      "name": "status",
+      "source": "bridge.py:302",
+      "signature": "status()",
+      "summary": "ドック・選択レイヤ・凡例の状態を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call status → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "ai.bridge_route",
+      "kind": "ai_integration",
+      "name": "bridge_call経由全到達",
+      "source": "bridge.py",
+      "signature": "",
+      "summary": "全bridge_methodがAI経路で呼べる",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call 全method→ok/error記録"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "12メソッド到達可能"
+    },
+    {
+      "id": "ai.catalog",
+      "kind": "ai_integration",
+      "name": "describe_plugins登録",
+      "source": "geo_driver経由",
+      "signature": "",
+      "summary": "カタログに載り呼出可能か",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "describe_plugins→plugins[]にid実在+methods非空"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "describe_plugins: methods=23"
+    },
+    {
+      "id": "ai.pluginInfo",
+      "kind": "ai_integration",
+      "name": "pluginInfo自己記述",
+      "source": "bridge.py",
+      "signature": "pluginInfo()",
+      "summary": "summary/when_to_use/methodsの正確性",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call pluginInfo→メタ一致assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "自己記述あり"
+    },
+    {
+      "id": "ai.prompt.create-legend",
+      "kind": "ai_integration",
+      "name": "同梱おすすめプロンプト create-legend",
+      "source": "prompts/create-legend.md",
+      "signature": "",
+      "summary": "凡例作成の定型指示(パネルのおすすめコンボで選択→入力欄へ挿入)",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "instruction op=list kind=prompts → id=create-legend & builtin、path=geo_legend/prompts/"
+      },
+      "last_result": "removed",
+      "last_verified": "2026-11-14T06:46:49+09:00",
+      "note": "実QGIS(pid28736)で確認済"
+    },
+    {
+      "id": "ai.skill.legend-creation",
+      "kind": "ai_integration",
+      "name": "同梱スキル legend-creation",
+      "source": "skills/legend-creation.md",
+      "signature": "",
+      "summary": "凡例作成(applyCategories/applyGraduated/applyRules/addLayoutLegend/exportLegendImage)の手順書。モデルが ai_read_instruction で読む",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "bridge.applyCategories",
+        "bridge.applyGraduated",
+        "bridge.applyRules",
+        "bridge.addLayoutLegend",
+        "bridge.exportLegendImage"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "ai_list_instructions→skills[]に id=legend-creation & builtin、ai_read_instruction→title/desc/when+本文"
+      },
+      "last_result": "removed",
+      "last_verified": "2026-11-14T16:20:00+09:00",
+      "note": "実QGISで ai_client.list_skills()→builtin=true・path=geo_legend/skills/・when正解、load_instruction→本文取得を確認。ai-plane(devin_acp): モデルがスキルを参照し applyCategories(cat/4分類/Spectral) → QgsCategorizedSymbolRenderer実在をassert、addLayoutLegend(検証用凡例) → QgsLayoutItemLegend実在をassert、両方pass"
+    },
+    {
+      "id": "logic_fn.create_zip.py:bump_version",
+      "kind": "logic_fn",
+      "name": "bump_version",
+      "source": "create_zip.py:33",
+      "signature": "bump_version(version_str)",
+      "summary": "Bump patch version (A.B.C → A.B.(C+1))",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.create_zip.py:create_plugin_zip",
+      "kind": "logic_fn",
+      "name": "create_plugin_zip",
+      "source": "create_zip.py:68",
+      "signature": "create_plugin_zip()",
+      "summary": "Create ZIP package for QGIS plugin distribution (auto version up)",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.create_zip.py:get_plugin_name_and_version_from_metadata",
+      "kind": "logic_fn",
+      "name": "get_plugin_name_and_version_from_metadata",
+      "source": "create_zip.py:20",
+      "signature": "get_plugin_name_and_version_from_metadata()",
+      "summary": "Read plugin name and version from metadata.txt",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.create_zip.py:list_zip_contents",
+      "kind": "logic_fn",
+      "name": "list_zip_contents",
+      "source": "create_zip.py:131",
+      "signature": "list_zip_contents(zip_name)",
+      "summary": "List contents of the created ZIP file for verification",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.create_zip.py:update_metadata_version_and_changelog",
+      "kind": "logic_fn",
+      "name": "update_metadata_version_and_changelog",
+      "source": "create_zip.py:46",
+      "signature": "update_metadata_version_and_changelog(new_version)",
+      "summary": "Update version and prepend new changelog entry to metadata.txt",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.validate_package.py:main",
+      "kind": "logic_fn",
+      "name": "main",
+      "source": "validate_package.py:160",
+      "signature": "main()",
+      "summary": "Main validation function",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.validate_package.py:validate_plugin_package",
+      "kind": "logic_fn",
+      "name": "validate_plugin_package",
+      "source": "validate_package.py:13",
+      "signature": "validate_plugin_package(zip_path)",
+      "summary": "Validate a QGIS plugin ZIP package",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.version.py:get_compatibility_info",
+      "kind": "logic_fn",
+      "name": "get_compatibility_info",
+      "source": "version.py:48",
+      "signature": "get_compatibility_info()",
+      "summary": "Get QGIS compatibility information",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.version.py:get_version",
+      "kind": "logic_fn",
+      "name": "get_version",
+      "source": "version.py:18",
+      "signature": "get_version()",
+      "summary": "Get the full version string",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.version.py:get_version_info",
+      "kind": "logic_fn",
+      "name": "get_version_info",
+      "source": "version.py:31",
+      "signature": "get_version_info()",
+      "summary": "Get version information as a dictionary",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.version.py:is_stable",
+      "kind": "logic_fn",
+      "name": "is_stable",
+      "source": "version.py:43",
+      "signature": "is_stable()",
+      "summary": "Check if this is a stable release",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.version_manager.py:bump_version",
+      "kind": "logic_fn",
+      "name": "bump_version",
+      "source": "version_manager.py:128",
+      "signature": "bump_version(component, prerelease=…)",
+      "summary": "Bump version component",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.version_manager.py:main",
+      "kind": "logic_fn",
+      "name": "main",
+      "source": "version_manager.py:179",
+      "signature": "main()",
+      "summary": "Main version management function",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.version_manager.py:read_version",
+      "kind": "logic_fn",
+      "name": "read_version",
+      "source": "version_manager.py:12",
+      "signature": "read_version()",
+      "summary": "Read current version from version.py",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.version_manager.py:show_current_version",
+      "kind": "logic_fn",
+      "name": "show_current_version",
+      "source": "version_manager.py:161",
+      "signature": "show_current_version()",
+      "summary": "Display current version information",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.version_manager.py:update_metadata_version",
+      "kind": "logic_fn",
+      "name": "update_metadata_version",
+      "source": "version_manager.py:109",
+      "signature": "update_metadata_version(version_string)",
+      "summary": "Update version in metadata.txt",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.version_manager.py:write_version",
+      "kind": "logic_fn",
+      "name": "write_version",
+      "source": "version_manager.py:36",
+      "signature": "write_version(major, minor, patch, prerelease=…)",
+      "summary": "Write new version to version.py",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:12:30+09:00",
+      "note": "standalone import+attr実在"
+    }
+  ],
+  "static": {
+    "compileall": {
+      "rc": 0,
+      "out": ""
+    },
+    "flake8": {
+      "rc": 0,
+      "out": ""
+    },
+    "bandit": {
+      "rc": 0,
+      "out": "[main]\tINFO\tUsing ini file for skipped tests\n[main]\tINFO\tUsing command line arg for selected targets"
+    },
+    "ran_at": "2026-11-14T07:12:30+09:00",
+    "reload": {
+      "loaded": true,
+      "opened": false,
+      "plugins": [
+        "ImportPhotos",
+        "MetaSearch",
+        "QuickDEM4JP",
+        "StreetView",
+        "db_manager",
+        "geo_driver",
+        "geo_excel",
+        "geo_import",
+        "geo_launcher",
+        "geo_legend",
+        "geo_report",
+        "geo_search",
+        "geo_userfunc",
+        "geo_webview",
+        "menu_from_project",
+        "mmqgis",
+        "mojxml_plugin",
+        "plateau_plugin",
+        "processing",
+        "qfieldsync",
+        "searchlayers"
+      ]
+    }
+  }
+}

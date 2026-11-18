@@ -1,0 +1,3139 @@
+{
+  "component": "geo_webview",
+  "component_type": "qgis_plugin",
+  "version": "4.14.0",
+  "driver": {
+    "type": "qgis_live_harness",
+    "detect": "GET http://127.0.0.1:<http_port>/api/health",
+    "launch": "npm run live:ensure",
+    "ready": "/api/health が ok:true を返す",
+    "control": "POST /api/cmd Bearer <live_dir token>",
+    "detected_from": "scripts/qgis-session.mjs, live_driver.py"
+  },
+  "updated": "2026-11-14T07:09:57+09:00",
+  "features": [
+    {
+      "id": "entry_point.__init__.py:classFactory",
+      "kind": "entry_point",
+      "name": "classFactory",
+      "source": "__init__.py:52",
+      "signature": "classFactory(iface)",
+      "summary": "geo_webviewプラグインのファクトリー関数",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "standalone経路のみ(要runtime依存無し)"
+    },
+    {
+      "id": "action.GeoWebView.initGui",
+      "kind": "action",
+      "name": "initGui",
+      "source": "plugin.py:248",
+      "signature": "initGui()",
+      "summary": "プラグインのGUI要素を作成（プラグイン読み込み時に呼ばれる）",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call/generic trigger→実在確認"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "action.GeoWebView.open_dialog",
+      "kind": "action",
+      "name": "open_dialog",
+      "source": "plugin.py:339",
+      "signature": "open_dialog()",
+      "summary": "live driver の open_plugin から呼ばれる互換フック。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call/generic trigger→実在確認"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "action.GeoWebView.run",
+      "kind": "action",
+      "name": "run",
+      "source": "plugin.py:349",
+      "signature": "run()",
+      "summary": "run() 互換エントリ: open_dialog と同じ(パネルを開く)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call/generic trigger→実在確認"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "action.GeoWebView.unload",
+      "kind": "action",
+      "name": "unload",
+      "source": "plugin.py:776",
+      "signature": "unload()",
+      "summary": "プラグインのアンロード時の処理",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call/generic trigger→実在確認"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "dialog.GeoWebViewPanel",
+      "kind": "dialog",
+      "name": "GeoWebViewPanel",
+      "source": "panel.py:43",
+      "signature": "GeoWebViewPanel",
+      "summary": "geo_webviewのパネルクラス",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "openDialog→screenshot→closeDialog"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "dialog.SettingsDialog",
+      "kind": "dialog",
+      "name": "SettingsDialog",
+      "source": "settings_dialog.py:8",
+      "signature": "SettingsDialog",
+      "summary": "Settings dialog for KASUGAI Canvas integration configuration",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "openDialog→screenshot→closeDialog"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoWebView._on_project_saved",
+      "kind": "ui_control",
+      "name": "_on_project_saved",
+      "source": "plugin.py:314",
+      "signature": "_on_project_saved()",
+      "summary": "projectSaved フック。自動再エクスポートが有効なら再出力する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoWebView.handle_request_origin_changed",
+      "kind": "ui_control",
+      "name": "handle_request_origin_changed",
+      "source": "plugin.py:115",
+      "signature": "handle_request_origin_changed(origin)",
+      "summary": "サーバから受け取った完全URLをパネルのlineEdit_navigateにセットする",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoWebView.on_check_access_clicked",
+      "kind": "ui_control",
+      "name": "on_check_access_clicked",
+      "source": "plugin.py:1898",
+      "signature": "on_check_access_clicked()",
+      "summary": "外部アクセス診断ボタンがクリックされた時の処理",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoWebView.on_copy_clicked_panel",
+      "kind": "ui_control",
+      "name": "on_copy_clicked_panel",
+      "source": "plugin.py:1324",
+      "signature": "on_copy_clicked_panel()",
+      "summary": "パネル版：コピーボタンがクリックされた時の処理",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoWebView.on_engine_combo_changed",
+      "kind": "ui_control",
+      "name": "on_engine_combo_changed",
+      "source": "plugin.py:1505",
+      "signature": "on_engine_combo_changed(index)",
+      "summary": "Web配信パネルのエンジン選択を QSettings に保存する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoWebView.on_generate_clicked_panel",
+      "kind": "ui_control",
+      "name": "on_generate_clicked_panel",
+      "source": "plugin.py:1234",
+      "signature": "on_generate_clicked_panel()",
+      "summary": "パネル版：パーマリンク生成ボタンがクリックされた時の処理",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoWebView.on_hosted_combo_changed",
+      "kind": "ui_control",
+      "name": "on_hosted_combo_changed",
+      "source": "plugin.py:1518",
+      "signature": "on_hosted_combo_changed(text)",
+      "summary": "Web配信パネルのCDN(ホスト版チャンネル)選択を QSettings に保存する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoWebView.on_kasugai_export_clicked",
+      "kind": "ui_control",
+      "name": "on_kasugai_export_clicked",
+      "source": "plugin.py:1443",
+      "signature": "on_kasugai_export_clicked()",
+      "summary": "パネル版：KASUGAI エクスポートボタン — 表示中レイヤを",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoWebView.on_kasugai_help_clicked",
+      "kind": "ui_control",
+      "name": "on_kasugai_help_clicked",
+      "source": "plugin.py:1501",
+      "signature": "on_kasugai_help_clicked()",
+      "summary": "ドキュメントサイト(GitHub Pages)をブラウザで開く。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoWebView.on_kasugai_launch_clicked",
+      "kind": "ui_control",
+      "name": "on_kasugai_launch_clicked",
+      "source": "plugin.py:1532",
+      "signature": "on_kasugai_launch_clicked(route=…)",
+      "summary": "パネル版：選択エンジンで エクスポート→登録→ブラウザ起動 まで",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoWebView.on_kasugai_open_folder",
+      "kind": "ui_control",
+      "name": "on_kasugai_open_folder",
+      "source": "plugin.py:1380",
+      "signature": "on_kasugai_open_folder()",
+      "summary": "KASUGAI 出力フォルダ(.kasc/DATA/<engine>.html/index.html が",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoWebView.on_kasugai_outdir_browse",
+      "kind": "ui_control",
+      "name": "on_kasugai_outdir_browse",
+      "source": "plugin.py:1405",
+      "signature": "on_kasugai_outdir_browse()",
+      "summary": "保存先表示のクリック — フォルダ選択でエクスポート出力先を変更。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoWebView.on_kasugai_outdir_reset",
+      "kind": "ui_control",
+      "name": "on_kasugai_outdir_reset",
+      "source": "plugin.py:1430",
+      "signature": "on_kasugai_outdir_reset()",
+      "summary": "保存先を既定(Canvasインストール先/<ドキュメント>)に戻す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoWebView.on_kasugai_zip_clicked",
+      "kind": "ui_control",
+      "name": "on_kasugai_zip_clicked",
+      "source": "plugin.py:1475",
+      "signature": "on_kasugai_zip_clicked()",
+      "summary": "エクスポート物一式を kasugai_canvas.zip としてブラウザで",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoWebView.on_navigate_clicked_panel",
+      "kind": "ui_control",
+      "name": "on_navigate_clicked_panel",
+      "source": "plugin.py:1275",
+      "signature": "on_navigate_clicked_panel()",
+      "summary": "パネル版：ナビゲートボタンがクリックされた時の処理",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoWebView.on_present_clicked_panel",
+      "kind": "ui_control",
+      "name": "on_present_clicked_panel",
+      "source": "plugin.py:1819",
+      "signature": "on_present_clicked_panel()",
+      "summary": "プレゼンテーション共有ページ(/present)をブラウザで開く。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoWebView.on_received_selected",
+      "kind": "ui_control",
+      "name": "on_received_selected",
+      "source": "plugin.py:1849",
+      "signature": "on_received_selected(index)",
+      "summary": "受領履歴コンボの選択をナビゲート欄へコピーする。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoWebView.on_save_theme_clicked_panel",
+      "kind": "ui_control",
+      "name": "on_save_theme_clicked_panel",
+      "source": "plugin.py:2209",
+      "signature": "on_save_theme_clicked_panel()",
+      "summary": "テーマ保存ボタン: 現在の表示状態をマップテーマとして保存",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoWebView.on_standard_port_clicked",
+      "kind": "ui_control",
+      "name": "on_standard_port_clicked",
+      "source": "plugin.py:2040",
+      "signature": "on_standard_port_clicked(port)",
+      "summary": "標準ポートボタンがクリックされた時の処理",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoWebViewPanel._on_copy_permalink_to_clipboard",
+      "kind": "ui_control",
+      "name": "_on_copy_permalink_to_clipboard",
+      "source": "panel.py:590",
+      "signature": "_on_copy_permalink_to_clipboard()",
+      "summary": "lineEdit_permalink の内容をシステムクリップボードにコピーする",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoWebViewPanel._on_paste_from_clipboard",
+      "kind": "ui_control",
+      "name": "_on_paste_from_clipboard",
+      "source": "panel.py:600",
+      "signature": "_on_paste_from_clipboard()",
+      "summary": "クリップボードからテキストを取得して lineEdit_navigate に貼り付ける",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoWebViewPanel._on_visibility_changed",
+      "kind": "ui_control",
+      "name": "_on_visibility_changed",
+      "source": "panel.py:354",
+      "signature": "_on_visibility_changed(visible)",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoWebViewPanel.set_external_control_handler",
+      "kind": "ui_control",
+      "name": "set_external_control_handler",
+      "source": "panel.py:565",
+      "signature": "set_external_control_handler(handler)",
+      "summary": "外部制御トグルのハンドラを設定する",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoWebViewPanel.set_port_change_handler",
+      "kind": "ui_control",
+      "name": "set_port_change_handler",
+      "source": "panel.py:577",
+      "signature": "set_port_change_handler(handler)",
+      "summary": "ポート番号変更のハンドラを設定する",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoWebViewPanel.set_server_toggle_handler",
+      "kind": "ui_control",
+      "name": "set_server_toggle_handler",
+      "source": "panel.py:552",
+      "signature": "set_server_toggle_handler(handler)",
+      "summary": "外部からトグルのハンドラを設定する",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoWebViewServerManager._on_cursor_xy",
+      "kind": "ui_control",
+      "name": "_on_cursor_xy",
+      "source": "server_manager.py:237",
+      "signature": "_on_cursor_xy(point)",
+      "summary": "キャンバス上のマウス移動(GUIスレッド)。最終位置を保持する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.LiveSyncController._on_layers_added",
+      "kind": "ui_control",
+      "name": "_on_layers_added",
+      "source": "live_sync.py:251",
+      "signature": "_on_layers_added(layers)",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.LiveSyncController._on_project_read",
+      "kind": "ui_control",
+      "name": "_on_project_read",
+      "source": "live_sync.py:256",
+      "signature": "_on_project_read(*args)",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.LiveSyncController._on_selection_changed",
+      "kind": "ui_control",
+      "name": "_on_selection_changed",
+      "source": "live_sync.py:343",
+      "signature": "_on_selection_changed(*args)",
+      "summary": "ベクターレイヤの selectionChanged(GUIスレッド)。デバウンスして送信。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.LiveSyncController._on_structure",
+      "kind": "ui_control",
+      "name": "_on_structure",
+      "source": "live_sync.py:242",
+      "signature": "_on_structure(*args)",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.SettingsDialog._basemap_groups_changed",
+      "kind": "ui_control",
+      "name": "_basemap_groups_changed",
+      "source": "settings_dialog.py:184",
+      "signature": "_basemap_groups_changed()",
+      "summary": "追加のベースマップグループ名(カンマ区切り)を保存する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.SettingsDialog._hosted_channel_changed",
+      "kind": "ui_control",
+      "name": "_hosted_channel_changed",
+      "source": "settings_dialog.py:190",
+      "signature": "_hosted_channel_changed(text)",
+      "summary": "ホスト版エンジンのチャンネル変更を保存する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "bridge.addFirewallRule",
+      "kind": "bridge_method",
+      "name": "addFirewallRule",
+      "source": "bridge.py:1441",
+      "signature": "addFirewallRule(port=…)",
+      "summary": "Windowsファイアウォールに受信ルールを追加する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call addFirewallRule → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.applyTheme",
+      "kind": "bridge_method",
+      "name": "applyTheme",
+      "source": "bridge.py:844",
+      "signature": "applyTheme(name)",
+      "summary": "マップテーマをレイヤツリーへ適用し、パネルコンボも同期する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call applyTheme → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.checkAccess",
+      "kind": "bridge_method",
+      "name": "checkAccess",
+      "source": "bridge.py:1218",
+      "signature": "checkAccess()",
+      "summary": "外部アクセス診断(ファイアウォール含む)を実行し結果を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call checkAccess → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.closePanel",
+      "kind": "bridge_method",
+      "name": "closePanel",
+      "source": "bridge.py:519",
+      "signature": "closePanel()",
+      "summary": "GeoWebViewドックパネルを隠す(インスタンスは保持)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call closePanel → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.copyPermalink",
+      "kind": "bridge_method",
+      "name": "copyPermalink",
+      "source": "bridge.py:705",
+      "signature": "copyPermalink()",
+      "summary": "現在のパーマリンクをクリップボードへコピーする(未生成なら生成)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call copyPermalink → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.deleteTheme",
+      "kind": "bridge_method",
+      "name": "deleteTheme",
+      "source": "bridge.py:895",
+      "signature": "deleteTheme(name)",
+      "summary": "マップテーマを削除する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call deleteTheme → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.endpoints",
+      "kind": "bridge_method",
+      "name": "endpoints",
+      "source": "bridge.py:1234",
+      "signature": "endpoints()",
+      "summary": "HTTPサーバが公開するエンドポイント一覧と基底URLを返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call endpoints → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.externalControl",
+      "kind": "bridge_method",
+      "name": "externalControl",
+      "source": "bridge.py:643",
+      "signature": "externalControl(enabled=…)",
+      "summary": "外部制御モード(HTTP要求で自動ナビゲート)を取得/設定する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call externalControl → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.generatePermalink",
+      "kind": "bridge_method",
+      "name": "generatePermalink",
+      "source": "bridge.py:663",
+      "signature": "generatePermalink(theme=…)",
+      "summary": "現在の地図ビューからパーマリンクURLを生成する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call generatePermalink → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.getSettings",
+      "kind": "bridge_method",
+      "name": "getSettings",
+      "source": "bridge.py:1288",
+      "signature": "getSettings()",
+      "summary": "設定(出力先ディレクトリ・優先ポート)とバージョンを返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call getSettings → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.kascImport",
+      "kind": "bridge_method",
+      "name": "kascImport",
+      "source": "bridge.py:1186",
+      "signature": "kascImport(source=…, add_to_project=…, only_visible=…, apply_camera=…, group_prefix=…, replace=…)",
+      "summary": ".kasc+DATA/ を QGIS プロジェクトへ逆取り込みする。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call kascImport → added/skipped/warnings + pyeval でレイヤ実在assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "要実引数(応答あり): {'ok': False, 'error': 'source (.kasc path or URL) is required'}"
+    },
+    {
+      "id": "bridge.kascInspect",
+      "kind": "bridge_method",
+      "name": "kascInspect",
+      "source": "bridge.py:1170",
+      "signature": "kascInspect(source)",
+      "summary": ".kasc を解析して一覧を返す(プロジェクト非変更の dry run)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call kascInspect → counts/layers/bases 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "要実引数(応答あり): {'ok': False, 'error': 'source (.kasc path or URL) is required'}"
+    },
+    {
+      "id": "bridge.kasugaiExport",
+      "kind": "bridge_method",
+      "name": "kasugaiExport",
+      "source": "bridge.py:934",
+      "signature": "kasugaiExport(output_dir=…, open_app=…, native_formats=…, hidden_as_off=…, embed_gpkg_style=…, emit_themes=…, emit_bookmarks=…, emit_launchers=…, emit_zip=…, engine=…, install=…, route=…, use_existing=…, emit_atlas=…)",
+      "summary": "表示中レイヤをKASUGAI Canvasプロジェクトとして出力・連携する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call kasugaiExport → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.listBookmarks",
+      "kind": "bridge_method",
+      "name": "listBookmarks",
+      "source": "bridge.py:907",
+      "signature": "listBookmarks()",
+      "summary": "プロジェクト/ユーザブックマーク一覧(中心EPSG:3857)を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call listBookmarks → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.listThemes",
+      "kind": "bridge_method",
+      "name": "listThemes",
+      "source": "bridge.py:827",
+      "signature": "listThemes()",
+      "summary": "マップテーマ一覧・パネルコンボの現在選択を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call listThemes → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.liveAddFeatures",
+      "kind": "bridge_method",
+      "name": "liveAddFeatures",
+      "source": "bridge.py:1571",
+      "signature": "liveAddFeatures(name=…, geojson=…, replace=…)",
+      "summary": "GeoJSON をスクラッチ(memory)レイヤとしてプロジェクトへ",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call liveAddFeatures → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.liveSyncFlush",
+      "kind": "bridge_method",
+      "name": "liveSyncFlush",
+      "source": "bridge.py:1547",
+      "signature": "liveSyncFlush()",
+      "summary": "保留中の変更を即時差分エクスポート+通知する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call liveSyncFlush → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.liveSyncStart",
+      "kind": "bridge_method",
+      "name": "liveSyncStart",
+      "source": "bridge.py:1521",
+      "signature": "liveSyncStart()",
+      "summary": "ライブ双方向連携を有効化して監視を開始する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call liveSyncStart → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.liveSyncStatus",
+      "kind": "bridge_method",
+      "name": "liveSyncStatus",
+      "source": "bridge.py:1506",
+      "signature": "liveSyncStatus()",
+      "summary": "ライブ連携の状態を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call liveSyncStatus → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.liveSyncStop",
+      "kind": "bridge_method",
+      "name": "liveSyncStop",
+      "source": "bridge.py:1536",
+      "signature": "liveSyncStop()",
+      "summary": "ライブ双方向連携を無効化して監視を停止する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call liveSyncStop → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.liveWriteback",
+      "kind": "bridge_method",
+      "name": "liveWriteback",
+      "source": "bridge.py:1554",
+      "signature": "liveWriteback(payload=…)",
+      "summary": "Canvas 側の表示/フィルタ/テーマ状態を QGIS プロジェクトへ",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call liveWriteback → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.macAuth",
+      "kind": "bridge_method",
+      "name": "macAuth",
+      "source": "bridge.py:1467",
+      "signature": "macAuth(enabled=…, allowed=…)",
+      "summary": "MACアドレス認証を取得/設定する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call macAuth → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.navigate",
+      "kind": "bridge_method",
+      "name": "navigate",
+      "source": "bridge.py:737",
+      "signature": "navigate(url)",
+      "summary": "パーマリンクURLから地図ビューを移動する(モーダル無し)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call navigate → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "要実引数(応答あり): {'ok': False, 'error': 'url required'}"
+    },
+    {
+      "id": "bridge.navigateTo",
+      "kind": "bridge_method",
+      "name": "navigateTo",
+      "source": "bridge.py:794",
+      "signature": "navigateTo(x=…, y=…, lat=…, lon=…, scale=…, zoom=…, crs=…, rotation=…, theme=…)",
+      "summary": "座標を直接指定して地図ビューを移動する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call navigateTo → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "要実引数(応答あり): {'ok': False, 'error': 'x/y or lat/lon required'}"
+    },
+    {
+      "id": "bridge.openExportFolder",
+      "kind": "bridge_method",
+      "name": "openExportFolder",
+      "source": "bridge.py:1405",
+      "signature": "openExportFolder()",
+      "summary": "KASUGAI出力フォルダをOSのファイルマネージャで開く。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call openExportFolder → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.openExternal",
+      "kind": "bridge_method",
+      "name": "openExternal",
+      "source": "bridge.py:917",
+      "signature": "openExternal(service)",
+      "summary": "KASUGAI Canvas を指定エンジンで起動する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call openExternal → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.openPanel",
+      "kind": "bridge_method",
+      "name": "openPanel",
+      "source": "bridge.py:501",
+      "signature": "openPanel()",
+      "summary": "GeoWebViewドックパネルを生成・表示する(冪等、トグルではない)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call openPanel → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.openPresent",
+      "kind": "bridge_method",
+      "name": "openPresent",
+      "source": "bridge.py:1416",
+      "signature": "openPresent()",
+      "summary": "キャンバス画面共有ページ(/present)をブラウザで開く。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call openPresent → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.pluginInfo",
+      "kind": "bridge_method",
+      "name": "pluginInfo",
+      "source": "bridge.py:418",
+      "signature": "pluginInfo()",
+      "summary": "プラグインの自己記述(id/summary/when_to_use/methods)を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call pluginInfo → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.receivedHistory",
+      "kind": "bridge_method",
+      "name": "receivedHistory",
+      "source": "bridge.py:1433",
+      "signature": "receivedHistory()",
+      "summary": "受領パーマリンク履歴(最新10件)を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call receivedHistory → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.saveTheme",
+      "kind": "bridge_method",
+      "name": "saveTheme",
+      "source": "bridge.py:870",
+      "signature": "saveTheme(name=…, overwrite=…)",
+      "summary": "現在のレイヤツリー状態をマップテーマとして保存する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call saveTheme → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.serverStatus",
+      "kind": "bridge_method",
+      "name": "serverStatus",
+      "source": "bridge.py:532",
+      "signature": "serverStatus(deep=…)",
+      "summary": "HTTPサーバの稼働状態・ポート・URLを返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call serverStatus → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.setPort",
+      "kind": "bridge_method",
+      "name": "setPort",
+      "source": "bridge.py:599",
+      "signature": "setPort(port)",
+      "summary": "優先ポートを設定する。起動中ならそのポートで再起動する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call setPort → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.setSettings",
+      "kind": "bridge_method",
+      "name": "setSettings",
+      "source": "bridge.py:1316",
+      "signature": "setSettings(settings=…)",
+      "summary": "設定を変更する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call setSettings → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.startServer",
+      "kind": "bridge_method",
+      "name": "startServer",
+      "source": "bridge.py:557",
+      "signature": "startServer(port=…)",
+      "summary": "HTTPサーバを起動する。port指定時はそのポートを優先する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call startServer → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.status",
+      "kind": "bridge_method",
+      "name": "status",
+      "source": "bridge.py:445",
+      "signature": "status()",
+      "summary": "パネル・サーバ・キャンバス・入出力欄の実行時状態を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call status → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.stopServer",
+      "kind": "bridge_method",
+      "name": "stopServer",
+      "source": "bridge.py:590",
+      "signature": "stopServer()",
+      "summary": "HTTPサーバを停止する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call stopServer → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "registry.kasugai_export.py:register_kasugai_project",
+      "kind": "registry",
+      "name": "register_kasugai_project",
+      "source": "kasugai_export.py:3893",
+      "signature": "register_kasugai_project(kasc_path, port=…, engine=…)",
+      "summary": "POST /api/projects/register で.kascを外部プロジェクト登録する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "integration.bridge.py:1337",
+      "kind": "integration",
+      "name": "QDesktopServices.openUrl",
+      "source": "bridge.py:1337",
+      "signature": "QDesktopServices.openUrl(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "removed",
+      "last_verified": "2026-11-14T02:32:22+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.bridge.py:1412",
+      "kind": "integration",
+      "name": "QDesktopServices.openUrl",
+      "source": "bridge.py:1412",
+      "signature": "QDesktopServices.openUrl(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.bridge.py:360",
+      "kind": "integration",
+      "name": "QDesktopServices.openUrl",
+      "source": "bridge.py:360",
+      "signature": "QDesktopServices.openUrl(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "removed",
+      "last_verified": "2026-11-14T02:32:22+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.bridge.py:362",
+      "kind": "integration",
+      "name": "webbrowser.open",
+      "source": "bridge.py:362",
+      "signature": "webbrowser.open(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "removed",
+      "last_verified": "2026-11-14T02:32:22+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.bridge.py:387",
+      "kind": "integration",
+      "name": "QDesktopServices.openUrl",
+      "source": "bridge.py:387",
+      "signature": "QDesktopServices.openUrl(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.bridge.py:389",
+      "kind": "integration",
+      "name": "webbrowser.open",
+      "source": "bridge.py:389",
+      "signature": "webbrowser.open(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.kasugai_export.py:4022",
+      "kind": "integration",
+      "name": "subprocess.Popen",
+      "source": "kasugai_export.py:4022",
+      "signature": "subprocess.Popen(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.kasugai_export.py:4259",
+      "kind": "integration",
+      "name": "subprocess.Popen",
+      "source": "kasugai_export.py:4259",
+      "signature": "subprocess.Popen(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.plugin.py:1387",
+      "kind": "integration",
+      "name": "QDesktopServices.openUrl",
+      "source": "plugin.py:1387",
+      "signature": "QDesktopServices.openUrl(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.plugin.py:1489",
+      "kind": "integration",
+      "name": "QDesktopServices.openUrl",
+      "source": "plugin.py:1489",
+      "signature": "QDesktopServices.openUrl(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.plugin.py:1503",
+      "kind": "integration",
+      "name": "QDesktopServices.openUrl",
+      "source": "plugin.py:1503",
+      "signature": "QDesktopServices.openUrl(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.plugin.py:1835",
+      "kind": "integration",
+      "name": "QDesktopServices.openUrl",
+      "source": "plugin.py:1835",
+      "signature": "QDesktopServices.openUrl(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.server_manager.py:1098",
+      "kind": "integration",
+      "name": "subprocess.check_output",
+      "source": "server_manager.py:1098",
+      "signature": "subprocess.check_output(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.server_manager.py:1127",
+      "kind": "integration",
+      "name": "subprocess.check_output",
+      "source": "server_manager.py:1127",
+      "signature": "subprocess.check_output(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.server_manager.py:1131",
+      "kind": "integration",
+      "name": "subprocess.check_output",
+      "source": "server_manager.py:1131",
+      "signature": "subprocess.check_output(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.server_manager.py:1135",
+      "kind": "integration",
+      "name": "subprocess.check_output",
+      "source": "server_manager.py:1135",
+      "signature": "subprocess.check_output(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.server_manager.py:2882",
+      "kind": "integration",
+      "name": "_socket.socket",
+      "source": "server_manager.py:2882",
+      "signature": "_socket.socket(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.server_manager.py:2928",
+      "kind": "integration",
+      "name": "socket.socket",
+      "source": "server_manager.py:2928",
+      "signature": "socket.socket(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.server_manager.py:3006",
+      "kind": "integration",
+      "name": "socket.gethostname",
+      "source": "server_manager.py:3006",
+      "signature": "socket.gethostname(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.server_manager.py:3010",
+      "kind": "integration",
+      "name": "socket.getaddrinfo",
+      "source": "server_manager.py:3010",
+      "signature": "socket.getaddrinfo(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.server_manager.py:3039",
+      "kind": "integration",
+      "name": "subprocess.run",
+      "source": "server_manager.py:3039",
+      "signature": "subprocess.run(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.server_manager.py:3115",
+      "kind": "integration",
+      "name": "subprocess.run",
+      "source": "server_manager.py:3115",
+      "signature": "subprocess.run(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.server_manager.py:313",
+      "kind": "integration",
+      "name": "socket.socket",
+      "source": "server_manager.py:313",
+      "signature": "socket.socket(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.server_manager.py:316",
+      "kind": "integration",
+      "name": "server_socket.bind",
+      "source": "server_manager.py:316",
+      "signature": "server_socket.bind(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.server_manager.py:317",
+      "kind": "integration",
+      "name": "server_socket.listen",
+      "source": "server_manager.py:317",
+      "signature": "server_socket.listen(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.server_manager.py:318",
+      "kind": "integration",
+      "name": "server_socket.settimeout",
+      "source": "server_manager.py:318",
+      "signature": "server_socket.settimeout(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.server_manager.py:3231",
+      "kind": "integration",
+      "name": "subprocess.run",
+      "source": "server_manager.py:3231",
+      "signature": "subprocess.run(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.server_manager.py:3286",
+      "kind": "integration",
+      "name": "subprocess.run",
+      "source": "server_manager.py:3286",
+      "signature": "subprocess.run(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.server_manager.py:3299",
+      "kind": "integration",
+      "name": "subprocess.run",
+      "source": "server_manager.py:3299",
+      "signature": "subprocess.run(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "ai.bridge_route",
+      "kind": "ai_integration",
+      "name": "bridge_call経由全到達",
+      "source": "bridge.py",
+      "signature": "",
+      "summary": "全bridge_methodがAI経路で呼べる",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call 全method→ok/error記録"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "24メソッド到達可能"
+    },
+    {
+      "id": "ai.catalog",
+      "kind": "ai_integration",
+      "name": "describe_plugins登録",
+      "source": "geo_driver経由",
+      "signature": "",
+      "summary": "カタログに載り呼出可能か",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "describe_plugins→plugins[]にid実在+methods非空"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "describe_plugins: methods=36"
+    },
+    {
+      "id": "ai.pluginInfo",
+      "kind": "ai_integration",
+      "name": "pluginInfo自己記述",
+      "source": "bridge.py",
+      "signature": "pluginInfo()",
+      "summary": "summary/when_to_use/methodsの正確性",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call pluginInfo→メタ一致assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "自己記述あり"
+    },
+    {
+      "id": "logic_fn.http_server.py:cors_allowed_origin",
+      "kind": "logic_fn",
+      "name": "cors_allowed_origin",
+      "source": "http_server.py:48",
+      "signature": "cors_allowed_origin(origin)",
+      "summary": "CORS で応答を読ませてよいオリジンか判定する。",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.http_server.py:read_http_request",
+      "kind": "logic_fn",
+      "name": "read_http_request",
+      "source": "http_server.py:88",
+      "signature": "read_http_request(conn, max_size=…, max_body=…)",
+      "summary": "Read raw HTTP request bytes from a connected socket.",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.http_server.py:send_binary_response",
+      "kind": "logic_fn",
+      "name": "send_binary_response",
+      "source": "http_server.py:166",
+      "signature": "send_binary_response(conn, status_code, reason, data, content_type, extra_headers=…)",
+      "summary": "Send a binary HTTP response (images, etc.).",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.http_server.py:send_head_response",
+      "kind": "logic_fn",
+      "name": "send_head_response",
+      "source": "http_server.py:229",
+      "signature": "send_head_response(conn, status_code, reason, content_length, content_type)",
+      "summary": "Send headers only for a HEAD request (no body).",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.http_server.py:send_http_response",
+      "kind": "logic_fn",
+      "name": "send_http_response",
+      "source": "http_server.py:132",
+      "signature": "send_http_response(conn, status_code, reason, body, content_type=…)",
+      "summary": "Send a minimal HTTP response (text or bytes).",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.http_server.py:send_options_response",
+      "kind": "logic_fn",
+      "name": "send_options_response",
+      "source": "http_server.py:194",
+      "signature": "send_options_response(conn)",
+      "summary": "CORS + Private Network Access プリフライト(OPTIONS)応答。",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.http_server.py:set_request_origin",
+      "kind": "logic_fn",
+      "name": "set_request_origin",
+      "source": "http_server.py:28",
+      "signature": "set_request_origin(origin)",
+      "summary": "接続ハンドラが現在リクエストの Origin ヘッダを記録する。",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.kasc_import.py:import_kasc",
+      "kind": "logic_fn",
+      "name": "import_kasc",
+      "source": "kasc_import.py:704",
+      "signature": "import_kasc(source, iface=…, add_to_project=…, only_visible=…, apply_camera=…, group_prefix=…, replace=…, timeout=…)",
+      "summary": ".kasc を QGIS プロジェクトへ再構成する(GUIスレッド前提)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasc_import.py:inspect_kasc",
+      "kind": "logic_fn",
+      "name": "inspect_kasc",
+      "source": "kasc_import.py:283",
+      "signature": "inspect_kasc(source, timeout=…)",
+      "summary": ".kasc を解析し参照を解決した一覧を返す(QGIS副作用なし)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasc_import.py:parse_kasc",
+      "kind": "logic_fn",
+      "name": "parse_kasc",
+      "source": "kasc_import.py:107",
+      "signature": "parse_kasc(text)",
+      "summary": ".kasc テキストを構造化 dict へ変換する(stdlib のみ)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasc_import.py:resolve_ref",
+      "kind": "logic_fn",
+      "name": "resolve_ref",
+      "source": "kasc_import.py:258",
+      "signature": "resolve_ref(ref, base)",
+      "summary": "DATA/x.gpkg 等の相対参照を base(.kasc の所在)から絶対化する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:build_export_zip",
+      "kind": "logic_fn",
+      "name": "build_export_zip",
+      "source": "kasugai_export.py:3827",
+      "signature": "build_export_zip(out_dir=…)",
+      "summary": "エクスポート物一式を kasugai_canvas_<tag>.zip 相当の bytes で返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:build_hosted_view_url",
+      "kind": "logic_fn",
+      "name": "build_hosted_view_url",
+      "source": "kasugai_export.py:732",
+      "signature": "build_hosted_view_url(kasc_path, engine=…, port=…, channel=…)",
+      "summary": "ホスト版エンジン + geo_webviewサーバのデータ配信で .kasc を開くURL。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:build_kasugai_url",
+      "kind": "logic_fn",
+      "name": "build_kasugai_url",
+      "source": "kasugai_export.py:3875",
+      "signature": "build_kasugai_url(project_id, engine=…, port=…)",
+      "summary": "KASUGAI Canvas のプロジェクトURLを構築する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:build_local_view_url",
+      "kind": "logic_fn",
+      "name": "build_local_view_url",
+      "source": "kasugai_export.py:3981",
+      "signature": "build_local_view_url(kasc_path, engine=…, port=…)",
+      "summary": "geo_webview の HTTP サーバ経由で .kasc を開くURLを組み立てる。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:default_install_dir",
+      "kind": "logic_fn",
+      "name": "default_install_dir",
+      "source": "kasugai_export.py:4122",
+      "signature": "default_install_dir()",
+      "summary": "既定インストール先。インストーラ既定の C:\\kasugai\\kasugai_canvas",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:default_output_dir",
+      "kind": "logic_fn",
+      "name": "default_output_dir",
+      "source": "kasugai_export.py:478",
+      "signature": "default_output_dir()",
+      "summary": "既定出力先: <ドキュメント>/kasugai_canvas_qgis。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:detect_kasugai",
+      "kind": "logic_fn",
+      "name": "detect_kasugai",
+      "source": "kasugai_export.py:3860",
+      "signature": "detect_kasugai(port=…)",
+      "summary": "KASUGAIローカルサーバが稼働していればcapabilitiesを返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:detect_kasugai_install_dir",
+      "kind": "logic_fn",
+      "name": "detect_kasugai_install_dir",
+      "source": "kasugai_export.py:551",
+      "signature": "detect_kasugai_install_dir()",
+      "summary": "KASUGAI Canvas のインストール先を特定して返す（見つからなければ None）。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:ensure_kasugai_running",
+      "kind": "logic_fn",
+      "name": "ensure_kasugai_running",
+      "source": "kasugai_export.py:4069",
+      "signature": "ensure_kasugai_running(kasc_path=…, timeout=…, pump_events=…)",
+      "summary": "KASUGAI Canvas ローカルサーバを使える状態にして capabilities を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:existing_export",
+      "kind": "logic_fn",
+      "name": "existing_export",
+      "source": "kasugai_export.py:640",
+      "signature": "existing_export(output_dir=…)",
+      "summary": "既にエクスポート済みの ``kasugai_canvas.kasc`` を探す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:export_kasugai_project",
+      "kind": "logic_fn",
+      "name": "export_kasugai_project",
+      "source": "kasugai_export.py:3119",
+      "signature": "export_kasugai_project(iface, out_dir=…, visible_only=…, native_formats=…, hidden_as_off=…, embed_gpkg_style=…, emit_themes=…, emit_bookmarks=…, emit_launchers=…, emit_zip=…, emit_atlas=…, changed=…, live_url=…)",
+      "summary": "レイヤツリーを KASUGAI Canvas プロジェクトとして出力する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:export_zip_name",
+      "kind": "logic_fn",
+      "name": "export_zip_name",
+      "source": "kasugai_export.py:692",
+      "signature": "export_zip_name(channel=…)",
+      "summary": "エクスポートZIPのファイル名を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:find_kasugai_engine_dir",
+      "kind": "logic_fn",
+      "name": "find_kasugai_engine_dir",
+      "source": "kasugai_export.py:3964",
+      "signature": "find_kasugai_engine_dir(engine=…)",
+      "summary": "インストール済みCanvas web/ 内の ``<engine>/`` ディレクトリを返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:find_kasugai_exe",
+      "kind": "logic_fn",
+      "name": "find_kasugai_exe",
+      "source": "kasugai_export.py:3925",
+      "signature": "find_kasugai_exe()",
+      "summary": "起動可能な kasugai_canvas.exe のパスを返す（見つからなければ None）。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:find_kasugai_web_dir",
+      "kind": "logic_fn",
+      "name": "find_kasugai_web_dir",
+      "source": "kasugai_export.py:3941",
+      "signature": "find_kasugai_web_dir()",
+      "summary": "インストール済み KASUGAI Canvas の配信用 ``web/`` ディレクトリを返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:get_hosted_channel",
+      "kind": "logic_fn",
+      "name": "get_hosted_channel",
+      "source": "kasugai_export.py:683",
+      "signature": "get_hosted_channel()",
+      "summary": "QSettings の kasugai_hosted_channel(未設定は 'stable')を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:get_kasugai_install_dir",
+      "kind": "logic_fn",
+      "name": "get_kasugai_install_dir",
+      "source": "kasugai_export.py:514",
+      "signature": "get_kasugai_install_dir()",
+      "summary": "QSettings の kasugai_install_path（KASUGAI Canvas インストール先）を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:get_kasugai_port",
+      "kind": "logic_fn",
+      "name": "get_kasugai_port",
+      "source": "kasugai_export.py:664",
+      "signature": "get_kasugai_port()",
+      "summary": "QSettings の kasugai_port(未設定は8510)を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:get_output_dir",
+      "kind": "logic_fn",
+      "name": "get_output_dir",
+      "source": "kasugai_export.py:494",
+      "signature": "get_output_dir()",
+      "summary": "QSettings の kasugai_output_path(空/'__default__'は既定)を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:hosted_engine_base",
+      "kind": "logic_fn",
+      "name": "hosted_engine_base",
+      "source": "kasugai_export.py:717",
+      "signature": "hosted_engine_base(channel=…)",
+      "summary": "ホスト版エンジンのベースURL(末尾/付き)を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:install_kasugai",
+      "kind": "logic_fn",
+      "name": "install_kasugai",
+      "source": "kasugai_export.py:4177",
+      "signature": "install_kasugai(dest_dir=…, progress_cb=…, cancel=…)",
+      "summary": "KASUGAI Canvas の配布ZIPをダウンロード・展開してインストール先を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:install_kasugai_setup",
+      "kind": "logic_fn",
+      "name": "install_kasugai_setup",
+      "source": "kasugai_export.py:4235",
+      "signature": "install_kasugai_setup(wait=…, progress_cb=…, cancel=…)",
+      "summary": "NSIS セットアップをダウンロード・実行する通常インストール経路。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:kasugai_command",
+      "kind": "logic_fn",
+      "name": "kasugai_command",
+      "source": "kasugai_export.py:3913",
+      "signature": "kasugai_command(name, args=…, port=…)",
+      "summary": "POST /api/command でチャットツールをキューイング(ベストエフォート)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:kasugai_download_url",
+      "kind": "logic_fn",
+      "name": "kasugai_download_url",
+      "source": "kasugai_export.py:4109",
+      "signature": "kasugai_download_url()",
+      "summary": "latest.json から配布ZIPのURLを返す（取得失敗時は既定URL）。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:kasugai_projects_dir",
+      "kind": "logic_fn",
+      "name": "kasugai_projects_dir",
+      "source": "kasugai_export.py:561",
+      "signature": "kasugai_projects_dir()",
+      "summary": "KASUGAI インストール先の projects/ ディレクトリを返す（未設定なら None）。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:kasugai_qgis_projects_dir",
+      "kind": "logic_fn",
+      "name": "kasugai_qgis_projects_dir",
+      "source": "kasugai_export.py:579",
+      "signature": "kasugai_qgis_projects_dir()",
+      "summary": "QGIS 連携プロジェクト専用の ``<install>/QGIS_projects/`` を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:kasugai_setup_url",
+      "kind": "logic_fn",
+      "name": "kasugai_setup_url",
+      "source": "kasugai_export.py:4223",
+      "signature": "kasugai_setup_url()",
+      "summary": "配布セットアップ(NSIS EXE)のURLを返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:last_export_dir",
+      "kind": "logic_fn",
+      "name": "last_export_dir",
+      "source": "kasugai_export.py:631",
+      "signature": "last_export_dir()",
+      "summary": "直近のエクスポート出力先（/export-data/ の配信ルート）。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:launch_kasugai",
+      "kind": "logic_fn",
+      "name": "launch_kasugai",
+      "source": "kasugai_export.py:4006",
+      "signature": "launch_kasugai(kasc_path=…, open_browser=…)",
+      "summary": "kasugai_canvas.exe を起動する。起動要求に成功すれば True。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:normalize_engine",
+      "kind": "logic_fn",
+      "name": "normalize_engine",
+      "source": "kasugai_export.py:467",
+      "signature": "normalize_engine(engine)",
+      "summary": "engine 名を正規化。無効値は None を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:open_kasc_with_association",
+      "kind": "logic_fn",
+      "name": "open_kasc_with_association",
+      "source": "kasugai_export.py:4053",
+      "signature": "open_kasc_with_association(kasc_path)",
+      "summary": ".kasc ファイル関連付け経由で Canvas 起動を要求する（Windows）。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:preferred_output_dir",
+      "kind": "logic_fn",
+      "name": "preferred_output_dir",
+      "source": "kasugai_export.py:596",
+      "signature": "preferred_output_dir(project_name=…)",
+      "summary": "QGIS 連携プロジェクトの出力先ディレクトリを決める。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:project_dir_slug",
+      "kind": "logic_fn",
+      "name": "project_dir_slug",
+      "source": "kasugai_export.py:657",
+      "signature": "project_dir_slug(name)",
+      "summary": "プロジェクト名から projects/<id>/ 用の安全なスラッグを作る。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:set_output_dir",
+      "kind": "logic_fn",
+      "name": "set_output_dir",
+      "source": "kasugai_export.py:506",
+      "signature": "set_output_dir(path)",
+      "summary": "パネル等で選択した出力先を QSettings に保存する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.kasugai_export.py:wait_for_kasugai",
+      "kind": "logic_fn",
+      "name": "wait_for_kasugai",
+      "source": "kasugai_export.py:4030",
+      "signature": "wait_for_kasugai(timeout=…, interval=…, pump_events=…)",
+      "summary": "起動直後のローカルサーバ応答を待つ。応答があれば capabilities。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.live_mcp.py:discover_payload",
+      "kind": "logic_fn",
+      "name": "discover_payload",
+      "source": "live_mcp.py:161",
+      "signature": "discover_payload(self_port)",
+      "summary": "GET /live/mcp-discover の応答JSONを返す。",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.live_mcp.py:driver_sessions",
+      "kind": "logic_fn",
+      "name": "driver_sessions",
+      "source": "live_mcp.py:66",
+      "signature": "driver_sessions()",
+      "summary": "レジストリを走査し Live Driver セッション候補を返す。",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.live_mcp.py:is_loopback_peer",
+      "kind": "logic_fn",
+      "name": "is_loopback_peer",
+      "source": "live_mcp.py:43",
+      "signature": "is_loopback_peer(ip)",
+      "summary": "TCP ピアの IP が loopback か判定する。",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.live_mcp.py:pick_session",
+      "kind": "logic_fn",
+      "name": "pick_session",
+      "source": "live_mcp.py:140",
+      "signature": "pick_session(timeout=…)",
+      "summary": "生存確認できた最初のセッションを (base_url, token, entry) で返す。",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.live_mcp.py:relay",
+      "kind": "logic_fn",
+      "name": "relay",
+      "source": "live_mcp.py:193",
+      "signature": "relay(body, content_type=…, accept=…, session_id=…, protocol_version=…, timeout=…)",
+      "summary": "POST ボディを Live Driver の /mcp へ転送し応答を返す。",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.live_mcp.py:request_header",
+      "kind": "logic_fn",
+      "name": "request_header",
+      "source": "live_mcp.py:184",
+      "signature": "request_header(request_text, name)",
+      "summary": "生のHTTPリクエストテキストから指定ヘッダ値を取り出す。",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.live_sync.py:live_enabled",
+      "kind": "logic_fn",
+      "name": "live_enabled",
+      "source": "live_sync.py:36",
+      "signature": "live_enabled()",
+      "summary": "ライブ双方向連携が有効か(QSettings)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.scale_zoom.py:estimate_scale_from_zoom",
+      "kind": "logic_fn",
+      "name": "estimate_scale_from_zoom",
+      "source": "scale_zoom.py:136",
+      "signature": "estimate_scale_from_zoom(zoom_level)",
+      "summary": "Estimate a scale denominator from a (possibly fractional) zoom level.",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.scale_zoom.py:estimate_zoom_from_scale",
+      "kind": "logic_fn",
+      "name": "estimate_zoom_from_scale",
+      "source": "scale_zoom.py:84",
+      "signature": "estimate_zoom_from_scale(scale)",
+      "summary": "Estimate a continuous zoom level from a scale denominator.",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "standalone import+attr実在"
+    },
+    {
+      "id": "logic_fn.scale_zoom.py:estimate_zoom_from_scale_maplibre",
+      "kind": "logic_fn",
+      "name": "estimate_zoom_from_scale_maplibre",
+      "source": "scale_zoom.py:240",
+      "signature": "estimate_zoom_from_scale_maplibre(scale)",
+      "summary": "MapLibre-specific wrapper: duplicated implementation of",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "standalone import+attr実在"
+    }
+  ],
+  "static": {
+    "compileall": {
+      "rc": 0,
+      "out": ""
+    },
+    "flake8": {
+      "rc": 1,
+      "out": "C:\\devin\\qgis_live_harness\\qgis-plugin\\geo_webview\\defusedxml\\ElementTree.py:28:1: E402 module level import not at top of file\nC:\\devin\\qgis_live_harness\\qgis-plugin\\geo_webview\\defusedxml\\ElementTree.py:35:1: E402 module level import not at top of file"
+    },
+    "bandit": {
+      "rc": 0,
+      "out": "[main]\tINFO\tUsing ini file for skipped tests\n[main]\tINFO\tUsing command line arg for selected targets"
+    },
+    "ran_at": "2026-11-14T07:09:57+09:00",
+    "reload": {
+      "loaded": true,
+      "opened": true,
+      "plugins": [
+        "ImportPhotos",
+        "MetaSearch",
+        "QuickDEM4JP",
+        "StreetView",
+        "db_manager",
+        "geo_driver",
+        "geo_excel",
+        "geo_import",
+        "geo_launcher",
+        "geo_legend",
+        "geo_report",
+        "geo_search",
+        "geo_userfunc",
+        "geo_webview",
+        "menu_from_project",
+        "mmqgis",
+        "mojxml_plugin",
+        "plateau_plugin",
+        "processing",
+        "qfieldsync",
+        "searchlayers"
+      ]
+    }
+  }
+}

@@ -1,0 +1,32 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+<title>ai.prompt.bundled</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+body{font-family:system-ui,sans-serif;margin:2em;line-height:1.6;color:#222}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #ccc;padding:4px 8px;font-size:13px;text-align:left}
+th{background:#f0f0f0}
+.pass{color:#0a7d2c;font-weight:600}.fail{color:#c0392b;font-weight:600}
+.skip,.untested{color:#888}.removed{color:#999;text-decoration:line-through}
+code{background:#f5f5f5;padding:1px 4px}
+.meta{color:#666;font-size:13px}
+h1{font-size:1.4em}h2{font-size:1.1em;border-bottom:1px solid #ddd}
+</style></head><body>
+<h1>同梱おすすめプロンプト(6件) <code>ai.prompt.bundled</code></h1>
+<p class='meta'>kind=ai_integration / source=<code>geo_driver|geo_legend|geo_search の prompts/*.md</code> / signature=<code></code></p>
+<p>GIS操作の定型指示をプロンプトファイルとして同梱: organize-layers/standard-line-width/save-map-image/project-doctor(geo_driver), create-legend(geo_legend), search-features(geo_search)。kind=prompts は agents/skills と同じ bundled+ユーザ上書きモデル</p>
+<p class='meta'>依存: ui.AiPanel.suggestedPrompts</p>
+<h2>ロジック</h2>
+<pre class='mermaid'>
+flowchart LR
+  E_ai_prompt_bundled["AI経路"] --> H_ai_prompt_bundled["同梱おすすめプロンプト(6件)"]
+  H_ai_prompt_bundled --> R_ai_prompt_bundled["QGIS/ランタイムAPI"]
+  R_ai_prompt_bundled --> OUT["結果"]
+</pre>
+<h2>検証手順</h2><ul>
+<li><b>連携:</b> <code>instruction op=list kind=prompts → builtin=true 6件、op=read→本文</code></li>
+</ul>
+<h2>検証結果</h2><p class='removed'><b>REMOVED</b> 2026-11-14T06:46:29+09:00</p>
+<p class='meta'>実QGIS(pid28736)で確認済。ユーザは ~/.qgis-live/prompts/*.md または /prompt・ai_save_instruction で追加可能</p>
+<p class='meta'><a href='../index.html'>← 一覧へ</a></p>
+<script>mermaid.initialize({startOnLoad:true});</script></body></html>

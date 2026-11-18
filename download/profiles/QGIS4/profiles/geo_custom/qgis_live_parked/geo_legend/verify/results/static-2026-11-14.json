@@ -1,0 +1,42 @@
+{
+  "compileall": {
+    "rc": 0,
+    "out": ""
+  },
+  "flake8": {
+    "rc": 0,
+    "out": ""
+  },
+  "bandit": {
+    "rc": 0,
+    "out": "[main]\tINFO\tUsing ini file for skipped tests\n[main]\tINFO\tUsing command line arg for selected targets"
+  },
+  "ran_at": "2026-11-14T07:12:30+09:00",
+  "reload": {
+    "loaded": true,
+    "opened": false,
+    "plugins": [
+      "ImportPhotos",
+      "MetaSearch",
+      "QuickDEM4JP",
+      "StreetView",
+      "db_manager",
+      "geo_driver",
+      "geo_excel",
+      "geo_import",
+      "geo_launcher",
+      "geo_legend",
+      "geo_report",
+      "geo_search",
+      "geo_userfunc",
+      "geo_webview",
+      "menu_from_project",
+      "mmqgis",
+      "mojxml_plugin",
+      "plateau_plugin",
+      "processing",
+      "qfieldsync",
+      "searchlayers"
+    ]
+  }
+}

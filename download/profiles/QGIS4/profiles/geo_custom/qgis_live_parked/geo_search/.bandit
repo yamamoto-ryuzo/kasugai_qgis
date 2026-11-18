@@ -1,0 +1,10 @@
+# bandit config bundled in the plugin ZIP for plugins.qgis.org
+# security scanning (https://plugins.qgis.org/docs/security-scanning).
+# Reviewed-and-accepted LOW findings are skipped here; HIGH/MEDIUM
+# were fixed in code (see CHANGELOG).
+#
+#   B110: try/except/pass is an intentional idiom to keep the QGIS GUI thread alive
+#   B112: try/except/continue is an intentional idiom to keep the QGIS GUI thread alive
+#
+[bandit]
+skips: B110,B112

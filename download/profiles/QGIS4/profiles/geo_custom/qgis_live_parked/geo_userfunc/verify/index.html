@@ -1,0 +1,70 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+<title>geo_userfunc verify</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+body{font-family:system-ui,sans-serif;margin:2em;line-height:1.6;color:#222}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #ccc;padding:4px 8px;font-size:13px;text-align:left}
+th{background:#f0f0f0}
+.pass{color:#0a7d2c;font-weight:600}.fail{color:#c0392b;font-weight:600}
+.skip,.untested{color:#888}.removed{color:#999;text-decoration:line-through}
+code{background:#f5f5f5;padding:1px 4px}
+.meta{color:#666;font-size:13px}
+h1{font-size:1.4em}h2{font-size:1.1em;border-bottom:1px solid #ddd}
+</style></head><body>
+<h1>geo_userfunc — 機能検証ダッシュボード</h1>
+<p class='meta'>v1.0.7 / 2026-11-14T07:09:57+09:00 / 機能数 38 / 結果: pass=24, skip=14</p>
+<h2>トポロジ</h2>
+<pre class='mermaid'>
+flowchart LR
+  subgraph ENTRY["操作入口"]
+    UI["メニュー/ダイアログ"]
+    AI["AI/bridge_call"]
+  end
+  subgraph LOGIC["実装"]
+    entry_point___init___py_classFactory["classFactory<br/><i>entry_point</i>"]
+    action_MacroRegistry_run["run<br/><i>action</i>"]
+    action_plugin_initGui["initGui<br/><i>action</i>"]
+    action_plugin_unload["unload<br/><i>action</i>"]
+    dialog_GeoUserfuncManagerDialog["GeoUserfuncManagerDialog<br/><i>dialog</i>"]
+    dialog__FunctionEditDialog["_FunctionEditDialog<br/><i>dialog</i>"]
+    ui_GeoUserfuncManagerDialog__on_item_changed["_on_item_changed<br/><i>ui_control</i>"]
+    ui_MacroRegistry_on_changed["on_changed<br/><i>ui_control</i>"]
+    bridge_addSource["addSource<br/><i>bridge_method</i>"]
+    bridge_deleteFunction["deleteFunction<br/><i>bridge_method</i>"]
+    bridge_evalExpression["evalExpression<br/><i>bridge_method</i>"]
+    bridge_fetchFromUrl["fetchFromUrl<br/><i>bridge_method</i>"]
+    bridge_listFunctions["listFunctions<br/><i>bridge_method</i>"]
+    bridge_listMacros["listMacros<br/><i>bridge_method</i>"]
+    bridge_listSources["listSources<br/><i>bridge_method</i>"]
+    bridge_openLibraryDir["openLibraryDir<br/><i>bridge_method</i>"]
+    bridge_openManager["openManager<br/><i>bridge_method</i>"]
+    bridge_pluginInfo["pluginInfo<br/><i>bridge_method</i>"]
+    bridge_readFunction["readFunction<br/><i>bridge_method</i>"]
+    bridge_reload["reload<br/><i>bridge_method</i>"]
+    bridge_removeSource["removeSource<br/><i>bridge_method</i>"]
+    bridge_run["run<br/><i>bridge_method</i>"]
+    bridge_saveFunction["saveFunction<br/><i>bridge_method</i>"]
+    bridge_setEnabled["setEnabled<br/><i>bridge_method</i>"]
+    bridge_status["status<br/><i>bridge_method</i>"]
+    bridge_updateFromUpstream["updateFromUpstream<br/><i>bridge_method</i>"]
+    integration_bridge_py_488["QDesktopServices.openUrl<br/><i>integration</i>"]
+    integration_manager_dialog_py_251["QDesktopServices.openUrl<br/><i>integration</i>"]
+    ai_bridge_route["bridge_call経由全到達<br/><i>ai_integration</i>"]
+    ai_catalog["describe_plugins登録<br/><i>ai_integration</i>"]
+    ai_pluginInfo["pluginInfo自己記述<br/><i>ai_integration</i>"]
+    logic_fn_functions_user_functions_py_closeProject["closeProject<br/><i>logic_fn</i>"]
+    logic_fn_functions_user_functions_py_han2zen["han2zen<br/><i>logic_fn</i>"]
+    logic_fn_functions_user_functions_py_openProject["openProject<br/><i>logic_fn</i>"]
+    logic_fn_functions_user_functions_py_saveProject["saveProject<br/><i>logic_fn</i>"]
+    logic_fn_functions_user_functions_py_zen2han["zen2han<br/><i>logic_fn</i>"]
+    logic_fn_library_py_analyze_source["analyze_source<br/><i>logic_fn</i>"]
+    logic_fn_library_py_library_dir["library_dir<br/><i>logic_fn</i>"]
+  end
+  AI --> bridge_addSource & bridge_deleteFunction & bridge_evalExpression & bridge_fetchFromUrl & bridge_listFunctions & bridge_listMacros & bridge_listSources & bridge_openLibraryDir …
+  UI --> action_MacroRegistry_run & action_plugin_initGui & action_plugin_unload & dialog_GeoUserfuncManagerDialog & dialog__FunctionEditDialog & ui_GeoUserfuncManagerDialog__on_item_changed & ui_MacroRegistry_on_changed
+  LOGIC --> QGIS["QGIS API / iface / QgsProject"]
+  LOGIC --> EXT["外部連携(HTTP/subprocess/ファイル)"]
+</pre>
+<h2>機能一覧</h2><table><tr><th>id</th><th>名称</th><th>kind</th><th>連携/単独</th><th>結果</th><th>検証日時</th></tr><tr><td><a href='features/entry_point.__init__.py_classFactory.html'>entry_point.__init__.py:classFactory</a></td><td>classFactory</td><td>entry_point</td><td>-/○</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/action.MacroRegistry.run.html'>action.MacroRegistry.run</a></td><td>run</td><td>action</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/action.plugin.initGui.html'>action.plugin.initGui</a></td><td>initGui</td><td>action</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/action.plugin.unload.html'>action.plugin.unload</a></td><td>unload</td><td>action</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/dialog.GeoUserfuncManagerDialog.html'>dialog.GeoUserfuncManagerDialog</a></td><td>GeoUserfuncManagerDialog</td><td>dialog</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/dialog._FunctionEditDialog.html'>dialog._FunctionEditDialog</a></td><td>_FunctionEditDialog</td><td>dialog</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/ui.GeoUserfuncManagerDialog._on_item_changed.html'>ui.GeoUserfuncManagerDialog._on_item_changed</a></td><td>_on_item_changed</td><td>ui_control</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/ui.MacroRegistry.on_changed.html'>ui.MacroRegistry.on_changed</a></td><td>on_changed</td><td>ui_control</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.addSource.html'>bridge.addSource</a></td><td>addSource</td><td>bridge_method</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.deleteFunction.html'>bridge.deleteFunction</a></td><td>deleteFunction</td><td>bridge_method</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.evalExpression.html'>bridge.evalExpression</a></td><td>evalExpression</td><td>bridge_method</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.fetchFromUrl.html'>bridge.fetchFromUrl</a></td><td>fetchFromUrl</td><td>bridge_method</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.listFunctions.html'>bridge.listFunctions</a></td><td>listFunctions</td><td>bridge_method</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.listMacros.html'>bridge.listMacros</a></td><td>listMacros</td><td>bridge_method</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.listSources.html'>bridge.listSources</a></td><td>listSources</td><td>bridge_method</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.openLibraryDir.html'>bridge.openLibraryDir</a></td><td>openLibraryDir</td><td>bridge_method</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.openManager.html'>bridge.openManager</a></td><td>openManager</td><td>bridge_method</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.pluginInfo.html'>bridge.pluginInfo</a></td><td>pluginInfo</td><td>bridge_method</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.readFunction.html'>bridge.readFunction</a></td><td>readFunction</td><td>bridge_method</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.reload.html'>bridge.reload</a></td><td>reload</td><td>bridge_method</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.removeSource.html'>bridge.removeSource</a></td><td>removeSource</td><td>bridge_method</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.run.html'>bridge.run</a></td><td>run</td><td>bridge_method</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.saveFunction.html'>bridge.saveFunction</a></td><td>saveFunction</td><td>bridge_method</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.setEnabled.html'>bridge.setEnabled</a></td><td>setEnabled</td><td>bridge_method</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.status.html'>bridge.status</a></td><td>status</td><td>bridge_method</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.updateFromUpstream.html'>bridge.updateFromUpstream</a></td><td>updateFromUpstream</td><td>bridge_method</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/integration.bridge.py_488.html'>integration.bridge.py:488</a></td><td>QDesktopServices.openUrl</td><td>integration</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/integration.manager_dialog.py_251.html'>integration.manager_dialog.py:251</a></td><td>QDesktopServices.openUrl</td><td>integration</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/ai.bridge_route.html'>ai.bridge_route</a></td><td>bridge_call経由全到達</td><td>ai_integration</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/ai.catalog.html'>ai.catalog</a></td><td>describe_plugins登録</td><td>ai_integration</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/ai.pluginInfo.html'>ai.pluginInfo</a></td><td>pluginInfo自己記述</td><td>ai_integration</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/logic_fn.functions_user_functions.py_closeProject.html'>logic_fn.functions/user_functions.py:closeProject</a></td><td>closeProject</td><td>logic_fn</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/logic_fn.functions_user_functions.py_han2zen.html'>logic_fn.functions/user_functions.py:han2zen</a></td><td>han2zen</td><td>logic_fn</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/logic_fn.functions_user_functions.py_openProject.html'>logic_fn.functions/user_functions.py:openProject</a></td><td>openProject</td><td>logic_fn</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/logic_fn.functions_user_functions.py_saveProject.html'>logic_fn.functions/user_functions.py:saveProject</a></td><td>saveProject</td><td>logic_fn</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/logic_fn.functions_user_functions.py_zen2han.html'>logic_fn.functions/user_functions.py:zen2han</a></td><td>zen2han</td><td>logic_fn</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/logic_fn.library.py_analyze_source.html'>logic_fn.library.py:analyze_source</a></td><td>analyze_source</td><td>logic_fn</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/logic_fn.library.py_library_dir.html'>logic_fn.library.py:library_dir</a></td><td>library_dir</td><td>logic_fn</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr></table>
+<script>mermaid.initialize({startOnLoad:true});</script></body></html>

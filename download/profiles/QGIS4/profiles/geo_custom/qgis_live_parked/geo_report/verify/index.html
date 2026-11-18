@@ -1,0 +1,74 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+<title>geo_report verify</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+body{font-family:system-ui,sans-serif;margin:2em;line-height:1.6;color:#222}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #ccc;padding:4px 8px;font-size:13px;text-align:left}
+th{background:#f0f0f0}
+.pass{color:#0a7d2c;font-weight:600}.fail{color:#c0392b;font-weight:600}
+.skip,.untested{color:#888}.removed{color:#999;text-decoration:line-through}
+code{background:#f5f5f5;padding:1px 4px}
+.meta{color:#666;font-size:13px}
+h1{font-size:1.4em}h2{font-size:1.1em;border-bottom:1px solid #ddd}
+</style></head><body>
+<h1>geo_report — 機能検証ダッシュボード</h1>
+<p class='meta'>v2.9.8 / 2026-11-14T07:09:57+09:00 / 機能数 43 / 結果: pass=33, skip=10</p>
+<h2>トポロジ</h2>
+<pre class='mermaid'>
+flowchart LR
+  subgraph ENTRY["操作入口"]
+    UI["メニュー/ダイアログ"]
+    AI["AI/bridge_call"]
+  end
+  subgraph LOGIC["実装"]
+    entry_point___init___py_classFactory["classFactory<br/><i>entry_point</i>"]
+    action_GeoReport_initGui["initGui<br/><i>action</i>"]
+    action_GeoReport_run["run<br/><i>action</i>"]
+    action_GeoReport_unload["unload<br/><i>action</i>"]
+    dialog_LayoutFileSelectDialog["LayoutFileSelectDialog<br/><i>dialog</i>"]
+    dialog_LayoutSelectorDialog["LayoutSelectorDialog<br/><i>dialog</i>"]
+    ui_GeoReport__on_dock_visibility_changed["_on_dock_visibility_changed<br/><i>ui_control</i>"]
+    ui_LayoutFileSelectDialog_on_file_double_clicked["on_file_double_clicked<br/><i>ui_control</i>"]
+    ui_LayoutFileSelectDialog_on_selection_changed["on_selection_changed<br/><i>ui_control</i>"]
+    ui_LayoutSelectorDialog__on_layouts_changed["_on_layouts_changed<br/><i>ui_control</i>"]
+    ui_LayoutSelectorDialog_on_item_selected["on_item_selected<br/><i>ui_control</i>"]
+    ui_LayoutSelectorDialog_on_layout_selected["on_layout_selected<br/><i>ui_control</i>"]
+    ui_LayoutSelectorDialog_on_property_changed["on_property_changed<br/><i>ui_control</i>"]
+    ui_LayoutSelectorDialog_on_tab_changed["on_tab_changed<br/><i>ui_control</i>"]
+    bridge_addStandardLayout["addStandardLayout<br/><i>bridge_method</i>"]
+    bridge_closePanel["closePanel<br/><i>bridge_method</i>"]
+    bridge_createLayout["createLayout<br/><i>bridge_method</i>"]
+    bridge_duplicateLayout["duplicateLayout<br/><i>bridge_method</i>"]
+    bridge_itemProperties["itemProperties<br/><i>bridge_method</i>"]
+    bridge_layoutInfo["layoutInfo<br/><i>bridge_method</i>"]
+    bridge_listItems["listItems<br/><i>bridge_method</i>"]
+    bridge_listLayouts["listLayouts<br/><i>bridge_method</i>"]
+    bridge_listPropertyFiles["listPropertyFiles<br/><i>bridge_method</i>"]
+    bridge_listStandardLayouts["listStandardLayouts<br/><i>bridge_method</i>"]
+    bridge_loadLayoutProperties["loadLayoutProperties<br/><i>bridge_method</i>"]
+    bridge_manageLayouts["manageLayouts<br/><i>bridge_method</i>"]
+    bridge_openLayoutManager["openLayoutManager<br/><i>bridge_method</i>"]
+    bridge_openPanel["openPanel<br/><i>bridge_method</i>"]
+    bridge_pluginInfo["pluginInfo<br/><i>bridge_method</i>"]
+    bridge_printOptions["printOptions<br/><i>bridge_method</i>"]
+    bridge_refresh["refresh<br/><i>bridge_method</i>"]
+    bridge_removeLayout["removeLayout<br/><i>bridge_method</i>"]
+    bridge_renameLayout["renameLayout<br/><i>bridge_method</i>"]
+    bridge_saveLayoutProperties["saveLayoutProperties<br/><i>bridge_method</i>"]
+    bridge_selectLayout["selectLayout<br/><i>bridge_method</i>"]
+    bridge_setItemProperties["setItemProperties<br/><i>bridge_method</i>"]
+    bridge_showPrintArea["showPrintArea<br/><i>bridge_method</i>"]
+    bridge_status["status<br/><i>bridge_method</i>"]
+    ai_bridge_route["bridge_call経由全到達<br/><i>ai_integration</i>"]
+    ai_catalog["describe_plugins登録<br/><i>ai_integration</i>"]
+    ai_pluginInfo["pluginInfo自己記述<br/><i>ai_integration</i>"]
+    logic_fn___init___py_log_message["log_message<br/><i>logic_fn</i>"]
+    logic_fn_plugin_py_log_message["log_message<br/><i>logic_fn</i>"]
+  end
+  AI --> bridge_addStandardLayout & bridge_closePanel & bridge_createLayout & bridge_duplicateLayout & bridge_itemProperties & bridge_layoutInfo & bridge_listItems & bridge_listLayouts …
+  UI --> action_GeoReport_initGui & action_GeoReport_run & action_GeoReport_unload & dialog_LayoutFileSelectDialog & dialog_LayoutSelectorDialog & ui_GeoReport__on_dock_visibility_changed & ui_LayoutFileSelectDialog_on_file_double_clicked & ui_LayoutFileSelectDialog_on_selection_changed …
+  LOGIC --> QGIS["QGIS API / iface / QgsProject"]
+</pre>
+<h2>機能一覧</h2><table><tr><th>id</th><th>名称</th><th>kind</th><th>連携/単独</th><th>結果</th><th>検証日時</th></tr><tr><td><a href='features/entry_point.__init__.py_classFactory.html'>entry_point.__init__.py:classFactory</a></td><td>classFactory</td><td>entry_point</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/action.GeoReport.initGui.html'>action.GeoReport.initGui</a></td><td>initGui</td><td>action</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/action.GeoReport.run.html'>action.GeoReport.run</a></td><td>run</td><td>action</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/action.GeoReport.unload.html'>action.GeoReport.unload</a></td><td>unload</td><td>action</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/dialog.LayoutFileSelectDialog.html'>dialog.LayoutFileSelectDialog</a></td><td>LayoutFileSelectDialog</td><td>dialog</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/dialog.LayoutSelectorDialog.html'>dialog.LayoutSelectorDialog</a></td><td>LayoutSelectorDialog</td><td>dialog</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/ui.GeoReport._on_dock_visibility_changed.html'>ui.GeoReport._on_dock_visibility_changed</a></td><td>_on_dock_visibility_changed</td><td>ui_control</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/ui.LayoutFileSelectDialog.on_file_double_clicked.html'>ui.LayoutFileSelectDialog.on_file_double_clicked</a></td><td>on_file_double_clicked</td><td>ui_control</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/ui.LayoutFileSelectDialog.on_selection_changed.html'>ui.LayoutFileSelectDialog.on_selection_changed</a></td><td>on_selection_changed</td><td>ui_control</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/ui.LayoutSelectorDialog._on_layouts_changed.html'>ui.LayoutSelectorDialog._on_layouts_changed</a></td><td>_on_layouts_changed</td><td>ui_control</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/ui.LayoutSelectorDialog.on_item_selected.html'>ui.LayoutSelectorDialog.on_item_selected</a></td><td>on_item_selected</td><td>ui_control</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/ui.LayoutSelectorDialog.on_layout_selected.html'>ui.LayoutSelectorDialog.on_layout_selected</a></td><td>on_layout_selected</td><td>ui_control</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/ui.LayoutSelectorDialog.on_property_changed.html'>ui.LayoutSelectorDialog.on_property_changed</a></td><td>on_property_changed</td><td>ui_control</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/ui.LayoutSelectorDialog.on_tab_changed.html'>ui.LayoutSelectorDialog.on_tab_changed</a></td><td>on_tab_changed</td><td>ui_control</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.addStandardLayout.html'>bridge.addStandardLayout</a></td><td>addStandardLayout</td><td>bridge_method</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.closePanel.html'>bridge.closePanel</a></td><td>closePanel</td><td>bridge_method</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.createLayout.html'>bridge.createLayout</a></td><td>createLayout</td><td>bridge_method</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.duplicateLayout.html'>bridge.duplicateLayout</a></td><td>duplicateLayout</td><td>bridge_method</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.itemProperties.html'>bridge.itemProperties</a></td><td>itemProperties</td><td>bridge_method</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.layoutInfo.html'>bridge.layoutInfo</a></td><td>layoutInfo</td><td>bridge_method</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.listItems.html'>bridge.listItems</a></td><td>listItems</td><td>bridge_method</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.listLayouts.html'>bridge.listLayouts</a></td><td>listLayouts</td><td>bridge_method</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.listPropertyFiles.html'>bridge.listPropertyFiles</a></td><td>listPropertyFiles</td><td>bridge_method</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.listStandardLayouts.html'>bridge.listStandardLayouts</a></td><td>listStandardLayouts</td><td>bridge_method</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.loadLayoutProperties.html'>bridge.loadLayoutProperties</a></td><td>loadLayoutProperties</td><td>bridge_method</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.manageLayouts.html'>bridge.manageLayouts</a></td><td>manageLayouts</td><td>bridge_method</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.openLayoutManager.html'>bridge.openLayoutManager</a></td><td>openLayoutManager</td><td>bridge_method</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.openPanel.html'>bridge.openPanel</a></td><td>openPanel</td><td>bridge_method</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.pluginInfo.html'>bridge.pluginInfo</a></td><td>pluginInfo</td><td>bridge_method</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.printOptions.html'>bridge.printOptions</a></td><td>printOptions</td><td>bridge_method</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.refresh.html'>bridge.refresh</a></td><td>refresh</td><td>bridge_method</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.removeLayout.html'>bridge.removeLayout</a></td><td>removeLayout</td><td>bridge_method</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.renameLayout.html'>bridge.renameLayout</a></td><td>renameLayout</td><td>bridge_method</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.saveLayoutProperties.html'>bridge.saveLayoutProperties</a></td><td>saveLayoutProperties</td><td>bridge_method</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.selectLayout.html'>bridge.selectLayout</a></td><td>selectLayout</td><td>bridge_method</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.setItemProperties.html'>bridge.setItemProperties</a></td><td>setItemProperties</td><td>bridge_method</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.showPrintArea.html'>bridge.showPrintArea</a></td><td>showPrintArea</td><td>bridge_method</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/bridge.status.html'>bridge.status</a></td><td>status</td><td>bridge_method</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/ai.bridge_route.html'>ai.bridge_route</a></td><td>bridge_call経由全到達</td><td>ai_integration</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/ai.catalog.html'>ai.catalog</a></td><td>describe_plugins登録</td><td>ai_integration</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/ai.pluginInfo.html'>ai.pluginInfo</a></td><td>pluginInfo自己記述</td><td>ai_integration</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/logic_fn.__init__.py_log_message.html'>logic_fn.__init__.py:log_message</a></td><td>log_message</td><td>logic_fn</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr><tr><td><a href='features/logic_fn.plugin.py_log_message.html'>logic_fn.plugin.py:log_message</a></td><td>log_message</td><td>logic_fn</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-14T07:09:57+09:00</td></tr></table>
+<script>mermaid.initialize({startOnLoad:true});</script></body></html>

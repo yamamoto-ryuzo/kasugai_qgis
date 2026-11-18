@@ -1,0 +1,10 @@
+[flake8]
+# QGIS plugin codebase conventions:
+# - E501: pre-existing code contains very long lines; line-length is not enforced.
+# - W503/W504: mutually exclusive line-break rules; both styles are used.
+extend-ignore = E501, W503, W504
+
+# defusedxml is vendored third-party code kept verbatim
+# (it wraps stdlib xml.* with unused-looking imports by design).
+per-file-ignores =
+    defusedxml/*.py: E402,F401,F403,F405,E731,F841

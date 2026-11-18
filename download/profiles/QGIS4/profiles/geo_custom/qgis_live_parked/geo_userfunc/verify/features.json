@@ -1,0 +1,796 @@
+{
+  "component": "geo_userfunc",
+  "component_type": "qgis_plugin",
+  "version": "1.0.7",
+  "driver": {
+    "type": "qgis_live_harness",
+    "detect": "GET http://127.0.0.1:<http_port>/api/health",
+    "launch": "npm run live:ensure",
+    "ready": "/api/health が ok:true を返す",
+    "control": "POST /api/cmd Bearer <live_dir token>",
+    "detected_from": "scripts/qgis-session.mjs, live_driver.py"
+  },
+  "updated": "2026-11-14T07:09:57+09:00",
+  "features": [
+    {
+      "id": "entry_point.__init__.py:classFactory",
+      "kind": "entry_point",
+      "name": "classFactory",
+      "source": "__init__.py:5",
+      "signature": "classFactory(iface)",
+      "summary": "",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "import→呼出→戻り値assert",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "standalone経路のみ(要runtime依存無し)"
+    },
+    {
+      "id": "action.MacroRegistry.run",
+      "kind": "action",
+      "name": "run",
+      "source": "registry.py:93",
+      "signature": "run(macro_id, context)",
+      "summary": "登録マクロを実行して結果をdictで返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call/generic trigger→実在確認"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "action.plugin.initGui",
+      "kind": "action",
+      "name": "initGui",
+      "source": "plugin.py:80",
+      "signature": "initGui()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call/generic trigger→実在確認"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "action.plugin.unload",
+      "kind": "action",
+      "name": "unload",
+      "source": "plugin.py:104",
+      "signature": "unload()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call/generic trigger→実在確認"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "dialog.GeoUserfuncManagerDialog",
+      "kind": "dialog",
+      "name": "GeoUserfuncManagerDialog",
+      "source": "manager_dialog.py:84",
+      "signature": "GeoUserfuncManagerDialog",
+      "summary": "ユーザー関数ライブラリの管理ダイアログ。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "openDialog→screenshot→closeDialog"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "dialog._FunctionEditDialog",
+      "kind": "dialog",
+      "name": "_FunctionEditDialog",
+      "source": "manager_dialog.py:41",
+      "signature": "_FunctionEditDialog",
+      "summary": "1ファイルのソース編集ダイアログ(構文検証付き保存)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "openDialog→screenshot→closeDialog"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.GeoUserfuncManagerDialog._on_item_changed",
+      "kind": "ui_control",
+      "name": "_on_item_changed",
+      "source": "manager_dialog.py:201",
+      "signature": "_on_item_changed(item)",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "ui.MacroRegistry.on_changed",
+      "kind": "ui_control",
+      "name": "on_changed",
+      "source": "registry.py:112",
+      "signature": "on_changed(fn)",
+      "summary": "登録内容が変わったとき呼ぶリスナを追加(UI同期用)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "親dialog経由で操作・状態assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "bridge.addSource",
+      "kind": "bridge_method",
+      "name": "addSource",
+      "source": "bridge.py:443",
+      "signature": "addSource(file, url)",
+      "summary": "sources.jsonへ更新元を追加する(ユーザdir側)。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call addSource → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "要実引数(応答あり): {'ok': False, 'error': 'file must be a .py file name'}"
+    },
+    {
+      "id": "bridge.deleteFunction",
+      "kind": "bridge_method",
+      "name": "deleteFunction",
+      "source": "bridge.py:357",
+      "signature": "deleteFunction(name)",
+      "summary": "ライブラリ内ファイルを削除する。反映はreload()。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call deleteFunction → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.evalExpression",
+      "kind": "bridge_method",
+      "name": "evalExpression",
+      "source": "bridge.py:313",
+      "signature": "evalExpression(expression, layer_id=…, feature_id=…)",
+      "summary": "式を評価して結果を返す。式関数の動作確認用。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call evalExpression → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "要実引数(応答あり): {'ok': False, 'error': 'parser error: \\nIncomplete expression. You might not have finished the full expression.'}"
+    },
+    {
+      "id": "bridge.fetchFromUrl",
+      "kind": "bridge_method",
+      "name": "fetchFromUrl",
+      "source": "bridge.py:396",
+      "signature": "fetchFromUrl(url, name=…)",
+      "summary": "http/httpsのURLから.pyを取得してライブラリへ保存しreloadする。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call fetchFromUrl → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "要実引数(応答あり): {'ok': False, 'error': 'only http/https URLs are allowed'}"
+    },
+    {
+      "id": "bridge.listFunctions",
+      "kind": "bridge_method",
+      "name": "listFunctions",
+      "source": "bridge.py:273",
+      "signature": "listFunctions()",
+      "summary": "ライブラリ内ファイルの一覧と登録済み式関数を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call listFunctions → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.listMacros",
+      "kind": "bridge_method",
+      "name": "listMacros",
+      "source": "bridge.py:277",
+      "signature": "listMacros()",
+      "summary": "実行可能マクロ一覧(ライブラリ内+登録済み)を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call listMacros → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.listSources",
+      "kind": "bridge_method",
+      "name": "listSources",
+      "source": "bridge.py:438",
+      "signature": "listSources()",
+      "summary": "sources.json のupstream更新元一覧を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call listSources → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.openLibraryDir",
+      "kind": "bridge_method",
+      "name": "openLibraryDir",
+      "source": "bridge.py:482",
+      "signature": "openLibraryDir()",
+      "summary": "ライブラリフォルダをOSのファイルマネージャで開く。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call openLibraryDir → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.openManager",
+      "kind": "bridge_method",
+      "name": "openManager",
+      "source": "bridge.py:391",
+      "signature": "openManager()",
+      "summary": "管理ダイアログを開く。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call openManager → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.pluginInfo",
+      "kind": "bridge_method",
+      "name": "pluginInfo",
+      "source": "bridge.py:243",
+      "signature": "pluginInfo()",
+      "summary": "プラグインの自己記述(id/summary/when_to_use/methods)を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call pluginInfo → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.readFunction",
+      "kind": "bridge_method",
+      "name": "readFunction",
+      "source": "bridge.py:345",
+      "signature": "readFunction(name)",
+      "summary": "ライブラリ内ファイルのソースを返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call readFunction → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "要実引数(応答あり): {'ok': False, 'error': 'file not found: '}"
+    },
+    {
+      "id": "bridge.reload",
+      "kind": "bridge_method",
+      "name": "reload",
+      "source": "bridge.py:376",
+      "signature": "reload()",
+      "summary": "ライブラリを再スキャンして全再登録する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call reload → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.removeSource",
+      "kind": "bridge_method",
+      "name": "removeSource",
+      "source": "bridge.py:468",
+      "signature": "removeSource(file)",
+      "summary": "sources.jsonから更新元を削除する。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call removeSource → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.run",
+      "kind": "bridge_method",
+      "name": "run",
+      "source": "bridge.py:296",
+      "signature": "run(name, layer_id=…, feature_id=…, args=…, confirm=…)",
+      "summary": "マクロを実行する。共有レジストリ優先、次にライブラリ内。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call run → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "要実引数(応答あり): {'ok': False, 'error': 'unknown macro: '}"
+    },
+    {
+      "id": "bridge.saveFunction",
+      "kind": "bridge_method",
+      "name": "saveFunction",
+      "source": "bridge.py:350",
+      "signature": "saveFunction(name, source)",
+      "summary": "構文検証してからライブラリへ保存する。反映はreload()。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call saveFunction → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.setEnabled",
+      "kind": "bridge_method",
+      "name": "setEnabled",
+      "source": "bridge.py:365",
+      "signature": "setEnabled(name, enabled=…)",
+      "summary": "ファイルの有効/無効をmanifestへ保存してreloadする。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call setEnabled → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "bridge.status",
+      "kind": "bridge_method",
+      "name": "status",
+      "source": "bridge.py:261",
+      "signature": "status()",
+      "summary": "ライブラリの実行時状態を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call status → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "bridge_call応答あり args=[]"
+    },
+    {
+      "id": "bridge.updateFromUpstream",
+      "kind": "bridge_method",
+      "name": "updateFromUpstream",
+      "source": "bridge.py:383",
+      "signature": "updateFromUpstream()",
+      "summary": "sources.json のURLからファイルを再取得してreloadする。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "QGISプラグインロード",
+        "geo_driver"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call updateFromUpstream → 応答assert"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "副作用/破壊的/外部通信操作のため手動検証対象"
+    },
+    {
+      "id": "integration.bridge.py:488",
+      "kind": "integration",
+      "name": "QDesktopServices.openUrl",
+      "source": "bridge.py:488",
+      "signature": "QDesktopServices.openUrl(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "integration.manager_dialog.py:251",
+      "kind": "integration",
+      "name": "QDesktopServices.openUrl",
+      "source": "manager_dialog.py:251",
+      "signature": "QDesktopServices.openUrl(…)",
+      "summary": "外部連携呼出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "連携先の実在/生成物を確認"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "連携呼出点の記録(実連携実行はbridge_method等で確認)"
+    },
+    {
+      "id": "ai.bridge_route",
+      "kind": "ai_integration",
+      "name": "bridge_call経由全到達",
+      "source": "bridge.py",
+      "signature": "",
+      "summary": "全bridge_methodがAI経路で呼べる",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call 全method→ok/error記録"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "11メソッド到達可能"
+    },
+    {
+      "id": "ai.catalog",
+      "kind": "ai_integration",
+      "name": "describe_plugins登録",
+      "source": "geo_driver経由",
+      "signature": "",
+      "summary": "カタログに載り呼出可能か",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "describe_plugins→plugins[]にid実在+methods非空"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "describe_plugins: methods=17"
+    },
+    {
+      "id": "ai.pluginInfo",
+      "kind": "ai_integration",
+      "name": "pluginInfo自己記述",
+      "source": "bridge.py",
+      "signature": "pluginInfo()",
+      "summary": "summary/when_to_use/methodsの正確性",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "bridge_call pluginInfo→メタ一致assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "自己記述あり"
+    },
+    {
+      "id": "logic_fn.functions/user_functions.py:closeProject",
+      "kind": "logic_fn",
+      "name": "closeProject",
+      "source": "functions/user_functions.py:13",
+      "signature": "closeProject()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.functions/user_functions.py:han2zen",
+      "kind": "logic_fn",
+      "name": "han2zen",
+      "source": "functions/user_functions.py:41",
+      "signature": "han2zen(moji, feature, parent)",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.functions/user_functions.py:openProject",
+      "kind": "logic_fn",
+      "name": "openProject",
+      "source": "functions/user_functions.py:5",
+      "signature": "openProject()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.functions/user_functions.py:saveProject",
+      "kind": "logic_fn",
+      "name": "saveProject",
+      "source": "functions/user_functions.py:9",
+      "signature": "saveProject()",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.functions/user_functions.py:zen2han",
+      "kind": "logic_fn",
+      "name": "zen2han",
+      "source": "functions/user_functions.py:18",
+      "signature": "zen2han(moji, feature, parent)",
+      "summary": "",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.library.py:analyze_source",
+      "kind": "logic_fn",
+      "name": "analyze_source",
+      "source": "library.py:76",
+      "signature": "analyze_source(src, path=…)",
+      "summary": "ソースをAST解析し、関数/フック/マクロの定義を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    },
+    {
+      "id": "logic_fn.library.py:library_dir",
+      "kind": "logic_fn",
+      "name": "library_dir",
+      "source": "library.py:44",
+      "signature": "library_dir()",
+      "summary": "稼働ライブラリdir(<profile>/python/geo_userfunc/)を返す。",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [],
+      "verify": {
+        "standalone": "",
+        "integrated": "pyeval で属性実在+必要なら呼出"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-14T07:09:57+09:00",
+      "note": "属性/シンボル実在確認(pyeval)"
+    }
+  ],
+  "static": {
+    "compileall": {
+      "rc": 0,
+      "out": ""
+    },
+    "flake8": {
+      "rc": 1,
+      "out": "C:\\devin\\qgis_live_harness\\qgis-plugin\\geo_userfunc\\functions\\user_functions.py:1:1: F403 'from qgis.core import *' used; unable to detect undefined names\nC:\\devin\\qgis_live_harness\\qgis-plugin\\geo_userfunc\\functions\\user_functions.py:2:1: F403 'from qgis.gui import *' used; unable to detect undefined names\nC:\\devin\\qgis_live_harness\\qgis-plugin\\geo_userfunc\\functions\\user_functions.py:17:2: F405 'qgsfunction' may be undefined, or defined from star imports: qgis.core, qgis.gui\nC:\\devin\\qgis_live_harness\\qgis-plugin\\geo_userfunc\\functions\\user_functions.py:25:5: F841 local variable 'FULLWIDTH_ALL' is assigned to but never used\nC:\\devin\\qgis_live_harness\\qgis-plugin\\geo_userfunc\\functions\\user_functions.py:30:54: W605 invalid escape sequence '\\]'\nC:\\devin\\qgis_live_harness\\qgis-plugin\\geo_userfunc\\functions\\user_functions.py:32:5: F841 local variable 'HALFWIDTH_ALL' is assigned to but never used\nC:\\devin\\qgis_live_harness\\qgis-plugin\\geo_userfunc\\functions\\user_functions.py:48:5: F841 local variable 'FULLWIDTH_ALL' is assigned to but never used\nC:\\devin\\qgis_live_harness\\qgis-plugin\\geo_userfunc\\functions\\user_functions.py:53:54: W605 invalid escape sequence '\\]'\nC:\\devin\\qgis_live_harness\\qgis-plugin\\geo_userfunc\\functions\\user_functions.py:55:5: F841 local variable 'HALFWIDTH_ALL' is assigned to but never used\n<unknown>:30: SyntaxWarning: invalid escape sequence '\\]'\n<unknown>:53: SyntaxWarning: invalid escape sequence '\\]'"
+    },
+    "bandit": {
+      "rc": 1,
+      "out": "Run started:2026-11-13 22:10:54.317257+00:00\n\nTest results:\n>> Issue: [B112:try_except_continue] Try, Except, Continue detected.\n   Severity: Low   Confidence: High\n   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)\n   More Info: https://bandit.readthedocs.io/en/1.9.4/plugins/b112_try_except_continue.html\n   Location: C:\\devin\\qgis_live_harness\\qgis-plugin\\geo_userfunc\\bridge.py:430:12\n429\t                    data = json.load(f)\n430\t            except Exception:\n431\t                continue\n432\t            for item in data if isinstance(data, list) else []:\n\n--------------------------------------------------\n\nCode scanned:\n\tTotal lines of code: 1491\n\tTotal lines skipped (#nosec): 0\n\tTotal potential issues skipped due to specifically being disabled (e.g., #nosec BXXX): 4\n\nRun metrics:\n\tTotal issues (by severity):\n\t\tUndefined: 0\n\t\tLow: 1\n\t\tMedium: 0\n\t\tHigh: 0\n\tTotal issues (by confidence):\n\t\tUndefined: 0\n\t\tLow: 0\n\t\tMedium: 0\n\t\tHigh: 1\nFiles skipped (0):\n[main]\tINFO\tUsing ini file for skipped tests\n[main]\tINFO\tUsing command line arg for selected targets\n[warnings]\tWARNING\tinvalid escape sequence '\\]'\n\n[warnings]\tWARNING\tinvalid escape sequence '\\]'\n\n[tester]\tWARNING\tnosec encountered (B102), but no failed test on file C:\\devin\\qgis_live_harness\\qgis-plugin\\geo_userfunc\\library.py:256"
+    },
+    "ran_at": "2026-11-14T07:09:57+09:00",
+    "reload": {
+      "loaded": true,
+      "opened": false,
+      "plugins": [
+        "ImportPhotos",
+        "MetaSearch",
+        "QuickDEM4JP",
+        "StreetView",
+        "db_manager",
+        "geo_driver",
+        "geo_excel",
+        "geo_import",
+        "geo_launcher",
+        "geo_legend",
+        "geo_report",
+        "geo_search",
+        "geo_userfunc",
+        "geo_webview",
+        "menu_from_project",
+        "mmqgis",
+        "mojxml_plugin",
+        "plateau_plugin",
+        "processing",
+        "qfieldsync",
+        "searchlayers"
+      ]
+    }
+  }
+}

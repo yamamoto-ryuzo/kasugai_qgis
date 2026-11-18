@@ -1,0 +1,11 @@
+[flake8]
+# QGIS plugin codebase conventions:
+# - E501: pre-existing code contains very long lines; line-length is not enforced.
+# - W503/W504: mutually exclusive line-break rules; both styles are used.
+extend-ignore = E501, W503, W504
+
+# License/docstring header precedes imports (standard QGIS plugin layout).
+# .resources is imported for Qt resource registration side effects.
+per-file-ignores =
+    __init__.py: E402
+    plugin.py: E402, F401

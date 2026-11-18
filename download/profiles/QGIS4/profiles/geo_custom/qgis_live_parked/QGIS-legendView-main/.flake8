@@ -1,0 +1,12 @@
+[flake8]
+# QGIS plugin codebase conventions:
+# - E501: pre-existing code contains very long lines; line-length is not enforced.
+# - W503/W504: mutually exclusive line-break rules; both styles are used.
+extend-ignore = E501, W503, W504
+
+# Upstream plugin files: qt_compat/resources_rc star imports are an
+# intentional Qt5/Qt6 compatibility shim and Qt resource registration.
+per-file-ignores =
+    qt_compat.py: F401
+    legend_view.py: F401, F403, F405
+    legend_view_dockwidget.py: F401, F403, F405

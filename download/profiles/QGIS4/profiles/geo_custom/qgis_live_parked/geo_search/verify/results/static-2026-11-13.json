@@ -1,0 +1,43 @@
+{
+  "compileall": {
+    "rc": 0,
+    "out": ""
+  },
+  "flake8": {
+    "rc": 0,
+    "out": ""
+  },
+  "bandit": {
+    "rc": 0,
+    "out": "[main]\tINFO\tUsing ini file for skipped tests\n[main]\tINFO\tUsing command line arg for selected targets\n[tester]\tWARNING\tnosec encountered (B608), but no failed test on file C:\\devin\\qgis_live_harness\\qgis-plugin\\geo_search\\searchfeature.py:1880\n[tester]\tWARNING\tnosec encountered (B608), but no failed test on file C:\\devin\\qgis_live_harness\\qgis-plugin\\geo_search\\searchfeature.py:1880"
+  },
+  "ran_at": "2026-11-13T23:50:08+09:00",
+  "reload": {
+    "loaded": true,
+    "opened": false,
+    "plugins": [
+      "MetaSearch",
+      "Qgis2threejs",
+      "QuickDEM4JP",
+      "StreetView",
+      "db_manager",
+      "geo_driver",
+      "geo_excel",
+      "geo_import",
+      "geo_launcher",
+      "geo_legend",
+      "geo_report",
+      "geo_search",
+      "geo_userfunc",
+      "geo_webview",
+      "menu_from_project",
+      "mmqgis",
+      "mojxml_plugin",
+      "plateau_plugin",
+      "processing",
+      "qfieldsync",
+      "qgis2web",
+      "searchlayers"
+    ]
+  }
+}
