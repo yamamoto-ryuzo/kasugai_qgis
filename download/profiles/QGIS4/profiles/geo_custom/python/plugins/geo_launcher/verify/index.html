@@ -1,0 +1,79 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+<title>geo_launcher verify</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+body{font-family:system-ui,sans-serif;margin:2em;line-height:1.6;color:#222}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #ccc;padding:4px 8px;font-size:13px;text-align:left}
+th{background:#f0f0f0}
+.pass{color:#0a7d2c;font-weight:600}.fail{color:#c0392b;font-weight:600}
+.skip,.untested{color:#888}.removed{color:#999;text-decoration:line-through}
+code{background:#f5f5f5;padding:1px 4px}
+.meta{color:#666;font-size:13px}
+h1{font-size:1.4em}h2{font-size:1.1em;border-bottom:1px solid #ddd}
+</style></head><body>
+<h1>geo_launcher — 機能検証ダッシュボード</h1>
+<p class='meta'>v1.1.2 / 2026-11-15T22:33:28+09:00 / 機能数 47 / 結果: pass=31, skip=16</p>
+<h2>トポロジ</h2>
+<pre class='mermaid'>
+flowchart LR
+  subgraph ENTRY["操作入口"]
+    UI["メニュー/ダイアログ"]
+    AI["AI/bridge_call"]
+  end
+  subgraph LOGIC["実装"]
+    entry_point___init___py_classFactory["classFactory<br/><i>entry_point</i>"]
+    action_plugin_initGui["initGui<br/><i>action</i>"]
+    action_plugin_open_dialog["open_dialog<br/><i>action</i>"]
+    action_plugin_unload["unload<br/><i>action</i>"]
+    dialog_GeoLauncherDialog["GeoLauncherDialog<br/><i>dialog</i>"]
+    dialog_GeoLauncherSettingsDialog["GeoLauncherSettingsDialog<br/><i>dialog</i>"]
+    ui_GeoLauncherDialog__on_dl_progress["_on_dl_progress<br/><i>ui_control</i>"]
+    ui_Installer__on_finished["_on_finished<br/><i>ui_control</i>"]
+    ui_Installer__on_installer_done["_on_installer_done<br/><i>ui_control</i>"]
+    ui_Installer__on_progress["_on_progress<br/><i>ui_control</i>"]
+    ui_Installer__on_ready_read["_on_ready_read<br/><i>ui_control</i>"]
+    bridge_getSettings["getSettings<br/><i>bridge_method</i>"]
+    bridge_install["install<br/><i>bridge_method</i>"]
+    bridge_installStatus["installStatus<br/><i>bridge_method</i>"]
+    bridge_isInstalled["isInstalled<br/><i>bridge_method</i>"]
+    bridge_launch["launch<br/><i>bridge_method</i>"]
+    bridge_openDialog["openDialog<br/><i>bridge_method</i>"]
+    bridge_openDocs["openDocs<br/><i>bridge_method</i>"]
+    bridge_openSettings["openSettings<br/><i>bridge_method</i>"]
+    bridge_pluginInfo["pluginInfo<br/><i>bridge_method</i>"]
+    bridge_setSettings["setSettings<br/><i>bridge_method</i>"]
+    bridge_status["status<br/><i>bridge_method</i>"]
+    bridge_uninstall["uninstall<br/><i>bridge_method</i>"]
+    integration_bridge_py_242["QDesktopServices.openUrl<br/><i>integration</i>"]
+    integration_dialog_py_73["QDesktopServices.openUrl<br/><i>integration</i>"]
+    integration_launcher_py_147["QgsNetworkAccessManager.instance<br/><i>integration</i>"]
+    integration_launcher_py_268["QProcess<br/><i>integration</i>"]
+    integration_launcher_py_48["QProcess<br/><i>integration</i>"]
+    integration_launcher_py_80["QProcess.startDetached<br/><i>integration</i>"]
+    integration_launcher_py_94["QProcess.startDetached<br/><i>integration</i>"]
+    integration_launcher_py_95["QDesktopServices.openUrl<br/><i>integration</i>"]
+    ai_bridge_route["bridge_call経由全到達<br/><i>ai_integration</i>"]
+    ai_catalog["describe_plugins登録<br/><i>ai_integration</i>"]
+    ai_pluginInfo["pluginInfo自己記述<br/><i>ai_integration</i>"]
+    logic_fn_launcher_py_exe_version["exe_version<br/><i>logic_fn</i>"]
+    logic_fn_launcher_py_find_uninstaller["find_uninstaller<br/><i>logic_fn</i>"]
+    logic_fn_launcher_py_launch["launch<br/><i>logic_fn</i>"]
+    logic_fn_launcher_py_launched_via_role["launched_via_role<br/><i>logic_fn</i>"]
+    logic_fn_launcher_py_run_installer["run_installer<br/><i>logic_fn</i>"]
+    logic_fn_launcher_py_uninstall["uninstall<br/><i>logic_fn</i>"]
+    logic_fn_settings_py_current_settings["current_settings<br/><i>logic_fn</i>"]
+    logic_fn_settings_py_detect_exe["detect_exe<br/><i>logic_fn</i>"]
+    logic_fn_settings_py_exe_path["exe_path<br/><i>logic_fn</i>"]
+    logic_fn_settings_py_save_settings["save_settings<br/><i>logic_fn</i>"]
+    logic_fn_settings_py_set_exe_path["set_exe_path<br/><i>logic_fn</i>"]
+    logic_fn_settings_py_set_silent_install["set_silent_install<br/><i>logic_fn</i>"]
+    logic_fn_settings_py_silent_install["silent_install<br/><i>logic_fn</i>"]
+  end
+  AI --> bridge_getSettings & bridge_install & bridge_installStatus & bridge_isInstalled & bridge_launch & bridge_openDialog & bridge_openDocs & bridge_openSettings …
+  UI --> action_plugin_initGui & action_plugin_open_dialog & action_plugin_unload & dialog_GeoLauncherDialog & dialog_GeoLauncherSettingsDialog & ui_GeoLauncherDialog__on_dl_progress & ui_Installer__on_finished & ui_Installer__on_installer_done …
+  LOGIC --> QGIS["QGIS API / iface / QgsProject"]
+  LOGIC --> EXT["外部連携(HTTP/subprocess/ファイル)"]
+</pre>
+<h2>機能一覧</h2><table><tr><th>id</th><th>名称</th><th>kind</th><th>連携/単独</th><th>結果</th><th>検証日時</th></tr><tr><td><a href='features/entry_point.__init__.py_classFactory.html'>entry_point.__init__.py:classFactory</a></td><td>classFactory</td><td>entry_point</td><td>-/○</td><td class='pass'>pass</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/action.plugin.initGui.html'>action.plugin.initGui</a></td><td>initGui</td><td>action</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/action.plugin.open_dialog.html'>action.plugin.open_dialog</a></td><td>open_dialog</td><td>action</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/action.plugin.unload.html'>action.plugin.unload</a></td><td>unload</td><td>action</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/dialog.GeoLauncherDialog.html'>dialog.GeoLauncherDialog</a></td><td>GeoLauncherDialog</td><td>dialog</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/dialog.GeoLauncherSettingsDialog.html'>dialog.GeoLauncherSettingsDialog</a></td><td>GeoLauncherSettingsDialog</td><td>dialog</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/ui.GeoLauncherDialog._on_dl_progress.html'>ui.GeoLauncherDialog._on_dl_progress</a></td><td>_on_dl_progress</td><td>ui_control</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/ui.Installer._on_finished.html'>ui.Installer._on_finished</a></td><td>_on_finished</td><td>ui_control</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/ui.Installer._on_installer_done.html'>ui.Installer._on_installer_done</a></td><td>_on_installer_done</td><td>ui_control</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/ui.Installer._on_progress.html'>ui.Installer._on_progress</a></td><td>_on_progress</td><td>ui_control</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/ui.Installer._on_ready_read.html'>ui.Installer._on_ready_read</a></td><td>_on_ready_read</td><td>ui_control</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/bridge.getSettings.html'>bridge.getSettings</a></td><td>getSettings</td><td>bridge_method</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/bridge.install.html'>bridge.install</a></td><td>install</td><td>bridge_method</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/bridge.installStatus.html'>bridge.installStatus</a></td><td>installStatus</td><td>bridge_method</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/bridge.isInstalled.html'>bridge.isInstalled</a></td><td>isInstalled</td><td>bridge_method</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/bridge.launch.html'>bridge.launch</a></td><td>launch</td><td>bridge_method</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/bridge.openDialog.html'>bridge.openDialog</a></td><td>openDialog</td><td>bridge_method</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/bridge.openDocs.html'>bridge.openDocs</a></td><td>openDocs</td><td>bridge_method</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/bridge.openSettings.html'>bridge.openSettings</a></td><td>openSettings</td><td>bridge_method</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/bridge.pluginInfo.html'>bridge.pluginInfo</a></td><td>pluginInfo</td><td>bridge_method</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/bridge.setSettings.html'>bridge.setSettings</a></td><td>setSettings</td><td>bridge_method</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/bridge.status.html'>bridge.status</a></td><td>status</td><td>bridge_method</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/bridge.uninstall.html'>bridge.uninstall</a></td><td>uninstall</td><td>bridge_method</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/integration.bridge.py_242.html'>integration.bridge.py:242</a></td><td>QDesktopServices.openUrl</td><td>integration</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/integration.dialog.py_73.html'>integration.dialog.py:73</a></td><td>QDesktopServices.openUrl</td><td>integration</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/integration.launcher.py_147.html'>integration.launcher.py:147</a></td><td>QgsNetworkAccessManager.instance</td><td>integration</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/integration.launcher.py_268.html'>integration.launcher.py:268</a></td><td>QProcess</td><td>integration</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/integration.launcher.py_48.html'>integration.launcher.py:48</a></td><td>QProcess</td><td>integration</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/integration.launcher.py_80.html'>integration.launcher.py:80</a></td><td>QProcess.startDetached</td><td>integration</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/integration.launcher.py_94.html'>integration.launcher.py:94</a></td><td>QProcess.startDetached</td><td>integration</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/integration.launcher.py_95.html'>integration.launcher.py:95</a></td><td>QDesktopServices.openUrl</td><td>integration</td><td>○/-</td><td class='skip'>skip</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/ai.bridge_route.html'>ai.bridge_route</a></td><td>bridge_call経由全到達</td><td>ai_integration</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/ai.catalog.html'>ai.catalog</a></td><td>describe_plugins登録</td><td>ai_integration</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/ai.pluginInfo.html'>ai.pluginInfo</a></td><td>pluginInfo自己記述</td><td>ai_integration</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/logic_fn.launcher.py_exe_version.html'>logic_fn.launcher.py:exe_version</a></td><td>exe_version</td><td>logic_fn</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/logic_fn.launcher.py_find_uninstaller.html'>logic_fn.launcher.py:find_uninstaller</a></td><td>find_uninstaller</td><td>logic_fn</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/logic_fn.launcher.py_launch.html'>logic_fn.launcher.py:launch</a></td><td>launch</td><td>logic_fn</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/logic_fn.launcher.py_launched_via_role.html'>logic_fn.launcher.py:launched_via_role</a></td><td>launched_via_role</td><td>logic_fn</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/logic_fn.launcher.py_run_installer.html'>logic_fn.launcher.py:run_installer</a></td><td>run_installer</td><td>logic_fn</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/logic_fn.launcher.py_uninstall.html'>logic_fn.launcher.py:uninstall</a></td><td>uninstall</td><td>logic_fn</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/logic_fn.settings.py_current_settings.html'>logic_fn.settings.py:current_settings</a></td><td>current_settings</td><td>logic_fn</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/logic_fn.settings.py_detect_exe.html'>logic_fn.settings.py:detect_exe</a></td><td>detect_exe</td><td>logic_fn</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/logic_fn.settings.py_exe_path.html'>logic_fn.settings.py:exe_path</a></td><td>exe_path</td><td>logic_fn</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/logic_fn.settings.py_save_settings.html'>logic_fn.settings.py:save_settings</a></td><td>save_settings</td><td>logic_fn</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/logic_fn.settings.py_set_exe_path.html'>logic_fn.settings.py:set_exe_path</a></td><td>set_exe_path</td><td>logic_fn</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/logic_fn.settings.py_set_silent_install.html'>logic_fn.settings.py:set_silent_install</a></td><td>set_silent_install</td><td>logic_fn</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr><tr><td><a href='features/logic_fn.settings.py_silent_install.html'>logic_fn.settings.py:silent_install</a></td><td>silent_install</td><td>logic_fn</td><td>○/-</td><td class='pass'>pass</td><td class='meta'>2026-11-15T22:33:28+09:00</td></tr></table>
+<script>mermaid.initialize({startOnLoad:true});</script></body></html>

@@ -1,0 +1,38 @@
+[general]
+name=geo_launcher
+qgisMinimumVersion=4.0
+qgisMaximumVersion=4.99
+description=kasugai_qgis ランチャー(Rust/Axum)を QGIS 内からインストール/アンインストール・起動する連携プラグイン
+about=kasugai_qgis (https://github.com/yamamoto-ryuzo/kasugai_qgis) の検出・インストール(セットアップのダウンロードと実行)・アンインストール・GUI 窓の起動を行います。ランチャー本体は QGIS を起動すると自動終了する設計のため、API サーバの起動・維持機能は持ちません。この QGIS がランチャー経由で起動したか(PORTAL_USERROLE)も表示します。
+version=1.1.2
+author=yamamoto-ryuzo
+email=ryu@yamakun.net
+homepage=https://github.com/yamamoto-ryuzo/qgis_live_harness/tree/master/qgis-plugin/geo_launcher
+tracker=https://github.com/yamamoto-ryuzo/qgis_live_harness/issues
+repository=https://github.com/yamamoto-ryuzo/qgis_live_harness/tree/master/qgis-plugin/geo_launcher
+hasProcessingProvider=no
+changelog=
+    Version 1.1.1:
+    - 修正: 非サイレント時のセットアップ起動を ShellExecute 経由に
+      (startDetached では NSIS ウィザードが QGIS の後ろに隠れて
+      完了できなかった)
+    - サイレントインストールの既定を ON(1クリックで DL→導入まで完走)
+    - DL 中の進捗を total 不明時は MB 表示に + 実行中のみ軽くポーリング
+    Version 1.1.0:
+    - 設計見直し: ランチャーは QGIS 起動後に自動終了する器なので
+      責務をインストール/アンインストール/GUI 窓オープンに限定
+    - API サーバ関連機能を撤去(headless/Web UI/停止/更新/port 設定)
+    - 「この QGIS」の起動経由表示(PORTAL_USERROLE)を追加
+    - バージョン表示を qgis_launcher.exe --version で取得
+    Version 1.0.1:
+    - インストール/アンインストールを基本操作として大ボタン化
+    - Qt6 スコープ列挙型の修正 / DL を QgsNetworkAccessManager へ
+    Version 1.0.0:
+    - 初版。検出・インストール・起動・Web UI・更新中継・AI制御ブリッジ
+icon=icon.png
+license=GPL-3.0
+tags=python,launcher,kasugai,qgis
+experimental=False
+deprecated=False
+server=False
+supportsQt6=True

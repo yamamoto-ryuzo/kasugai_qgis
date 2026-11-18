@@ -1,0 +1,35 @@
+{
+  "compileall": {
+    "rc": 0,
+    "out": ""
+  },
+  "ran_at": "2026-11-15T22:33:28+09:00",
+  "reload": {
+    "loaded": true,
+    "opened": false,
+    "plugins": [
+      "ImportPhotos",
+      "MetaSearch",
+      "Qgis2threejs",
+      "QuickDEM4JP",
+      "StreetView",
+      "db_manager",
+      "geo_driver",
+      "geo_excel",
+      "geo_import",
+      "geo_launcher",
+      "geo_legend",
+      "geo_report",
+      "geo_search",
+      "geo_userfunc",
+      "geo_webview",
+      "menu_from_project",
+      "mmqgis",
+      "mojxml_plugin",
+      "plateau_plugin",
+      "processing",
+      "qfieldsync",
+      "searchlayers"
+    ]
+  }
+}

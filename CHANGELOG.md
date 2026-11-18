@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [2.6.0] - 2026-11-18
 
 ### Added
 - 起動履歴・起動中プロセス管理を追加。`POST /launch` 時にプロファイル×プロジェクト×日時を `launch_history.json`（settings_dir、最大50件）へ追記し、`GET /api/recent` で返却。起動タブの「最近の起動」一覧はクリックで同条件再起動
@@ -21,6 +21,7 @@
 - Web UI: 表示文言の規約を統一。ナビゲーション（タブ・サブタブ）とフィールドラベルは自然な訳文のみを表示し、JSON キー名はツールチップ先頭の `key:` 表記で確認できるようにした
 - Web UI: `mode`（subst / sync / mount）をドロップダウン化し、`read_only` は mount 選択時のみ有効（他モードではグレーアウト）に変更。drive_mappings パネル内に subst 系と rclone 系フィールドの区切り線を追加
 - Web UI: path_aliases が空のとき空の入力行を1つ表示するように変更
+- 同梱 geo_custom プロファイルの Harness プラグインを最新へ同期（geo_webview 4.22.0=canvas_data/ 統一・geo_driver 0.16.2・geo_search 4.5.2・geo_legend 2.9.0・geo_report 2.10.0・geo_excel 1.10.0・geo_import 2.10.14・geo_userfunc 1.0.9）。geo_launcher 1.1.2 を同梱プラグインへ新規追加。プロファイル同梱物の変更のため本リリースは full update（update.json `full=true`）
 
 ### Fixed
 - Web UI: drive 未入力のパネルでモード等を変更すると入力中の値が初期化される問題を、下書き（driveDrafts）として保持するよう修正

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>geo_launcher ドキュメント | QGIS Live Harness</title>
+<meta name="description" content="kasugai_qgis ランチャー(Rust/Axum)を QGIS 内からインストール/アンインストール・起動する連携プラグイン">
+<link rel="stylesheet" href="style.css">
+<script src="nav.js" defer></script>
+</head>
+<body>
+<div class="container">
+<header>
+<h1>geo_launcher</h1>
+<p>kasugai_qgis ランチャー(Rust/Axum)を QGIS 内からインストール/アンインストール・起動する連携プラグイン</p>
+</header>
+<main>
+
+<p><a href="https://github.com/yamamoto-ryuzo/kasugai_qgis">kasugai_qgis</a> ランチャー(Rust/Axum 製)を QGIS 内からインストール/アンインストール・起動するためのプラグイン。</p>
+<h2 id="設計方針">設計方針</h2>
+<p>kasugai_qgis は「QGIS を起動するための器」であり、QGIS を起動すれば本体は自動終了する(<code>/launch</code> 後にサーバ停止)。したがってこのプラグインは<strong>インストールと引き継ぎのみ</strong>を管理し、ランチャーの API サーバを起動・維持する機能は持たない。</p>
+<h2 id="機能">機能</h2>
+<ul>
+<li><strong>インストール / 再インストール</strong> — GitHub Pages から <code>kasugai_qgis-setup.exe</code> をダウンロードして実行(<code>/S</code> サイレント可)。目立つ大ボタン。</li>
+<li><strong>アンインストール</strong> — <code>qgis_launcher.exe</code> 隣の <code>uninstall.exe</code> を実行(<code>/S</code> 可)。目立つ大ボタン。</li>
+<li><strong>ランチャーを開く</strong> — <code>qgis_launcher.exe</code> を GUI モード(WebView2 ウィンドウ)で起動。窓内でプロファイル/プロジェクトを選ぶと、本体が新しい QGIS を起動して自動終了する。</li>
+<li><strong>状態表示</strong> — 検出した exe パス、バージョン(<code>qgis_launcher.exe --version</code>)、この QGIS がランチャー経由で起動したか(<code>PORTAL_USERROLE</code> のロール。本体が QGIS プロセスへ注入)。</li>
+<li><strong>設定</strong> — exe パス上書き・サイレントインストール。</li>
+<li><strong>AI ブリッジ</strong> — <code>geo_driver</code> の <code>bridge_call</code> / <code>describe_plugins</code> 経由で全機能を遠隔操作可能。</li>
+</ul>
+<h2 id="インストール検出">インストール検出</h2>
+<p><code>qgis_launcher.exe</code> は以下の順で解決:</p>
+<ol>
+<li>QSettings <code>geo_launcher/exe_path</code></li>
+<li><code>C:\kasugai\kasugai_qgis\qgis_launcher.exe</code>(NSIS 既定 InstallDir)</li>
+<li><code>C:\kasugai\*\qgis_launcher.exe</code> の glob</li>
+</ol>
+<h2 id="使い方">使い方</h2>
+<ul>
+<li>GeoSuite ツールバーアイコン、または <code>プラグイン &gt; geo_launcher &gt; Kasugai QGIS Launcher</code> で状態パネルを開く</li>
+<li><code>プラグイン &gt; geo_launcher &gt; ランチャーを開く</code> でランチャーの GUI ウィンドウを直接開く</li>
+<li><code>設定...</code> で exe パス / サイレントインストールを設定</li>
+</ul>
+<h2 id="bridge-api">Bridge API</h2>
+<p><code>plugins['geo_launcher'].bridge.&lt;method&gt;</code>(<code>bridge_call</code> 経由):</p>
+<p><code>pluginInfo</code> / <code>status</code> / <code>isInstalled</code> / <code>launch</code> / <code>install(silent)</code> / <code>installStatus</code> / <code>uninstall(silent)</code> / <code>getSettings</code> / <code>setSettings</code> / <code>openDialog</code> / <code>openSettings</code> / <code>openDocs</code></p>
+<p>例(MCP): <code>qgis_bridge_call pluginId=&quot;geo_launcher&quot; method=&quot;install&quot;</code></p>
+<h2 id="ライセンス">ライセンス</h2>
+<p>GPL-3.0</p>
+
+
+<h2>関連リンク</h2>
+<ul>
+  <li><a href="https://yamamoto-ryuzo.github.io/qgis_live_harness/plugins.html">プラグイン一覧(サイト)</a></li>
+  <li><a href="https://github.com/yamamoto-ryuzo/qgis_live_harness/blob/master/qgis-plugin/geo_launcher/README.md">README(GitHub)</a></li>
+  <li><a href="https://github.com/yamamoto-ryuzo/qgis_live_harness/blob/master/qgis-plugin/geo_launcher/CHANGELOG.md">CHANGELOG(GitHub)</a></li>
+</ul>
+<p><small>正本は <code>qgis-plugin/geo_launcher/docs/</code>。
+サイトの <code>docs/geo_launcher/</code> は
+<code>scripts/build-plugin-docs.py</code> によるミラーです。</small></p>
+</main>
+</div>
+</body>
+</html>
