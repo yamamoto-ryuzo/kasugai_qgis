@@ -691,7 +691,8 @@ class GeoWebViewServerManager:
             if parsed_url.path == '/present/state':
                 try:
                     payload = json.dumps(
-                        self._canvas_state_dict(), ensure_ascii=False)
+                        self._main_invoker.call(self._canvas_state_dict),
+                        ensure_ascii=False)
                     from . import http_server
                     http_server.send_http_response(
                         conn, 200, 'OK', payload,
@@ -710,7 +711,8 @@ class GeoWebViewServerManager:
                 try:
                     payload = json.dumps(
                         {'ok': True, 'live': self._live,
-                         'canvas': self._canvas_state_dict()},
+                         'canvas': self._main_invoker.call(
+                             self._canvas_state_dict)},
                         ensure_ascii=False)
                     from . import http_server
                     http_server.send_http_response(
@@ -2655,10 +2657,21 @@ html,body{margin:0;padding:0;height:100%;background:#111;color:#eee;font-family:
             # Vector Export Format(kasugai_vector_format)に従う
             fmt = str(
                 (params or {}).get('fmt', [''])[0] or '').strip().lower()
+            # HTTP ワーカスレッドのため GUI 進捗は出せないが、
+            # 変換の重い処理中に「N/全M件」が分かるようログへ流す
+            from qgis.core import Qgis, QgsMessageLog
+
+            def _export_log_cb(done, total, name):
+                if done < total:
+                    QgsMessageLog.logMessage(
+                        'KASUGAI export {0}/{1}: {2}'.format(
+                            done + 1, total, name),
+                        'geo_webview', Qgis.MessageLevel.Info)
             result = kasugai_export.export_kasugai_project(
                 self.iface,
                 out_dir=None,
-                vector_format=fmt or None)
+                vector_format=fmt or None,
+                progress_cb=_export_log_cb)
             n_layers = len(result.get('layers') or [])
             n_tiles = len(result.get('tiles') or [])
             if not n_layers and not n_tiles:

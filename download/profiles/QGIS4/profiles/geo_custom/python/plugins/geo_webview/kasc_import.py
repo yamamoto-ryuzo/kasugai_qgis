@@ -29,7 +29,8 @@ _LAYER_TYPES = frozenset([
     "flatgeobuf", "fgb", "gpkg", "geopackage", "csv", "tsv", "duckdb",
     "sql", "ogrsql", "wms", "wmts", "kml", "kmz", "wfs", "shp", "shapefile",
     "gpx", "topojson", "czml", "esrijson", "arcgis",
-    "geojsonl", "ndjson", "jsonl", "wkt", "wkb", "igc", "polyline", "gml",
+    "geojsonl", "ndjson", "jsonl", "geojsonseq", "fgseq", "geojson-seq",
+    "wkt", "wkb", "igc", "polyline", "gml",
     "image", "mvt", "pmtiles", "geotiff", "tiff", "cog", "3dtiles",
     "fly_geojson", "model", "pointcloud", "ept", "copc",
 ])
@@ -506,8 +507,8 @@ def _exec_ogrsql(query, base):
         else:
             qlyrs = QgsProject.instance().mapLayersByName(name)
             if not qlyrs:
-                qlyrs = [l for l in QgsProject.instance()
-                         .mapLayers().values() if l.id() == name]
+                qlyrs = [la for la in QgsProject.instance()
+                         .mapLayers().values() if la.id() == name]
             sds = (_ogr.Open(_json.dumps(_fc_from_qgs_layer(qlyrs[0])))
                    if qlyrs else None)
             lyr = sds.GetLayer(0) if sds else None
@@ -1016,7 +1017,8 @@ def import_kasc(source, iface=None, add_to_project=True,
                          "csv", "tsv", "duckdb", "sql", "ogrsql",
                          "kml", "kmz", "gpx", "topojson", "czml",
                          "esrijson", "arcgis", "geojsonl", "ndjson",
-                         "jsonl", "wkt", "wkb", "igc", "polyline", "gml",
+                         "jsonl", "geojsonseq", "fgseq", "geojson-seq",
+                         "wkt", "wkb", "igc", "polyline", "gml",
                          "wfs", "shp", "shapefile", "fly_geojson"):
                     layer, desc = _build_vector(item, base, warnings)
                 else:

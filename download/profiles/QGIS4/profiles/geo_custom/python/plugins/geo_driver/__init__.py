@@ -217,7 +217,7 @@ class GeoDriverPlugin:
                     if (sm is not None and not _qt_dead(sm)
                             and sm.title() == self._MENU_NAME):
                         return sm
-            except Exception:  # nosec B110  # 設計上の許容
+            except Exception:  # nosec B112  # 設計上の許容
                 continue
         return None
 

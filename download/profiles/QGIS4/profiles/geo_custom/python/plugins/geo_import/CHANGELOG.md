@@ -1,3 +1,12 @@
+2.10.15 qrcリソースモジュール解放によるQGISクラッシュ(access violation)の予防修正
+- resources_rc.py: qRegisterResourceData は登録バッファをコピーせず
+  ポインタ保持するため、プラグインのリロード/unloadでモジュールが
+  sys.modulesから掃除されGCされるとQtグローバルリソースリストに
+  ダングリングノードが残り、以後の ":/" パスのQFile::openが
+  QResource::fileNameでaccess violationする(QGIS4/Qt6.8実績)。
+  登録バッファを sys._qgis_pinned_qrc に固定し、再読込時は前世代を
+  qUnregisterResourceDataで解除する構成へ変更(現在は未importの
+  予備ファイルだが、将来の利用を見越して修正)
 2.10.14 カタログサーバーの死活・遅延を一覧表示し検索前に警告
 - geo_import_dialog_dataproviders.py: サーバー一覧の表示完了後に
   ServerCheckThread(QThread) で全サーバーへ package_search(rows=0) の

@@ -164,7 +164,7 @@ def _audit_record(driver_pkg, cmd, obj, ms):
         stamp = datetime.datetime.now().strftime("%H%M%S")
         try:
             os.replace(path, path[:-6] + "-" + stamp + ".jsonl")
-        except OSError:
+        except OSError:  # nosec B110
             pass
     with open(path, "a", encoding="utf-8") as f:
         f.write(line)
@@ -175,7 +175,7 @@ def _audit_record(driver_pkg, cmd, obj, ms):
     for old in names[max_files:]:
         try:
             os.remove(os.path.join(base, old))
-        except OSError:
+        except OSError:  # nosec B110
             pass
 
 
@@ -212,12 +212,12 @@ def _audit_recent(n, filt=None):
             with open(os.path.join(_audit_base_dir(), name),
                       "r", encoding="utf-8") as f:
                 lines = f.readlines()
-        except OSError:
+        except OSError:  # nosec B112
             continue
         for line in reversed(lines):
             try:
                 rec = json.loads(line)
-            except Exception:  # nosec B110  # 壊れ行は読み飛ばす
+            except Exception:  # nosec B112  # 壊れ行は読み飛ばす
                 continue
             if _audit_match(rec, filt):
                 out.append(rec)
@@ -250,8 +250,19 @@ def reload_plugin_now(plugin_id):
     """
     import sys
     import qgis.utils
+    # Qtリソースモジュール(resources / *_rc 等の pyrcc 生成物)は掃除
+    # しない。qRegisterResourceData がバッファをコピーせずポインタ保持
+    # するため、モジュールが GC されると Qt のグローバルリソースリストに
+    # ダングリングノードが残り、その後のあらゆる ":/" パスの
+    # QFile::open(standardIcon 解決等)が access violation する
+    # (QGIS4/Qt6 実績あり)。sys.modules に残ればバッファも生存し続ける。
+
+    def _is_qrc_module(name):
+        base = name.rsplit('.', 1)[-1]
+        return base == 'resources' or base.endswith('_rc')
     for k in [k for k in list(sys.modules)
-              if k == plugin_id or k.startswith(plugin_id + ".")]:
+              if (k == plugin_id or k.startswith(plugin_id + "."))
+              and not _is_qrc_module(k)]:
         sys.modules.pop(k, None)
     if plugin_id in qgis.utils.plugins:
         qgis.utils.reloadPlugin(plugin_id)

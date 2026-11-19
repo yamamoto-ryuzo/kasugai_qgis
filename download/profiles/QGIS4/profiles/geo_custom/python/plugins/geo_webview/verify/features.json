@@ -3575,6 +3575,24 @@
    "last_result": "pass",
    "last_verified": "2026-11-18T00:00:00+09:00",
    "note": "4.21.0 パネル Format: コンボ追加に伴う新規 / L2実機検証済み(reload後にコンボ実在・itemData確認、setCurrentIndex→kasugai_vector_format 保存確認)"
+  },
+  {
+   "id": "kasugai_export.progress_cb",
+   "kind": "param",
+   "name": "progress_cb(done,total,name)",
+   "source": "kasugai_export.py",
+   "signature": "export_kasugai_project(..., progress_cb=None)",
+   "summary": "レイヤ走査の各レイヤ処理開始時に進捗(何件目/全何件・対象名)を通知するコールバック。全件処理後 (total,total,'') で完了通知。ExportCancelled で中断可",
+   "needs_runtime": true,
+   "standalone_ok": false,
+   "depends": [],
+   "verify": {
+    "standalone": "",
+    "integrated": "pyeval で progress_cb 呼出件数・最終完了通知・ExportCancelled 中断を確認"
+   },
+   "last_result": "pass",
+   "last_verified": "2026-11-19T22:00:00+09:00",
+   "note": "エクスポート進捗表示(N/全M件)の基盤。パネルの QProgressDialog・bridge・/kasugai 経路(QgsMessageLog)へ配線 / L2実機検証済み"
   }
  ],
  "static": {

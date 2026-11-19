@@ -45,13 +45,13 @@ import uuid
 import zipfile
 
 DEFAULT_API_BASE = 'https://api.cms.reearth.io/api'
-ENV_TOKEN = 'REEARTH_CMS_TOKEN'
+ENV_TOKEN = 'REEARTH_CMS_TOKEN'  # nosec B105  # 環境変数名(秘密値ではない)
 
 SKEY_BASE = 'reearth_cms_base'
 SKEY_WORKSPACE = 'reearth_cms_workspace'
 SKEY_PROJECT = 'reearth_cms_project'
 SKEY_MODEL = 'reearth_cms_model'
-SKEY_TOKEN = 'reearth_cms_token'
+SKEY_TOKEN = 'reearth_cms_token'  # nosec B105  # QSettingsキー名(秘密値ではない)
 
 _TIMEOUT = 30.0
 _DEFAULT_MAX_FEATURES = 500
@@ -142,9 +142,11 @@ def _request(method, path, body=None, headers=None, raw_body=None,
         h['Content-Type'] = 'application/json'
     if content_type:
         h['Content-Type'] = content_type
+    if urllib.parse.urlparse(url).scheme not in ('http', 'https'):
+        raise CmsError('unsupported URL scheme: {0}'.format(url))
     req = urllib.request.Request(url, data=data, headers=h, method=method)
     try:
-        with urllib.request.urlopen(req, timeout=_TIMEOUT) as res:
+        with urllib.request.urlopen(req, timeout=_TIMEOUT) as res:  # nosec B310  # 直上でhttp/httpsスキームを検証済み
             data = res.read()
             ctype = res.headers.get('Content-Type', '')
             if b'json' in ctype.encode('ascii', 'ignore'):
@@ -196,7 +198,6 @@ def _multipart(file_field, file_path, fields=None):
 def get_schema(workspace=None, project=None, model=None):
     """モデルのスキーマ(フィールド定義)を返す。"""
     st = _require('workspace', 'project', 'model')
-    ws = workspace or st['workspace']
     proj = project or st['project']
     mdl = model or st['model']
     return _request(
@@ -213,7 +214,7 @@ def _qvariant_to_value(v):
         from qgis.core import NULL
         if v is NULL:
             return None
-    except Exception:
+    except Exception:  # nosec B110  # QGIS外ではimport自体が失敗し得る
         pass
     try:
         from qgis.PyQt.QtCore import (QDate, QDateTime, QTime, QByteArray,
@@ -224,7 +225,7 @@ def _qvariant_to_value(v):
             return bytes(v).decode('utf-8', 'replace')
         if isinstance(v, QVariant):
             return _qvariant_to_value(v.value())
-    except Exception:
+    except Exception:  # nosec B110  # QGIS外ではimport自体が失敗し得る
         pass
     if isinstance(v, (bool, int, float, str)) or v is None:
         return v
@@ -416,7 +417,7 @@ def upload_kasc_export(export_dir=None, publish=True):
     export_dir 省略時は直近の kasugaiExport 出力先(last_export_dir)。
     戻り値: {asset_id, name, url, zip_path, published}
     """
-    st = _require('workspace', 'project')
+    _require('workspace', 'project')
     if not export_dir:
         from . import kasugai_export
         export_dir = kasugai_export.last_export_dir()

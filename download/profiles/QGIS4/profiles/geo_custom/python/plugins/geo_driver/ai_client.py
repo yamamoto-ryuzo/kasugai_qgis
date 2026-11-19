@@ -1470,7 +1470,7 @@ def _bundled_dirs(kind):
             try:
                 d = os.path.join(
                     os.path.dirname(inspect.getfile(type(p))), kind)
-            except (TypeError, AttributeError):
+            except (TypeError, AttributeError):  # nosec B112
                 continue
             if d not in dirs and os.path.isdir(d):
                 dirs.append(d)
@@ -2905,7 +2905,7 @@ class AzureOpenAIProvider(OpenAIProvider):
                    if isinstance(m, dict) and m.get("id")]
             if out:
                 return sorted(out, key=lambda e: e["id"])
-        except ApiError:
+        except ApiError:  # nosec B110
             pass                        # /openai/models へフォールバック
         data = _get_json(azure_resource_url(base, "models"),
                          headers, timeout)
@@ -3095,7 +3095,7 @@ class DevinAcpProvider:
                         "type": "image",
                         "data": base64.b64encode(f.read()).decode("ascii"),
                         "mimeType": "image/png"})
-            except OSError:
+            except OSError:  # nosec B110
                 pass
         if not blocks:
             raise ApiError("empty prompt")
@@ -3171,7 +3171,9 @@ def _custom_acp_argv(command):
     argv = [a.strip('"').strip("'") for a in argv if a.strip('"').strip("'")]
     if not argv:
         raise ApiError("ACP launch command is empty")
-    resolved = shutil.which(argv[0])
+    # レジストリ最新PATHも見る(QGIS起動後のインストールを検出するため)
+    from . import devin_tasks  # noqa: PLC0415
+    resolved = devin_tasks._fresh_which(argv[0])
     if resolved is None:
         raise ApiError(f"ACP command not found: {argv[0]}")
     argv[0] = resolved

@@ -174,6 +174,23 @@ class SettingsDialog(QtWidgets.QDialog):
         vf_rules.setWordWrap(True)
         vf_rules.setStyleSheet("color: #666;")
         vf_layout.addWidget(vf_rules)
+        # 非表示レイヤのデータ変換スキップ(パネルの同名チェックと
+        # 同じ kasugai_visible_data_only を読み書き)
+        self.kasugai_visible_only_check = QtWidgets.QCheckBox(
+            QtCore.QCoreApplication.translate(
+                'geo_webview', "Visible data only (faster)"))
+        self.kasugai_visible_only_check.setToolTip(
+            QtCore.QCoreApplication.translate(
+                'geo_webview',
+                "Only output visible layers — hidden layers are not "
+                "written to the .kasc at all (basemap-group XYZ "
+                "candidates keep their base: rows for the background "
+                "selector, as before). Skipped layers cannot be turned "
+                "on in Canvas. Uncheck to emit hidden layers as | off "
+                "rows with all data converted (whole-project migration)"))
+        self.kasugai_visible_only_check.toggled.connect(
+            self._visible_only_toggled)
+        vf_layout.addWidget(self.kasugai_visible_only_check)
         vf_group.setLayout(vf_layout)
         layout.addWidget(vf_group)
 
@@ -239,11 +256,24 @@ class SettingsDialog(QtWidgets.QDialog):
         self.kasugai_vector_combo.setCurrentIndex(idx if idx >= 0 else 0)
         self.kasugai_vector_combo.blockSignals(False)
 
+        # Visible data only (skip hidden-layer conversion)
+        vdo = str(self.settings.value('kasugai_visible_data_only', '')
+                  or '').strip().lower()
+        checked = vdo not in ('0', 'false', 'off', 'no')
+        self.kasugai_visible_only_check.blockSignals(True)
+        self.kasugai_visible_only_check.setChecked(checked)
+        self.kasugai_visible_only_check.blockSignals(False)
+
     def _vector_format_changed(self, index):
         """ベクター出力モード(native/recommended/geojson)を保存する。"""
         self.settings.setValue(
             'kasugai_vector_format',
             self.kasugai_vector_combo.itemData(index) or 'native')
+
+    def _visible_only_toggled(self, checked):
+        """非表示レイヤのデータ変換スキップ(高速化)を保存する。"""
+        self.settings.setValue(
+            'kasugai_visible_data_only', '1' if checked else '0')
 
     def _basemap_groups_changed(self):
         """追加のベースマップグループ名(カンマ区切り)を保存する。"""

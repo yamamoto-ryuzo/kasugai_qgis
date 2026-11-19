@@ -204,7 +204,9 @@ class GeoWebViewBridge:
                 "engine=cesium|openlayers|maplibre|leaflet|gsimaps|navara "
                 "で起動エンジンを指定できる(既定 cesium)。"
                 "open_app=Falseで出力のみ。hidden_as_off=Trueで非表示レイヤ"
-                "もoff行として出力。QGISブックマークは bookmarks.xml"
+                "もoff行として出力。非表示レイヤは既定で変換・複写を行わず"
+                "参照行のみ出力(visible_data_only=Falseで全データ生成の"
+                "従来動作)。QGISブックマークは bookmarks.xml"
                 "として出力され bookmark: 行が付く(Canvas側がカメラ"
                 "プリセットへ展開。emit_bookmarks=Falseで抑制)。"
                 ".kascと同じ場所に <engine>.html 起動ページ(index.html"
@@ -979,7 +981,8 @@ class GeoWebViewBridge:
                       emit_zip=False, engine=None, install=False, route=None,
                       use_existing=False, emit_atlas=True,
                       fields=None, where=None, limit=None,
-                      link_files=True, vector_format=None):
+                      link_files=True, vector_format=None,
+                      visible_data_only=None, progress_cb=None):
         """表示中レイヤをKASUGAI Canvasプロジェクトとして出力・連携する。
 
         表示中のベクターレイヤを canvas_data/ へ出力し、.kasc(geojson:/gpkg:/
@@ -994,6 +997,16 @@ class GeoWebViewBridge:
         hidden_as_off=True で非表示レイヤも ``| off`` 付きで
         出力。emit_themes=True(既定)でマップテーマを theme: 行として出力
         (テーマがある場合は非表示レイヤも | off で自動出力)。
+        非表示レイヤは visible_data_only=True でレイヤ行を一切出力
+        せず skipped へ記録する(背景図グループの base: 候補のみ従来
+        通り出力)。Canvas のレイヤ一覧に非表示レイヤが並ばず
+        変換コストも掛からない(高速化)。visible_data_only=False
+        で非表示レイヤも | off 行として全データを変換・複製する
+        従来動作(丸ごと引越し用途)に戻る。None(既定)は設定
+        kasugai_visible_data_only(パネルの「表示中のみ変換」
+        チェック、初期値 ON)に従う。
+        progress_cb(done,total,name) を渡すとレイヤ走査の各処理開始時に
+        進捗(何件目/全何件・対象名)を通知する(パネル進捗表示用)。
         emit_bookmarks=True(既定)でQGISブックマーク(プロジェクト+
         アプリケーション)を bookmarks.xml(qgis_bookmarks形式・EPSG:4326
         正規化)として出力し bookmark: 行を書く(Canvas 側が読み込んで
@@ -1098,7 +1111,16 @@ class GeoWebViewBridge:
                     live_url=live_url,
                     fields=fields, where=where, limit=limit,
                     link_files=bool(link_files),
-                    vector_format=vector_format)
+                    vector_format=vector_format,
+                    visible_data_only=(
+                        None if visible_data_only is None
+                        else bool(visible_data_only)),
+                    progress_cb=progress_cb)
+        except kasugai_export.ExportCancelled:
+            return json.dumps({
+                "ok": False, "code": "cancelled",
+                "error": "export cancelled by user"},
+                ensure_ascii=False)
         except Exception as e:
             return self._err(f"kasugai export failed: {e}")
         out = {
@@ -1585,6 +1607,22 @@ class GeoWebViewBridge:
         return self._ok({"url": url,
                          "localhost_url": f"http://localhost:{port}/present",
                          "opened": True})
+
+    def openKasugaiAdmin(self):
+        """KASUGAI Canvas の UI 設定管理画面をブラウザで開く。
+
+        web/admin/ui-config-admin.html(ローカルアプリ専用・CDN非配信)。
+        Canvas サーバ(既定8510)稼働中のみ有効で、未稼働ならエラーを返す。
+        """
+        from . import kasugai_export
+        port = int(kasugai_export.get_kasugai_port())
+        if not kasugai_export.detect_kasugai(port):
+            return self._err(
+                f"kasugai canvas server is not running on port {port} "
+                "(start the local app first)")
+        url = f"http://127.0.0.1:{port}/admin/ui-config-admin.html"
+        self._open_url(url)
+        return self._ok({"url": url, "opened": True})
 
     def receivedHistory(self):
         """受領パーマリンク履歴(最新10件)を返す。"""

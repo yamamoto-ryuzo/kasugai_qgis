@@ -22,12 +22,13 @@ import html
 import json
 import os
 import re
+import shlex
 import threading
 import time
 
 from qgis.PyQt.QtCore import (
-    Qt, QSettings, QUrl, QCoreApplication, QT_TRANSLATE_NOOP,
-    pyqtSignal)
+    Qt, QEvent, QSettings, QUrl, QCoreApplication,
+    QT_TRANSLATE_NOOP, pyqtSignal)
 from qgis.PyQt.QtGui import (
     QDesktopServices,
     QImage,
@@ -37,7 +38,6 @@ from qgis.PyQt.QtGui import (
     QTextDocument,
 )
 from qgis.PyQt.QtWidgets import (
-    QCheckBox,
     QComboBox,
     QDialog,
     QDockWidget,
@@ -72,6 +72,10 @@ _MODEL_HINT = QT_TRANSLATE_NOOP(
     "Press \"Fetch\" to list models from the endpoint. "
     "Values in parentheses are prices (input/output, $/1M tokens, "
     "reference only).")
+# エージェントCLIを要求するプロバイダ → devin_tasks の agent名。
+# カスタムACP("acp")はコマンドが任意なので別途コマンド検証のみ行う
+_CLI_PROVIDERS = {"devin_acp": "devin", "devin_bridge": "devin",
+                  "copilot_acp": "copilot", "copilot_bridge": "copilot"}
 
 
 def _esc(t):
@@ -173,6 +177,8 @@ class AiPanel(QDockWidget):
     sig_models = pyqtSignal(list, str)   # (models, error) モデル一覧取得結果
     sig_signin = pyqtSignal(str, str)    # (pid, token) デバイスフロー完了
     sig_open_url = pyqtSignal(str)       # ブラウザで開くURL(GUIスレッドで実行)
+    # (agent, path, error) CLI導入結果
+    sig_cli_done = pyqtSignal(str, str, str)
 
     def __init__(self, iface, get_driver, parent=None):
         super().__init__(
@@ -182,7 +188,8 @@ class AiPanel(QDockWidget):
         self.setObjectName("GeoDriverAiPanel")
         self.iface = iface
         self._get_driver = get_driver
-        self._history = []      # [{"role": "user"|"assistant", "content": str}]
+        # [{"role": "user"|"assistant", "content": str}]
+        self._history = []
         # チャットセッション。先頭は常に「現在のチャット」(コンボindexと一致)。
         # 過去チャットは {"title","history","html"} として後ろに積む
         self._sessions = [{"title": QCoreApplication.translate(
@@ -212,6 +219,21 @@ class AiPanel(QDockWidget):
         # ---- API設定 ----
         box = QGroupBox(self.tr("API settings"), root)
         form = QFormLayout(box)
+        # 「API設定」タイトル行の右端に重ねるヘルプリンク。
+        # groupboxタイトルは描画専用でwidgetを載せられないため、
+        # box直下の子として絶対配置し eventFilter で右端へ追従する
+        self.lbl_help = QLabel(
+            '<a href="docs">{}</a>'.format(self.tr("Help")), box)
+        self.lbl_help.setToolTip(self.tr(
+            "Open the plugin documentation (docs/index.html)"))
+        self.lbl_help.linkActivated.connect(
+            lambda _u: self._open_docs())
+        self.lbl_help.adjustSize()
+        self.lbl_help.move(
+            box.width() - self.lbl_help.width() - 10, 0)
+        box.installEventFilter(self)
+        # 「API設定」タイトル行の右端に見えるよう、ボックス先頭は
+        # 右寄せのヘルプリンクとする(同梱 docs/index.html を開く)
         self.cmb_provider = QComboBox(box)
         for i, pid in enumerate(_PROVIDER_IDS):
             d = ai_client.PROVIDERS[pid]
@@ -251,12 +273,17 @@ class AiPanel(QDockWidget):
             box)
         self.lbl_model_info.setStyleSheet("color:#666; font-size:11px")
         self.lbl_model_info.setWordWrap(True)
-        self.chk_confirm = QCheckBox(
-            self.tr("Confirm before running tools"), box)
-        self.chk_confirm.setToolTip(self.tr(
-            "When ON, asks for approval before each tool call.\n"
-            "Use this if you do not want arbitrary code execution "
-            "(pyeval) to run automatically."))
+        self.cmb_confirm = QComboBox(box)
+        self.cmb_confirm.addItem(
+            self.tr("Run automatically"), False)
+        self.cmb_confirm.addItem(
+            self.tr("Confirm before each call"), True)
+        self.cmb_confirm.setToolTip(self.tr(
+            "Run automatically (default): tool calls are executed "
+            "without asking.\nConfirm before each call: asks for "
+            "approval before each tool call. Use this if you do "
+            "not want arbitrary code execution (pyeval) to run "
+            "automatically."))
         # エージェント(常時注入する指示書 ~/.qgis-live/agents/*.md)
         agent_row = QWidget(box)
         ar = QHBoxLayout(agent_row)
@@ -337,13 +364,29 @@ class AiPanel(QDockWidget):
         btn_prov_help.clicked.connect(self._provider_help)
         pr.addWidget(btn_prov_help)
         form.addRow(self.tr("Provider"), prov_row)
+        # エージェントCLI依存プロバイダ用の検出状況+インストール行。
+        # w_signin と同じく空ラベル行にして非表示時は行ごと畳む
+        self.w_cli = QWidget(box)
+        clr = QHBoxLayout(self.w_cli)
+        clr.setContentsMargins(0, 0, 0, 0)
+        self.lbl_cli = QLabel("", self.w_cli)
+        self.lbl_cli.setWordWrap(True)
+        self.lbl_cli.setStyleSheet("font-size:11px")
+        self.btn_cli = QPushButton(self.tr("Install"), self.w_cli)
+        self.btn_cli.setToolTip(self.tr(
+            "Install the required agent CLI using its official "
+            "installer (an internet connection is required)"))
+        clr.addWidget(self.lbl_cli, 1)
+        clr.addWidget(self.btn_cli)
+        self.w_cli.setVisible(False)
+        form.addRow("", self.w_cli)
         form.addRow(self.tr("Endpoint"), self.ed_endpoint)
         form.addRow(self.tr("API key"), self.ed_key)
         form.addRow("", self.w_signin)
         form.addRow(self.tr("Key storage"), self.lbl_keystore)
         form.addRow(self.tr("Model"), model_row)
         form.addRow("", self.lbl_model_info)
-        form.addRow("", self.chk_confirm)
+        form.addRow(self.tr("Tool calls"), self.cmb_confirm)
         lay.addWidget(box)
         self.box_api = box
 
@@ -500,11 +543,16 @@ class AiPanel(QDockWidget):
         self.sig_models.connect(self._on_models)
         self.btn_signin.clicked.connect(self._signin)
         self.sig_signin.connect(self._on_signin)
+        self.btn_cli.clicked.connect(self._install_cli)
+        self.sig_cli_done.connect(self._on_cli_done)
+        self.ed_endpoint.textChanged.connect(
+            self._on_endpoint_changed)
         self.sig_open_url.connect(
             lambda u: QDesktopServices.openUrl(QUrl(u)))
 
     def _provider_help(self):
-        """「?」ボタン: 【API】/【ACP】/【ブリッジ】の違いを説明する。"""
+        """「?」ボタン: 【API】/【ACP】/【ブリッジ】の違いを説明する。
+        「Docs」ボタンで docs/index.html(GitHub正本)をブラウザで開く。"""
         lines = []
         for tag in ("【API】", "【ブリッジ】", "【ACP】"):
             names = [ai_client.tr_label(ai_client.PROVIDERS[p]["label"])
@@ -513,8 +561,35 @@ class AiPanel(QDockWidget):
             lines.append(
                 f"{tag} {', '.join(names)}\n"
                 f"　{ai_client.tr_label(ai_client.PROVIDER_TAGS[tag])}")
-        QMessageBox.information(
-            self, self.tr("Provider types"), "\n\n".join(lines))
+        mb = QMessageBox(self)
+        mb.setWindowTitle(self.tr("Provider types"))
+        mb.setIcon(QMessageBox.Icon.Information)
+        mb.setText("\n\n".join(lines))
+        btn_docs = mb.addButton(
+            self.tr("Open docs"), QMessageBox.ButtonRole.HelpRole)
+        mb.addButton(QMessageBox.StandardButton.Close)
+        mb.exec()
+        if mb.clickedButton() is btn_docs:
+            self._open_docs()
+
+    _DOCS_URL = (
+        "https://yamamoto-ryuzo.github.io/qgis_live_harness/"
+        "qgis-plugin/geo_driver/docs/index.html")
+
+    def _open_docs(self):
+        """プラグインのドキュメント(GitHub Pages)をブラウザで開く。"""
+        QDesktopServices.openUrl(QUrl(self._DOCS_URL))
+
+    def eventFilter(self, obj, event):
+        """API設定boxのリサイズ時、ヘルプリンクを右上端へ追従配置。"""
+        if (getattr(self, "lbl_help", None) is not None
+                and obj is self.lbl_help.parent()
+                and event.type() == QEvent.Type.Resize):
+            self.lbl_help.adjustSize()
+            self.lbl_help.move(
+                self.lbl_help.parent().width()
+                - self.lbl_help.width() - 10, 0)
+        return super().eventFilter(obj, event)
 
     # ---- 設定の永続化 ----
 
@@ -527,9 +602,10 @@ class AiPanel(QDockWidget):
         idx = (_PROVIDER_IDS.index(pid) if pid in _PROVIDER_IDS else 0)
         self.cmb_provider.setCurrentIndex(idx)
         self._load_provider_fields()
-        self.chk_confirm.setChecked(
-            str(s.value(_SETTING.format("confirm"), "false")).lower()
-            in ("1", "true"))
+        self.cmb_confirm.setCurrentIndex(
+            1 if str(s.value(_SETTING.format("confirm"),
+                             "false")).lower() in ("1", "true")
+            else 0)
         # API設定の表示状態: 保存値が無い初回だけ、
         # キー未設定なら開く・設定済みなら畳む
         v = s.value(_SETTING.format("settings_visible"), None)
@@ -804,6 +880,152 @@ class AiPanel(QDockWidget):
         self.cmb_model.setEditText(model)
         self.cmb_model.lineEdit().setPlaceholderText(d["model"])
         self._update_model_info()
+        self._update_cli_row()
+
+    # ---- エージェントCLIの検出/インストール ----
+
+    def _cli_agent(self):
+        return _CLI_PROVIDERS.get(self._provider())
+
+    def _update_cli_row(self):
+        """選択プロバイダが要求するエージェントCLIの検出状況を表示する。
+
+        devin/copilot 系(ACP・ブリッジ)は devin_tasks.cli_status で
+        CLI有無・(devinは)資格の有無を示し、未検出時は「Install」
+        ボタンを出す。カスタムACPは起動コマンド先頭の実行ファイルを
+        その場で検証する(任意コマンドのため自動インストールはしない)。
+        """
+        pid = self._provider()
+        agent = self._cli_agent()
+        if agent is None and pid != "acp":
+            self.w_cli.setVisible(False)
+            return
+        self.w_cli.setVisible(True)
+        from . import devin_tasks  # noqa: PLC0415
+        if agent is not None:
+            st = devin_tasks.cli_status(agent)
+            name = "Devin" if agent == "devin" else "Copilot"
+            if st["found"]:
+                color = "#2e7d32"
+                text = self.tr("{0} CLI: {1}").format(
+                    name, st["path"])
+                if agent == "devin" and not st["auth_ok"]:
+                    text += "\n" + self.tr(
+                        "sign-in not found — sign in to Devin "
+                        "Desktop or run `devin auth login`")
+                    color = "#e65100"
+                elif agent == "copilot":
+                    text += "\n" + self.tr(
+                        "requires CLI sign-in (run `copilot` once "
+                        "and /login, or `gh auth login`)")
+                self.btn_cli.setVisible(False)
+            else:
+                color = "#c62828"
+                text = self.tr("{0} CLI: not found").format(name)
+                self.btn_cli.setVisible(True)
+            self.lbl_cli.setText(text)
+            self.lbl_cli.setStyleSheet(
+                f"color:{color}; font-size:11px")
+            return
+        # カスタムACP: エンドポイント欄のコマンド先頭を検証
+        command = self.ed_endpoint.text().strip()
+        if not command:
+            self.lbl_cli.setText(
+                self.tr("ACP launch command is not set"))
+            self.lbl_cli.setStyleSheet(
+                "color:#e65100; font-size:11px")
+        else:
+            try:
+                argv0 = shlex.split(
+                    command, posix=os.name != "nt")[0]
+            except (ValueError, IndexError):
+                argv0 = command.split()[0]
+            argv0 = argv0.strip('"').strip("'")
+            # プロセスPATHは起動時点で固定されるためレジストリ最新
+            # PATHも見る _fresh_which を使う(= _custom_acp_argv より寛容)
+            found = (devin_tasks._fresh_which(argv0)
+                     if argv0 else None)
+            if found:
+                self.lbl_cli.setText(
+                    self.tr("command: {0}").format(found))
+                self.lbl_cli.setStyleSheet(
+                    "color:#2e7d32; font-size:11px")
+            else:
+                self.lbl_cli.setText(
+                    self.tr("command not found: {0}").format(argv0))
+                self.lbl_cli.setStyleSheet(
+                    "color:#c62828; font-size:11px")
+        self.btn_cli.setVisible(False)
+
+    def _on_endpoint_changed(self, _text):
+        """カスタムACP選択中はコマンド欄の変更を即検証へ反映する。"""
+        if self._provider() == "acp":
+            self._update_cli_row()
+
+    def _install_cli(self):
+        """「Install」: エージェントCLIを公式インストーラで導入する。
+
+        ソフトウェアのインストールなので実行前に必ず確認する。
+        実行はワーカースレッド、完了は sig_cli_done でGUIスレッドへ。
+        """
+        agent = self._cli_agent()
+        if not agent:
+            return
+        name = "Devin" if agent == "devin" else "GitHub Copilot"
+        steps = (
+            "powershell: irm https://static.devin.ai/cli/setup.ps1 "
+            "| iex" if agent == "devin"
+            else "winget install GitHub.Copilot / "
+                 "npm i -g @github/copilot / direct download")
+        if QMessageBox.question(
+                self, self.tr("Install {0} CLI").format(name),
+                self.tr("Install the {0} CLI on this machine?\n\n"
+                        "The official install steps are used:\n{1}")
+                .format(name, steps),
+                QMessageBox.StandardButton.Yes
+                | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+                ) != QMessageBox.StandardButton.Yes:
+            return
+        self.btn_cli.setEnabled(False)
+        self.lbl_status.setText(
+            self.tr("Installing {0} CLI…").format(name))
+        threading.Thread(
+            target=self._cli_install_run, args=(agent,),
+            daemon=True, name="qgis-ai-cli-install").start()
+
+    def _cli_install_run(self, agent):
+        from . import devin_tasks  # noqa: PLC0415
+        try:
+            res = devin_tasks.install_cli(
+                agent,
+                log=lambda s: self._emit(
+                    self.sig_append, "tool", s))
+            self._emit(self.sig_cli_done, agent,
+                       res.get("path") or "", res.get("error") or "")
+        except Exception as e:
+            self._emit(self.sig_cli_done, agent, "", str(e))
+
+    def _on_cli_done(self, agent, path, error):
+        """CLIインストール完了(GUIスレッド)。検出行を更新する。"""
+        self.btn_cli.setEnabled(True)
+        self.lbl_status.setText("")
+        name = "Devin" if agent == "devin" else "Copilot"
+        if error:
+            self._append("error", self.tr(
+                "{0} CLI installation failed: {1}")
+                .format(name, error))
+        else:
+            hint = (
+                self.tr("Next: run `devin auth login` (or sign in "
+                        "to Devin Desktop) to authenticate")
+                if agent == "devin"
+                else self.tr("Next: run `copilot` once and /login "
+                             "(or `gh auth login`) to authenticate"))
+            self._append("tool", self.tr(
+                "{0} CLI installed: {1}").format(name, path)
+                + "\n" + hint)
+        self._update_cli_row()
 
     def _save_settings(self):
         s = QSettings()
@@ -815,7 +1037,7 @@ class AiPanel(QDockWidget):
         s.setValue(_SETTING.format(f"{pid}_model"),
                    self._current_model())
         s.setValue(_SETTING.format("confirm"),
-                   self.chk_confirm.isChecked())
+                   bool(self.cmb_confirm.currentData()))
 
     def _save_provider_key(self, pid, key):
         """APIキーをOS資格情報ストアへ保存する。
@@ -1540,7 +1762,7 @@ class AiPanel(QDockWidget):
                 # モデルの画像対応推定。スクショの画像返却に使う
                 "vision": vision,
                 "agent": self.cmb_agent.currentData(),
-                "confirm": self.chk_confirm.isChecked(),
+                "confirm": bool(self.cmb_confirm.currentData()),
             }
             self._save_settings()
             self._append("user", text or self.tr("(image only)"))

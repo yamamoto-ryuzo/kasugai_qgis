@@ -4,7 +4,7 @@
 name=geo_import
 qgisMinimumVersion=4.0
 qgisMaximumVersion=4.99
-version=2.10.14
+version=2.10.15
 author=yamamoto-ryuzo
 email=ryu@yamakun.net
 description=さまざまなデータセットを検索・追加できるQGISプラグインです / A QGIS plugin to search and add various datasets.
@@ -15,6 +15,7 @@ homepage=https://github.com/yamamoto-ryuzo/qgis_live_harness/tree/master/qgis-pl
 tracker=https://github.com/yamamoto-ryuzo/qgis_live_harness/issues
 repository=https://github.com/yamamoto-ryuzo/qgis_live_harness/tree/master/qgis-plugin/geo_import
 changelog=
+	2.10.15: qrcリソースモジュール解放によるQGISクラッシュ(access violation)の予防修正 — resources_rc.pyの登録バッファをsysレジストリに固定し再読込時は前世代を登録解除
 	2.10.12: 設定ダイアログのgeometry/minimumSize固定(650x470)を撤廃しsizeHint追従化+Edit/Clearボタンに最小高さを設定 — QGISアプリスタイルシートや大きめフォント環境でコンテンツが470pxを超えた際にボタン行が潰れて表示される不具合を修正
 	2.10.11: vendored pyperclip(600行超・PyQt4/5時代の互換層を含む)を撤去し、QApplication.clipboard()を使う15行のclipboard.pyに置き換え
 	2.10.7: 独自CKANインスタンス一覧(instances.json)の配信元をgeo_import upstream repoからqgis_live_harness repo内のプラグイン同梱ファイルへ変更(正本を一元化)

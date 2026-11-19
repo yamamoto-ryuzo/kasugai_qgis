@@ -1,5 +1,87 @@
 # 変更履歴(Changelog)
 
+## 4.26.2
+
+- **plugins.qgis.org セキュリティスキャン指摘対応**(4.26.1 がサイト
+  スキャンでブロックされた原因の修正)。全て `reearth_cms.py`:
+  - B105×2: `ENV_TOKEN`/`SKEY_TOKEN` は環境変数名・QSettingsキー名
+    という文字列定数であり秘密値ではないため `# nosec B105` で明示
+  - B310: CMS API 呼出し url に `http`/`https` スキーム検証を追加し
+    `urllib.request.urlopen` へ `# nosec B310` を明示
+  - B110×2: QGIS 外 import 失敗時フォールバックの `except: pass`
+    2 箇所へ `# nosec B110` を明示
+
+## 4.26.1
+
+
+- **QGIS クラッシュ修正(スレッドセーフティ)**。
+  `GET /live/state`・`GET /present/state` がワーカースレッド上で
+  `iface.mapCanvas().mapSettings()` 等の GUI オブジェクトへ直接アクセスし、
+  ポーリング時に access violation で QGIS 本体がクラッシュする問題を修正。
+  `_canvas_state_dict()` の呼出しを既存の `_main_invoker.call()`
+  (GUI スレッド同期実行)経由に変更
+
+## 4.26.0
+
+- **エクスポート進捗表示(件数ベース)**。
+  `export_kasugai_project` / bridge `kasugaiExport` に
+  `progress_cb(done, total, name)` を追加し、レイヤツリー走査の
+  各レイヤ処理開始時に「何件目/全何件・対象名」を通知
+  (全件完了時は `(total, total, '')`)。パネルのエクスポート/
+  起動ボタンでは QProgressDialog に「レイヤーを変換中 N/M: 名前」
+  とバーをリアルタイム表示し、Cancel で `ExportCancelled` による
+  中断も可能。`GET /kasugai` 経路は GUI を持たないため
+  QgsMessageLog へ同形式の進捗を記録する
+
+## 4.25.1
+
+- **ヘルプ「?」ボタンの遷移先を GitHub Pages 化**。
+  Web配信グループの「?」が開く URL を GitHub ツリー
+  (`github.com/.../tree/master/qgis-plugin/geo_webview/docs`)から
+  GitHub Pages のドキュメントサイト
+  (`yamamoto-ryuzo.github.io/qgis_live_harness/qgis-plugin/geo_webview/docs/`)
+  へ変更。index.html+左サイドバーナビ付きの整形済みページが
+  そのまま開く
+
+## 4.25.0
+
+- **「表示中のみ変換」チェックをパネル/設定ダイアログに追加**。
+  Web配信グループの Format 行の下に `Visible data only (faster)`
+  チェックを追加し、設定ダイアログの Vector Export Format 内にも
+  同名チェックを配置。QSettings `kasugai_visible_data_only`
+  (初期値 ON)で両者を同期し、v4.23.0 の非表示レイヤ出力省略を
+  GUI から切替できる。OFF にすると非表示レイヤも `| off` 行として
+  従来通り全データを変換・複製する(プロジェクト丸ごと引越し用途)。
+  `export_kasugai_project` / bridge `kasugaiExport` の
+  `visible_data_only` 既定値を `None`(=設定値に従う)に変更し、
+  明示指定は引き続き当該エクスポートのみ上書きとして機能する
+
+## 4.24.0
+
+- **KASUGAI Canvas UI 設定管理画面への入口をパネルに追加**。
+  「Admin」ボタンからブラウザで `web/admin/ui-config-admin.html`
+  (ローカルアプリ専用・既定 port 8510・CDN 非配信)を開き、
+  エンジン別の UI 表示/非表示・コントロール初期値・起動タブを
+  設定できる。Canvas サーバ未稼働時は通知して開かない。
+  bridge `openKasugaiAdmin` からも同じ操作を呼べる(AI 制御対応)
+
+## 4.23.0
+
+- **非表示レイヤを .kasc に出力しない高速化**。
+  `export_kasugai_project` / bridge `kasugaiExport` に
+  `visible_data_only`(既定 ON)を追加。`| off` で出力される
+  非表示レイヤ(`hidden_as_off=True` またはマップテーマ存在時)は
+  レイヤ行を一切出力せず `skipped` へ記録する。
+  Canvas のレイヤ一覧に読み込めない「未読込」エントリが残らず、
+  データ変換・canvas_data/ へのコピー・スタイル書き出しの
+  コストも掛からない。背景図グループ内の XYZ タイルなど
+  `base:` 候補のみ従来通り `| off` 付きで出力する。
+  `visible_data_only=False` で非表示レイヤも `| off` 行として
+  全データを変換・複製する従来動作(プロジェクト丸ごと引越し用)
+  に戻せる。
+  あわせて `theme:` 行は .kasc に実際に出力されたレイヤのみを対象に
+  するよう修正(出力対象外レイヤへの無効な参照を防ぐ)
+
 ## 4.22.0
 
 - **Qt6 クラッシュ対策: ボタンイベント内の重い同期処理と messageBar 通知を次イベントループへ遅延**。

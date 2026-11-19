@@ -3,27 +3,25 @@
 このプラグインの変更履歴。Keep a Changelog 準拠。
 バージョンは `metadata.txt` の `version` と同期させる。
 
-## [0.16.2] - 2026-11-16
+## [1.0.0] - 2026-11-20
 
 ### Added
-- live_driver.py / bridge.py / mcp_http.py / ai_panel.py:
-  **制御コマンドの監査ログ永続化**。`_handle` を通る全コマンド
-  (ファイルJSONL/REST `/api/*`/MCP/AIパネル)を
-  `~/.qgis-live/audit-<date>.jsonl`(QGIS_LIVE_REGISTRY準拠)へ
-  追記する。レコードは ts/id/type/plugin_id/method/args要約/
-  origin(呼出経路)/ok/所要ms を持ち、token・api_key・password
-  等のsecrets系キーはマスク、セッショントークンは記録しない。
-  ファイル経由のトークン不一致(unauthorized)も監査対象。
-  他プラグインへの転送コマンドは転送元で1件だけ記録する。
-  日次ローテーションに加え、QSettings `geo_driver/audit/*` で
-  有効化・ファイルサイズ上限(既定5MB・超過時は時刻付き世代へ
-  退避)・保持世代数(既定14)を管理できる。参照は新規bridge
-  メソッド `auditLog(n, filter)`(フィールド一致dict/部分一致
-  文字列)と `auditSettings(enabled, max_bytes, max_files)`。
-
-## [Unreleased]
-
-### Added
+- ai_panel.py / devin_tasks.py: **エージェントCLI依存の可視化と
+  自動インストール**。Devin/Copilot 系(【ACP】・【ブリッジ】)を選ぶと
+  プロバイダ行の下に検出状況行を表示し、CLI未検出時は「Install」
+  ボタンから確認ダイアログ経由で公式手順の自動インストールを
+  実行する(Devin=setup.ps1/install.sh、Copilot=winget→npm→
+  GitHub Releases直接DLで `~/.qgis-live/bin` へ配置、ワーカー
+  スレッド実行・進捗はチャット欄へ)。Devin は credentials.toml
+  (windsurf_api_key)の有無、Copilot はログイン要否も併記。
+  カスタム【ACP】はエンドポイント欄の起動コマンド先頭を
+  リアルタイム検証する(自動インストールはしない)。
+  検出は `devin_tasks.cli_status()`、インストールは
+  `devin_tasks.install_cli()`。CLI検索はプロセスPATHに加えて
+  Windowsレジストリの最新User/Machine PATHも見るため、
+  QGIS起動後にインストールされたCLIも再起動なしで検出できる。
+  devin.exe の既定検索先に単体CLI配置先
+  `%LOCALAPPDATA%\devin\cli\bin` と `~/.qgis-live/bin` を追加
 - ai_client.py: SYSTEM_PROMPT の Guidelines に地名移動の指針を
   追加。「場所名への移動は geo_search の searchAddress を優先」
   「QgsMapCanvas にズームレベルAPIは無く zoomScale(縮尺分母)/
@@ -169,11 +167,61 @@
   function_call_output)へ変換する
 
 ### Changed
+- ai_panel.py: **API設定ボックス右上に「ヘルプ」リンクを追加**。
+  GitHub Pages上の `qgis-plugin/geo_driver/docs/index.html`
+  へブラウザで飛べるプラグイン全体のヘルプ導線
+  (「?」ボタンの Docs と同じ `_open_docs()` を使用。
+  API設定を畳んでいる時はボックスごと非表示)
+- ai_panel.py: **「?」(プロバイダ種別ヘルプ)にドキュメントリンクを
+  追加**。従来の種別説明ダイアログに「ドキュメントを開く」ボタンを
+  追加し、プラグイン同梱 `docs/index.html`(AIパネル節アンカー付き)を
+  ブラウザで開けるようにした(同梱docsが無い環境ではサイト側
+  driver.html へフォールバック)
+- ai_panel.py: **ツール実行確認を明示選択式のコンボ化**。
+  「ツール実行の前に確認する」チェックボックスを廃止し、
+  「ツール呼出」コンボ(**自動実行**(既定) / 呼出前に確認)へ
+  置き換えた。保存キー `geo_driver/ai_confirm` は同じ真偽値で
+  互換維持(旧設定のONは「呼出前に確認」として復元される)
 - **プラグイン ID を `qgis_live_driver` → `geo_driver` にリネーム**
   (`geo_` シリーズ統一)。フォルダ名・metadata の name・
   ブリッジ `pluginId`・`<pid>-geo_driver.json` レジストリ・
   ホットリロード `CTRL_ID`・`tr` コンテキスト・
   QSettings プレフィックスを新IDへ移行。機能変更なし
+
+## [0.16.3] - 2026-11-19
+
+### Fixed
+- live_driver.py: **ホットリロード/reload_plugin で qrc リソース
+  モジュールを `sys.modules` から掃除していた問題**を修正。
+  `qRegisterResourceData` はバッファをコピーせずポインタ保持する
+  ため、pyrcc 生成モジュール(`resources`/`resources_rc`/`*_rc`)が
+  GC されると Qt グローバルリソースリストにダングリングノードが
+  残り、以後のあらゆる `":/"` パスの `QFile::open`(ドック
+  タイトルバー等の standardIcon 解決)が `QResource::fileName` で
+  access violation する(QGIS 4.0.1/Qt 6.8.1 実績)。掃除対象から
+  `resources` および `_rc` 末尾のモジュールを除外し、
+  geo_legend/geo_import 側の `resources_rc.py` でも登録バッファを
+  `sys._qgis_pinned_qrc` に固定する対策を併施(QGIS 側の
+  unloadPlugin による modules 掃除経路もカバー)
+
+## [0.16.2] - 2026-11-16
+
+### Added
+- live_driver.py / bridge.py / mcp_http.py / ai_panel.py:
+  **制御コマンドの監査ログ永続化**。`_handle` を通る全コマンド
+  (ファイルJSONL/REST `/api/*`/MCP/AIパネル)を
+  `~/.qgis-live/audit-<date>.jsonl`(QGIS_LIVE_REGISTRY準拠)へ
+  追記する。レコードは ts/id/type/plugin_id/method/args要約/
+  origin(呼出経路)/ok/所要ms を持ち、token・api_key・password
+  等のsecrets系キーはマスク、セッショントークンは記録しない。
+  ファイル経由のトークン不一致(unauthorized)も監査対象。
+  他プラグインへの転送コマンドは転送元で1件だけ記録する。
+  日次ローテーションに加え、QSettings `geo_driver/audit/*` で
+  有効化・ファイルサイズ上限(既定5MB・超過時は時刻付き世代へ
+  退避)・保持世代数(既定14)を管理できる。参照は新規bridge
+  メソッド `auditLog(n, filter)`(フィールド一致dict/部分一致
+  文字列)と `auditSettings(enabled, max_bytes, max_files)`。
+
 
 ## [0.15.3] - 2026-11-12
 

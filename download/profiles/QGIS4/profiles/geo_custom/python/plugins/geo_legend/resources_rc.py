@@ -73,4 +73,30 @@ def qCleanupResources():
     QtCore.qUnregisterResourceData(rcc_version, qt_resource_struct, qt_resource_name, qt_resource_data)
 
 
-qInitResources()
+# NOTE(生成ファイルへ手修正): qRegisterResourceData は引数のバッファを
+# コピーせずポインタ保持する(Qt docs: "The data must remain valid
+# throughout the life of any QFile that may reference the resource
+# data")。プラグインの reload/unload でこのモジュールが sys.modules
+# から掃除され GC されると、Qt のグローバルリソースリストに
+# ダングリングノードが残り、以後あらゆる ":/" パスの QFile::open
+# (スタイルの standardIcon 解決等)が QResource::fileName で
+# access violation する(QGIS4/Qt6 実績あり)。バッファをプロセス内不変の
+# sys レジストリに固定し、再読込時は前世代を登録解除して常に
+# 1ノードに保つ。pysip/rcc 再生成時はこのブロックを引き継ぐこと。
+def _init_resources_pinned():
+    import sys
+    store = getattr(sys, '_qgis_pinned_qrc', None)
+    if store is None:
+        store = sys._qgis_pinned_qrc = {}
+    prev = store.pop(__name__, None)
+    if prev is not None:
+        try:
+            QtCore.qUnregisterResourceData(rcc_version, *prev)
+        except Exception:
+            pass
+    bufs = (qt_resource_struct, qt_resource_name, qt_resource_data)
+    QtCore.qRegisterResourceData(rcc_version, *bufs)
+    store[__name__] = bufs
+
+
+_init_resources_pinned()

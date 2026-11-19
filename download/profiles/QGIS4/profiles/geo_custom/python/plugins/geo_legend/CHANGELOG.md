@@ -20,6 +20,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   単一・レイアウト凡例・PNG出力)・引数形式・layer解決・
   scale_style/webgis-convert との連携を得られる
 
+## [2.9.1] - 2026-11-19
+
+### Fixed
+- `resources_rc.py`: **プラグインのリロード/unload 後に QGIS が
+  access violation でクラッシュする問題**を修正。
+  `qRegisterResourceData` は登録バッファをコピーせずポインタ保持
+  するため、`sys.modules` 掃除(ホットリロード)や
+  `qgis.utils` のプラグインunloadでモジュールが GC されると
+  Qt グローバルリソースリストにダングリングノードが残り、
+  以後あらゆる `":/"` パスの `QFile::open`(ドックタイトルバー等の
+  standardIcon 解決)が `QResource::fileName` で落ちていた
+  (QGIS 4.0.1/Qt 6.8.1 実績)。登録バッファをプロセス内不変の
+  `sys._qgis_pinned_qrc` に固定し、再読込時は前世代を
+  `qUnregisterResourceData` で解除して常に1ノードに保つ
+
 ## [2.9.0] - 2026-11-16
 
 ### Added

@@ -201,6 +201,23 @@
        </layout>
       </item>
       <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_kasugai_vonly">
+        <item>
+         <widget class="QCheckBox" name="checkBox_visible_only">
+          <property name="text">
+           <string>Visible data only (faster)</string>
+          </property>
+          <property name="toolTip">
+           <string>Only output visible layers — hidden layers are not written to the .kasc at all (basemap-group XYZ candidates keep their base: rows for the background selector, as before). Skipped layers cannot be turned on in Canvas. Uncheck to emit hidden layers as | off rows with all data converted (whole-project migration)</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
        <layout class="QHBoxLayout" name="horizontalLayout_kasugai_hosted">
         <item>
          <widget class="QLabel" name="label_hosted">
@@ -316,6 +333,22 @@
           </property>
           <property name="toolTip">
            <string>Open the exported project in KASUGAI Canvas (main integrated player) — registers the existing .kasc with a running Canvas (port 8510) and switches to it. Requires a prior export (Export button)</string>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>25</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButton_kasugai_admin">
+          <property name="text">
+           <string>Admin</string>
+          </property>
+          <property name="toolTip">
+           <string>Open the KASUGAI Canvas UI-config admin screen in the browser — per-engine UI show/hide, control defaults and startup tab. Requires the local Canvas app running (port 8510)</string>
           </property>
           <property name="minimumSize">
            <size>

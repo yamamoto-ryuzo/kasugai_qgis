@@ -198,7 +198,7 @@ HTTP ワーカースレッドから呼べる。</li>
 </tr>
 <tr>
   <td>Bridge</td>
-  <td><code>bridge_call</code> の <code>kasugaiExport(output_dir, open_app, native_formats, hidden_as_off, emit_themes, emit_bookmarks, emit_launchers, engine, install, route, use_existing, emit_atlas)</code></td>
+  <td><code>bridge_call</code> の <code>kasugaiExport(output_dir, open_app, native_formats, hidden_as_off, emit_themes, emit_bookmarks, emit_launchers, engine, install, route, use_existing, emit_atlas, link_files, vector_format, visible_data_only, progress_cb)</code></td>
   <td>Live Driver 経由の AI 制御（MCP <code>qgis_bridge_call</code> / REST <code>/api/cmd</code> / JSONL）。<code>use_existing=True</code> で再エクスポートせず既存の <code>.kasc</code> のみ使用（未出力なら <code>code=not_exported</code>）</td>
 </tr>
 </tbody>
@@ -232,7 +232,7 @@ HTTP ワーカースレッドから呼べる。</li>
 | WMS ラスタ(type=xyz 以外) | <code>wms: グループ/名 | &lt;エンドポイントURL&gt; | on | layers=, styles=, format=</code> | QGIS の WMS 接続 URI から url=/layers=/styles=/format= を抽出。Canvas 側が GetMap を 256px タイルへ分解して要求 |
 | その他ベクター(SHP/PostGIS/WFS/メモリ等)・非地理座標系 | FlatGeobuf(EPSG:4326・空間インデックス付き)へ変換して canvas_data/ へ <code>flatgeobuf:</code> 行 | ドライバ非搭載時は Parquet、変換失敗時は GeoJSON へフォールバック。再投影は warnings に記録 |
 | 属性テーブルのみ(NoGeometry)・ローカルラスタ・ベクタータイル・メッシュ・点群・アノテーション等 | 出力せず <code>skipped</code> に種別/理由付きで記録 | |
-| 非表示レイヤ | <code>hidden_as_off=True</code> 時のみ <code>| off</code> 付きで出力 | 既定(visible_only=True)では除外 |
+| 非表示レイヤ | <code>hidden_as_off=True</code> またはマップテーマ存在時に <code>| off</code> 付きで出力。<code>visible_data_only=True</code>(QSettings <code>kasugai_visible_data_only</code>・既定 ON)ではレイヤ行を一切出力せず skipped(背景図グループの <code>base:</code> 候補のみ従来通り出力・高速化)。<code>visible_data_only=False</code> で <code>| off</code> 行として全データを変換・複製する従来動作 | 既定(visible_only=True)では除外 |
 | キャンバス | <code>cam:</code> 行(中心座標+概算高度+回転) | |
 || 保存済み3Dビュー(ローカル/グローブ) | <code>cam:QGIS3D &lt;名&gt;|lat|lon|h=|p=|d=</code> 行(注視点+dist/pitch/yaw→ENUオフセットでカメラ位置逆算: 高さ=dist·cos(pitch)・水平=dist·sin(pitch)・視線方位=360-yaw・p=pitch-90) + <code>terrain:</code> 行(垂直誇張/オフセット/陰影/ジェネレータ) + <code>scene3d:</code> 行(背景色/スカイボックス/影/SSAO/EDL・グローブは globe=on) + <code>light:</code> 行(平行光源の方位・仰角・強度・色) | 3Dビューが存在する場合のみ出力。シーンCRSはビューごとの <code>&lt;qgis3d&gt;&lt;crs&gt;</code> を解決し、地心系(QGIS4グローブ・EPSG:4978等)はECEF→測地変換で対応。既定値相当の項目は省略 |
 || 3Dビューのアニメーション(<code>&lt;animation3d&gt;</code>キーフレーム) | <code>fly_geojson: QGIS3D &lt;名&gt; | canvas_data/anim3d_&lt;slug&gt;.geojson | speed=&lt;m/s&gt; | view=camera | step=&lt;m&gt;</code> 行 + カメラ軌道の LineString GeoJSON | 各キーフレーム(注視点+dist/pitch/yaw+時刻)のカメラ位置を計算してカメラ軌道にする。speed=軌道3D総延長÷アニメ時間。キーフレーム2個未満は出力しない |
@@ -279,7 +279,7 @@ URL/bridge は当該エクスポートだけの一時上書き（いずれも相
 </tr>
 <tr>
 <td><code>recommended</code></td>
-<td>FlatGeobuf/GeoParquet 以外の全ソースを FlatGeobuf（EPSG:4326・空間インデックス付き）へ変換し canvas_data/ へ <code>flatgeobuf:</code> 行で配置。既に FlatGeobuf/GeoParquet のソースは参照を維持（<code>flatgeobuf:</code>/<code>geoparquet:</code>/<code>duckdb:+format=parquet</code> 行）。subsetString・fields/where/limit は変換データへ焼き込み。Canvas 側では <code>bbox=auto</code> の Range 範囲読みが効く</td>
+<td>FlatGeobuf/GeoParquet 以外の全ソースを FlatGeobuf（EPSG:4326・空間インデックス付き）へ変換し canvas_data/ へ <code>flatgeobuf:</code> 行で配置。既に FlatGeobuf/GeoParquet のソースは参照を維持（<code>flatgeobuf:</code>/<code>geoparquet:</code>/<code>duckdb:+format=parquet</code> 行）。subsetString・fields/where/limit は変換データへ焼き込み。Canvas 側では <code>bbox=auto</code> の範囲読みが効く（<code>flatgeobuf:</code> は空間インデックス+Range、<code>geoparquet:</code> は covering.bbox 列または行グループ geospatial statistics による部分読み。いずれも無いファイルは全件へフォールバック）</td>
 </tr>
 <tr>
 <td><code>geojson</code>（WEB連携）</td>
@@ -290,6 +290,36 @@ URL/bridge は当該エクスポートだけの一時上書き（いずれも相
 <p>変換ドライバは FlatGeobuf が第1候補（非搭載環境は Parquet）で、
 変換失敗時は GeoJSON(EPSG:4326) へフォールバックする（native モードの非ネイティブ変換と同じ経路）。
 <code>geojson</code> モードは GeoJSON 固定（ドライバ切替なし）。</p>
+<h3 id="非表示レイヤの出力省略">非表示レイヤの出力省略（表示中のみ変換）</h3>
+<p>非表示レイヤ（<code>hidden_as_off=True</code> またはマップテーマ存在時に
+<code>| off</code> で出力されるレイヤ）を .kasc のレイヤ行へ一切出力しない
+高速化スイッチ（QSettings <code>kasugai_visible_data_only</code>、既定 ON）。
+Canvas のレイヤ一覧に非表示レイヤが並ばず、データ変換・
+canvas_data/ へのコピー・スタイル書き出しのコストも掛からない。
+背景図グループ内の XYZ タイルなど <code>base:</code> 候補のみ従来通り
+<code>| off</code> 付きで出力する（ベースマップ選択の候補）。スキップされた
+レイヤは Canvas で表示に切り替えられない（<code>skipped</code> に理由付きで
+記録）。<code>theme:</code> 行は実際に出力されたレイヤのみを対象とする。
+OFF で従来通り非表示レイヤも <code>| off</code> 行として全データを変換・
+複製する（プロジェクトの丸ごと引越し用途）。</p>
+<p>切替経路（パネル/設定ダイアログは永続設定を読み書き、
+bridge/API 引数は当該エクスポートだけの一時上書き）:</p>
+<ul>
+<li>パネルの <strong>Visible data only (faster)</strong> チェック — 永続</li>
+<li>設定ダイアログの <strong>Vector Export Format</strong> 内にある同名チェック — 永続</li>
+<li>bridge <code>kasugaiExport(visible_data_only=True|False)</code> — 呼出しのみ上書き</li>
+<li><code>export_kasugai_project(visible_data_only=…)</code> — 呼出しのみ上書き</li>
+</ul>
+<h3 id="エクスポート進捗progress-cb">エクスポート進捗（progress_cb）</h3>
+<p><code>export_kasugai_project</code> / bridge <code>kasugaiExport</code> に
+<code>progress_cb(done, total, name)</code> を渡すと、レイヤツリー走査の
+各レイヤ処理開始時に「何件目/全何件・対象名」を通知する
+（全件完了時は <code>(total, total, '')</code>）。パネルのエクスポート/
+起動ボタンは QProgressDialog に「レイヤーを変換中 N/M: 名前」
+とバーを表示し、Cancel 押下で <code>ExportCancelled</code> を送出して
+中断できる（bridge は <code>code: 'cancelled'</code> で返す）。
+<code>GET /kasugai</code> 経路は GUI を持たないため同形式の進捗を
+QgsMessageLog へ記録する。</p>
 <h3 id="qml-スタイル出力">.qml スタイル出力</h3>
 <p>スタイル（.qml）はベクターデータ形式とは<strong>独立</strong>で、
 native/recommended/geojson のどのモードでも同じ扱い:</p>

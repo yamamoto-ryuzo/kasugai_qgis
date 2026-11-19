@@ -101,7 +101,7 @@ def build_sections(plugin):
         os.path.join(os.path.expanduser("~"), ".qgis-live"))
     reg_path = getattr(plugin, "_reg_path", None) or os.path.join(
         reg_dir, f"{os.getpid()}-geo_driver.json")
-    fields = {"reg": reg_path, "livedir": None, "token": None}
+    fields = {"reg": reg_path, "livedir": None, "token": None}  # nosec B105  # None値のみ(秘密情報ではない)
     snippets["reg"] = reg_path
 
     stdio_block = ("--- " + _tr(

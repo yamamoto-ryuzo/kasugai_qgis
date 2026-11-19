@@ -75,11 +75,14 @@ deployモードバッジ(開発モード/利用モードの常時表示)を載�
 <h2 id="ai-アシスタントパネル">AI アシスタントパネル</h2>
 <p><code>プラグイン &gt; QGIS Live Driver &gt; AI アシスタント</code> で、
 <strong>LLM APIを接続してQGISを対話操作するチャットドック</strong>を開ける
-(<code>ai_panel.py</code> + <code>ai_client.py</code>)。</p>
+(<code>ai_panel.py</code> + <code>ai_client.py</code>)。
+「API設定」ボックス右上の「ヘルプ」リンクから本ページ
+(GitHub Pages上の <code>docs/index.html</code>)をブラウザで開ける。</p>
 <ul>
 <li><p><strong>プロバイダ</strong>(コンボで選択。設定はプロバイダごとに別保存。
 各項目の先頭には接続方式の種別タグ 【API】/【ACP】/【ブリッジ】
-が付く):</p>
+が付く。右の「?」ボタンで種別の違いを表示し、
+「ドキュメントを開く」で本ページをブラウザで開ける):</p>
 <ul>
 <li><strong>OpenAI互換</strong>: Chat Completions
 (<code>POST {base}/chat/completions</code> + function calling)。
@@ -153,7 +156,76 @@ QGIS操作も可能)。<strong>APIキー不要</strong>でIDEのDevin認証
 (APIキー欄は不要)。エンドポイント欄はセッションの
 作業ディレクトリ</li>
 </ul>
-</li>
+エージェントCLIが必要なプロバイダ(Devin/Copilot の【ACP】・
+【ブリッジ】)を選ぶと、プロバイダ行の下に <strong>Agent CLI 行</strong>
+が表示され、CLI の検出状況を示す(検出は PATH だけでなく
+Devin Desktop 同梱パス・<code>%LOCALAPPDATA%\devin\cli\bin</code>・
+npm/winget・<code>~/.qgis-live/bin</code>・Windowsレジストリの最新
+PATHも見るため、QGIS起動後に入れたCLIも再起動なしで検出できる)。
+<strong>未検出の場合は「Install」ボタン</strong>が出て、確認ダイアログの
+のち公式手順で自動インストールする
+(Devin=<code>irm https://static.devin.ai/cli/setup.ps1 | iex</code>、
+Copilot=winget → npm → GitHub Releases直接DL の順にフォールバック。
+進捗はチャット欄へ流れる)。Devin は加えて資格(credentials.toml の
+windsurf_api_key)の有無も示す。カスタム【ACP】選択時は
+エンドポイント欄の起動コマンド先頭をリアルタイム検証する
+(任意コマンドのため自動インストールはしない)。
+導入後の認証: Devin=<code>devin auth login</code> または
+Devin Desktop サインイン、Copilot=<code>copilot</code> 起動して
+<code>/login</code> または <code>gh auth login</code>。
+各方式の構成比較:
+<p><strong>【API】直接 LLM API</strong>(openai/anthropic/gemini/azure/copilot)</p>
+<pre><code class="language-mermaid">flowchart TB
+    P1[&quot;AIパネル&lt;br/&gt;ツールループを自分で実行&quot;]
+    L1[&quot;LLM API&lt;br/&gt;(OpenAI互換 等)&quot;]
+    Q1[(&quot;QGIS&lt;br/&gt;geo_driver&quot;)]
+    R1[&quot;必要: APIキー+エンドポイント&lt;br/&gt;CLI 不要&quot;]:::req
+    P1 -- &quot;messages+tools&quot; --&gt; L1
+    L1 -- &quot;tool_calls&quot; --&gt; P1
+    P1 -- &quot;qgis_* 実行&quot; --&gt; Q1
+    P1 -.-&gt; R1
+    classDef req fill:#fff8dc,stroke:#999,color:#333;
+</code></pre>
+<p><strong>【ACP】エージェントセッション</strong>(devin_acp/copilot_acp/acp)</p>
+<pre><code class="language-mermaid">flowchart TB
+    P2[&quot;AIパネル&lt;br/&gt;チャットUIのみ&quot;]
+    C2[&quot;エージェントCLI&lt;br/&gt;devin acp /&lt;br/&gt;copilot --acp --stdio /&lt;br/&gt;カスタムコマンド&quot;]
+    M2[&quot;geo_driver /mcp&lt;br/&gt;(内蔵HTTPサーバ)&quot;]
+    Q2[(&quot;QGIS&quot;)]
+    R2[&quot;必要: CLI + CLI側認証&lt;br/&gt;(IDE資格 / gh login)&lt;br/&gt;APIキー不要&quot;]:::req
+    P2 -- &quot;spawn + stdio JSON-RPC&quot; --&gt; C2
+    C2 -- &quot;tools/call&quot; --&gt; M2
+    M2 --&gt; Q2
+    P2 -.-&gt; R2
+    classDef req fill:#fff8dc,stroke:#999,color:#333;
+</code></pre>
+<p><strong>【ブリッジ】委譲チャット</strong>(devin_bridge/copilot_bridge/agent)</p>
+<pre><code class="language-mermaid">flowchart LR
+    P3[&quot;AIパネル&lt;br/&gt;ツールループを自分で実行&quot;]
+    L3[&quot;LLM API&lt;br/&gt;(OpenAI互換)&quot;]
+    C3[&quot;エージェントCLI&lt;br/&gt;devin acp/print /&lt;br/&gt;copilot -p&quot;]
+    E3[&quot;外部エージェント&lt;br/&gt;HTTPエンドポイント&quot;]
+    Q3[(&quot;QGIS&quot;)]
+    R3[&quot;必要: APIキー+エンドポイント&lt;br/&gt;+ CLI + CLI側認証&lt;br/&gt;※agent はCLI不要&quot;]:::req
+    P3 -- &quot;messages+tools&quot; --&gt; L3
+    L3 -- &quot;qgis_devin_* /&lt;br/&gt;qgis_copilot_*&quot; --&gt; P3
+    P3 -- &quot;タスク起動&quot; --&gt; C3
+    P3 -- &quot;POST {message}&quot; --&gt; E3
+    C3 -- &quot;結果&quot; --&gt; P3
+    E3 -- &quot;{reply}&quot; --&gt; P3
+    P3 -- &quot;qgis_* 実行&quot; --&gt; Q3
+    P3 -.-&gt; R3
+    classDef req fill:#fff8dc,stroke:#999,color:#333;
+</code></pre>
+<table>
+<tr><th></th><th>【API】</th><th>【ACP】</th><th>【ブリッジ】</th></tr>
+<tr><td>チャットの頭脳</td><td>LLM API</td><td>CLIセッション</td><td>LLM API</td></tr>
+<tr><td>ツールループ</td><td>パネル</td><td><strong>CLI側</strong></td><td>パネル</td></tr>
+<tr><td>APIキー</td><td>必要</td><td>不要</td><td>必要</td></tr>
+<tr><td>エージェントCLI</td><td>不要</td><td><strong>必須</strong></td><td><strong>devin/copilotは必須</strong><br>agentは不要(HTTPのみ)</td></tr>
+<tr><td>CLI側認証</td><td>—</td><td><strong>IDE資格 / gh login</strong></td><td><strong>同左</strong></td></tr>
+<tr><td>QGISへの到達</td><td>パネル→内部ツール</td><td>CLI→<code>/mcp</code> HTTP</td><td>パネル→内部ツール+委譲</td></tr>
+</table></li>
 <li><p><strong>モデル選択</strong>: モデル欄は編集可コンボ。隣の「取得」ボタンで
 <code>GET {base}/models</code> から利用可能モデル一覧を取り込める
 (GeminiではgenerateContent非対応モデルを除外)。
@@ -239,9 +311,10 @@ ctx は直近API応答のprompt_tokens実測値(未取得時は~付きで
 (一覧の「画像入力可」グループ外)選択中は添付できず</strong>、
 📎ボタンも無効化される(手入力モデルは名前ヒントで推定)</p>
 </li>
-<li><p><strong>確認モード</strong>: 「ツール実行の前に確認する」をONにすると
-各ツール呼び出しで実行可否を都度確認する(任意コード実行の
-pyevalを自動で回したくない場合に)</p>
+<li><p><strong>確認モード</strong>: 「ツール呼出」コンボを「呼出前に確認」に
+すると各ツール呼び出しで実行可否を都度確認する(任意コード実行の
+pyevalを自動で回したくない場合に)。既定は「自動実行」で、
+ツール呼び出しは確認なしで実行される</p>
 </li>
 <li><p><strong>ツール</strong>: <code>mcp_http.TOOLS</code> と同じセット
 (<code>qgis_pyeval</code> / <code>qgis_screenshot</code> / <code>qgis_status</code> /
@@ -366,5 +439,23 @@ macOSはキーチェーン、LinuxはSecret Service(secret-tool)。
 <code>scripts/build-plugin-docs.py</code> によるミラーです。</small></p>
 </main>
 </div>
+<script type="module">
+// pre > code.language-mermaid を mermaid@11 で描画
+// (docs/assets/site.js と同じ条件付き CDN 遅延読み込み)
+const mermaidBlocks = document.querySelectorAll('pre > code.language-mermaid');
+if (mermaidBlocks.length) {
+  const { default: mermaid } = await import(
+    'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs');
+  for (const el of mermaidBlocks) {
+    const div = document.createElement('div');
+    div.className = 'mermaid';
+    div.textContent = el.textContent;
+    el.parentElement.replaceWith(div);
+  }
+  const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  mermaid.initialize({ startOnLoad: false, theme: dark ? 'dark' : 'neutral' });
+  await mermaid.run({ querySelector: '.mermaid' });
+}
+</script>
 </body>
 </html>

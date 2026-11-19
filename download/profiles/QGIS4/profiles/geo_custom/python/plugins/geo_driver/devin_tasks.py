@@ -30,7 +30,14 @@ import uuid
 _DEFAULT_EXE = os.path.expandvars(
     r"%LOCALAPPDATA%\Programs\Devin\resources\app\extensions"
     r"\windsurf\devin\bin\devin.exe")
+# 公式インストーラ(setup.ps1)の単体CLI配置先
+_STANDALONE_EXE = os.path.expandvars(
+    r"%LOCALAPPDATA%\devin\cli\bin\devin.exe")
 _CREDENTIALS = os.path.expandvars(r"%APPDATA%\devin\credentials.toml")
+# install_cli の直接ダウンロード経路が置く管理bin
+# (KASUGAI Canvas bridge-hub の managed_cli 相当)
+_MANAGED_BIN = os.path.join(
+    os.path.expanduser("~"), ".qgis-live", "bin")
 
 _PERMISSION_MODES = ("normal", "accept-edits", "smart", "dangerous")
 _ENGINES = ("auto", "acp", "print")
@@ -46,13 +53,62 @@ class TaskError(Exception):
     """ツールへそのまま返せるユーザー向けエラー。"""
 
 
+def _path_dirs():
+    """実行ファイル検索対象のPATHディレクトリ一覧を返す。
+
+    QGISプロセスの環境PATHは起動時点で固定されるため、Windowsでは
+    レジストリの最新PATH(User/Machine。インストーラが更新する方)も
+    併せて見る。これによりQGIS起動後に入れたCLIも再起動なしで検出
+    できる(KASUGAI Canvas bridge-hub common::path_dirs と同じ考え)。
+    """
+    dirs = os.environ.get("PATH", "").split(os.pathsep)
+    if os.name == "nt":
+        try:
+            import winreg  # noqa: PLC0415
+            for root, sub in (
+                    (winreg.HKEY_CURRENT_USER, "Environment"),
+                    (winreg.HKEY_LOCAL_MACHINE,
+                     r"SYSTEM\CurrentControlSet\Control"
+                     r"\Session Manager\Environment")):
+                try:
+                    with winreg.OpenKey(root, sub) as k:
+                        v, _t = winreg.QueryValueEx(k, "Path")
+                    dirs.extend(
+                        os.path.expandvars(str(v)).split(os.pathsep))
+                except OSError:  # nosec B110
+                    pass
+        except ImportError:  # nosec B110
+            pass
+    seen, out = set(), []
+    for d in dirs:
+        d = (d or "").strip().strip('"')
+        if d and d.lower() not in seen:
+            seen.add(d.lower())
+            out.append(d)
+    return out
+
+
+def _fresh_which(name):
+    """レジストリ最新PATH込みで実行ファイルを探す(whichの強化版)。"""
+    exts = (("", ".exe", ".cmd", ".bat") if os.name == "nt" else ("",))
+    for d in _path_dirs():
+        for e in exts:
+            p = os.path.join(d, name + e)
+            if os.path.isfile(p):
+                return p
+    return None
+
+
 def find_exe(exe=None):
     """devin.exe のパスを解決する。見つからなければ None。
 
-    解決順: 引数 > QGIS_LIVE_DEVIN_EXE > PATH の devin > 既定インストール先。
+    解決順: 引数 > QGIS_LIVE_DEVIN_EXE > PATH(レジストリ最新含む)
+    の devin > IDE同梱の既定インストール先 > 公式インストーラの
+    単体CLI配置先 > 管理bin(~/.qgis-live/bin)。
     """
     for c in (exe, os.environ.get("QGIS_LIVE_DEVIN_EXE"),
-              shutil.which("devin"), _DEFAULT_EXE):
+              _fresh_which("devin"), _DEFAULT_EXE, _STANDALONE_EXE,
+              os.path.join(_MANAGED_BIN, "devin.exe")):
         if c and os.path.isfile(c):
             return c
     return None
@@ -86,7 +142,8 @@ def _copilot_exe_spec():
     既定インストール先(%APPDATA%\\npm 等)も候補に含める。
     """
     npm_dir = os.path.expandvars(r"%APPDATA%\npm")
-    cands = [shutil.which("copilot"),
+    cands = [os.path.join(_MANAGED_BIN, "copilot.exe"),
+             _fresh_which("copilot"),
              os.path.join(npm_dir, "copilot.cmd"),
              os.path.join(npm_dir, "copilot")]
     for w in cands:
@@ -97,7 +154,7 @@ def _copilot_exe_spec():
         loader = os.path.join(
             os.path.dirname(w), "node_modules", "@github",
             "copilot", "npm-loader.js")
-        for node in (shutil.which("node"),
+        for node in (_fresh_which("node"),
                      r"C:\Program Files\nodejs\node.exe"):
             if node and os.path.isfile(node) and \
                     os.path.isfile(loader):
@@ -556,7 +613,7 @@ def _acp_drive(t):
     except Exception as e:  # プロセス側異常もここへ来る
         try:
             out(f"\n[fatal] {e}")
-        except OSError:
+        except OSError:  # nosec B110
             pass
         t["error"] = str(e)
     finally:
@@ -570,7 +627,7 @@ def _acp_drive(t):
             pass
         try:
             proc.terminate()
-        except OSError:
+        except OSError:  # nosec B110
             pass
         _close(t)
 
@@ -679,7 +736,7 @@ class AcpSession:
                     try:
                         self.rpc("authenticate", {"methodId": m["id"]},
                                  timeout=15.0)
-                    except TaskError:
+                    except TaskError:  # nosec B110
                         pass
             mcp = list(mcp_servers or [])
             if session_id and caps.get("loadSession"):
@@ -708,7 +765,7 @@ class AcpSession:
                     self.rpc("session/set_mode", {
                         "sessionId": self.session_id,
                         "modeId": mode}, timeout=15.0)
-                except TaskError:
+                except TaskError:  # nosec B110
                     pass
             if model:
                 try:
@@ -716,7 +773,7 @@ class AcpSession:
                         "sessionId": self.session_id,
                         "configId": "model", "value": model},
                         timeout=15.0)
-                except TaskError:
+                except TaskError:  # nosec B110
                     pass
         except Exception:
             self.close()
@@ -757,7 +814,7 @@ class AcpSession:
             for raw in self._proc.stdout:
                 try:
                     msg = json.loads(raw.decode("utf-8", "replace"))
-                except ValueError:
+                except ValueError:  # nosec B112
                     continue
                 if "method" in msg:
                     self._handle_agent(msg)
@@ -809,7 +866,7 @@ class AcpSession:
             rep["result"] = result
         try:
             self._send(rep)
-        except (OSError, ValueError):
+        except (OSError, ValueError):  # nosec B110
             pass
 
     def prompt(self, blocks):
@@ -827,7 +884,7 @@ class AcpSession:
         try:
             self._send({"jsonrpc": "2.0", "method": "session/cancel",
                         "params": {"sessionId": self.session_id}})
-        except (OSError, ValueError):
+        except (OSError, ValueError):  # nosec B110
             pass
 
     def close(self):
@@ -839,9 +896,198 @@ class AcpSession:
             if self.session_id:
                 self._send({"jsonrpc": "2.0", "method": "session/close",
                             "params": {"sessionId": self.session_id}})
-        except (OSError, ValueError):
+        except (OSError, ValueError):  # nosec B110
             pass
         try:
             self._proc.terminate()
-        except OSError:
+        except OSError:  # nosec B110
             pass
+
+
+# ---- CLI 検出・インストール支援 ----
+# AIパネルの「Agent CLI」行と「Install」ボタンが使う。
+# 手順は KASUGAI Canvas bridge-hub /setup(server/src/bridge/setup.rs)
+# と同じ公式経路のみ(ホワイトリスト。任意コマンドは実行しない)。
+
+def cli_status(agent):
+    """エージェントCLIの検出状況を返す(パネル依存表示用)。
+
+    @returns {"found": bool, "path": str|None, "auth_ok": bool|None}
+        auth_ok: devin は IDE/CLI ログイン資格(credentials.toml の
+        windsurf_api_key)の有無。copilot は CLI 側の gh ログインに
+        委譲するため未判定(None)。
+    """
+    if agent == "copilot":
+        spec = _copilot_exe_spec()
+        return {"found": spec is not None,
+                "path": (spec[0] if spec else None),
+                "auth_ok": None}
+    path = find_exe()
+    return {"found": path is not None, "path": path,
+            "auth_ok": bool(_ide_api_key())}
+
+
+def _run_logged(argv, log, timeout=900):
+    """インストーラ系コマンドを実行し終了コードを返す。
+
+    stdout/stderr の末尾を log コールバックへ流す(実行内容に
+    secrets は含まれない)。起動失敗・タイムアウトは -1。
+    """
+    log("$ " + " ".join(argv))
+    try:
+        p = subprocess.run(  # nosec B603  # 固定の公式手順のみ
+            argv, capture_output=True, text=True, errors="replace",
+            timeout=timeout, creationflags=_NO_WINDOW)
+    except (OSError, subprocess.TimeoutExpired) as e:
+        log(f"failed: {e}")
+        return -1
+    for buf in (p.stdout, p.stderr):
+        for line in (buf or "").splitlines()[-40:]:
+            log("  " + line)
+    return p.returncode
+
+
+def install_cli(agent, log=None):
+    """エージェントCLIを公式手順でインストールする。
+
+    呼び出しはユーザーの明示操作(パネルの「Install」ボタン→確認
+    ダイアログ)からのみ。実行はワーカースレッドで行うこと
+    (数分かかりうる)。
+    @param log: 進捗1行ごとに呼ばれるcallable
+    @returns {"ok": bool, "path": str|None, "method": str,
+              "error": str}
+    """
+    log = log or (lambda s: None)
+    if agent == "devin":
+        return _install_devin(log)
+    if agent == "copilot":
+        return _install_copilot(log)
+    return {"ok": False, "path": None, "method": "",
+            "error": f"auto-install is not supported for: {agent}"}
+
+
+def _install_devin(log):
+    """devin CLI: Win=公式setup.ps1 / unix=install.sh。"""
+    if os.name == "nt":
+        method = "setup.ps1"
+        code = _run_logged(
+            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
+             "-Command",
+             "irm https://static.devin.ai/cli/setup.ps1 | iex"], log)
+    else:
+        method = "install.sh"
+        code = _run_logged(
+            ["sh", "-c",
+             "curl -fsSL https://cli.devin.ai/install.sh | bash"], log)
+    if code != 0:
+        return {"ok": False, "path": None, "method": method,
+                "error": f"installer exited with code {code}"}
+    p = find_exe()
+    if p:
+        return {"ok": True, "path": p, "method": method, "error": ""}
+    return {"ok": False, "path": None, "method": method,
+            "error": "installed but devin.exe was not detected "
+                     "(restart QGIS or set QGIS_LIVE_DEVIN_EXE)"}
+
+
+def _install_copilot(log):
+    """copilot CLI: winget → npm → GitHub Releases 直接DL。"""
+    if os.name != "nt":
+        code = _run_logged(
+            ["sh", "-c",
+             "curl -fsSL https://gh.io/copilot-install | bash"], log)
+        spec = _copilot_exe_spec()
+        if code == 0 and spec:
+            return {"ok": True, "path": spec[0],
+                    "method": "install-script", "error": ""}
+        return {"ok": False, "path": None, "method": "install-script",
+                "error": f"installer failed or CLI not detected "
+                         f"(code {code})"}
+    if _fresh_which("winget"):
+        code = _run_logged(
+            ["winget", "install", "--id", "GitHub.Copilot", "-e",
+             "--silent", "--accept-source-agreements",
+             "--accept-package-agreements",
+             "--disable-interactivity"], log)
+        spec = _copilot_exe_spec()
+        if code == 0 and spec:
+            return {"ok": True, "path": spec[0],
+                    "method": "winget", "error": ""}
+        log("winget route failed or CLI not detected; trying npm")
+    else:
+        log("winget not found; trying npm")
+    if _fresh_which("npm"):
+        code = _run_logged(
+            [os.environ.get("COMSPEC", "cmd.exe"), "/c",
+             "npm", "install", "-g", "@github/copilot"], log)
+        spec = _copilot_exe_spec()
+        if code == 0 and spec:
+            return {"ok": True, "path": spec[0],
+                    "method": "npm", "error": ""}
+        log("npm route failed or CLI not detected; "
+            "trying direct download")
+    else:
+        log("npm not found; trying direct download")
+    return _download_copilot(log)
+
+
+def _download_copilot(log):
+    """GitHub Releases から copilot.exe を直接DLして管理binへ置く。
+
+    外部ツール不要の最終経路(bridge-hub download_copilot 相当)。
+    """
+    import io  # noqa: PLC0415
+    import platform  # noqa: PLC0415
+    import urllib.request  # noqa: PLC0415
+    import zipfile  # noqa: PLC0415
+    machine = platform.machine().lower()
+    asset = ("copilot-win32-arm64.zip"
+             if ("arm64" in machine or "aarch64" in machine)
+             else "copilot-win32-x64.zip")
+    try:
+        req = urllib.request.Request(
+            "https://api.github.com/repos/github/copilot-cli"
+            "/releases/latest",
+            headers={"User-Agent": "qgis-live-driver"})
+        with urllib.request.urlopen(req, timeout=30) as r:  # nosec B310  # GitHub固定URL
+            rel = json.loads(r.read().decode("utf-8"))
+    except (OSError, ValueError) as e:
+        return {"ok": False, "path": None, "method": "download",
+                "error": f"release lookup failed: {e}"}
+    url = next((a.get("browser_download_url")
+                for a in rel.get("assets") or []
+                if a.get("name") == asset), None)
+    if not url:
+        return {"ok": False, "path": None, "method": "download",
+                "error": f"{asset} not found in the latest release"}
+    log(f"downloading: {url}")
+    try:
+        req = urllib.request.Request(
+            url, headers={"User-Agent": "qgis-live-driver"})
+        with urllib.request.urlopen(req, timeout=600) as r:  # nosec B310  # GitHub Releases の資産URL
+            data = r.read()
+    except OSError as e:
+        return {"ok": False, "path": None, "method": "download",
+                "error": f"download failed: {e}"}
+    os.makedirs(_MANAGED_BIN, exist_ok=True)
+    dest = os.path.join(_MANAGED_BIN, "copilot.exe")
+    try:
+        with zipfile.ZipFile(io.BytesIO(data)) as z:
+            for n in z.namelist():
+                if os.path.basename(n).lower() == "copilot.exe":
+                    with z.open(n) as src, open(dest, "wb") as dst:
+                        shutil.copyfileobj(src, dst)
+                    break
+            else:
+                return {"ok": False, "path": None, "method": "download",
+                        "error": f"copilot.exe not found in {asset}"}
+    except (OSError, zipfile.BadZipFile) as e:
+        return {"ok": False, "path": None, "method": "download",
+                "error": f"extract failed: {e}"}
+    log(f"placed: {dest}")
+    spec = _copilot_exe_spec()
+    if spec:
+        return {"ok": True, "path": spec[0], "method": "download",
+                "error": ""}
+    return {"ok": False, "path": None, "method": "download",
+            "error": "placed but copilot CLI was not detected"}

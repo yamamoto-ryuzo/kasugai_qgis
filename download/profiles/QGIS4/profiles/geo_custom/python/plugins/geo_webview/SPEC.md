@@ -155,7 +155,7 @@ QGIS プロジェクトのレイヤツリーを、KASUGAI Canvas のプロジェ
 | パネルボタン | `Export` ボタン (`plugin.py: on_kasugai_export_clicked`) | 人手操作（ファイル出力のみ。Canvas 起動・登録はしない。ZIP は生成しない） |
 | パネルボタン | `ZIP` ボタン (`plugin.py: on_kasugai_zip_clicked`) | エクスポート物一式を `kasugai_canvas_<チャンネル>.zip` としてブラウザダウンロード。`/export-data/` がオンデマンドで ZIP を生成して返す（要 HTTP サーバー稼働）。CDN コンボのチャンネルがファイル名に反映される |
 | HTTP | `GET http://localhost:8089/kasugai` (server_manager._handle_kasugai) | 外部アプリ・AI からの一発起動。`?engine=` で起動エンジン指定可。応答は `{ok,url,via,dir,layers,tiles,engine}` JSON |
-| Bridge | `bridge_call` の `kasugaiExport(output_dir, open_app, native_formats, hidden_as_off, embed_gpkg_style, emit_themes, emit_bookmarks, emit_launchers, engine, install, route, use_existing, emit_atlas)` | Live Driver 経由の AI 制御（MCP `qgis_bridge_call` / REST `/api/cmd` / JSONL）。`use_existing=True` で再エクスポートせず既存の `.kasc` のみ使用（未出力なら `code=not_exported`） |
+| Bridge | `bridge_call` の `kasugaiExport(output_dir, open_app, native_formats, hidden_as_off, emit_themes, emit_bookmarks, emit_launchers, engine, install, route, use_existing, emit_atlas, link_files, vector_format, visible_data_only, progress_cb)` | Live Driver 経由の AI 制御（MCP `qgis_bridge_call` / REST `/api/cmd` / JSONL）。`use_existing=True` で再エクスポートせず既存の `.kasc` のみ使用（未出力なら `code=not_exported`） |
 
 ### 出力フォルダ構成
 
@@ -190,7 +190,7 @@ QGIS プロジェクトのレイヤツリーを、KASUGAI Canvas のプロジェ
 | WMS ラスタ(type=xyz 以外) | `wms: グループ/名 | <エンドポイントURL> | on | layers=, styles=, format=` | QGIS の WMS 接続 URI から url=/layers=/styles=/format= を抽出。Canvas 側が GetMap を 256px タイルへ分解して要求 |
 | その他ベクター(SHP/PostGIS/WFS/メモリ等)・非地理座標系 | FlatGeobuf(EPSG:4326・空間インデックス付き)へ変換して canvas_data/ へ `flatgeobuf:` 行 | ドライバ非搭載時は Parquet、変換失敗時は GeoJSON へフォールバック。再投影は warnings に記録 |
 | 属性テーブルのみ(NoGeometry)・ローカルラスタ・ベクタータイル・メッシュ・点群・アノテーション等 | 出力せず `skipped` に種別/理由付きで記録 | |
-| 非表示レイヤ | `hidden_as_off=True` 時のみ `| off` 付きで出力 | 既定(visible_only=True)では除外 |
+| 非表示レイヤ | `hidden_as_off=True` またはマップテーマ存在時に `| off` 付きで出力。`visible_data_only=True`（QSettings `kasugai_visible_data_only`、既定 ON）ではレイヤ行を一切出力せず skipped（背景図グループの `base:` 候補のみ従来通り出力・高速化）。`visible_data_only=False` で `| off` 行として全データを変換・複製する従来動作 | 既定(visible_only=True)では除外 |
 | キャンバス | `cam:` 行(中心座標+概算高度+回転) | |
 || 保存済み3Dビュー(ローカル/グローブ) | `cam:QGIS3D <名>|lat|lon|h=|p=|d=` 行(注視点+dist/pitch/yaw→ENUオフセットでカメラ位置逆算: 高さ=dist·cos(pitch)・水平=dist·sin(pitch)・視線方位=360-yaw・p=pitch-90) + `terrain:` 行(垂直誇張/オフセット/陰影/ジェネレータ) + `scene3d:` 行(背景色/スカイボックス/影/SSAO/EDL・グローブは globe=on) + `light:` 行(平行光源の方位・仰角・強度・色) | 3Dビューが存在する場合のみ出力。シーンCRSはビューごとの `<qgis3d><crs>` を解決し、地心系(QGIS4グローブ・EPSG:4978等)はECEF→測地変換で対応。既定値相当の項目は省略 |
 || 3Dビューのアニメーション(`<animation3d>`キーフレーム) | `fly_geojson: QGIS3D <名> | canvas_data/anim3d_<slug>.geojson | speed=<m/s> | view=camera | step=<m>` 行 + カメラ軌道の LineString GeoJSON | 各キーフレーム(注視点+dist/pitch/yaw+時刻)のカメラ位置を計算してカメラ軌道にする。speed=軌道3D総延長÷アニメ時間。キーフレーム2個未満は出力しない |
@@ -232,12 +232,46 @@ URL/bridge は当該エクスポートだけの一時上書き（いずれも相
 | モード | ベクターの扱い |
 |---|---|
 | `native`（既定） | 読めるソースはそのまま参照（`gpkg:`/`geojson:`/`shp:`/`wfs:`/`duckdb:`/`flatgeobuf:`/`geoparquet:` 行）。非ネイティブ形式のみ変換（上表のフォールバック） |
-| `recommended` | FlatGeobuf/GeoParquet 以外の全ソースを FlatGeobuf（EPSG:4326・空間インデックス付き）へ変換し canvas_data/ へ `flatgeobuf:` 行で配置。既に FlatGeobuf/GeoParquet のソースは参照を維持（`flatgeobuf:`/`geoparquet:`/`duckdb:+format=parquet` 行）。subsetString・fields/where/limit は変換データへ焼き込み。Canvas 側では `bbox=auto` の Range 範囲読みが効く |
+| `recommended` | FlatGeobuf/GeoParquet 以外の全ソースを FlatGeobuf（EPSG:4326・空間インデックス付き）へ変換し canvas_data/ へ `flatgeobuf:` 行で配置。既に FlatGeobuf/GeoParquet のソースは参照を維持（`flatgeobuf:`/`geoparquet:`/`duckdb:+format=parquet` 行）。subsetString・fields/where/limit は変換データへ焼き込み。Canvas 側では `bbox=auto` の範囲読みが効く（`flatgeobuf:` は空間インデックス+Range、`geoparquet:` は covering.bbox 列または行グループ geospatial statistics による部分読み。いずれも無いファイルは全件へフォールバック） |
 | `geojson`（WEB連携） | 全ベクター（FlatGeobuf/GeoParquet ソース含む・WFS/メモリ等も）を GeoJSON（EPSG:4326）へ変換し canvas_data/ へ `geojson:` 行で配置。canvas_data/ がオープン標準の GeoJSON のみになるため、KASUGAI Canvas 以外の WebGIS・GIS ツールでもそのまま読み込める相互運用向けモード |
 
 変換ドライバは FlatGeobuf が第1候補（非搭載環境は Parquet）で、
 変換失敗時は GeoJSON(EPSG:4326) へフォールバックする（native モードの非ネイティブ変換と同じ経路）。
 `geojson` モードは GeoJSON 固定（ドライバ切替なし）。
+
+### 非表示レイヤの出力省略（表示中のみ変換）
+
+非表示レイヤ（`hidden_as_off=True` またはマップテーマ存在時に
+`| off` で出力されるレイヤ）を .kasc のレイヤ行へ一切出力しない
+高速化スイッチ（QSettings `kasugai_visible_data_only`、既定 ON）。
+Canvas のレイヤ一覧に非表示レイヤが並ばず、データ変換・
+canvas_data/ へのコピー・スタイル書き出しのコストも掛からない。
+背景図グループ内の XYZ タイルなど `base:` 候補のみ従来通り
+`| off` 付きで出力する（ベースマップ選択の候補）。スキップされた
+レイヤは Canvas で表示に切り替えられない（`skipped` に理由付きで
+記録）。`theme:` 行は実際に出力されたレイヤのみを対象とする。
+OFF で従来通り非表示レイヤも `| off` 行として全データを変換・
+複製する（プロジェクトの丸ごと引越し用途）。
+
+切替経路（パネル/設定ダイアログは永続設定を読み書き、
+bridge/API 引数は当該エクスポートだけの一時上書き）:
+
+- パネルの **Visible data only (faster)** チェック — 永続
+- 設定ダイアログの **Vector Export Format** 内にある同名チェック — 永続
+- bridge `kasugaiExport(visible_data_only=True|False)` — 呼出しのみ上書き
+- `export_kasugai_project(visible_data_only=…)` — 呼出しのみ上書き
+
+### エクスポート進捗（progress_cb）
+
+`export_kasugai_project` / bridge `kasugaiExport` に
+`progress_cb(done, total, name)` を渡すと、レイヤツリー走査の
+各レイヤ処理開始時に「何件目/全何件・対象名」を通知する
+（全件完了時は `(total, total, '')`）。パネルのエクスポート/
+起動ボタンは QProgressDialog に「レイヤーを変換中 N/M: 名前」
+とバーを表示し、Cancel 押下で `ExportCancelled` を送出して
+中断できる（bridge は `code: 'cancelled'` で返す）。
+`GET /kasugai` 経路は GUI を持たないため同形式の進捗を
+QgsMessageLog へ記録する。
 
 ### .qml スタイル出力
 

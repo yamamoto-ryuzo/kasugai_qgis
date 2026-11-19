@@ -493,6 +493,14 @@ class GeoWebView:
                     _help_btn.clicked.connect(
                         lambda checked=False: self.on_kasugai_help_clicked())
 
+                # Canvas の UI設定管理画面(ローカルアプリ :8510 専用)を開く
+                _admin_btn = getattr(
+                    self.panel, 'pushButton_kasugai_admin', None)
+                if _admin_btn is not None:
+                    _admin_btn.clicked.connect(
+                        lambda checked=False: QTimer.singleShot(
+                            0, self.on_kasugai_admin_clicked))
+
                 # 保存先表示ボタン: クリックでフォルダ選択して出力先変更、
                 # ↺で既定(Canvasインストール先/<ドキュメント>)に戻す
                 _outdir_btn = getattr(
@@ -575,6 +583,23 @@ class GeoWebView:
                         _vf_combo.blockSignals(False)
                         _vf_combo.currentIndexChanged.connect(
                             self.on_vector_format_changed)
+                    except Exception:  # nosec B110  # 設計上の許容
+                        pass
+
+                # 「表示中のみ変換」チェック: 非表示レイヤのデータ変換を
+                # スキップする高速化スイッチ。QSettings
+                # kasugai_visible_data_only と双方向同期する
+                _vo_check = getattr(
+                    self.panel, 'checkBox_visible_only', None)
+                if _vo_check is not None:
+                    try:
+                        from . import kasugai_export
+                        _vo_check.blockSignals(True)
+                        _vo_check.setChecked(
+                            kasugai_export.get_visible_data_only())
+                        _vo_check.blockSignals(False)
+                        _vo_check.toggled.connect(
+                            self.on_visible_only_toggled)
                     except Exception:  # nosec B110  # 設計上の許容
                         pass
 
@@ -1544,17 +1569,68 @@ class GeoWebView:
         except Exception:  # nosec B110  # 設計上の許容
             pass
 
+    def _kasugai_export_progress(self):
+        """エクスポート進捗ダイアログと progress_cb を返す。
+
+        エクスポートは GUI スレッド同期実行(QGIS API 直叩きのため
+        ワーカ化しない)だが、progress_cb 内で processEvents して
+        「何件目/全何件の何を変換中か」をリアルタイム表示する。
+        Cancel 押下時は ExportCancelled でエクスポートを中断する。
+        戻り値: (dialog, progress_cb)。呼び出し側は finally で
+        dialog.close() すること。
+        """
+        from qgis.PyQt.QtWidgets import QProgressDialog
+        from qgis.PyQt.QtCore import QCoreApplication, Qt
+        from . import kasugai_export
+        parent = self.panel if self.panel is not None \
+            else self.iface.mainWindow()
+        dlg = QProgressDialog(parent)
+        dlg.setWindowTitle(self.tr("KASUGAI Canvas Export"))
+        dlg.setWindowModality(Qt.WindowModality.WindowModal)
+        dlg.setMinimumDuration(0)
+        dlg.setAutoClose(False)
+        dlg.setRange(0, 100)
+        dlg.setValue(0)
+        dlg.setLabelText(self.tr("Scanning the layer tree..."))
+        dlg.show()
+        QCoreApplication.processEvents()
+
+        def _cb(done, total, name):
+            if dlg.wasCanceled():
+                raise kasugai_export.ExportCancelled(
+                    'export cancelled by user')
+            if total:
+                if dlg.maximum() != total:
+                    dlg.setMaximum(total)
+                dlg.setValue(min(done, total))
+                if done < total:
+                    dlg.setLabelText(
+                        self.tr("Converting layer {0}/{1}: {2}").format(
+                            done + 1, total, name))
+                else:
+                    dlg.setLabelText(
+                        self.tr("Finalizing output ({0} layers)...")
+                        .format(total))
+            elif name:
+                dlg.setLabelText(name)
+            QCoreApplication.processEvents()
+
+        return dlg, _cb
+
     def on_kasugai_export_clicked(self):
         """パネル版：KASUGAI エクスポートボタン — 表示中レイヤを
         KASUGAI Canvasプロジェクト(.kasc+canvas_data/+エンジン起動HTML)として
         出力するだけの簡易経路。Canvas 起動・プロジェクト登録は行わず、
         出力物は 📁 ボタンの出力フォルダか index.html から開く。
         Canvas 連携での起動は GET /kasugai / bridge kasugaiExport 経由。"""
+        dlg = None
+        from . import kasugai_export
         try:
-            from . import kasugai_export
+            dlg, _cb = self._kasugai_export_progress()
             result = kasugai_export.export_kasugai_project(
                 self.iface,
-                out_dir=None)
+                out_dir=None,
+                progress_cb=_cb)
             n_layers = len(result.get('layers') or [])
             n_tiles = len(result.get('tiles') or [])
             if not n_layers and not n_tiles:
@@ -1570,11 +1646,22 @@ class GeoWebView:
                         "Open the .kasc file in KASUGAI Canvas.").format(
                     result['dir'], n_layers, n_tiles),
                 duration=8)
+        except kasugai_export.ExportCancelled:
+            self._push_message(
+                "geo_webview",
+                self.tr("KASUGAI export cancelled."),
+                duration=5)
         except Exception as e:
             self._push_message(
                 "geo_webview",
                 self.tr("KASUGAI export error: {0}").format(e),
                 duration=5)
+        finally:
+            if dlg is not None:
+                try:
+                    dlg.close()
+                except Exception:  # nosec B110  # 設計上の許容
+                    pass
 
     def on_kasugai_zip_clicked(self):
         """エクスポート物一式を kasugai_canvas.zip としてブラウザで
@@ -1598,13 +1685,40 @@ class GeoWebView:
                 "geo_webview",
                 self.tr("ZIP download error: {0}").format(e), duration=5)
 
-    # geo_webview ドキュメント(qgis-plugin/geo_webview/docs/ の GitHub ツリー)
-    DOCS_URL = ('https://github.com/yamamoto-ryuzo/qgis_live_harness/'
-                'tree/master/qgis-plugin/geo_webview/docs')
+    # geo_webview ドキュメントサイト(GitHub Pages。
+    # Pages は repo ルート配信のため qgis-plugin/<id>/docs/ がそのまま出る)
+    DOCS_URL = ('https://yamamoto-ryuzo.github.io/qgis_live_harness/'
+                'qgis-plugin/geo_webview/docs/')
 
     def on_kasugai_help_clicked(self):
-        """ドキュメント(GitHub 上の docs/)をブラウザで開く。"""
+        """ドキュメントサイト(GitHub Pages の docs/)をブラウザで開く。"""
         QDesktopServices.openUrl(QUrl(self.DOCS_URL))
+
+    def on_kasugai_admin_clicked(self):
+        """KASUGAI Canvas の UI 設定管理画面をブラウザで開く。
+
+        web/admin/ui-config-admin.html はローカルアプリ(既定 port 8510)
+        専用で CDN には配信されない。サーバ未稼働なら通知して開かない。
+        """
+        try:
+            from . import kasugai_export
+            port = int(kasugai_export.get_kasugai_port())
+        except Exception:  # nosec B110  # 設計上の許容
+            port = 8510
+        try:
+            from . import kasugai_export
+            caps = kasugai_export.detect_kasugai(port)
+        except Exception:  # nosec B110  # 設計上の許容
+            caps = None
+        if not caps:
+            self._push_message(
+                "geo_webview",
+                self.tr("KASUGAI Canvas is not running on port {0}. "
+                        "Start the Canvas app and try again.").format(port),
+                duration=5)
+            return
+        QDesktopServices.openUrl(QUrl(
+            'http://127.0.0.1:{0}/admin/ui-config-admin.html'.format(port)))
 
     def on_engine_combo_changed(self, index):
         """Web配信パネルのエンジン選択を QSettings に保存する。"""
@@ -1648,6 +1762,16 @@ class GeoWebView:
         except Exception:  # nosec B110  # 設計上の許容
             pass
 
+    def on_visible_only_toggled(self, checked):
+        """パネルの「表示中のみ変換」チェックを kasugai_visible_data_only
+        へ保存する。エクスポート全経路(パネルボタン・/kasugai・bridge の
+        既定値)がこの設定に従う。"""
+        try:
+            from . import kasugai_export
+            kasugai_export.set_visible_data_only(bool(checked))
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+
     def on_kasugai_launch_clicked(self, route='auto'):
         """パネル版：選択エンジンで エクスポート→登録→ブラウザ起動 まで
         一発で行う。bridge の kasugaiExport(open_app=True) を利用する。
@@ -1678,12 +1802,33 @@ class GeoWebView:
             if self.bridge is None:
                 from .bridge import GeoWebViewBridge
                 self.bridge = GeoWebViewBridge(self)
-            res = json.loads(
-                self.bridge.kasugaiExport(
-                    engine=engine, open_app=True, route=route,
-                    use_existing=(route == 'kasugai'))
-                or '{}')
+            # 再エクスポートを伴う経路のみ進捗ダイアログを出す
+            # (use_existing 経路はエクスポートを実行しない)
+            dlg = None
+            try:
+                if route != 'kasugai':
+                    dlg, _cb = self._kasugai_export_progress()
+                else:
+                    _cb = None
+                res = json.loads(
+                    self.bridge.kasugaiExport(
+                        engine=engine, open_app=True, route=route,
+                        use_existing=(route == 'kasugai'),
+                        progress_cb=_cb)
+                    or '{}')
+            finally:
+                if dlg is not None:
+                    try:
+                        dlg.close()
+                    except Exception:  # nosec B110  # 設計上の許容
+                        pass
             if not res.get('ok'):
+                if res.get('code') == 'cancelled':
+                    self._push_message(
+                        "geo_webview",
+                        self.tr("KASUGAI export cancelled."),
+                        duration=5)
+                    return
                 if res.get('code') == 'not_exported':
                     self._push_message(
                         "geo_webview",

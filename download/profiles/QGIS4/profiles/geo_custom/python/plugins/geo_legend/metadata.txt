@@ -7,7 +7,7 @@ name=geo_legend
 qgisMinimumVersion=4.0
 qgisMaximumVersion=4.99
 description=Display only the necessary legends in a clear, easy-to-understand manner with Qt6 compatibility
-version=2.9.0
+version=2.9.1
 author=yamamoto-ryuzo
 email=ryu@yamakun.net
 supportsQt6=True
@@ -24,6 +24,10 @@ hasProcessingProvider=no
 
 # Changelog for version 2.0.2
 changelog=
+    Version 2.9.1:
+    - プラグインのリロード/unload後にQGISがaccess violationで
+      クラッシュする問題を修正(qrcリソース登録バッファの
+      ダングリング化を sys レジストリ固定+前世代登録解除で解消)
     Version 2.9.0:
     - 凡例エクスポートを拡充(issue #21)。bridge の
       exportLegend(format='svg')で SVG 出力、exportLegendHtml で

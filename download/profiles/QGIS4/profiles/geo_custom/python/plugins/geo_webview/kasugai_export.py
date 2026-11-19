@@ -74,6 +74,7 @@ SETTINGS_KEY_BASEMAP_GROUPS = 'kasugai_basemap_groups'
 # bridge vector_format=)
 SETTINGS_KEY_VECTOR_FORMAT = 'kasugai_vector_format'
 VECTOR_EXPORT_MODES = ('native', 'recommended', 'geojson')
+SETTINGS_KEY_VISIBLE_DATA_ONLY = 'kasugai_visible_data_only'
 
 # .kasc と同じ場所に出力するエンジン起動HTML(サーバレス配布用)。
 # 各HTMLは ?kasc=<.kascの絶対URL> 付きでエンジンへ転送するだけの
@@ -728,6 +729,31 @@ def set_vector_export_mode(mode):
         m if m in VECTOR_EXPORT_MODES else 'native')
 
 
+# ---- 非表示レイヤのデータ変換スキップ(高速化スイッチ) ----
+
+def get_visible_data_only():
+    """QSettings の kasugai_visible_data_only(未設定は True)を返す。
+
+    パネルの「表示中のみ変換」チェックと共有される既定値。
+    True なら ``| off`` で出力される非表示レイヤのデータ変換・
+    コピーをスキップし、参照行のみ出力する。
+    """
+    try:
+        v = _qsettings().value(SETTINGS_KEY_VISIBLE_DATA_ONLY, None)
+        if v is not None and str(v).strip() != '':
+            return str(v).strip().lower() not in (
+                '0', 'false', 'off', 'no')
+    except Exception:  # nosec B110  # 設計上の許容
+        pass
+    return True
+
+
+def set_visible_data_only(on):
+    """非表示レイヤのデータ変換スキップを QSettings へ保存する。"""
+    _qsettings().setValue(
+        SETTINGS_KEY_VISIBLE_DATA_ONLY, '1' if on else '0')
+
+
 def _recommended_source_kind(layer):
     """ソースが推奨形式(fgb/parquet)なら行タイプ、でなければ None。
 
@@ -1225,12 +1251,14 @@ def _dref(data_dir, name):
     return '{0}/{1}'.format(os.path.basename(data_dir), name)
 
 
-def _copy_to_data(src_path, data_dir, slug, copied):
+def _copy_to_data(src_path, data_dir, slug, copied, write=True):
     """ローカルファイルを canvas_data/<slug><ext> へコピーし 'canvas_data/...' を返す。
 
     宛先は常に固定名 ``<slug><ext>``。既存が同一内容なら再利用、
     異なる内容なら上書きする(旧仕様の ``<slug>_N<ext>`` 連番複製は
     エクスポート毎に canvas_data/ が肥大化するため廃止)。
+    write=False(非表示 base: 候補の参照のみ出力)時は、既存の同一内容
+    コピーがあればその参照を返し、コピーが必要な場合は None。
     """
     src_abs = os.path.abspath(src_path)
     if src_abs in copied:
@@ -1243,6 +1271,8 @@ def _copy_to_data(src_path, data_dir, slug, copied):
     except Exception:  # nosec B110  # 存在しない場合はコピー対象
         pass
     if not same and not _same_data_copy(src_abs, dest_abs):
+        if not write:
+            return None
         shutil.copy2(src_abs, dest_abs)
     rel = _dref(data_dir, os.path.basename(dest_abs))
     copied[src_abs] = rel
@@ -1280,10 +1310,13 @@ def _tree_bytes(path, cap):
     return total
 
 
-def _copy_tree_to_data(src_dir, data_dir, slug, copied):
+def _copy_tree_to_data(src_dir, data_dir, slug, copied, write=True):
     """ローカルディレクトリを canvas_data/<slug>/ へ複製し 'canvas_data/<slug>' を返す。
 
     既存の同名ディレクトリは(前回エクスポート産物として)置き換える。
+    write=False(非表示 base: 候補の参照のみ出力)時は、既存の複製済み
+    ディレクトリがあればその参照を再利用し、なければ None
+    (ツリー内容の同一性確認は行わず前回出力物とみなす)。
     """
     src_abs = os.path.abspath(src_dir)
     if src_abs in copied:
@@ -1295,9 +1328,13 @@ def _copy_tree_to_data(src_dir, data_dir, slug, copied):
     except Exception:  # nosec B110  # 存在しない場合はコピー対象
         pass
     if not same:
-        if os.path.isdir(dest_abs):
-            shutil.rmtree(dest_abs)
-        shutil.copytree(src_abs, dest_abs)
+        if not write:
+            if not os.path.isdir(dest_abs):
+                return None
+        else:
+            if os.path.isdir(dest_abs):
+                shutil.rmtree(dest_abs)
+            shutil.copytree(src_abs, dest_abs)
     rel = _dref(data_dir, slug)
     copied[src_abs] = rel
     return rel
@@ -1419,12 +1456,14 @@ def _is_tiled_scene(layer):
             return False
 
 
-def _tiledscene_ref(layer, slug, data_dir, copied, warnings):
+def _tiledscene_ref(layer, slug, data_dir, copied, warnings, write=True):
     """3D Tiles レイヤの参照先を返す。解決できなければ None。
 
     - http(s)/vsicurl URL → そのまま参照
     - ローカルの tileset.json(またはそのディレクトリ) → ディレクトリツリーを
       canvas_data/<slug>/ へ複製して canvas_data/<slug>/<basename> を返す
+    write=False(非表示 base: 候補の参照のみ出力)時はリンク参照または
+    既存複製の再利用のみ行い、新規複製が必要なら None。
     """
     src = layer.source() or ''
     m = re.search(r'(?:^|&)url=([^&]+)', src)
@@ -1448,20 +1487,24 @@ def _tiledscene_ref(layer, slug, data_dir, copied, warnings):
     link = _link_ref(ts_path)
     if link:
         return link
-    if _tree_bytes(base_dir, _LOCAL_TREE_MAX_BYTES) > _LOCAL_TREE_MAX_BYTES:
+    if write and \
+            _tree_bytes(base_dir, _LOCAL_TREE_MAX_BYTES) \
+            > _LOCAL_TREE_MAX_BYTES:
         warnings.append(
             '{0}: 3dtiles ディレクトリが {1} 超のため複製を中止'.format(
                 layer.name(), _LOCAL_TREE_MAX_BYTES))
         return None
-    _copy_tree_to_data(base_dir, data_dir, slug, copied)
+    if not _copy_tree_to_data(base_dir, data_dir, slug, copied, write=write):
+        return None
     return _dref(data_dir, '{0}/{1}'.format(slug, os.path.basename(ts_path)))
 
 
-def _local_xyz_template(url, slug, data_dir, copied, warnings):
+def _local_xyz_template(url, slug, data_dir, copied, warnings, write=True):
     """ローカル XYZ テンプレート(file:///.../{z}/{x}/{y}.png)を canvas_data/ へ複製。
 
     戻り値 'canvas_data/<slug>/{z}/{x}/{y}.png' 形式の参照テンプレート。解決不可・
-    サイズ超過時は None。
+    サイズ超過時は None。write=False(非表示 base: 候補の参照のみ出力)時は
+    リンク参照または既存複製の再利用のみ行い、新規複製が必要なら None。
     """
     path = _local_path(url)
     if '{z}' not in path:
@@ -1474,12 +1517,15 @@ def _local_xyz_template(url, slug, data_dir, copied, warnings):
     link = _link_ref(base_dir)
     if link:
         return '{0}/{1}'.format(link, template.replace(os.sep, '/'))
-    if _tree_bytes(base_dir, _LOCAL_TREE_MAX_BYTES) > _LOCAL_TREE_MAX_BYTES:
+    if write and \
+            _tree_bytes(base_dir, _LOCAL_TREE_MAX_BYTES) \
+            > _LOCAL_TREE_MAX_BYTES:
         warnings.append(
             '{0}: ローカルタイルツリーが {1} 超のため複製を中止'.format(
                 slug, _LOCAL_TREE_MAX_BYTES))
         return None
-    _copy_tree_to_data(base_dir, data_dir, slug, copied)
+    if not _copy_tree_to_data(base_dir, data_dir, slug, copied, write=write):
+        return None
     return _dref(data_dir, '{0}/{1}'.format(slug, template.replace(os.sep, '/')))
 
 
@@ -1850,26 +1896,29 @@ def _legend_node_line(node, title):
         return None
 
 
-def _duckdb_target_ref(target, slug, data_dir, copied):
+def _duckdb_target_ref(target, slug, data_dir, copied, write=True):
     """duckdb: 参照用に target(URL or ローカルパス)を ref へ変換する。"""
     if re.match(r'https?://', target):
         return target
     path = _local_path(target)
     if not path or not os.path.exists(path):
         return None
-    return _link_ref(path) or _copy_to_data(path, data_dir, slug, copied)
+    return _link_ref(path) or _copy_to_data(
+        path, data_dir, slug, copied, write=write)
 
 
 # geotiff: 行へ回せるラスタファイルの拡張子(GeoTIFF/COG)
 _GEOTIFF_EXTS = ('.tif', '.tiff', '.gtif', '.gtiff')
 
 
-def _geotiff_layer_ref(layer, slug, data_dir, copied):
+def _geotiff_layer_ref(layer, slug, data_dir, copied, write=True):
     """QgsRasterLayer のソースが GeoTIFF/COG なら参照を返す。
 
     - http(s)/vsicurl の .tif 系 → URL をそのまま参照(COG 前提)
     - ローカルの .tif 系 → canvas_data/ へコピーして相対参照
     それ以外のラスタ(WMS/仮想等)やファイル不在は None。
+    write=False(非表示 base: 候補の参照のみ出力)時はリンク参照または
+    既存コピーの再利用のみ行い、新規コピーが必要なら None。
     """
     try:
         from qgis.core import QgsRasterLayer
@@ -1889,7 +1938,8 @@ def _geotiff_layer_ref(layer, slug, data_dir, copied):
         return None
     if not os.path.exists(path):
         return None
-    return _link_ref(path) or _copy_to_data(path, data_dir, slug, copied)
+    return _link_ref(path) or _copy_to_data(
+        path, data_dir, slug, copied, write=write)
 
 
 # Canvas が直接参照できるベクター形式(拡張子 → .kasc 行タイプ)。
@@ -1904,23 +1954,29 @@ _NATIVE_KINDS = {
     '.shp': 'shp', '.gpx': 'gpx', '.kml': 'kml', '.kmz': 'kmz',
     '.gml': 'gml', '.topojson': 'topojson', '.czml': 'czml',
     '.geojsonl': 'geojsonl', '.ndjson': 'ndjson', '.jsonl': 'jsonl',
+    '.jsonfg': 'geojson',
+    '.fgseq': 'geojsonseq', '.geojsonseq': 'geojsonseq',
+    '.jsonseq': 'geojsonseq',
     '.igc': 'igc', '.esrijson': 'esrijson', '.arcgis': 'arcgis',
 }
 
 # 形式の仕様上 WGS84(lon/lat)固定で CRS チェック不要な拡張子
-_CRS_FREE_EXTS = ('.geojson', '.json', '.gpx', '.kml', '.kmz', '.czml')
+_CRS_FREE_EXTS = ('.geojson', '.json', '.jsonfg', '.gpx', '.kml', '.kmz', '.czml',
+                  '.fgseq', '.geojsonseq', '.jsonseq')
 
 # Shapefile を参照する際に一式コピーする sidecar 拡張子
 _SHP_SIDECARS = ('.shp', '.dbf', '.shx', '.prj', '.cpg', '.sbn', '.sbx',
                  '.qpj', '.fix', '.qix')
 
 
-def _copy_shp_set(src_path, data_dir, slug, copied):
+def _copy_shp_set(src_path, data_dir, slug, copied, write=True):
     """Shapefile と sidecar を canvas_data/<slug><ext> 一式でコピーする。
 
     Canvas の ``shp:`` 行は shpjs が sidecar(.dbf/.shx/.prj 等)を自動取得
     するため、同名の拡張子群をまとめて複製する。戻り値は .shp の参照。
     link_files 時は原本の場所(sidecar は .shp と同居)を相対参照する。
+    write=False(非表示 base: 候補の参照のみ出力)時は、全 sidecar の
+    同一内容コピーが既にあれば参照を返し、1つでもコピーが必要なら None。
     """
     link = _link_ref(src_path)
     if link:
@@ -1941,6 +1997,8 @@ def _copy_shp_set(src_path, data_dir, slug, copied):
         except Exception:  # nosec B110  # 宛先未作成ならコピー対象
             pass
         if not same and not _same_data_copy(p, dest_abs):
+            if not write:
+                return None
             shutil.copy2(p, dest_abs)
         if e == '.shp':
             ref = _dref(data_dir, os.path.basename(dest_abs))
@@ -2000,12 +2058,15 @@ def _fallback_driver():
     return 'GeoJSON', '.geojson', 'geojson'
 
 
-def _native_ref(layer, slug, data_dir, copied, warnings):
+def _native_ref(layer, slug, data_dir, copied, warnings, write=True):
     """Canvas が直接参照できるソースなら参照辞書を返す。
 
     戻り値: ``{'type': <kasc行タイプ>, 'ref': <参照>, 'opts': {k: v}}``、
     または ``{'skip_reason': <理由>}``(表示不能と確定)、不可時は None
     (呼び出し側でフォールバック変換に回す)。
+    write=False(非表示 base: 候補の参照のみ出力)時はローカルファイルの
+    新規コピーを行わず、リンク参照・既存コピーの再利用・URL参照のみ
+    解決する(コピーが必要なら None → 呼び出し側はスキップ判定へ)。
 
     - http(s) ソース: 拡張子に応じて URL をそのまま参照
     - ローカルファイル: canvas_data/<slug><ext> へコピーして相対参照
@@ -2030,7 +2091,8 @@ def _native_ref(layer, slug, data_dir, copied, warnings):
             return {'skip_reason': 'ジオメトリ列なし(属性テーブル)'}
         if not _geo_equiv_crs(layer):
             return None  # 再投影が必要 → ベクター変換
-        ref = _duckdb_target_ref(path, slug, data_dir, copied)
+        ref = _duckdb_target_ref(path, slug, data_dir, copied,
+                                 write=write)
         if not ref:
             return None
         opts = {'format': 'tsv' if path.lower().endswith('.tsv') else 'csv'}
@@ -2095,7 +2157,7 @@ def _native_ref(layer, slug, data_dir, copied, warnings):
             opts['where'] = subset
         return {'type': 'duckdb',
                 'ref': _link_ref(src_path) or _copy_to_data(
-                    src_path, data_dir, slug, copied),
+                    src_path, data_dir, slug, copied, write=write),
                 'opts': opts}
 
     kind = _NATIVE_KINDS.get(ext)
@@ -2137,10 +2199,11 @@ def _native_ref(layer, slug, data_dir, copied, warnings):
     if ext == '.shp':
         # Shapefile は sidecar(.dbf/.shx/.prj 等)を一式コピー
         # (link_files 時は _copy_shp_set 内で原本相対参照へ切替)
-        ref = _copy_shp_set(src_path, data_dir, slug, copied)
+        ref = _copy_shp_set(src_path, data_dir, slug, copied,
+                            write=write)
     else:
         ref = _link_ref(src_path) or _copy_to_data(
-            src_path, data_dir, slug, copied)
+            src_path, data_dir, slug, copied, write=write)
     if not ref:
         return None
     opts = {}
@@ -3741,6 +3804,15 @@ def _write_engine_launchers(out_dir, kasc_name):
     return written
 
 
+class ExportCancelled(Exception):
+    """progress_cb からの中断要求。
+
+    進捗コールバック内でユーザーのキャンセル操作を検知した場合に
+    送出する。レイヤ走査ループはこの例外を握り潰さずそのまま再送出
+    し、呼び出し元で「キャンセル」として扱えるようにする。
+    """
+
+
 def export_kasugai_project(iface, out_dir=None, visible_only=True,
                            native_formats=True, hidden_as_off=False,
                            emit_themes=True, emit_bookmarks=True,
@@ -3748,7 +3820,8 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
                            emit_atlas=True,
                            changed=None, live_url=None,
                            fields=None, where=None, limit=None,
-                           link_files=True, vector_format=None):
+                           link_files=True, vector_format=None,
+                           visible_data_only=None, progress_cb=None):
     """レイヤツリーを KASUGAI Canvas プロジェクトとして出力する。
 
     引数:
@@ -3776,6 +3849,23 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
             グループ名はタイトルから外し、配下のサブグループのみ
             ``サブグループ/レイヤ名`` として残す(Canvas 側の
             ベースマップ選択でグループ化表示される)。
+        visible_data_only: True なら、非表示レイヤ(``| off`` で出る
+            はずだったレイヤ)はレイヤ行を一切出力せず skipped へ記録
+            する(背景図グループの XYZ など ``base:`` 候補のみ従来通り
+            出力)。Canvas のレイヤ一覧に非表示レイヤが並ばず、
+            変換・複写コストも掛からない(大きなプロジェクトの高速化)。
+            False なら非表示レイヤも従来通り ``| off`` 行として出力し
+            全データを変換・複製する(プロジェクトの丸ごと引越し用途)。
+            None(既定)は QSettings ``kasugai_visible_data_only``
+            (パネルの「表示中のみ変換」チェック、初期値 ON)に従う。
+        progress_cb: ``progress_cb(done, total, name)`` 形式の
+            コールバック。レイヤツリー走査の各レイヤ処理開始時に
+            ``done`` 件目(0起算)/全 ``total`` 件・対象 ``name`` で呼ぶ。
+            全レイヤ処理後に ``(total, total, '')`` で完了を通知する。
+            変換の重いレイヤで「何件目/全何件の何を処理中か」を
+            UI へ出す用途(パネルの進捗ダイアログ等)。
+            コールバック内で ``ExportCancelled`` を送出するとエクスポートを
+            中断できる(キャンセルボタン実装用)。
         emit_themes: True ならプロジェクトのマップテーマを ``theme:`` 行
             (Canvas の可視性プリセット)として出力する(既定)。
             テーマが存在する場合、非表示レイヤも ``| off`` で出力しないと
@@ -3890,6 +3980,7 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
 
     used_names = set()
     slug_by_id = {}  # layer.id() → canvas_data/ 用 slug(theme 行の ;style= で使う)
+    emitted_ids = set()  # .kasc へレイヤ行を出力したレイヤ(theme 行の対象)
     copied = {}
     layers_out, tiles_out, skipped, errors, warnings = [], [], [], [], []
     kasc_lines = []
@@ -3904,6 +3995,10 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
     vector_format = _fmt if _fmt in VECTOR_EXPORT_MODES else 'native'
     recommend_fmt = vector_format == 'recommended'
     geojson_fmt = vector_format == 'geojson'
+    # 非表示レイヤのデータ変換スキップ: None は QSettings
+    # kasugai_visible_data_only(パネルのチェック、初期値 ON)を解決
+    if visible_data_only is None:
+        visible_data_only = get_visible_data_only()
     # ライブ差分エクスポート: {layer.id(): {'data':bool,'style':bool}}。
     # changed 指定時は未変更レイヤのデータ/スタイル書き出しを
     # 既存ファイルがある場合に限りスキップし、live.json に変更一覧を書く
@@ -3949,19 +4044,22 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
     # ベースマップグループ名(内蔵+ユーザー追加)はエクスポート中固定
     basemap_names = _basemap_group_names()
 
-    for layer, groups, visible, tnode in tree:
+    # 進捗通知: レイヤツリー全件を処理単位として「N/全M件: 名前」を
+    # progress_cb へ流す(スキップ対象も1件として数える)
+    _progress_total = len(tree)
+    for _li, (layer, groups, visible, tnode) in enumerate(tree):
+        if progress_cb:
+            try:
+                progress_cb(_li, _progress_total, layer.name())
+            except ExportCancelled:
+                raise
+            except Exception:  # nosec B110  # UI通知の失敗で中断しない
+                pass
         # 「背景図」「basemap」名のグループはベースマップ候補の入れ物。
         # 中の XYZ レイヤはレイヤ行ではなく base: 行として登録する
         # (グループ名はタイトルから外し、配下のサブグループは残す)
         bm_idx = _basemap_group_index(groups, basemap_names)
         title = _kasc_layer_title(groups, layer.name(), exclusive_groups)
-        kinds = changed.get(layer.id()) if isinstance(changed, dict) else None
-        if kinds is not None:
-            live_changed.append({
-                'title': title,
-                'data': bool(kinds.get('data')),
-                'style': bool(kinds.get('style')),
-            })
         if not visible:
             if (bm_idx is not None
                     and not isinstance(layer, QgsVectorLayer)
@@ -3979,6 +4077,28 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
         else:
             vis_flag = 'on'
 
+        # visible_data_only: 非表示レイヤはレイヤ行を一切出力しない
+        # (背景図グループの base: 候補のみ従来通り出力。Canvas のレイヤ
+        # 一覧に読み込めない「未読込」エントリが残るのを防ぐ。
+        # theme: 行は出力済みレイヤのみを対象にするため整合する)
+        ref_only = bool(visible_data_only) and vis_flag == 'off'
+        write_ok = not ref_only
+        if ref_only and not (
+                bm_idx is not None
+                and not isinstance(layer, QgsVectorLayer)
+                and _xyz_layer_info(layer)):
+            skipped.append(
+                '{0} (非表示レイヤのため出力対象外)'.format(layer.name()))
+            continue
+
+        kinds = changed.get(layer.id()) if isinstance(changed, dict) else None
+        if kinds is not None:
+            live_changed.append({
+                'title': title,
+                'data': bool(kinds.get('data')),
+                'style': bool(kinds.get('style')),
+            })
+
         if isinstance(layer, QgsVectorLayer):
             # ジオメトリを持たない属性テーブルは Canvas で描画できない
             try:
@@ -3993,8 +4113,9 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
             slug_by_id[layer.id()] = slug
             qml_path = os.path.join(data_dir, slug + '.qml')
             style_opt = ''
-            if (changed is None or (kinds or {}).get('style')
-                    or not os.path.isfile(qml_path)):
+            need_qml = (changed is None or (kinds or {}).get('style')
+                        or not os.path.isfile(qml_path))
+            if need_qml:
                 try:
                     _export_qml(layer, qml_path)
                     _expand_user_funcs_in_qml(qml_path, warnings)
@@ -4073,6 +4194,7 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
                     'features': feat_count, 'format': line_type,
                 })
                 kasc_lines.append(line)
+                emitted_ids.add(id(layer))
                 continue
 
             # ネイティブ参照できないベクター → FlatGeobuf(第1候補・
@@ -4085,7 +4207,8 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
                 drv, out_ext, out_kind = _fallback_driver()
             out_path = os.path.join(data_dir, slug + out_ext)
             written = feat_count
-            if (changed is None or (kinds or {}).get('data')
+            if (changed is None
+                    or (kinds or {}).get('data')
                     or not os.path.isfile(out_path)):
                 try:
                     written = _export_vector(
@@ -4134,6 +4257,7 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
                     title, slug, vis_flag, style_opt, vopt,
                     _scale_vis_opt(layer), attr_opt, out_kind, out_ext,
                     os.path.basename(data_dir) + '/'))
+            emitted_ids.add(id(layer))
             ln_meta = _legend_node_line(tnode, title)
             if ln_meta:
                 kasc_lines.append(ln_meta)
@@ -4154,6 +4278,7 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
                 kasc_lines.append(line)
                 tiles_out.append({'name': layer.name(), 'url': vt_src['url'],
                                   'type': vt_src['kind']})
+                emitted_ids.add(id(layer))
                 continue
             if _is_tiled_scene(layer):
                 slug = _slugify(layer.name() or 'scene', used_names)
@@ -4169,6 +4294,7 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
                     kasc_lines.append(line)
                     tiles_out.append({'name': layer.name(), 'url': ref,
                                       'type': '3dtiles'})
+                    emitted_ids.add(id(layer))
                 else:
                     skipped.append(
                         '{0} (3dtiles参照不可)'.format(layer.name()))
@@ -4180,7 +4306,7 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
                     # file:/// 等のローカルタイルテンプレートは canvas_data/ へ複製
                     slug = _slugify(layer.name() or 'tiles', used_names)
                     ref = _local_xyz_template(url, slug, data_dir, copied,
-                                              warnings)
+                                              warnings, write=write_ok)
                     if ref:
                         url = ref
                     else:
@@ -4243,6 +4369,7 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
                     if attr:
                         line += ' | attr={0}'.format(_kasc_escape(attr))
                     kasc_lines.append(line)
+                    emitted_ids.add(id(layer))
                 tiles_out.append({'name': layer.name(), 'url': url,
                                   'type': 'xyz'})
             else:
@@ -4278,6 +4405,7 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
                     kasc_lines.append(line)
                     tiles_out.append({'name': layer.name(), 'url': url,
                                       'type': 'wmts'})
+                    emitted_ids.add(id(layer))
                     continue
                 wms = _wms_layer_info(layer)
                 if wms:
@@ -4309,6 +4437,7 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
                     kasc_lines.append(line)
                     tiles_out.append({'name': layer.name(), 'url': url,
                                       'type': 'wms'})
+                    emitted_ids.add(id(layer))
                 else:
                     # GDAL ラスタ: GeoTIFF/COG は geotiff: 行、
                     # それ以外の形式・再現不能なレンダラ設定は
@@ -4345,6 +4474,7 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
                             'name': layer.name(),
                             'url': _dref(data_dir, '{0}.png'.format(slug)),
                             'type': 'image'})
+                        emitted_ids.add(id(layer))
                     elif ref:
                         line = 'geotiff: {0} | {1} | {2}'.format(
                             title, _kasc_escape(ref), vis_flag)
@@ -4362,10 +4492,17 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
                         kasc_lines.append(line)
                         tiles_out.append({'name': layer.name(), 'url': ref,
                                           'type': 'geotiff'})
+                        emitted_ids.add(id(layer))
                     else:
                         skipped.append(
                             '{0} ({1})'.format(
                                 layer.name(), _skip_reason(layer)))
+
+    if progress_cb:
+        try:
+            progress_cb(_progress_total, _progress_total, '')
+        except Exception:  # nosec B110  # UI通知の失敗で中断しない
+            pass
 
     cam = _camera_line(iface)
     bookmark_count = 0
@@ -4460,7 +4597,10 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
                     theme_slug = _slugify(name, used_names)
                     parts = []
                     for layer, _g, _v, _tn in tree:
-                        if layer.id() not in visible_ids:
+                        if layer.id() not in visible_ids \
+                                or id(layer) not in emitted_ids:
+                            # .kasc に行を出していないレイヤ(非表示で
+                            # 変換スキップ等)はテーマからも操作できない
                             continue
                         title = title_by_id.get(layer.id())
                         if not title:

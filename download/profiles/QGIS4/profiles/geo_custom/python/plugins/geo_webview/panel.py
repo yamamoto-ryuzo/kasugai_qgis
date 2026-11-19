@@ -107,6 +107,8 @@ class GeoWebViewPanel(QDockWidget):
         self.pushButton_kasugai_zip = getattr(self.ui, 'pushButton_kasugai_zip', None)
         # ドキュメントサイト(GitHub Pages)を開くヘルプボタン
         self.pushButton_kasugai_help = getattr(self.ui, 'pushButton_kasugai_help', None)
+        # Canvas の UI設定管理画面(ローカルアプリ専用)を開くボタン
+        self.pushButton_kasugai_admin = getattr(self.ui, 'pushButton_kasugai_admin', None)
         # 保存先表示(クリックでフォルダ選択)と既定リセット
         self.pushButton_kasugai_outdir = getattr(self.ui, 'pushButton_kasugai_outdir', None)
         self.pushButton_kasugai_outdir_reset = getattr(self.ui, 'pushButton_kasugai_outdir_reset', None)
@@ -117,6 +119,9 @@ class GeoWebViewPanel(QDockWidget):
         # ベクター出力形式コンボ(推奨形式スイッチのパネル側入口)
         self.comboBox_vector_format = getattr(
             self.ui, 'comboBox_vector_format', None)
+        # 非表示レイヤのデータ変換スキップ(高速化)チェック
+        self.checkBox_visible_only = getattr(
+            self.ui, 'checkBox_visible_only', None)
         # HTTP server toggle checkbox (added to UI)
         self.checkBox_server_toggle = getattr(self.ui, 'checkBox_server_toggle', None)
         # External control checkbox (new in UI)
@@ -317,6 +322,12 @@ class GeoWebViewPanel(QDockWidget):
                 if idx >= 0:
                     self.ui.comboBox_vector_format.setCurrentIndex(idx)
             self.ui.comboBox_vector_format.blockSignals(False)
+        if hasattr(self.ui, 'checkBox_visible_only'):
+            self.ui.checkBox_visible_only.setText(QCoreApplication.translate(
+                'geo_webview', "Visible data only (faster)"))
+            self.ui.checkBox_visible_only.setToolTip(QCoreApplication.translate(
+                'geo_webview',
+                "Only output visible layers — hidden layers are not written to the .kasc at all (basemap-group XYZ candidates keep their base: rows for the background selector, as before). Skipped layers cannot be turned on in Canvas. Uncheck to emit hidden layers as | off rows with all data converted (whole-project migration)"))
         if hasattr(self.ui, 'pushButton_kasugai_folder'):
             self.ui.pushButton_kasugai_folder.setText('📁')
             self.ui.pushButton_kasugai_folder.setToolTip(
@@ -339,6 +350,13 @@ class GeoWebViewPanel(QDockWidget):
                 QCoreApplication.translate(
                     'geo_webview',
                     "Open the geo_webview documentation site in the browser"))
+        if hasattr(self.ui, 'pushButton_kasugai_admin'):
+            self.ui.pushButton_kasugai_admin.setText(
+                QCoreApplication.translate('geo_webview', "Admin"))
+            self.ui.pushButton_kasugai_admin.setToolTip(
+                QCoreApplication.translate(
+                    'geo_webview',
+                    "Open the KASUGAI Canvas UI-config admin screen in the browser — per-engine UI show/hide, control defaults and startup tab. Requires the local Canvas app running (port 8510)"))
 
         # ボタン
         if hasattr(self.ui, 'pushButton_generate'):
