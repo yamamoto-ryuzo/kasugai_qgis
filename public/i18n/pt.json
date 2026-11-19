@@ -167,6 +167,8 @@
   "label_recent": "Inicializações recentes (clique para reiniciar)",
   "tip_recent": "Histórico de inicializações (perfil x projeto x data). Clique num item para reiniciar com as mesmas definições",
   "empty_recent": "Ainda sem histórico de inicializações",
+  "recent_older_ph": "Inicializações anteriores… ({n})",
+  "tip_recent_older": "Inicializações anteriores - selecione para reiniciar com as mesmas definições",
   "confirm_relaunch": "Reiniciar o QGIS com o perfil \"{profile}\"?",
   "label_processes": "Processos QGIS em execução",
   "tip_processes": "Processos QGIS iniciados por este launcher (--profile)",

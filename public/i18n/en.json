@@ -167,6 +167,8 @@
   "label_recent": "Recent launches (click to relaunch)",
   "tip_recent": "Launch history (profile x project x time). Click an item to relaunch with the same settings",
   "empty_recent": "No launch history yet",
+  "recent_older_ph": "Older launches… ({n})",
+  "tip_recent_older": "Older launch entries - select to relaunch with the same settings",
   "confirm_relaunch": "Relaunch QGIS with profile \"{profile}\"?",
   "label_processes": "Running QGIS processes",
   "tip_processes": "QGIS processes started via this launcher (--profile)",

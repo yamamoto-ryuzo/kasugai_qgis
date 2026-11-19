@@ -2,7 +2,7 @@
 
 QGIS / QField 起動用ランチャー（Rust + AXUM）。v2.0.0 からは Web UI / HTTP API で操作します。スタンドアロン起動時の UI は内蔵 WebView2 ウィンドウに `http://127.0.0.1:8500/` を表示します（要 WebView2 Runtime）。
 
-- ドキュメント・ダウンロード: <https://yamamoto-ryuzo.github.io/kasugai_qgis/>
+- ドキュメント・ダウンロード: <https://yamamoto-ryuzo.github.io/kasugai_qgis/docs/>
 - 初回インストーラー: [kasugai_qgis-setup.exe](https://yamamoto-ryuzo.github.io/kasugai_qgis/public/kasugai_qgis-setup.exe)
 - ライセンス: [GPL-3.0-only](LICENSE)
 
@@ -10,7 +10,7 @@ QGIS / QField 起動用ランチャー（Rust + AXUM）。v2.0.0 からは Web U
 
 - QGIS / QField の Web UI 起動
 - プロファイル・プロジェクト・QGIS バージョンの切り替え
-- 起動履歴（最近の起動から同条件再起動）と起動中 QGIS プロセスの一覧・終了
+- 起動履歴（最大10件。最新1件＋ドロップダウン選択で同条件再起動）と起動中 QGIS プロセスの一覧・終了
 - 起動時プロジェクトの直接パス指定（`.qgz`/`.qgs`）
 - ユーザーロール制御（Viewer / Editor / Administrator）
 - クラウドドライブ自動割り当て（`drive_mappings`）
@@ -18,7 +18,7 @@ QGIS / QField 起動用ランチャー（Rust + AXUM）。v2.0.0 からは Web U
 - NSIS ベースの自動更新
 - 外部連携可能な AXUM HTTP API（URI 位置引数つき起動でヘッドレス動作）
 
-詳細は [GitHub Pages](https://yamamoto-ryuzo.github.io/kasugai_qgis/) を参照してください。
+詳細は [ドキュメント](https://yamamoto-ryuzo.github.io/kasugai_qgis/docs/) を参照してください。
 
 # 免責事項
 

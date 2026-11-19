@@ -2472,7 +2472,7 @@ struct LaunchRecord {
     role: String,
 }
 
-const LAUNCH_HISTORY_MAX: usize = 50;
+const LAUNCH_HISTORY_MAX: usize = 10;
 
 fn launch_history_path(settings_dir: &str) -> PathBuf {
     PathBuf::from(settings_dir).join("launch_history.json")

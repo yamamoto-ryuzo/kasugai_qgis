@@ -167,6 +167,8 @@
   "label_recent": "最近の起動（クリックで同条件再起動）",
   "tip_recent": "起動履歴（プロファイル×プロジェクト×日時）。クリックで同条件で再起動します",
   "empty_recent": "起動履歴はまだありません",
+  "recent_older_ph": "古い起動履歴…（{n}件）",
+  "tip_recent_older": "古い起動履歴。選択すると同条件で再起動します",
   "confirm_relaunch": "プロファイル「{profile}」で QGIS を再起動しますか？",
   "label_processes": "起動中の QGIS プロセス",
   "tip_processes": "このランチャーから起動した QGIS プロセス（--profile 付き）",

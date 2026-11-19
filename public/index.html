@@ -69,6 +69,7 @@
     .recent-item:hover { background: #eff6ff; }
     .recent-item .rmeta, .proc-item .rmeta { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .recent-item .rtime, .proc-item .rtime { color: #64748b; font-size: 0.85em; white-space: nowrap; }
+    .recent-older { margin-top: 4px; font-size: 0.9em; }
     .proc-item .kill-btn { width: auto; padding: 2px 10px; font-size: 0.85em; background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; border-radius: 4px; cursor: pointer; }
     .proc-item .kill-btn:hover { background: #fecaca; }
     .browse-row { display: flex; gap: 6px; align-items: center; }
@@ -128,6 +129,7 @@
 
     <label data-i18n="label_recent" data-i18n-title="tip_recent">最近の起動（クリックで同条件再起動）</label>
     <div id="recent-list" class="list-box" data-i18n-title="tip_recent"></div>
+    <select id="recent-older" class="recent-older" style="display:none" data-i18n-title="tip_recent_older"></select>
 
     <label data-i18n="label_processes" data-i18n-title="tip_processes">起動中の QGIS プロセス</label>
     <div id="proc-list" class="list-box" data-i18n-title="tip_processes"></div>
@@ -650,6 +652,8 @@
     // ---------- 最近の起動・起動中プロセス ----------
 
     let recentItems = [];
+    // 最新はクリック式でこの件数だけ直接表示し、それより古い履歴はドロップダウンへ回す
+    const RECENT_LIST_MAX = 1;
 
     function fmtElapsed(sec) {
       sec = Math.max(0, Number(sec) || 0);
@@ -660,14 +664,17 @@
 
     async function loadRecent() {
       const box = $('recent-list');
+      const sel = $('recent-older');
       try {
         const res = await api('GET', '/api/recent');
         recentItems = res.recent || [];
         if (!recentItems.length) {
           box.innerHTML = '<div class="empty">' + esc(t('empty_recent')) + '</div>';
+          sel.style.display = 'none';
+          sel.innerHTML = '';
           return;
         }
-        box.innerHTML = recentItems.map((r, i) => {
+        box.innerHTML = recentItems.slice(0, RECENT_LIST_MAX).map((r, i) => {
           const dt = r.launched_at ? new Date(r.launched_at * 1000).toLocaleString() : '';
           const proj = (r.project_paths || []).join(', ');
           return '<div class="recent-item" data-i="' + i + '">' +
@@ -678,8 +685,24 @@
         box.querySelectorAll('.recent-item').forEach(el => {
           el.addEventListener('click', () => relaunch(recentItems[Number(el.dataset.i)]));
         });
+        const older = recentItems.slice(RECENT_LIST_MAX);
+        if (older.length) {
+          sel.innerHTML = '<option value="">' + esc(t('recent_older_ph', { n: older.length })) + '</option>' +
+            older.map((r, k) => {
+              const dt = r.launched_at ? new Date(r.launched_at * 1000).toLocaleString() : '';
+              const proj = (r.project_paths || []).join(', ');
+              return '<option value="' + (RECENT_LIST_MAX + k) + '">' + esc(dt) + ' — ' +
+                esc(r.profile || '') + (r.role ? ' [' + esc(r.role) + ']' : '') +
+                (proj ? ' — ' + esc(proj) : '') + '</option>';
+            }).join('');
+          sel.style.display = '';
+        } else {
+          sel.style.display = 'none';
+          sel.innerHTML = '';
+        }
       } catch (e) {
         box.innerHTML = '<div class="empty">' + esc(e.message) + '</div>';
+        sel.style.display = 'none';
       }
     }
 
@@ -920,6 +943,11 @@
     $('stop-server').addEventListener('click', stopServer);
     $('project-select').addEventListener('change', checkProjectVersion);
     $('proc-refresh').addEventListener('click', loadProcesses);
+    $('recent-older').addEventListener('change', (e) => {
+      const v = e.target.value;
+      e.target.selectedIndex = 0;
+      if (v !== '') relaunch(recentItems[Number(v)]);
+    });
     $('tab-raw').addEventListener('change', (e) => { if (e.target.id !== 'raw-settings') updateFromForm(); });
 
     // 言語切替セレクタ（i18n.js で管理）
@@ -937,6 +965,7 @@
     // 動的に生成される要素（data-i18n 付き）を再描画して翻訳を反映する
     window.onLanguageChanged = () => {
       renderRawForm();
+      loadRecent();
       if (latestUpdate && $('update-banner').classList.contains('active')) {
         showUpdateBanner(latestUpdate);
       }

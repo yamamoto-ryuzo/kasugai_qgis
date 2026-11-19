@@ -167,6 +167,8 @@
   "label_recent": "Letzte Starts (Klick zum erneuten Starten)",
   "tip_recent": "Starthistorie (Profil x Projekt x Zeit). Eintrag anklicken startet mit denselben Einstellungen",
   "empty_recent": "Noch keine Starthistorie",
+  "recent_older_ph": "Ältere Starts… ({n})",
+  "tip_recent_older": "Ältere Starteinträge - Auswahl startet mit denselben Einstellungen neu",
   "confirm_relaunch": "QGIS mit Profil \"{profile}\" erneut starten?",
   "label_processes": "Laufende QGIS-Prozesse",
   "tip_processes": "Über diesen Launcher gestartete QGIS-Prozesse (--profile)",
