@@ -146,7 +146,10 @@ exists() 確認済み</strong>のため、「選択肢がある = 図3-2 の「e
     F2 --> G
 
     G --> H["UI loadQgis(): 各候補を option 化<br/>保存値 qgis_executable に一致すれば選択<br/>不一致・未設定なら先頭（index 0）を選択"]
-    H --> I(["ドロップダウン選択値 = 全て実在確認済みパス<br/>→ POST /launch の executable は<br/>常に「指定あり かつ実在」"])</pre>
+    H --> I(["ドロップダウン選択値 = 全て実在確認済みパス<br/>→ POST /launch の executable は<br/>常に「指定あり かつ実在」"])
+
+    classDef sel fill:#dbeafe,stroke:#2563eb,color:#1a2230
+    class A,B,C,C1,C2,C3,C4,D,D1,D2,D4,E,F,F1,F2,G,H,I sel</pre>
 <h3 id="実行ファイル解決">図3-2: 外部プロセスからの POST /launch（任意の文字列を送れる）時の実行ファイル解決</h3>
 <p>図3 の黄枠ノードのうち、外部プロセスからの POST /launch
 経路に固有の処理です。通常起動（Web UI）は図3-1 の実在候補のみが送られるためこのチェックを素通りし、<code>qgis_settings.json</code>
