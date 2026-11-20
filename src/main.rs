@@ -1637,7 +1637,9 @@ fn resolve_project_to_file(path_str: &str, settings_dir: &str) -> Option<PathBuf
 
 fn launch_qgis(profile_name: &str, project_paths: &[String], project_root: &str, exe_path: &str, role: &str) -> bool {
     // QGISのパスを決定（プロファイルコピーは EXE 起動時に完了済み）。
-    // 指定パスは実在確認を行い、無効ならレジストリ解決へフォールバックする。
+    // 指定パスは実在確認を行い、無効・未指定なら get_available_qgis_versions()
+    // の先頭候補（①レジストリ既定の親 ②ProgramFiles ③OSGeo4W の優先順位、
+    // システム既定は先頭に挿入済み）を採用する。
     // 不存在パスを cmd.exe /C に渡してもエラーは CREATE_NO_WINDOW で不可視のまま
     // 静かに失敗するため、ここで弾く。
     let qgis_path = 'resolve: {
@@ -1645,15 +1647,15 @@ fn launch_qgis(profile_name: &str, project_paths: &[String], project_root: &str,
             if PathBuf::from(exe_path).exists() {
                 break 'resolve exe_path.to_string();
             }
-            eprintln!("指定の QGIS 実行ファイルが存在しません: {}。レジストリから再解決します。", exe_path);
+            eprintln!("指定の QGIS 実行ファイルが存在しません: {}。検出候補から再選択します。", exe_path);
         }
-        match find_qgis_path_from_registry() {
-            Some(p) => {
-                println!("システム既定の QGIS を使用します: {}", p);
+        match get_available_qgis_versions().into_iter().next() {
+            Some((name, p)) => {
+                println!("検出候補の QGIS を使用します: {} ({})", name, p);
                 p
             }
             None => {
-                eprintln!("QGISの実行ファイルが見つかりませんでした。レジストリの関連付けを確認してください。");
+                eprintln!("QGISの実行ファイルが見つかりませんでした。");
                 return false;
             }
         }

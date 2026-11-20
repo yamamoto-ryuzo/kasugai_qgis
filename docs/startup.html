@@ -76,7 +76,7 @@ URI の内容は参照されません。現在の利用者は <code>run.py</code
 起動処理（POST /launch → launch_handler → launch_qgis）</h3>
 <p>「QGIS を起動」ボタン押下（または外部プロセスからの POST
 /launch）から、実際に QGIS プロセスが spawn されランチャーが自動終了するまでの全ロジックです（<code>src/main.rs</code>
-の <code>launch_handler</code>・<code>launch_qgis</code>・<code>resolve_project_to_file</code>・<code>find_qgis_path_from_registry</code>
+の <code>launch_handler</code>・<code>launch_qgis</code>・<code>resolve_project_to_file</code>・<code>get_available_qgis_versions</code>
 に対応）。</p>
 <pre class="mermaid">flowchart TD
     U1["Web UI「QGIS を起動」ボタン<br/>launchQgis()（public/index.html）<br/>project_paths = 直接パス入力を優先、<br/>無ければプロジェクト選択値"] --> A["POST /launch → launch_handler<br/>LaunchRequest { profile,<br/>project_paths, executable, role }"]
@@ -146,7 +146,7 @@ exists() 確認済み</strong>のため、「選択肢がある = 図3-2 の「e
 
     G --> H["UI loadQgis(): 各候補を option 化<br/>保存値 qgis_executable に一致すれば選択<br/>不一致・未設定なら先頭（index 0）を選択"]
     H --> I(["ドロップダウン選択値 = 全て実在確認済みパス<br/>→ POST /launch の executable は<br/>常に「指定あり かつ実在」"])</pre>
-<h3 id="実行ファイル解決">図3-2: 起動用 QGIS 実行ファイルの解決（executable → レジストリ）</h3>
+<h3 id="実行ファイル解決">図3-2: 起動用 QGIS 実行ファイルの解決（executable → 検出候補の先頭）</h3>
 <p>図3 の黄枠ノードの内部処理です。ドロップダウン選択肢は図3-1
 のとおり列挙時に実在確認済みなので、Web UI 経由の通常起動では「はい」を素通りします。実在チェックが効くのは、外部プロセスからの POST
 /launch（任意の文字列を送れる）のみです。なお <code>qgis_settings.json</code> の <code>qgis_executable</code>
@@ -155,17 +155,16 @@ exists() 確認済み</strong>のため、「選択肢がある = 図3-2 の「e
 <pre class="mermaid">flowchart TD
     A(["launch_qgis 内の解決処理"]) --> B{"executable 指定あり<br/>かつパスが実在?"}
     B -- "はい" --> C1["qgis_path = executable<br/>（UI の QGIS Version 選択値）"]
-    B -- "いいえ" --> C2["find_qgis_path_from_registry<br/>HKCR\.qgs 既定値 → ProgID を取得<br/>HKCR\ProgID\shell\open\command 既定値<br/>→ 先頭トークンを exe パスとして抽出<br/>（指定ありでも無効なら警告して再解決）"]
-    C2 --> C3{"解決できた?"}
-    C3 -- "あり" --> C4["canonicalize で正規化<br/>（8.3 短縮名 → 長形式）<br/>→ qgis_path"]
+    B -- "いいえ" --> C2["get_available_qgis_versions() の<br/>先頭候補を採用<br/>（図3-1 の①②③優先順位。<br/>システム既定は先頭に挿入済み）"]
+    C2 --> C3{"候補あり?"}
+    C3 -- "あり" --> D(["qgis_path 確定 → 図3 へ戻る"])
     C3 -- "いいえ" --> C5["実行可能な QGIS が無い<br/>→ {ok:false} を返し<br/>サーバーは継続"]
-    C1 --> D(["qgis_path 確定 → 図3 へ戻る"])
-    C4 --> D
+    C1 --> D
 
     classDef qgisexe fill:#fff6db,stroke:#d4a017,color:#1a2230
-    class B,C1,C2,C3,C4,C5 qgisexe</pre>
-<p>優先順位は <code>executable</code> 指定（実在確認あり）→ レジストリ <code>.qgs</code>
-関連付けの順です。指定パスが無効な場合は警告のうえレジストリ解決へフォールバックし、それでも見つからなければ
+    class B,C1,C2,C3,C5 qgisexe</pre>
+<p>優先順位は <code>executable</code> 指定（実在確認あり）→ 図3-1
+の検出候補先頭の順です。指定パスが無効な場合は警告のうえ先頭候補へフォールバックし、候補自体が見つからなければ
 <code>{ok:false}</code> を返してサーバーは継続します（サイレント失敗の防止）。</p>
 <h3 id="自動更新フローget-update--post-updateapply">図4: 自動更新フロー（GET
 /update ・ POST /update/apply）</h3>
