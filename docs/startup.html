@@ -113,10 +113,42 @@ URI の内容は参照されません。現在の利用者は <code>run.py</code
 
     classDef qgisexe fill:#fff6db,stroke:#d4a017,color:#1a2230
     class C qgisexe</pre>
+<h3 id="qgis選択肢の作成">図3-1: 「QGIS Version」選択肢の作成（GET
+/qgis → get_available_qgis_versions）</h3>
+<p>起動タブの「QGIS Version」ドロップダウンを構築する候補列挙ロジックです。<strong>候補は全て列挙時に
+exists() 確認済み</strong>のため、「選択肢がある = 図3-2 の「executable 指定あり かつパスが実在」=
+はい」が常に成立します。</p>
+<pre class="mermaid">flowchart TD
+    A(["GET /qgis<br/>→ list_qgis_handler"]) --> B["get_available_qgis_versions()"]
+
+    B --> C["探索対象の基底フォルダ（重複除外）"]
+    C --> C1["① レジストリ既定 QGIS の親フォルダ<br/>find_qgis_path_from_registry() の結果を<br/>qgis* フォルダまで遡りその親を採用"]
+    C --> C2["② %ProgramFiles%"]
+    C --> C3["③ C:\OSGeo4W"]
+    C --> C4["④ カレントディレクトリ<br/>（= ランチャー exe 所在フォルダ。<br/>ポータブル版の走査先）"]
+
+    C1 --> D["①〜③ の基底フォルダ直下の<br/>サブフォルダを走査"]
+    C2 --> D
+    C3 --> D
+    C4 --> D4["ポータブル版走査<br/>qgis* フォルダ → qgis\bin\ 配下<br/>qgis-ltr.bat 優先・無ければ qgis.bat<br/>qfield* フォルダ → usr\bin\qfield.exe"]
+
+    D --> D1["qgis* フォルダ → bin\ 配下を exists() 確認<br/>qgis.bat / qgis-ltr.bat / qgis-qt6.bat<br/>実在するものをそれぞれ追加<br/>どの .bat も無ければ qgis-bin.exe"]
+    D --> D2["qfield* フォルダ<br/>usr\bin\qfield.exe を<br/>exists() 確認して追加"]
+
+    D1 --> E["パス文字列（小文字比較）で重複除去"]
+    D2 --> E
+    D4 --> E
+    E --> F{"レジストリ既定パスが<br/>一覧に含まれる?"}
+    F -- "含まれる" --> F1["その項目名に<br/>「（システム既定）」を付与"]
+    F -- "含まれない" --> F2["「フォルダ名 （ファイル名） （システム既定）」<br/>として先頭に挿入"]
+    F1 --> G(["候補一覧（name, path）を JSON で返却"])
+    F2 --> G
+
+    G --> H["UI loadQgis(): 各候補を option 化<br/>保存値 qgis_executable に一致すれば選択<br/>不一致・未設定なら先頭（index 0）を選択"]
+    H --> I(["ドロップダウン選択値 = 全て実在確認済みパス<br/>→ POST /launch の executable は<br/>常に「指定あり かつ実在」"])</pre>
 <h3 id="実行ファイル解決">図3-2: 起動用 QGIS 実行ファイルの解決（executable → レジストリ）</h3>
-<p>図3 の黄枠ノードの内部処理です。UI の「QGIS
-Version」ドロップダウン候補は <code>GET /qgis</code>（<code>get_available_qgis_versions</code>）が検出した<strong>実在パスのみ</strong>なので、Web
-UI 経由の通常起動では「はい」を素通りします。実在チェックが効くのは、外部プロセスからの POST
+<p>図3 の黄枠ノードの内部処理です。ドロップダウン選択肢は図3-1
+のとおり列挙時に実在確認済みなので、Web UI 経由の通常起動では「はい」を素通りします。実在チェックが効くのは、外部プロセスからの POST
 /launch（任意の文字列を送れる）や <code>qgis_settings.json</code> に保存された旧バージョンのパスなど、UI
 検証を通らない経路です。</p>
 <pre class="mermaid">flowchart TD
