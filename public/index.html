@@ -642,6 +642,10 @@
           role: $('role').value
         };
         const res = await api('POST', '/launch', body);
+        if (res && res.ok === false) {
+          status(res.error || t('status_launch_fail', { msg: '' }), 'err');
+          return;
+        }
         status(t('status_launched'), 'ok');
         closeTabAfterServerStop();
       } catch (e) {
@@ -715,7 +719,11 @@
           executable: r.executable || '',
           role: r.role || ''
         };
-        await api('POST', '/launch', body);
+        const res = await api('POST', '/launch', body);
+        if (res && res.ok === false) {
+          status(res.error || t('status_launch_fail', { msg: '' }), 'err');
+          return;
+        }
         status(t('status_launched'), 'ok');
         closeTabAfterServerStop();
       } catch (e) {

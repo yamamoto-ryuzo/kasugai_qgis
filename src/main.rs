@@ -1636,9 +1636,18 @@ fn resolve_project_to_file(path_str: &str, settings_dir: &str) -> Option<PathBuf
     None
 }
 
-fn launch_qgis(profile_name: &str, project_paths: &[String], project_root: &str, exe_path: &str, role: &str) {
-    // QGISのパスを決定（プロファイルコピーは EXE 起動時に完了済み）
-    let qgis_path = if exe_path.is_empty() {
+fn launch_qgis(profile_name: &str, project_paths: &[String], project_root: &str, exe_path: &str, role: &str) -> bool {
+    // QGISのパスを決定（プロファイルコピーは EXE 起動時に完了済み）。
+    // 指定パスは実在確認を行い、無効ならレジストリ解決へフォールバックする。
+    // 不存在パスを cmd.exe /C に渡してもエラーは CREATE_NO_WINDOW で不可視のまま
+    // 静かに失敗するため、ここで弾く。
+    let qgis_path = 'resolve: {
+        if !exe_path.is_empty() {
+            if PathBuf::from(exe_path).exists() {
+                break 'resolve exe_path.to_string();
+            }
+            eprintln!("指定の QGIS 実行ファイルが存在しません: {}。レジストリから再解決します。", exe_path);
+        }
         match find_qgis_path_from_registry() {
             Some(p) => {
                 println!("システム既定の QGIS を使用します: {}", p);
@@ -1646,11 +1655,9 @@ fn launch_qgis(profile_name: &str, project_paths: &[String], project_root: &str,
             }
             None => {
                 eprintln!("QGISの実行ファイルが見つかりませんでした。レジストリの関連付けを確認してください。");
-                return;
+                return false;
             }
         }
-    } else {
-        exe_path.to_string()
     };
 
     // --customizationfile: QGIS4 用のカスタマイズ XML を渡す
@@ -1665,7 +1672,7 @@ fn launch_qgis(profile_name: &str, project_paths: &[String], project_root: &str,
         .filter(|p| p.exists());
 
     // Helper to spawn one process with optional project
-    let spawn_with_project = |maybe_project: Option<PathBuf>| {
+    let spawn_with_project = |maybe_project: Option<PathBuf>| -> bool {
         let qgis_lower = qgis_path.to_lowercase();
         let is_batch = qgis_lower.ends_with(".bat") || qgis_lower.ends_with(".cmd");
         let mut cmd = if is_batch {
@@ -1701,20 +1708,23 @@ fn launch_qgis(profile_name: &str, project_paths: &[String], project_root: &str,
             }
         }
         match cmd.spawn() {
-            Ok(_) => println!("QGISの起動リクエストに成功しました。"),
-            Err(e) => eprintln!("QGISの起動に失敗しました: {}", e),
+            Ok(_) => { println!("QGISの起動リクエストに成功しました。"); true }
+            Err(e) => { eprintln!("QGISの起動に失敗しました: {}", e); false }
         }
     };
 
     if project_paths.is_empty() {
-        spawn_with_project(None);
-        return;
+        return spawn_with_project(None);
     }
 
+    let mut launched_any = false;
     for path_str in project_paths {
         let effective_project = resolve_project_to_file(path_str.trim(), project_root);
-        spawn_with_project(effective_project);
+        if spawn_with_project(effective_project) {
+            launched_any = true;
+        }
     }
+    launched_any
 }
 
 
@@ -2397,14 +2407,22 @@ async fn launch_handler(State(state): State<AppState>, Json(req): Json<LaunchReq
     let project_paths = req.project_paths;
     let executable = req.executable;
     let role = req.role;
-    {
+    let launched = {
         let (profile, project_paths, executable, role, project_root_dir) =
             (profile.clone(), project_paths.clone(), executable.clone(), role.clone(), project_root_dir.clone());
         tokio::task::spawn_blocking(move || {
-            launch_qgis(&profile, &project_paths, &project_root_dir, &executable, &role);
+            launch_qgis(&profile, &project_paths, &project_root_dir, &executable, &role)
         })
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+    };
+    // 起動できなかった場合は設定保存・履歴追記・自動停止を行わずエラーを返す
+    // （失敗を握り潰してサーバーが消えるとユーザーから原因が見えないため）
+    if !launched {
+        return Ok(Json(serde_json::json!({
+            "ok": false,
+            "error": "QGIS の実行ファイルが見つかりません。QGIS Version の選択かレジストリの関連付けを確認してください。"
+        })));
     }
     // 今回の起動選択を次回起動の初期値として保存（保存失敗は起動結果に影響させない）
     let settings_dir = state.settings_dir;

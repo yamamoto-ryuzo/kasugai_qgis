@@ -87,11 +87,11 @@ URI の内容は参照されません。現在の利用者は <code>run.py</code
     U3 --> A
     A --> B["tokio::task::spawn_blocking で<br/>launch_qgis(profile, project_paths,<br/>project_root, executable, role) を実行"]
 
-    B --> C{"executable<br/>指定あり?"}
-    C -- "あり" --> D1["qgis_path = executable<br/>（UI の QGIS Version 選択値）"]
-    C -- "なし" --> D2["find_qgis_path_from_registry<br/>HKCR\.qgs 既定値 → ProgID を取得<br/>HKCR\ProgID\shell\open\command 既定値<br/>→ 先頭トークンを exe パスとして抽出"]
-    D2 --> D3{"抽出パスが<br/>実在する?"}
-    D3 -- "いいえ" --> D4["エラー出力して起動中止（return）"]
+    B --> C{"executable 指定あり<br/>かつパスが実在?"}
+    C -- "はい" --> D1["qgis_path = executable<br/>（UI の QGIS Version 選択値）"]
+    C -- "いいえ" --> D2["find_qgis_path_from_registry<br/>HKCR\.qgs 既定値 → ProgID を取得<br/>HKCR\ProgID\shell\open\command 既定値<br/>→ 先頭トークンを exe パスとして抽出<br/>（指定ありでも無効なら警告して再解決）"]
+    D2 --> D3{"解決できた?"}
+    D3 -- "いいえ" --> D4["実行可能な QGIS が無い<br/>→ {ok:false} を返し<br/>サーバーは継続"]
     D3 -- "あり" --> D5["canonicalize で正規化<br/>（8.3 短縮名 → 長形式）<br/>→ qgis_path"]
     D1 --> E["ロール関連ファイルの準備"]
     D5 --> E
@@ -115,7 +115,7 @@ URI の内容は参照されません。現在の利用者は <code>run.py</code
     I --> K["プロセス起動パラメータ<br/>・spawn コマンド = qgis_path<br/>  （.bat/.cmd は cmd.exe /C 経由。<br/>   CreateProcessW が直接起動できないため）<br/>・cwd = ランチャー exe 所在フォルダ<br/>・CREATE_NO_WINDOW（コンソール非表示）<br/>・env PORTAL_USERROLE=ROLE<br/>・引数 --profile PROFILE<br/>  + --customizationfile /<br/>    --globalsettingsfile / --code（あれば）<br/>  + プロジェクトパス（位置引数・あれば）"]
     K --> L["cmd.spawn()<br/>失敗はエラー出力のみ（続行）"]
 
-    L --> M["launch_handler 後処理<br/>（launch_qgis 完了後に順次実行）"]
+    L --> M["launch_handler 後処理<br/>（起動成功時のみ順次実行。<br/>失敗時は {ok:false} を返し<br/>サーバーは継続）"]
     M --> M1["① 起動選択を qgis_settings.json に保存<br/>profile / userrole / qgis_executable /<br/>current_project（project_paths の先頭）<br/>※保存失敗は起動結果に影響させない"]
     M1 --> M2["② launch_history.json に<br/>LaunchRecord を追記（最大10件）<br/>「最近の起動」・プロセス帰属に使用"]
     M2 --> M3["③ tokio::spawn で 500ms 待機 →<br/>std::process::exit(0)<br/>（QGIS 起動後はサーバー自動停止）"]
@@ -124,10 +124,10 @@ URI の内容は参照されません。現在の利用者は <code>run.py</code
 
     classDef qgisexe fill:#fff6db,stroke:#d4a017,color:#1a2230
     class C,D1,D2,D3,D4,D5 qgisexe</pre>
-<p>黄枠で囲んだ部分が<strong>起動用 QGIS（実行ファイルパス）の決定</strong>です。優先順位は <code>executable</code> 指定 → レジストリ <code>.qgs</code>
+<p>黄枠で囲んだ部分が<strong>起動用 QGIS（実行ファイルパス）の決定</strong>です。優先順位は <code>executable</code> 指定（実在確認あり）→ レジストリ <code>.qgs</code>
 関連付けの順で、UI の「QGIS Version」ドロップダウン候補は <code>GET /qgis</code>
-（<code>get_available_qgis_versions</code>）が検出した既存パスのみです。<code>executable</code>
-指定時は存在チェックを行わないため、無効パスは cmd.exe /C の失敗として静かに終わります。</p>
+（<code>get_available_qgis_versions</code>）が検出した既存パスのみです。指定パスが無効な場合は警告のうえレジストリ解決へフォールバックし、それでも見つからなければ
+<code>{ok:false}</code> を返してサーバーは継続します（サイレント失敗の防止）。</p>
 <h3 id="自動更新フローget-update--post-updateapply">図4: 自動更新フロー（GET
 /update ・ POST /update/apply）</h3>
 <pre class="mermaid">flowchart TD
