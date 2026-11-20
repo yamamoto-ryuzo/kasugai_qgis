@@ -2012,8 +2012,6 @@ fn get_available_qgis_versions() -> Vec<(String, String)> {
     }
 
     if let Some(p) = &default_path {
-        let mut found = false;
-        
         let mut folder_name = String::new();
         let pb = PathBuf::from(p);
         let mut current = pb.as_path();
@@ -2035,16 +2033,12 @@ fn get_available_qgis_versions() -> Vec<(String, String)> {
             "システム既定のQGIS".to_string()
         };
 
-        for (name, path) in &mut unique_versions {
-            if path.to_lowercase() == p.to_lowercase() {
-                *name = format!("{} (システム既定)", final_display_name);
-                found = true;
-                break;
-            }
+        // システム既定は必ず先頭に置く（一覧内にあれば移動、無ければ挿入）。
+        // 先頭は loadQgis の自動選択・launch_qgis のフォールバック先頭候補として使われる。
+        if let Some(i) = unique_versions.iter().position(|(_, path)| path.eq_ignore_ascii_case(p)) {
+            unique_versions.remove(i);
         }
-        if !found {
-            unique_versions.insert(0, (format!("{} (システム既定)", final_display_name), p.clone()));
-        }
+        unique_versions.insert(0, (format!("{} (システム既定)", final_display_name), p.clone()));
     }
 
     unique_versions
