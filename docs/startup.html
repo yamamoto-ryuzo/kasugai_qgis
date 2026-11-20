@@ -79,7 +79,7 @@ URI の内容は参照されません。現在の利用者は <code>run.py</code
 の <code>launch_handler</code>・<code>launch_qgis</code>・<code>resolve_project_to_file</code>・<code>get_available_qgis_versions</code>
 に対応）。</p>
 <pre class="mermaid">flowchart TD
-    U1["Web UI「QGIS を起動」ボタン<br/>launchQgis()（public/index.html）<br/>project_paths = 直接パス入力を優先、<br/>無ければプロジェクト選択値"] --> A["POST /launch → launch_handler<br/>LaunchRequest { profile,<br/>project_paths, executable, role }"]
+    U1["Web UI「QGIS を起動」ボタン<br/>launchQgis()（public/index.html）<br/>project_paths = プロジェクト選択値<br/>（参照…ボタンで選択したファイルも<br/>選択肢へ挿入されて選べる）"] --> A["POST /launch → launch_handler<br/>LaunchRequest { profile,<br/>project_paths, executable, role }"]
     U3["外部プロセスからの POST /launch<br/>（ヘッドレスモード経路）"] --> A
     A --> B["tokio::task::spawn_blocking で<br/>launch_qgis(profile, project_paths,<br/>project_root, executable, role) を実行"]
 

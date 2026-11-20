@@ -70,7 +70,7 @@
     .proc-item .kill-btn { width: auto; padding: 2px 10px; font-size: 0.85em; background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; border-radius: 4px; cursor: pointer; }
     .proc-item .kill-btn:hover { background: #fecaca; }
     .browse-row { display: flex; gap: 6px; align-items: center; }
-    .browse-row input { flex: 1; }
+    .browse-row input, .browse-row select { flex: 1; }
     .browse-row .browse-btn { padding: 6px 12px; white-space: nowrap; width: auto; }
   </style>
 </head>
@@ -107,13 +107,10 @@
     </select>
 
     <label data-i18n="label_project" data-i18n-title="tip_project">プロジェクト</label>
-    <select id="project-select" data-i18n-title="tip_project"></select>
+    <div class="browse-row"><select id="project-select" data-i18n-title="tip_project"></select><button type="button" class="browse-btn" onclick="pickProjectFile()" data-i18n="btn_browse" data-i18n-title="tip_btn_browse_file">参照…</button></div>
 
     <label data-i18n="label_project_version" data-i18n-title="tip_project_version">プロジェクトファイルバージョン</label>
     <input id="project-version" type="text" class="readonly" readonly data-i18n-title="tip_project_version">
-
-    <label data-i18n="label_custom_project" data-i18n-title="tip_custom_project">プロジェクト直接指定（.qgz/.qgs パス・任意）</label>
-    <div class="browse-row"><input id="project-custom" type="text" placeholder="C:\\work\\map.qgz" data-i18n-ph="ph_custom_project" data-i18n-title="tip_custom_project"><button type="button" class="browse-btn" onclick="pickFile('project-custom')" data-i18n="btn_browse" data-i18n-title="tip_btn_browse_file">参照…</button></div>
 
     <label data-i18n="label_qgis_version" data-i18n-title="tip_qgis_exe">QGIS バージョン</label>
     <select id="qgis" data-i18n-title="tip_qgis_exe"></select>
@@ -268,13 +265,21 @@
       }
     }
 
-    async function pickFile(id) {
+    // ファイル選択ダイアログで選んだ .qgs/.qgz をプロジェクト選択肢に挿入して選択する。
+    // 選択肢外のパスもそのまま保持できるため、直接指定入力は不要。
+    async function pickProjectFile() {
       try {
         const res = await api('GET', '/api/pick-file');
-        if (res.path) {
-          $(id).value = res.path;
-          if (id.startsWith('raw-')) updateFromForm();
+        if (!res.path) return;
+        const sel = $('project-select');
+        if (![...sel.options].some(o => o.value === res.path)) {
+          const opt = document.createElement('option');
+          opt.value = res.path;
+          opt.textContent = res.path;
+          sel.appendChild(opt);
         }
+        sel.value = res.path;
+        checkProjectVersion();
       } catch (e) {
         status(t('status_pick_folder_fail', { msg: e.message }), 'err');
       }
@@ -537,6 +542,14 @@
       });
       if (currentSettings.current_project) {
         sel.value = currentSettings.current_project;
+        if (sel.selectedIndex === -1) {
+          // 保存値が検索一覧外（参照ボタンで選んだファイルなど）→ 選択肢に挿入して選択
+          const opt = document.createElement('option');
+          opt.value = currentSettings.current_project;
+          opt.textContent = currentSettings.current_project;
+          sel.appendChild(opt);
+          sel.value = currentSettings.current_project;
+        }
       }
       // 設定値が選択肢に一致しない場合や未設定の場合は先頭を選択する
       if (sel.selectedIndex === -1 && list.length > 0) {
@@ -638,11 +651,9 @@
 
     async function launchQgis() {
       try {
-        const custom = $('project-custom').value.trim();
         const body = {
           profile: $('profile').value,
-          // 直接パス指定があればそちらを優先、なければドロップダウンの選択
-          project_paths: custom ? [custom] : [$('project-select').value].filter(x => x),
+          project_paths: [$('project-select').value].filter(x => x),
           executable: $('qgis').value,
           role: $('role').value
         };
