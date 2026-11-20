@@ -73,16 +73,54 @@ URI の内容は参照されません。現在の利用者は <code>run.py</code
 等が埋め込みペインで利用する場合の経路としても残しています。</p>
 </blockquote>
 <h3 id="qgis-起動処理launch_qgis--post-launch">図3: QGIS
-起動処理（launch_qgis — POST /launch）</h3>
+起動処理（POST /launch → launch_handler → launch_qgis）</h3>
+<p>「QGIS を起動」ボタン押下（または「最近の起動」クリック、外部プロセスからの POST
+/launch）から、実際に QGIS プロセスが spawn されランチャーが自動終了するまでの全ロジックです（<code>src/main.rs</code>
+の <code>launch_handler</code>・<code>launch_qgis</code>・<code>resolve_project_to_file</code>・<code>find_qgis_path_from_registry</code>
+に対応）。</p>
 <pre class="mermaid">flowchart TD
-    A(["launch_qgis(profile, project_paths, exe, role)"]) --> B["QGIS 実行ファイルの決定（優先順位）<br/>1. POST /launch の executable（Web UI の選択）<br/>2. 未指定時: レジストリの .qgs 関連付けから検出"]
-    B --> C{"実行ファイルが見つかった?"}
-    C -- "いいえ" --> C1["エラーを出力して起動中止"]
-    C -- "はい" --> D["ロール制御ファイル準備<br/>・--customizationfile ini/ROLE.xml<br/>  （QGIS4 用・ファイル存在時のみ）<br/>・ini/qgis_global_settings.ini を生成<br/>   [Variables] userrole=ROLE<br/>・--code ini/startup.py（ファイル存在時のみ）"]
-    D --> E["子プロセスへ環境変数を注入<br/>PORTAL_USERROLE=ROLE"]
-    E --> G["project_path 各エントリを解決<br/>・.qgs/.qgz → そのファイル<br/>・フォルダ → 直下の .qgs/.qgz の先頭<br/>・解決不可 → プロジェクト無しで起動"]
-    G --> H["qgis.exe / qgis.bat を spawn<br/>--profile PROFILE<br/>+ --customizationfile / --globalsettingsfile / --code<br/>+ プロジェクトパス（位置引数）<br/>.bat/.cmd は cmd.exe /C 経由"]
-    H --> I1["応答返却後 500ms で<br/>ランチャーサーバを自動停止"]</pre>
+    U(["起動要求の入口"]) --> U1["Web UI「QGIS を起動」ボタン<br/>launchQgis()（public/index.html）<br/>project_paths = 直接パス入力を優先、<br/>無ければプロジェクト選択値"]
+    U --> U2["「最近の起動」クリック → relaunch()<br/>保存済みの条件をそのまま再送"]
+    U --> U3["外部プロセスからの POST /launch<br/>（ヘッドレスモード経路）"]
+    U1 --> A["POST /launch → launch_handler<br/>LaunchRequest { profile,<br/>project_paths, executable, role }"]
+    U2 --> A
+    U3 --> A
+    A --> B["tokio::task::spawn_blocking で<br/>launch_qgis(profile, project_paths,<br/>project_root, executable, role) を実行"]
+
+    B --> C{"executable<br/>指定あり?"}
+    C -- "あり" --> D1["qgis_path = executable<br/>（UI の QGIS Version 選択値）"]
+    C -- "なし" --> D2["find_qgis_path_from_registry<br/>HKCR\.qgs 既定値 → ProgID を取得<br/>HKCR\ProgID\shell\open\command 既定値<br/>→ 先頭トークンを exe パスとして抽出"]
+    D2 --> D3{"抽出パスが<br/>実在する?"}
+    D3 -- "いいえ" --> D4["エラー出力して起動中止（return）"]
+    D3 -- "あり" --> D5["canonicalize で正規化<br/>（8.3 短縮名 → 長形式）<br/>→ qgis_path"]
+    D1 --> E["ロール関連ファイルの準備"]
+    D5 --> E
+    E --> E1["① ini\ROLE.xml が存在すれば<br/>--customizationfile に指定<br/>（QGIS4 用・無ければ付けない）"]
+    E --> E2["② ini\qgis_global_settings.ini を生成<br/>[Variables] userrole=ROLE<br/>→ --globalsettingsfile に指定<br/>（書込失敗時は付けない）"]
+    E --> E3["③ ini\startup.py が存在すれば<br/>--code に指定"]
+
+    E1 --> F{"project_paths<br/>が空?"}
+    E2 --> F
+    E3 --> F
+    F -- "空" --> G["spawn_with_project(None)<br/>プロジェクト無しで起動"]
+    F -- "あり" --> H["各エントリを resolve_project_to_file<br/>(path, project_root) で解決"]
+    H --> H1[".qgs/.qgz 拡張子 → 実在すれば採用<br/>（相対パスは入力パス →<br/>project_root 結合の順に探索）"]
+    H --> H2["フォルダ → 直下の .qgs/.qgz を<br/>名前昇順で列挙し先頭を採用"]
+    H --> H3["解決不可 → None<br/>（プロジェクト無しで起動）"]
+    H1 --> I["spawn_with_project(project?)<br/>※エントリ毎に繰返し =<br/>複数指定で QGIS を複数起動"]
+    H2 --> I
+    H3 --> I
+    G --> K
+
+    I --> K["プロセス起動パラメータ<br/>・spawn コマンド = qgis_path<br/>  （.bat/.cmd は cmd.exe /C 経由。<br/>   CreateProcessW が直接起動できないため）<br/>・cwd = ランチャー exe 所在フォルダ<br/>・CREATE_NO_WINDOW（コンソール非表示）<br/>・env PORTAL_USERROLE=ROLE<br/>・引数 --profile PROFILE<br/>  + --customizationfile /<br/>    --globalsettingsfile / --code（あれば）<br/>  + プロジェクトパス（位置引数・あれば）"]
+    K --> L["cmd.spawn()<br/>失敗はエラー出力のみ（続行）"]
+
+    L --> M["launch_handler 後処理<br/>（launch_qgis 完了後に順次実行）"]
+    M --> M1["① 起動選択を qgis_settings.json に保存<br/>profile / userrole / qgis_executable /<br/>current_project（project_paths の先頭）<br/>※保存失敗は起動結果に影響させない"]
+    M1 --> M2["② launch_history.json に<br/>LaunchRecord を追記（最大10件）<br/>「最近の起動」・プロセス帰属に使用"]
+    M2 --> M3["③ tokio::spawn で 500ms 待機 →<br/>std::process::exit(0)<br/>（QGIS 起動後はサーバー自動停止）"]
+    M3 --> M4["④ 応答返却<br/>{ ok: true, server_stopping: true }"]
+    M4 --> N["UI 側: 起動ステータス表示 →<br/>closeTabAfterServerStop()<br/>window.close() 試行、失敗時は<br/>案内画面に置き換え"]</pre>
 <h3 id="自動更新フローget-update--post-updateapply">図4: 自動更新フロー（GET
 /update ・ POST /update/apply）</h3>
 <pre class="mermaid">flowchart TD
