@@ -120,7 +120,14 @@ URI の内容は参照されません。現在の利用者は <code>run.py</code
     M1 --> M2["② launch_history.json に<br/>LaunchRecord を追記（最大10件）<br/>「最近の起動」・プロセス帰属に使用"]
     M2 --> M3["③ tokio::spawn で 500ms 待機 →<br/>std::process::exit(0)<br/>（QGIS 起動後はサーバー自動停止）"]
     M3 --> M4["④ 応答返却<br/>{ ok: true, server_stopping: true }"]
-    M4 --> N["UI 側: 起動ステータス表示 →<br/>closeTabAfterServerStop()<br/>window.close() 試行、失敗時は<br/>案内画面に置き換え"]</pre>
+    M4 --> N["UI 側: 起動ステータス表示 →<br/>closeTabAfterServerStop()<br/>window.close() 試行、失敗時は<br/>案内画面に置き換え"]
+
+    classDef qgisexe fill:#fff6db,stroke:#d4a017,color:#1a2230
+    class C,D1,D2,D3,D4,D5 qgisexe</pre>
+<p>黄枠で囲んだ部分が<strong>起動用 QGIS（実行ファイルパス）の決定</strong>です。優先順位は <code>executable</code> 指定 → レジストリ <code>.qgs</code>
+関連付けの順で、UI の「QGIS Version」ドロップダウン候補は <code>GET /qgis</code>
+（<code>get_available_qgis_versions</code>）が検出した既存パスのみです。<code>executable</code>
+指定時は存在チェックを行わないため、無効パスは cmd.exe /C の失敗として静かに終わります。</p>
 <h3 id="自動更新フローget-update--post-updateapply">図4: 自動更新フロー（GET
 /update ・ POST /update/apply）</h3>
 <pre class="mermaid">flowchart TD
@@ -148,11 +155,12 @@ Profiles）」も参照してください。</p>
     A(["Web UI「Reset Profiles」ボタン押下"]) --> B["POST /reset<br/>reset_profiles_handler"]
     B --> C["進捗キューをクリアし<br/>spawn_blocking で reset_profiles を実行<br/>PROG: / MSG: を /progress へ送信"]
     C -.-> P["UI は GET /progress をポーリング<br/>モーダルで進捗表示"]
-    C --> E{"settings_dir\profiles\ 存在?"}
-    E -- "なし" --> E1["distribution profiles not found<br/>で失敗を返す"]
-    E -- "あり" --> F["① 既存プロファイルの削除<br/>%APPDATA%\QGIS\QGIS{major}\profiles\ 配下を全削除<br/>（profiles\ 無しの構成では<br/>QGIS{major}\ 直下のディレクトリを削除）"]
+    C --> E{"exe 隣接の profiles\（配布元）<br/>が存在する?"}
+    E -- "なし" --> E1["distribution profiles not found<br/>で失敗を返す<br/>※%APPDATA% 側は QGIS が自動生成するが、<br/>コピー元が無ければ復元できない"]
+    E -- "あり" --> F["① 既存プロファイルの削除<br/>%APPDATA%\QGIS\QGIS{major}\profiles\ 配下を全削除"]
     F --> G["② copy_profiles_at_startup を再実行<br/>起動フォルダの profiles\ 直下を<br/>%APPDATA%\QGIS\ へ再コピー<br/>（削除済みのため全ファイル新規配置 = 強制更新）"]
     G --> H["MSG:done → { ok: true } を返却<br/>モーダル自動クローズ"]
+    H -. "※/reset はプロファイル整備のみ。<br/>QGIS 本体の起動は別途<br/>POST /launch（図3）" .-> L(["図3: QGIS 起動処理へ"])
 
     classDef profile fill:#e9f7ee,stroke:#2e9e56,color:#1a2230
     class F,G profile</pre>

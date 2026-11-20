@@ -1508,7 +1508,8 @@ fn copy_profiles_at_startup(sender: Option<&std::sync::mpsc::Sender<String>>) {
 }
 
 /// 既存の QGIS プロファイルを強制削除してから配布プロファイルを再コピーする。
-/// 削除対象は `%APPDATA%/QGIS/QGISx/profiles/*` または `%APPDATA%/QGIS/QGISx/*` の直下ディレクトリ。
+/// 削除対象は `%APPDATA%/QGIS/QGISx/profiles/*` の直下ディレクトリのみ。
+/// profiles\ が無い環境では削除対象なし（QGISx\ 直下は触らない）。
 fn reset_profiles(sender: Option<&std::sync::mpsc::Sender<String>>) -> Result<(), String> {
     let base_profiles = PathBuf::from(get_default_settings_dir()).join("profiles");
     if !base_profiles.exists() {
@@ -1521,32 +1522,14 @@ fn reset_profiles(sender: Option<&std::sync::mpsc::Sender<String>>) -> Result<()
     let all_profile_paths = qgis_launcher::get_qgis_profile_paths();
     for p in &all_profile_paths {
         let probe = p.join("profiles");
-        if probe.exists() {
-            if let Ok(entries) = fs::read_dir(&probe) {
-                for entry in entries.flatten() {
-                    if entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
-                        let path = entry.path();
-                        if let Err(e) = fs::remove_dir_all(&path) {
-                            eprintln!("プロファイル削除失敗 {:?}: {}", path, e);
-                        } else {
-                            println!("削除: {:?}", path);
-                        }
-                    }
-                }
-            }
-        } else {
-            if let Ok(entries) = fs::read_dir(&p) {
-                for entry in entries.flatten() {
-                    if entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
-                        if let Ok(name) = entry.file_name().into_string() {
-                            if name.eq_ignore_ascii_case("profiles") { continue; }
-                        }
-                        let path = entry.path();
-                        if let Err(e) = fs::remove_dir_all(&path) {
-                            eprintln!("プロファイル削除失敗 {:?}: {}", path, e);
-                        } else {
-                            println!("削除: {:?}", path);
-                        }
+        if let Ok(entries) = fs::read_dir(&probe) {
+            for entry in entries.flatten() {
+                if entry.file_type().map(|ft| ft.is_dir()).unwrap_or(false) {
+                    let path = entry.path();
+                    if let Err(e) = fs::remove_dir_all(&path) {
+                        eprintln!("プロファイル削除失敗 {:?}: {}", path, e);
+                    } else {
+                        println!("削除: {:?}", path);
                     }
                 }
             }
