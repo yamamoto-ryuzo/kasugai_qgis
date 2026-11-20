@@ -83,14 +83,8 @@ URI の内容は参照されません。現在の利用者は <code>run.py</code
     U3["外部プロセスからの POST /launch<br/>（ヘッドレスモード経路）"] --> A
     A --> B["tokio::task::spawn_blocking で<br/>launch_qgis(profile, project_paths,<br/>project_root, executable, role) を実行"]
 
-    B --> C{"executable 指定あり<br/>かつパスが実在?"}
-    C -- "はい" --> D1["qgis_path = executable<br/>（UI の QGIS Version 選択値）"]
-    C -- "いいえ" --> D2["find_qgis_path_from_registry<br/>HKCR\.qgs 既定値 → ProgID を取得<br/>HKCR\ProgID\shell\open\command 既定値<br/>→ 先頭トークンを exe パスとして抽出<br/>（指定ありでも無効なら警告して再解決）"]
-    D2 --> D3{"解決できた?"}
-    D3 -- "いいえ" --> D4["実行可能な QGIS が無い<br/>→ {ok:false} を返し<br/>サーバーは継続"]
-    D3 -- "あり" --> D5["canonicalize で正規化<br/>（8.3 短縮名 → 長形式）<br/>→ qgis_path"]
-    D1 --> E["ロール関連ファイルの準備"]
-    D5 --> E
+    B --> C["起動用 QGIS 実行ファイルの解決<br/>→ qgis_path（詳細は図3-2）<br/>解決失敗時は {ok:false} を返し<br/>サーバーは継続"]
+    C --> E["ロール関連ファイルの準備"]
     E --> E1["① ini\ROLE.xml が存在すれば<br/>--customizationfile に指定<br/>（QGIS4 用・無ければ付けない）"]
     E --> E2["② ini\qgis_global_settings.ini を生成<br/>[Variables] userrole=ROLE<br/>→ --globalsettingsfile に指定<br/>（書込失敗時は付けない）"]
     E --> E3["③ ini\startup.py が存在すれば<br/>--code に指定"]
@@ -118,10 +112,27 @@ URI の内容は参照されません。現在の利用者は <code>run.py</code
     M4 --> N["UI 側: 起動ステータス表示 →<br/>closeTabAfterServerStop()<br/>window.close() 試行、失敗時は<br/>案内画面に置き換え"]
 
     classDef qgisexe fill:#fff6db,stroke:#d4a017,color:#1a2230
-    class C,D1,D2,D3,D4,D5 qgisexe</pre>
-<p>黄枠で囲んだ部分が<strong>起動用 QGIS（実行ファイルパス）の決定</strong>です。優先順位は <code>executable</code> 指定（実在確認あり）→ レジストリ <code>.qgs</code>
-関連付けの順で、UI の「QGIS Version」ドロップダウン候補は <code>GET /qgis</code>
-（<code>get_available_qgis_versions</code>）が検出した既存パスのみです。指定パスが無効な場合は警告のうえレジストリ解決へフォールバックし、それでも見つからなければ
+    class C qgisexe</pre>
+<h3 id="実行ファイル解決">図3-2: 起動用 QGIS 実行ファイルの解決（executable → レジストリ）</h3>
+<p>図3 の黄枠ノードの内部処理です。UI の「QGIS
+Version」ドロップダウン候補は <code>GET /qgis</code>（<code>get_available_qgis_versions</code>）が検出した<strong>実在パスのみ</strong>なので、Web
+UI 経由の通常起動では「はい」を素通りします。実在チェックが効くのは、外部プロセスからの POST
+/launch（任意の文字列を送れる）や <code>qgis_settings.json</code> に保存された旧バージョンのパスなど、UI
+検証を通らない経路です。</p>
+<pre class="mermaid">flowchart TD
+    A(["launch_qgis 内の解決処理"]) --> B{"executable 指定あり<br/>かつパスが実在?"}
+    B -- "はい" --> C1["qgis_path = executable<br/>（UI の QGIS Version 選択値）"]
+    B -- "いいえ" --> C2["find_qgis_path_from_registry<br/>HKCR\.qgs 既定値 → ProgID を取得<br/>HKCR\ProgID\shell\open\command 既定値<br/>→ 先頭トークンを exe パスとして抽出<br/>（指定ありでも無効なら警告して再解決）"]
+    C2 --> C3{"解決できた?"}
+    C3 -- "あり" --> C4["canonicalize で正規化<br/>（8.3 短縮名 → 長形式）<br/>→ qgis_path"]
+    C3 -- "いいえ" --> C5["実行可能な QGIS が無い<br/>→ {ok:false} を返し<br/>サーバーは継続"]
+    C1 --> D(["qgis_path 確定 → 図3 へ戻る"])
+    C4 --> D
+
+    classDef qgisexe fill:#fff6db,stroke:#d4a017,color:#1a2230
+    class B,C1,C2,C3,C4,C5 qgisexe</pre>
+<p>優先順位は <code>executable</code> 指定（実在確認あり）→ レジストリ <code>.qgs</code>
+関連付けの順です。指定パスが無効な場合は警告のうえレジストリ解決へフォールバックし、それでも見つからなければ
 <code>{ok:false}</code> を返してサーバーは継続します（サイレント失敗の防止）。</p>
 <h3 id="自動更新フローget-update--post-updateapply">図4: 自動更新フロー（GET
 /update ・ POST /update/apply）</h3>
