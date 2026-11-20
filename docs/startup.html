@@ -158,7 +158,7 @@ Profiles）」も参照してください。</p>
     C --> E{"exe 隣接の profiles\（配布元）<br/>が存在する?"}
     E -- "なし" --> E1["distribution profiles not found<br/>で失敗を返す<br/>※%APPDATA% 側は QGIS が自動生成するが、<br/>コピー元が無ければ復元できない"]
     E -- "あり" --> F["① 既存プロファイルの削除<br/>%APPDATA%\QGIS\QGIS{major}\profiles\ 配下を全削除"]
-    F --> G["② copy_profiles_at_startup を再実行<br/>起動フォルダの profiles\ 直下を<br/>%APPDATA%\QGIS\ へ再コピー<br/>（削除済みのため全ファイル新規配置 = 強制更新）"]
+    F --> G["② copy_profiles_at_startup を再実行<br/>起動フォルダの profiles\ 直下を<br/>%APPDATA%\QGIS\ へ再コピー"]
     G --> H["MSG:done → { ok: true } を返却<br/>モーダル自動クローズ"]
     H -. "※/reset はプロファイル整備のみ。<br/>QGIS 本体の起動は別途<br/>POST /launch（図3）" .-> L(["図3: QGIS 起動処理へ"])
 
