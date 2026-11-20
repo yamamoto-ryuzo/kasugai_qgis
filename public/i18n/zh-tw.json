@@ -138,6 +138,7 @@
   "mode_opt_mount": "mount（rclone 掛載）",
   "btn_browse": "瀏覽…",
   "tip_btn_browse": "開啟資料夾選擇對話框填入路徑",
+  "tip_btn_browse_file": "開啟檔案選擇對話框填入路徑",
   "status_pick_folder_fail": "資料夾選擇失敗: {msg}",
   "drive_opt_none": "（未指派）",
   "tip_drive_tab": "切換要設定的磁碟機對應",

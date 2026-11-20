@@ -138,6 +138,7 @@
   "mode_opt_mount": "mount (rclone-Mount)",
   "btn_browse": "Durchsuchen…",
   "tip_btn_browse": "Ordnerauswahl-Dialog öffnen, um den Pfad einzutragen",
+  "tip_btn_browse_file": "Dateiauswahl-Dialog öffnen, um den Pfad einzutragen",
   "status_pick_folder_fail": "Ordnerauswahl fehlgeschlagen: {msg}",
   "drive_opt_none": "(nicht zugewiesen)",
   "tip_drive_tab": "Zwischen Laufwerkszuordnungen wechseln",

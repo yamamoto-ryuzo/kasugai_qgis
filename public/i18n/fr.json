@@ -138,6 +138,7 @@
   "mode_opt_mount": "mount (montage rclone)",
   "btn_browse": "Parcourir…",
   "tip_btn_browse": "Ouvrir un sélecteur de dossier pour renseigner le chemin",
+  "tip_btn_browse_file": "Ouvrir un sélecteur de fichier pour renseigner le chemin",
   "status_pick_folder_fail": "Échec de la sélection du dossier : {msg}",
   "drive_opt_none": "(non attribué)",
   "tip_drive_tab": "Basculer entre les mappages de lecteur",

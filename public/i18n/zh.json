@@ -138,6 +138,7 @@
   "mode_opt_mount": "mount（rclone 挂载）",
   "btn_browse": "浏览…",
   "tip_btn_browse": "打开文件夹选择对话框填写路径",
+  "tip_btn_browse_file": "打开文件选择对话框填写路径",
   "status_pick_folder_fail": "文件夹选择失败: {msg}",
   "drive_opt_none": "（未分配）",
   "tip_drive_tab": "切换要设置的驱动器映射",

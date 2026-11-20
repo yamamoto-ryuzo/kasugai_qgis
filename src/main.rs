@@ -2224,6 +2224,7 @@ async fn run_api_server(port: u16, settings_dir: &str, project_root_dir: &str, u
         .route("/update", get(update_check_handler))
         .route("/update/apply", post(update_apply_handler))
         .route("/api/pick-folder", get(pick_folder_handler))
+        .route("/api/pick-file", get(pick_file_handler))
         .route("/api/drive-letters", get(drive_letters_handler))
         .route("/api/open-docs", get(open_docs_handler))
         .route("/api/cloud-paths", get(cloud_paths_handler))
@@ -2332,6 +2333,20 @@ async fn version_handler() -> Json<serde_json::Value> {
 /// キャンセル時は path=null を返す。
 async fn pick_folder_handler() -> Json<serde_json::Value> {
     let path = tokio::task::spawn_blocking(|| rfd::FileDialog::new().pick_folder())
+        .await
+        .ok()
+        .flatten();
+    Json(serde_json::json!({
+        "path": path.map(|p| p.to_string_lossy().to_string())
+    }))
+}
+
+async fn pick_file_handler() -> Json<serde_json::Value> {
+    let path = tokio::task::spawn_blocking(|| {
+        rfd::FileDialog::new()
+            .add_filter("QGIS Project", &["qgz", "qgs"])
+            .pick_file()
+    })
         .await
         .ok()
         .flatten();

@@ -113,7 +113,7 @@
     <input id="project-version" type="text" class="readonly" readonly data-i18n-title="tip_project_version">
 
     <label data-i18n="label_custom_project" data-i18n-title="tip_custom_project">プロジェクト直接指定（.qgz/.qgs パス・任意）</label>
-    <input id="project-custom" type="text" placeholder="C:\\work\\map.qgz" data-i18n-ph="ph_custom_project" data-i18n-title="tip_custom_project">
+    <div class="browse-row"><input id="project-custom" type="text" placeholder="C:\\work\\map.qgz" data-i18n-ph="ph_custom_project" data-i18n-title="tip_custom_project"><button type="button" class="browse-btn" onclick="pickFile('project-custom')" data-i18n="btn_browse" data-i18n-title="tip_btn_browse_file">参照…</button></div>
 
     <label data-i18n="label_qgis_version" data-i18n-title="tip_qgis_exe">QGIS バージョン</label>
     <select id="qgis" data-i18n-title="tip_qgis_exe"></select>
@@ -261,6 +261,18 @@
         if (res.path) {
           $(id).value = res.path;
           // 詳細設定タブ内の項目は下書き・生JSONへ即時反映する
+          if (id.startsWith('raw-')) updateFromForm();
+        }
+      } catch (e) {
+        status(t('status_pick_folder_fail', { msg: e.message }), 'err');
+      }
+    }
+
+    async function pickFile(id) {
+      try {
+        const res = await api('GET', '/api/pick-file');
+        if (res.path) {
+          $(id).value = res.path;
           if (id.startsWith('raw-')) updateFromForm();
         }
       } catch (e) {

@@ -138,6 +138,7 @@
   "mode_opt_mount": "mount(rclone 마운트)",
   "btn_browse": "찾아보기…",
   "tip_btn_browse": "폴더 선택 대화 상자를 열어 경로를 입력합니다",
+  "tip_btn_browse_file": "파일 선택 대화 상자를 열어 경로를 입력합니다",
   "status_pick_folder_fail": "폴더 선택 실패: {msg}",
   "drive_opt_none": "(할당 안 함)",
   "tip_drive_tab": "설정할 드라이브 매핑을 전환합니다",

@@ -138,6 +138,7 @@
   "mode_opt_mount": "mount (montaje rclone)",
   "btn_browse": "Examinar…",
   "tip_btn_browse": "Abrir un selector de carpeta para rellenar la ruta",
+  "tip_btn_browse_file": "Abrir un selector de archivo para rellenar la ruta",
   "status_pick_folder_fail": "Error al elegir carpeta: {msg}",
   "drive_opt_none": "(sin asignar)",
   "tip_drive_tab": "Cambiar entre asignaciones de unidad",

@@ -138,6 +138,7 @@
   "mode_opt_mount": "mount (montagem rclone)",
   "btn_browse": "Procurar…",
   "tip_btn_browse": "Abrir um seletor de pasta para preencher o caminho",
+  "tip_btn_browse_file": "Abrir um seletor de arquivo para preencher o caminho",
   "status_pick_folder_fail": "Falha ao escolher pasta: {msg}",
   "drive_opt_none": "(não atribuído)",
   "tip_drive_tab": "Alternar entre mapeamentos de unidade",

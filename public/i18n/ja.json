@@ -138,6 +138,7 @@
   "mode_opt_mount": "mount（rclone マウント）",
   "btn_browse": "参照…",
   "tip_btn_browse": "フォルダ選択ダイアログを開いてパスを入力します",
+  "tip_btn_browse_file": "ファイル選択ダイアログを開いてパスを入力します",
   "status_pick_folder_fail": "フォルダ選択失敗: {msg}",
   "drive_opt_none": "（未割当）",
   "tip_drive_tab": "設定するドライブマッピングを切り替えます",

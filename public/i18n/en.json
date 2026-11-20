@@ -138,6 +138,7 @@
   "mode_opt_mount": "mount (rclone mount)",
   "btn_browse": "Browse…",
   "tip_btn_browse": "Open a folder picker to fill in this path",
+  "tip_btn_browse_file": "Open a file picker to fill in this path",
   "status_pick_folder_fail": "Folder pick failed: {msg}",
   "drive_opt_none": "(unassigned)",
   "tip_drive_tab": "Switch between drive mappings",
