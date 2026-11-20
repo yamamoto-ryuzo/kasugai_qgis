@@ -149,8 +149,9 @@ exists() 確認済み</strong>のため、「選択肢がある = 図3-2 の「e
 <h3 id="実行ファイル解決">図3-2: 起動用 QGIS 実行ファイルの解決（executable → レジストリ）</h3>
 <p>図3 の黄枠ノードの内部処理です。ドロップダウン選択肢は図3-1
 のとおり列挙時に実在確認済みなので、Web UI 経由の通常起動では「はい」を素通りします。実在チェックが効くのは、外部プロセスからの POST
-/launch（任意の文字列を送れる）や <code>qgis_settings.json</code> に保存された旧バージョンのパスなど、UI
-検証を通らない経路です。</p>
+/launch（任意の文字列を送れる）のみです。なお <code>qgis_settings.json</code> の <code>qgis_executable</code>
+はあくまで前回選択の復元候補（動作履歴）であり、選択肢と一致しない保存値は図3-1 の UI
+補正で無視されるため、起動時の実在チェックが効く経路には含まれません。</p>
 <pre class="mermaid">flowchart TD
     A(["launch_qgis 内の解決処理"]) --> B{"executable 指定あり<br/>かつパスが実在?"}
     B -- "はい" --> C1["qgis_path = executable<br/>（UI の QGIS Version 選択値）"]
