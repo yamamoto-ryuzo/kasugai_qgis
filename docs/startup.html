@@ -146,14 +146,14 @@ exists() 確認済み</strong>のため、「選択肢がある = 図3-2 の「e
 
     G --> H["UI loadQgis(): 各候補を option 化<br/>保存値 qgis_executable に一致すれば選択<br/>不一致・未設定なら先頭（index 0）を選択"]
     H --> I(["ドロップダウン選択値 = 全て実在確認済みパス<br/>→ POST /launch の executable は<br/>常に「指定あり かつ実在」"])</pre>
-<h3 id="実行ファイル解決">図3-2: 起動用 QGIS 実行ファイルの解決（通常起動と外部 POST /launch の区別）</h3>
-<p>図3 の黄枠ノードの内部処理です。通常起動（Web UI）は図3-1
-の実在候補のみが送られるため常に「はい」、外部プロセスからの POST /launch（任意の文字列を送れる）は「いいえ」側で検出候補の先頭へフォールバックします。<code>qgis_settings.json</code>
-の保存値は動作履歴であり、図3-1 の UI 補正で無視されるため対象外です。</p>
+<h3 id="実行ファイル解決">図3-2: 外部プロセスからの POST /launch（任意の文字列を送れる）時の実行ファイル解決</h3>
+<p>図3 の黄枠ノードのうち、外部プロセスからの POST /launch
+経路に固有の処理です。通常起動（Web UI）は図3-1 の実在候補のみが送られるためこのチェックを素通りし、<code>qgis_settings.json</code>
+の保存値も動作履歴として図3-1 の UI 補正で無視されるため、本図の対象は外部経路のみです。</p>
 <pre class="mermaid">flowchart TD
-    A(["launch_qgis 内の解決処理"]) --> B{"executable 指定あり<br/>かつパスが実在?"}
-    B -- "はい: 通常起動" --> C1["qgis_path = executable<br/>（Web UI は図3-1 の実在候補のみ<br/>送るため常にこちらを通る）"]
-    B -- "いいえ: 外部 POST /launch 等" --> C2["get_available_qgis_versions() の<br/>先頭候補を採用<br/>（図3-1 の①②③優先順位。<br/>システム既定は先頭に挿入済み）"]
+    A(["外部プロセスからの POST /launch<br/>executable = 任意の文字列"]) --> B{"executable 指定あり<br/>かつパスが実在?"}
+    B -- "実在" --> C1["qgis_path = executable<br/>（外部指定をそのまま採用）"]
+    B -- "無効・未指定" --> C2["get_available_qgis_versions() の<br/>先頭候補を採用<br/>（図3-1 の①②③優先順位。<br/>システム既定は先頭に挿入済み）"]
     C2 --> C3{"候補あり?"}
     C3 -- "あり" --> D(["qgis_path 確定 → 図3 へ戻る"])
     C3 -- "いいえ" --> C5["実行可能な QGIS が無い<br/>→ {ok:false} を返し<br/>サーバーは継続"]
