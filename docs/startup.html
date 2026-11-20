@@ -83,7 +83,7 @@ URI の内容は参照されません。現在の利用者は <code>run.py</code
     U3["外部プロセスからの POST /launch<br/>（ヘッドレスモード経路）"] --> A
     A --> B["tokio::task::spawn_blocking で<br/>launch_qgis(profile, project_paths,<br/>project_root, executable, role) を実行"]
 
-    B --> C["起動用 QGIS 実行ファイルの解決<br/>→ qgis_path（詳細は図3-2）<br/>解決失敗時は {ok:false} を返し<br/>サーバーは継続"]
+    B --> C["qgis_path = 図3-1 で選択した<br/>起動用 QGIS の実行ファイル<br/>（外部 POST /launch の解決は図3-2。<br/>解決失敗時は {ok:false}・サーバー継続）"]
     C --> E["ロール関連ファイルの準備"]
     E --> E1["① ini\ROLE.xml が存在すれば<br/>--customizationfile に指定<br/>（QGIS4 用・無ければ付けない）"]
     E --> E2["② ini\qgis_global_settings.ini を生成<br/>[Variables] userrole=ROLE<br/>→ --globalsettingsfile に指定<br/>（書込失敗時は付けない）"]
