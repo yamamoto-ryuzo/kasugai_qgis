@@ -74,17 +74,13 @@ URI の内容は参照されません。現在の利用者は <code>run.py</code
 </blockquote>
 <h3 id="qgis-起動処理launch_qgis--post-launch">図3: QGIS
 起動処理（POST /launch → launch_handler → launch_qgis）</h3>
-<p>「QGIS を起動」ボタン押下（または「最近の起動」クリック、外部プロセスからの POST
+<p>「QGIS を起動」ボタン押下（または外部プロセスからの POST
 /launch）から、実際に QGIS プロセスが spawn されランチャーが自動終了するまでの全ロジックです（<code>src/main.rs</code>
 の <code>launch_handler</code>・<code>launch_qgis</code>・<code>resolve_project_to_file</code>・<code>find_qgis_path_from_registry</code>
 に対応）。</p>
 <pre class="mermaid">flowchart TD
-    U(["起動要求の入口"]) --> U1["Web UI「QGIS を起動」ボタン<br/>launchQgis()（public/index.html）<br/>project_paths = 直接パス入力を優先、<br/>無ければプロジェクト選択値"]
-    U --> U2["「最近の起動」クリック → relaunch()<br/>保存済みの条件をそのまま再送"]
-    U --> U3["外部プロセスからの POST /launch<br/>（ヘッドレスモード経路）"]
-    U1 --> A["POST /launch → launch_handler<br/>LaunchRequest { profile,<br/>project_paths, executable, role }"]
-    U2 --> A
-    U3 --> A
+    U1["Web UI「QGIS を起動」ボタン<br/>launchQgis()（public/index.html）<br/>project_paths = 直接パス入力を優先、<br/>無ければプロジェクト選択値"] --> A["POST /launch → launch_handler<br/>LaunchRequest { profile,<br/>project_paths, executable, role }"]
+    U3["外部プロセスからの POST /launch<br/>（ヘッドレスモード経路）"] --> A
     A --> B["tokio::task::spawn_blocking で<br/>launch_qgis(profile, project_paths,<br/>project_root, executable, role) を実行"]
 
     B --> C{"executable 指定あり<br/>かつパスが実在?"}
@@ -117,9 +113,8 @@ URI の内容は参照されません。現在の利用者は <code>run.py</code
 
     L --> M["launch_handler 後処理<br/>（起動成功時のみ順次実行。<br/>失敗時は {ok:false} を返し<br/>サーバーは継続）"]
     M --> M1["① 起動選択を qgis_settings.json に保存<br/>profile / userrole / qgis_executable /<br/>current_project（project_paths の先頭）<br/>※保存失敗は起動結果に影響させない"]
-    M1 --> M2["② launch_history.json に<br/>LaunchRecord を追記（最大10件）<br/>「最近の起動」・プロセス帰属に使用"]
-    M2 --> M3["③ tokio::spawn で 500ms 待機 →<br/>std::process::exit(0)<br/>（QGIS 起動後はサーバー自動停止）"]
-    M3 --> M4["④ 応答返却<br/>{ ok: true, server_stopping: true }"]
+    M1 --> M3["② tokio::spawn で 500ms 待機 →<br/>std::process::exit(0)<br/>（QGIS 起動後はサーバー自動停止）"]
+    M3 --> M4["③ 応答返却<br/>{ ok: true, server_stopping: true }"]
     M4 --> N["UI 側: 起動ステータス表示 →<br/>closeTabAfterServerStop()<br/>window.close() 試行、失敗時は<br/>案内画面に置き換え"]
 
     classDef qgisexe fill:#fff6db,stroke:#d4a017,color:#1a2230

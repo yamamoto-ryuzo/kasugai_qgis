@@ -23,7 +23,6 @@ use quick_xml::events::Event;
 use quick_xml::name::QName;
 use zip::ZipArchive;
 use std::io::Read;
-use std::time::{SystemTime, UNIX_EPOCH};
 use axum::{extract::{Path, Query, State}, http::{header, StatusCode}, response::{Html, IntoResponse}, routing::{get, post}, Json, Router};
 use tower_http::cors::CorsLayer;
 
@@ -2220,7 +2219,7 @@ async fn run_api_server(port: u16, settings_dir: &str, project_root_dir: &str, u
         .route("/profiles", get(list_profiles_handler))
         .route("/projects", get(list_projects_handler))
         .route("/launch", post(launch_handler))
-        .route("/api/recent", get(recent_handler))
+
         .route("/api/processes", get(processes_handler))
         .route("/api/processes/:pid/kill", post(kill_process_handler))
         .route("/reset", post(reset_profiles_handler))
@@ -2436,20 +2435,6 @@ async fn launch_handler(State(state): State<AppState>, Json(req): Json<LaunchReq
         if let Err(e) = save_settings(&settings_dir, &s) {
             eprintln!("起動選択の保存に失敗: {}", e);
         }
-        // 起動履歴を追記（最近の起動一覧・プロセス一覧の帰属に使用）
-        let rec = LaunchRecord {
-            launched_at: SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .map(|d| d.as_secs())
-                .unwrap_or(0),
-            profile,
-            project_paths,
-            executable,
-            role,
-        };
-        if let Err(e) = append_launch_history(&settings_dir, &rec) {
-            eprintln!("起動履歴の保存に失敗: {}", e);
-        }
     }).await;
     // QGIS 起動後はサーバーを自動停止する（レスポンス送信後に終了）
     tokio::spawn(async {
@@ -2460,51 +2445,7 @@ async fn launch_handler(State(state): State<AppState>, Json(req): Json<LaunchReq
     Ok(Json(serde_json::json!({ "ok": true, "server_stopping": true })))
 }
 
-// ---------- 起動履歴・起動中プロセス ----------
-
-/// 起動履歴1件（settings_dir/launch_history.json に追記保存）
-#[derive(Serialize, Deserialize, Clone)]
-struct LaunchRecord {
-    /// UNIX epoch 秒
-    launched_at: u64,
-    profile: String,
-    project_paths: Vec<String>,
-    executable: String,
-    role: String,
-}
-
-const LAUNCH_HISTORY_MAX: usize = 10;
-
-fn launch_history_path(settings_dir: &str) -> PathBuf {
-    PathBuf::from(settings_dir).join("launch_history.json")
-}
-
-fn load_launch_history(settings_dir: &str) -> Vec<LaunchRecord> {
-    fs::read_to_string(launch_history_path(settings_dir))
-        .ok()
-        .and_then(|s| serde_json::from_str(&s).ok())
-        .unwrap_or_default()
-}
-
-fn append_launch_history(settings_dir: &str, rec: &LaunchRecord) -> Result<(), String> {
-    let mut hist = load_launch_history(settings_dir);
-    hist.push(rec.clone());
-    if hist.len() > LAUNCH_HISTORY_MAX {
-        hist.drain(..hist.len() - LAUNCH_HISTORY_MAX);
-    }
-    let s = serde_json::to_string_pretty(&hist).map_err(|e| e.to_string())?;
-    fs::write(launch_history_path(settings_dir), s).map_err(|e| e.to_string())
-}
-
-/// 直近の起動履歴（新しい順）
-async fn recent_handler(State(state): State<AppState>) -> Json<serde_json::Value> {
-    let settings_dir = state.settings_dir;
-    let mut hist = tokio::task::spawn_blocking(move || load_launch_history(&settings_dir))
-        .await
-        .unwrap_or_default();
-    hist.reverse();
-    Json(serde_json::json!({ "recent": hist }))
-}
+// ---------- 起動中プロセス ----------
 
 /// `--profile <name>` をコマンドラインから取り出す（ランチャー経由起動の識別用）
 fn profile_from_cmdline(cmdline: &str) -> Option<String> {

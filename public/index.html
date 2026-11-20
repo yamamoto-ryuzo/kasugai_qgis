@@ -63,13 +63,10 @@
     .checkbox-label input[type="checkbox"] { width: auto; }
     .list-box { border: 1px solid #cbd5e1; border-radius: 6px; max-height: 160px; overflow-y: auto; font-size: 0.9em; }
     .list-box .empty { padding: 8px 10px; color: #94a3b8; }
-    .recent-item, .proc-item { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid #e2e8f0; }
-    .recent-item:last-child, .proc-item:last-child { border-bottom: none; }
-    .recent-item { cursor: pointer; }
-    .recent-item:hover { background: #eff6ff; }
-    .recent-item .rmeta, .proc-item .rmeta { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .recent-item .rtime, .proc-item .rtime { color: #64748b; font-size: 0.85em; white-space: nowrap; }
-    .recent-older { margin-top: 4px; font-size: 0.9em; }
+    .proc-item { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid #e2e8f0; }
+    .proc-item:last-child { border-bottom: none; }
+    .proc-item .rmeta { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .proc-item .rtime { color: #64748b; font-size: 0.85em; white-space: nowrap; }
     .proc-item .kill-btn { width: auto; padding: 2px 10px; font-size: 0.85em; background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; border-radius: 4px; cursor: pointer; }
     .proc-item .kill-btn:hover { background: #fecaca; }
     .browse-row { display: flex; gap: 6px; align-items: center; }
@@ -126,10 +123,6 @@
       <button id="save-launch" data-i18n="btn_save_launch" data-i18n-title="tip_btn_save_launch">起動設定を保存</button>
       <button id="launch" data-i18n="btn_launch" data-i18n-title="tip_btn_launch">QGIS を起動</button>
     </div>
-
-    <label data-i18n="label_recent" data-i18n-title="tip_recent">最近の起動（クリックで同条件再起動）</label>
-    <div id="recent-list" class="list-box" data-i18n-title="tip_recent"></div>
-    <select id="recent-older" class="recent-older" style="display:none" data-i18n-title="tip_recent_older"></select>
 
     <label data-i18n="label_processes" data-i18n-title="tip_processes">起動中の QGIS プロセス</label>
     <div id="proc-list" class="list-box" data-i18n-title="tip_processes"></div>
@@ -653,82 +646,13 @@
       }
     }
 
-    // ---------- 最近の起動・起動中プロセス ----------
-
-    let recentItems = [];
-    // 最新はクリック式でこの件数だけ直接表示し、それより古い履歴はドロップダウンへ回す
-    const RECENT_LIST_MAX = 1;
+    // ---------- 起動中プロセス ----------
 
     function fmtElapsed(sec) {
       sec = Math.max(0, Number(sec) || 0);
       if (sec < 60) return t('elapsed_sec', { n: sec });
       if (sec < 3600) return t('elapsed_min', { n: Math.floor(sec / 60) });
       return t('elapsed_hour', { n: (sec / 3600).toFixed(1) });
-    }
-
-    async function loadRecent() {
-      const box = $('recent-list');
-      const sel = $('recent-older');
-      try {
-        const res = await api('GET', '/api/recent');
-        recentItems = res.recent || [];
-        if (!recentItems.length) {
-          box.innerHTML = '<div class="empty">' + esc(t('empty_recent')) + '</div>';
-          sel.style.display = 'none';
-          sel.innerHTML = '';
-          return;
-        }
-        box.innerHTML = recentItems.slice(0, RECENT_LIST_MAX).map((r, i) => {
-          const dt = r.launched_at ? new Date(r.launched_at * 1000).toLocaleString() : '';
-          const proj = (r.project_paths || []).join(', ');
-          return '<div class="recent-item" data-i="' + i + '">' +
-            '<span class="rmeta">' + esc(r.profile || '') + (r.role ? ' [' + esc(r.role) + ']' : '') +
-            (proj ? ' — ' + esc(proj) : '') + '</span>' +
-            '<span class="rtime">' + esc(dt) + '</span></div>';
-        }).join('');
-        box.querySelectorAll('.recent-item').forEach(el => {
-          el.addEventListener('click', () => relaunch(recentItems[Number(el.dataset.i)]));
-        });
-        const older = recentItems.slice(RECENT_LIST_MAX);
-        if (older.length) {
-          sel.innerHTML = '<option value="">' + esc(t('recent_older_ph', { n: older.length })) + '</option>' +
-            older.map((r, k) => {
-              const dt = r.launched_at ? new Date(r.launched_at * 1000).toLocaleString() : '';
-              const proj = (r.project_paths || []).join(', ');
-              return '<option value="' + (RECENT_LIST_MAX + k) + '">' + esc(dt) + ' — ' +
-                esc(r.profile || '') + (r.role ? ' [' + esc(r.role) + ']' : '') +
-                (proj ? ' — ' + esc(proj) : '') + '</option>';
-            }).join('');
-          sel.style.display = '';
-        } else {
-          sel.style.display = 'none';
-          sel.innerHTML = '';
-        }
-      } catch (e) {
-        box.innerHTML = '<div class="empty">' + esc(e.message) + '</div>';
-        sel.style.display = 'none';
-      }
-    }
-
-    async function relaunch(r) {
-      if (!r || !confirm(t('confirm_relaunch', { profile: r.profile || '' }))) return;
-      try {
-        const body = {
-          profile: r.profile || '',
-          project_paths: r.project_paths || [],
-          executable: r.executable || '',
-          role: r.role || ''
-        };
-        const res = await api('POST', '/launch', body);
-        if (res && res.ok === false) {
-          status(res.error || t('status_launch_fail', { msg: '' }), 'err');
-          return;
-        }
-        status(t('status_launched'), 'ok');
-        closeTabAfterServerStop();
-      } catch (e) {
-        status(t('status_launch_fail', { msg: e.message }), 'err');
-      }
     }
 
     async function loadProcesses() {
@@ -951,11 +875,6 @@
     $('stop-server').addEventListener('click', stopServer);
     $('project-select').addEventListener('change', checkProjectVersion);
     $('proc-refresh').addEventListener('click', loadProcesses);
-    $('recent-older').addEventListener('change', (e) => {
-      const v = e.target.value;
-      e.target.selectedIndex = 0;
-      if (v !== '') relaunch(recentItems[Number(v)]);
-    });
     $('tab-raw').addEventListener('change', (e) => { if (e.target.id !== 'raw-settings') updateFromForm(); });
 
     // 言語切替セレクタ（i18n.js で管理）
@@ -973,7 +892,6 @@
     // 動的に生成される要素（data-i18n 付き）を再描画して翻訳を反映する
     window.onLanguageChanged = () => {
       renderRawForm();
-      loadRecent();
       if (latestUpdate && $('update-banner').classList.contains('active')) {
         showUpdateBanner(latestUpdate);
       }
@@ -1000,7 +918,6 @@
             await initI18n();
             if (langSel) langSel.value = currentLang;
             await reloadAll();
-            loadRecent();
             loadProcesses();
             break;
           } catch (e) {
