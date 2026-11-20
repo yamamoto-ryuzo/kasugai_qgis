@@ -111,8 +111,9 @@ URI の内容は参照されません。現在の利用者は <code>run.py</code
     M3 --> M4["③ 応答返却<br/>{ ok: true, server_stopping: true }"]
     M4 --> N["UI 側: 起動ステータス表示 →<br/>closeTabAfterServerStop()<br/>window.close() 試行、失敗時は<br/>案内画面に置き換え"]
 
-    classDef qgisexe fill:#fff6db,stroke:#d4a017,color:#1a2230
-    class C qgisexe</pre>
+    classDef sel fill:#dbeafe,stroke:#2563eb,color:#1a2230
+    class U1,C sel</pre>
+<p>青枠は<strong>図3-1（「QGIS Version」選択肢の作成）</strong>に対応する部分です。</p>
 <h3 id="qgis選択肢の作成">図3-1: 「QGIS Version」選択肢の作成（GET
 /qgis → get_available_qgis_versions）</h3>
 <p>起動タブの「QGIS Version」ドロップダウンを構築する候補列挙ロジックです。<strong>候補は全て列挙時に
