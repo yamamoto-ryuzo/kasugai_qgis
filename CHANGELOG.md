@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.8.0] - 2026-11-20
+
+### Added
+- `GET /api/pick-file` を追加（`rfd` ファイル選択ダイアログ・`.qgs`/`.qgz` フィルタ）。起動タブ「プロジェクト」横の「参照…」ボタンから任意のプロジェクトファイルを選択肢へ挿入して選択可能。一覧外の保存値も選択肢へ復元挿入される
+
+### Changed
+- プロジェクト指定を一本化。「プロジェクト直接指定」入力行を廃止し、参照…ボタンによる選択肢挿入に統一
+- 起動用 QGIS のフォールバックを簡素化。`executable` 無効・未指定時は `get_available_qgis_versions()` の先頭候補（①レジストリ既定の親 ②ProgramFiles ③OSGeo4W の優先順位）を採用
+- システム既定 QGIS を候補一覧の常時先頭に配置（従来は一覧内検出時に位置据置きで、UI 自動選択・フォールバック先頭が既定とは限らなかった）
+- docs: `docs/startup.html` の起動フロー図を実装忠実版に再構成。図3-1「QGIS Version 選択肢の作成」と図3-2「外部 POST /launch 時の実行ファイル解決」を新設し、青枠（図3-1 対応）・黄枠（図3-2 対応）の色分けで対応関係を明示
+
+### Removed
+- 「最近の起動」機能を撤去。`POST /launch` 時の `launch_history.json` 追記・`GET /api/recent`・起動タブの履歴一覧と `relaunch()`・関連 i18n キー（全10言語）を削除
+- i18n キー `label_custom_project` / `tip_custom_project` / `ph_custom_project`（全10言語）を撤去
+
+### Fixed
+- `executable` 指定パスの存在チェックを追加。無効・未指定時は検出候補へフォールバックし、候補なし・全 spawn 失敗時は `{ok:false}` を返してサーバー継続（不存在パスを `cmd.exe /C` に渡して静かに失敗する従来のサイレント失敗と、失敗時もサーバーが停止する問題を解消）。UI も失敗応答をエラー表示するよう修正
+- `reset_profiles` の `profiles\` 不在時フォールバックを削除。`%APPDATA%\QGIS\QGIS{major}\` 直下のディレクトリを削除対象にしなくなった（`profiles\` 直下のみ削除）
+- 同梱 geo_custom プロファイルの Harness プラグインを最新へ同期（geo_driver 1.0.0→1.0.1: unload 時の Qt 破棄済みメニュー操作による access violation 対策 `_qt_dead` ガード追加）。プロファイル同梱物の変更のため本リリースは full update（update.json `full=true`）
+
 ## [2.7.0] - 2026-11-20
 
 ### Changed

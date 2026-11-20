@@ -3,6 +3,17 @@
 このプラグインの変更履歴。Keep a Changelog 準拠。
 バージョンは `metadata.txt` の `version` と同期させる。
 
+## [1.0.1] - 2026-11-20
+
+### Fixed
+- unload のメニュー除去(`_menu_cleanup`)で、遅延実行までに Qt 側が
+  破棄済みの QAction/QMenu ラッパーへ `removePluginMenu` /
+  `menuAction` / `deleteLater` を呼ばないよう `_qt_dead` 判定を追加。
+  破棄済みオブジェクトへの呼出しは Python 例外ではなく access
+  violation となり QGIS ごとクラッシュするため(実績: 旧世代
+  qgis_live_driver 0.15.3 が `self._hot_menu.menuAction()` で
+  QGIS を落とした件。新版は遅延化済みだが同一経路を防御)。
+
 ## [1.0.0] - 2026-11-20
 
 ### Added

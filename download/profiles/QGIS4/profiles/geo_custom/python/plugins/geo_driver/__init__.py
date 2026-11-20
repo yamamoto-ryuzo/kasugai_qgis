@@ -309,6 +309,11 @@ class GeoDriverPlugin:
         末尾の sweep も現行自身のアクションを除外する。
         """
         for a in items.get("actions") or ():
+            # 遅延実行までにC++側が破棄済みだと removePluginMenu や
+            # deleteLater の呼出し自体が access violation になるため
+            # (実績: QGIS終了時のunload)先にラッパー死を判定する。
+            if _qt_dead(a):
+                continue
             try:
                 self.iface.removePluginMenu("QGIS Live Driver", a)
             except Exception:  # nosec B110  # 設計上の許容
@@ -318,7 +323,7 @@ class GeoDriverPlugin:
             except Exception:  # nosec B110  # 設計上の許容
                 pass
         m = items.get("hot_menu")
-        if m is not None:
+        if m is not None and not _qt_dead(m):
             try:
                 self.iface.removePluginMenu(
                     "QGIS Live Driver", m.menuAction())
