@@ -1,7 +1,18 @@
 # CHANGELOG — geo_excel
 
+## 1.10.1
+
+- plugins.qgis.org 再アップロード用バージョンバンプ(同一バージョン番号はサイト側で重複不可のため)。内容は 1.10.0 のスキャン対応修正と同一
+
 ## 1.10.0
 
+- plugins.qgis.org セキュリティスキャン対応: `xml.sax.saxutils` の
+  `escape`/`unescape` を `html` モジュールへ置き換え(B406解消。
+  属性値のクオートエスケープも正しくなる)。スキャナ設定ファイル
+  (.bandit/.flake8)はサイト側テスト指定(-t)との衝突を避けるため
+  ZIP非同梱へ方針転換
+- metadata: plugins.qgis.org 初回公開に向け英語 `description`/
+  `about[en]` を追加し、非推奨の `supportsQt6` フラグを除去
 - bridge.py: 帳票出力前のドライラン検証 `validateRun(script)` と
   フィールドマッピング表示 `fieldMapping(script)` を追加。
   `validateRun` は帳票を出力せずにアクティブレイヤ・win32com・

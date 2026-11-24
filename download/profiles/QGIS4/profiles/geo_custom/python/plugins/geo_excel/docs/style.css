@@ -14,7 +14,7 @@ body {
 }
 
 .container, .wrap {
-  max-width: 960px;
+  max-width: none;
   margin: 0 auto;
   background: white;
   border-radius: 12px;
@@ -146,6 +146,18 @@ pre code {
   background: transparent;
   border: none;
   padding: 0;
+}
+
+/* ===== mermaid 図（pre>code.language-mermaid を site.js で描画。中央配置） ===== */
+.mermaid {
+  margin: 20px 0;
+  padding: 16px;
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  overflow-x: auto;
 }
 
 table {
@@ -478,6 +490,24 @@ strong {
 #site-nav .nav-demo:hover {
   text-decoration: none;
   opacity: 0.9;
+}
+
+#site-nav .nav-section {
+  font-size: 1.15em;
+  font-weight: 800;
+  color: #764ba2;
+  margin-top: 20px;
+  padding: 0 10px 4px;
+  border-bottom: 2px solid #764ba2;
+}
+
+#site-nav .nav-section a {
+  color: inherit;
+}
+
+#site-nav .nav-section a:hover {
+  color: #667eea;
+  text-decoration: none;
 }
 
 #site-nav .nav-group {

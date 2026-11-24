@@ -260,7 +260,7 @@ class GeoUserfuncManagerDialog(QDialog):
         if r.get("ok"):
             self._plugin.library.scan()
             self.refresh()
-            _FunctionEditDialog(self._plugin, r["file"], self).exec()
+            self._open_editor(r["file"])
         else:
             QMessageBox.warning(self, "geo_userfunc", r.get("error", ""))
 
@@ -268,8 +268,24 @@ class GeoUserfuncManagerDialog(QDialog):
         name = self._selected_file()
         if not name:
             return
-        _FunctionEditDialog(self._plugin, name, self).exec()
-        self.refresh()
+        self._open_editor(name)
+
+    def _open_editor(self, name):
+        """編集ダイアログを非ブロッキングで開く。
+
+        exec() はモーダル再入でGUIハングの実績があるため使わない。
+        open() はwindow-modalで即returnし、閉塞時に finished で一覧を
+        更新する。同じファイルの二重オープンは防ぐ。
+        """
+        for w in self.findChildren(_FunctionEditDialog):
+            if w.isVisible() and w._file == name:
+                w.raise_()
+                w.activateWindow()
+                return
+        dlg = _FunctionEditDialog(self._plugin, name, self)
+        dlg.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        dlg.finished.connect(lambda *_: self.refresh())
+        dlg.open()
 
     def _open_folder(self):
         QDesktopServices.openUrl(

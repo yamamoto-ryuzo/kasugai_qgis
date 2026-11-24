@@ -7,7 +7,7 @@ name=geo_legend
 qgisMinimumVersion=4.0
 qgisMaximumVersion=4.99
 description=Display only the necessary legends in a clear, easy-to-understand manner with Qt6 compatibility
-version=2.9.1
+version=2.10.1
 author=yamamoto-ryuzo
 email=ryu@yamakun.net
 supportsQt6=True
@@ -24,6 +24,11 @@ hasProcessingProvider=no
 
 # Changelog for version 2.0.2
 changelog=
+    Version 2.10.0:
+    - AIアシスタント向け同梱リソースを追加。geo_driver の
+      プラグイン別集約に対応したおすすめプロンプト
+      「凡例の作成」(prompts/create-legend.md)と
+      手順書スキル「凡例作成」(skills/legend-creation.md)を同梱
     Version 2.9.1:
     - プラグインのリロード/unload後にQGISがaccess violationで
       クラッシュする問題を修正(qrcリソース登録バッファの

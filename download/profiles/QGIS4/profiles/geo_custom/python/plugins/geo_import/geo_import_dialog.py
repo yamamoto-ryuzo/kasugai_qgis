@@ -1645,7 +1645,10 @@ class GeoImportDialog(QDialog, FORM_CLASS):
             if self.util.create_dir(dest_dir) is False:
                 self.util.dlg_warning(QCoreApplication.translate('GeoImport', u'py_dlg_base_warn_cache_dir_not_created').format(dest_dir))
                 return
-            dest_file = os.path.join(dest_dir, os.path.split(resource['url'])[1])
+            from urllib.parse import unquote
+            base_name = unquote(os.path.split(resource['url'])[1])
+            base_name = os.path.basename(base_name.replace('\\', '/'))
+            dest_file = os.path.join(dest_dir, base_name)
             format_lower = resource['format'].lower()
             url_val = resource.get('url', '').strip()
             # XYZ形式の場合はURLが空でなく、http/httpsで始まり、{z}/{x}/{y}を含む場合のみ直接追加

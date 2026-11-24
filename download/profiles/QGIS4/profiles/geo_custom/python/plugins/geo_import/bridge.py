@@ -396,7 +396,11 @@ class GeoImportBridge:
         return self._ok({"closed": True})
 
     def openSettings(self):
-        """設定ダイアログを開く(modal — 閉じるまで呼出は戻らない)。"""
+        """設定ダイアログを開く(window-modal・非ブロッキング)。
+
+        open_settings() は dlg.open() で即returnするため、bridge/AI経路の
+        呼出がブロックされない(旧実装の exec() は応答不能の実績あり)。
+        """
         self._plugin.open_settings()
         return self._ok({"opened": True})
 

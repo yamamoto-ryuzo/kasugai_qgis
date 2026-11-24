@@ -1,6 +1,6 @@
 # CHANGELOG — geo_launcher
 
-## [Unreleased]
+## 1.1.3
 
 - 修正: リロード/ホットリロードのたびに管理ダイアログが勝手に
   前面へ出る問題 — plugin に `open_dialog_on_reload = False` を
@@ -8,6 +8,8 @@
   表示はツールバー/メニュー/bridge `openDialog`/`open_plugin` の
   明示操作のみとなる(geo_driver 側も同フラグを参照するよう
   同時修正)
+- metadata: plugins.qgis.org 初回公開に向け英語 `description`/
+  `about[en]` を追加し、非推奨の `supportsQt6` フラグを除去
 
 ## 1.1.2
 

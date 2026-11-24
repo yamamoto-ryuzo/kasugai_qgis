@@ -25,7 +25,7 @@ import json
 import os
 import re
 import zipfile
-from xml.sax.saxutils import unescape
+from html import unescape
 
 from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.core import (QgsExpression, QgsExpressionContext,

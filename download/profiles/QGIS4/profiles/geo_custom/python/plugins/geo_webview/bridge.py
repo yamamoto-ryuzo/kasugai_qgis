@@ -75,6 +75,7 @@ class GeoWebViewBridge:
                "/present 画面共有・パーマリンク受領を担う。")
     WHEN_TO_USE = [
         "表示中レイヤをKASUGAI Canvas用に出力・登録・起動したい",
+        "指定したレイヤだけを XYZ タイルへ焼き付けたい",
         "現在の地図ビューを共有できるパーマリンクURLを発行したい",
         "パーマリンクのURLからQGISの地図を移動したい",
         "座標・縮尺・回転・テーマを指定して地図ビューを直接操作したい",
@@ -100,6 +101,42 @@ class GeoWebViewBridge:
         "closePanel": {
             "description": "GeoWebViewドックパネルを隠す(破棄はしない)。",
             "example": {"method": "closePanel", "args": []},
+        },
+        "liveView": {
+            "description":
+                "Canvas live ビューを外部ブラウザで開く(QGIS+Canvas の"
+                "2画面運用)。エクスポート無しの live ネイティブモード"
+                "(/live/kasc)で現在プロジェクトを表示し、開いている間は"
+                "編集差分・選択・カメラが双方向同期される。action: "
+                "open(既定)/status、engine 引数でエンジン指定可(既定 "
+                "cesium)。QGIS 4.x は埋め込み WebView で WebGL が使えない"
+                "ため外部ブラウザに一本化。",
+            "example": {"method": "liveView", "args": ["open", "cesium"]},
+        },
+        "liveControls": {
+            "description":
+                "Canvas Live 制御フラグ(follow=Canvas を QGIS キャンバスへ"
+                "追従 / selection=QGIS 選択を Canvas でハイライト /"
+                " qgis_follow=QGIS キャンバスを Canvas 視点へ追従)を返す。"
+                "QSettings が正でパネル Live タブと共有される。",
+            "example": {"method": "liveControls", "args": []},
+        },
+        "liveSetControls": {
+            "description":
+                "Canvas Live 制御フラグを更新する(QSettings 永続化・"
+                "GET /live/state の live.controls・パネル Live タブへ反映)。"
+                "POST /live/controls と同じ適用ロジック。",
+            "example": {"method": "liveSetControls",
+                        "args": [{"follow": True}]},
+        },
+        "liveAddToCanvas": {
+            "description":
+                "プロジェクトレイヤ(kasc タイトル)をライブ連携中の Canvas へ"
+                "オンデマンド追加する。live.add_layers キューへ積み、"
+                "Canvas が /live/state 経由で検出して /live/features の"
+                "範囲読み込みでレイヤ化する。",
+            "example": {"method": "liveAddToCanvas",
+                        "args": ["市区町村界"]},
         },
         "serverStatus": {
             "description":
@@ -222,8 +259,28 @@ class GeoWebViewBridge:
                 "地物数上限を指定できる(全レイヤ共通 or {レイヤ名:値} "
                 "dict。指定レイヤは条件適用済み GeoJSON として出力)。"
                 "use_existing=True で再エクスポートせず既存の .kasc のみ"
-                "使用(未出力なら code=not_exported)。",
+                "使用(未出力なら code=not_exported)。"
+                "site_control=True でレイヤツリーのグループ名を site= "
+                "としてレイヤ行へ付与し、custom-layer プラグイン"
+                "(canvas_data/custom-layer.js)によるグループごとの"
+                "一括制御タブを Canvas へ追加する(既定=QSettings "
+                "kasugai_site_control/パネルのチェック)。",
             "example": {"method": "kasugaiExport", "args": []},
+        },
+        "xyzExport": {
+            "description":
+                "指定レイヤだけを XYZ タイルへ焼き付ける独立機能"
+                "(パネル XYZ タブの Standalone XYZ export と同経路)。"
+                ".kasc 出力とは独立に <出力先>/xyz_tiles/<slug>/ へ"
+                "{z}/{x}/{y}.png+index.html を生成する。"
+                "layers=レイヤ名/ID の文字列またはリスト"
+                "(省略時はレイヤパネルで選択中のレイヤ)。"
+                "zmin/zmax でズーム範囲固定(省略はパネル設定+自動)。"
+                "add_to_project=True で type=xyz ラスタとして"
+                "プロジェクトへ追加する。",
+            "example": {"method": "xyzExport",
+                        "args": [{"layers": ["道路"], "zmin": 10,
+                                  "zmax": 16}]},
         },
         "kascInspect": {
             "description":
@@ -569,6 +626,79 @@ class GeoWebViewBridge:
                 pass
         return self._ok({"visible": bool(panel is not None
                                          and panel.isVisible())})
+
+    def liveView(self, action=None, engine=None):
+        """Canvas live ビューの open/status(外部ブラウザ)。
+
+        action: 'open'(既定。'external' も同義)/'status'。
+        open は ``<server>/<engine>/?kasc=<base>/live/kasc`` を既定
+        ブラウザで開く(live ネイティブモード・エクスポート不要)。
+        QGIS 4.x は埋め込み WebView で WebGL が使えない(Qt Quick
+        Software 描画強制)ため、表示は外部ブラウザに一本化。
+        engine でエンジン指定可(既定 cesium。
+        cesium/maplibre/openlayers/leaflet/gsimaps/navara)。
+        開くと live_sync の view_active が立ち、プロジェクト変更が
+        /live/live.json の rev を進めて Canvas 側へ即時反映される。
+        """
+        p = self._plugin
+        act = str(action or 'open').strip().lower()
+        if act == 'status':
+            ctl = getattr(p, '_live_sync', None)
+            return self._ok({
+                'url': p._live_url(engine or 'cesium'),
+                'viewActive': (bool(getattr(ctl, 'view_active', False))
+                               if ctl is not None else None),
+            })
+        if act in ('open', 'external'):
+            url = p.open_external_live_view(engine or 'cesium')
+            if not url:
+                return self._err('HTTP server is not running')
+            return self._ok({'url': url})
+        return self._err(
+            'unknown action: {0} (open/status)'.format(act))
+
+    def liveControls(self):
+        """Canvas Live 制御フラグ(follow/selection/qgis_follow)を返す。"""
+        from . import live_sync
+        return self._ok({'controls': live_sync.live_controls()})
+
+    def liveSetControls(self, payload=None, follow=None, selection=None,
+                        qgis_follow=None):
+        """Canvas Live 制御フラグを更新する。
+
+        payload: {"follow": bool, "selection": bool, "qgis_follow": bool,
+                  "add": "<title>"}。
+        個別引数 follow/selection/qgis_follow も可。
+        POST /live/controls と同じ
+        適用ロジック(QSettings 永続化+パネル同期+add_layers キュー)。
+        """
+        srv = self._server()
+        if srv is None:
+            return self._err('server manager not available')
+        if payload is not None and not isinstance(payload, dict):
+            return self._err('payload must be a dict')
+        merged = dict(payload or {})
+        if follow is not None:
+            merged['follow'] = follow
+        if selection is not None:
+            merged['selection'] = selection
+        if qgis_follow is not None:
+            merged['qgis_follow'] = qgis_follow
+        return self._ok(srv._apply_live_controls(merged))
+
+    def liveAddToCanvas(self, title=None):
+        """プロジェクトレイヤ(kasc タイトル)を Canvas へオンデマンド追加。
+
+        live.add_layers キューへ積み、Canvas が /live/state 経由で
+        検出して /live/features の範囲読み込みでレイヤ化する。
+        """
+        srv = self._server()
+        if srv is None:
+            return self._err('server manager not available')
+        seq = srv.live_queue_add_layer(title)
+        if not seq:
+            return self._err('empty title')
+        return self._ok({'queued': seq, 'title': title})
 
     # ---------- HTTPサーバ ----------
 
@@ -982,7 +1112,8 @@ class GeoWebViewBridge:
                       use_existing=False, emit_atlas=True,
                       fields=None, where=None, limit=None,
                       link_files=True, vector_format=None,
-                      visible_data_only=None, progress_cb=None):
+                      visible_data_only=None, progress_cb=None,
+                      site_control=None):
         """表示中レイヤをKASUGAI Canvasプロジェクトとして出力・連携する。
 
         表示中のベクターレイヤを canvas_data/ へ出力し、.kasc(geojson:/gpkg:/
@@ -1053,6 +1184,11 @@ class GeoWebViewBridge:
         全ベクターを GeoJSON へ変換して canvas_data/ へ geojson: 行として
         配置する(他 WebGIS との相互運用向け)。'native' または未指定(None)は
         設定 kasugai_vector_format(既定 'native'=参照優先)に従う。
+        site_control=True でレイヤツリーのグループ名を site= として
+        レイヤ行へ付与し、custom-layer プラグインによるグループごとの
+        一括制御タブを Canvas へ追加する(既定=QSettings
+        kasugai_site_control。レイヤ customProperty kasugai_site/
+        kasugai_order で個別上書き可)。
         GUIスレッドで全レイヤを逐次エクスポートするため、大量レイヤでは
         数秒ブロックする場合がある。
         """
@@ -1115,6 +1251,9 @@ class GeoWebViewBridge:
                     visible_data_only=(
                         None if visible_data_only is None
                         else bool(visible_data_only)),
+                    site_control=(
+                        None if site_control is None
+                        else bool(site_control)),
                     progress_cb=progress_cb)
         except kasugai_export.ExportCancelled:
             return json.dumps({
@@ -1150,6 +1289,19 @@ class GeoWebViewBridge:
             route = 'local'
         if route not in ('auto', 'kasugai', 'local', 'hosted'):
             route = 'auto'
+        # CDN モード→route の変換はエクスポート完了後に行う
+        # (エクスポートが確実に終わってから起動先を決定するため)。
+        # 'hosted' 指定時: channel='canvas' → kasugai(アプリ経路)、
+        # FILEパス → local(:8089 静的配信)、URL/stable/unstable → hosted。
+        if route == 'hosted':
+            try:
+                _ch = kasugai_export.get_hosted_channel().strip().lower()
+                if _ch == 'canvas':
+                    route = 'kasugai'
+                elif not kasugai_export.is_hosted_channel():
+                    route = 'local'
+            except Exception:  # nosec B110  # 解決失敗は hosted のまま
+                pass
         out["route"] = route
         caps = None
         launched_default = False
@@ -1247,6 +1399,78 @@ class GeoWebViewBridge:
         else:
             out["register_error"] = reg.get("error")
         return self._ok(out)
+
+    def xyzExport(self, layers=None, zmin=None, zmax=None,
+                  out_dir=None, add_to_project=False,
+                  progress_cb=None):
+        """指定レイヤだけを XYZ タイルへ焼き付ける(独立機能)。
+
+        パネル XYZ タブの「Standalone XYZ export」と同じ経路。
+        .kasc 出力とは独立に指定レイヤだけを
+        QGIS レンダラで <出力先>/xyz_tiles/<slug>/ へ
+        {z}/{x}/{y}.png + index.html として焼き付ける
+        (ベクター以外のラスタ/WMS レイヤも再焼き付け可)。
+
+        layers: レイヤ名またはレイヤID の文字列/リスト。
+            None(既定)はレイヤパネル(layerTreeView)で選択中の
+            レイヤ(未選択ならアクティブレイヤ)。
+        zmin/zmax: 両方指定するとズーム範囲を固定。None はパネルの
+            Zoom 設定+縮尺連動+タイル数上限で自動決定。
+        out_dir: 出力ルート(既定 <preferred_output_dir>/xyz_tiles)。
+        add_to_project: True で焼き付けたタイルを type=xyz の
+            file:// ラスタレイヤとしてプロジェクトへ追加する。
+        """
+        from qgis.core import QgsProject
+        from . import kasugai_export
+        try:
+            targets = []
+            if layers is None:
+                # 省略時 = レイヤパネルで選択中のレイヤ(パネルと同一)。
+                try:
+                    from qgis.utils import iface
+                    tv = iface.layerTreeView()
+                    targets = ([lyr for lyr in tv.selectedLayers()
+                                if lyr is not None]
+                               if tv is not None else [])
+                    if not targets:
+                        lyr = iface.activeLayer()
+                        targets = [lyr] if lyr is not None else []
+                except Exception:  # nosec B110  # 設計上の許容
+                    targets = []
+                if not targets:
+                    return self._err(
+                        "no layers selected in the Layers panel")
+            else:
+                names = ([layers] if isinstance(layers, str)
+                         else list(layers or []))
+                reg = QgsProject.instance().mapLayers()
+                by_name = {}
+                for lid, lyr in reg.items():
+                    by_name.setdefault(lyr.name(), []).append(lyr)
+                missing = []
+                for n in names:
+                    key = str(n)
+                    if key in reg:
+                        targets.append(reg[key])
+                    elif key in by_name:
+                        targets.extend(by_name[key])
+                    else:
+                        missing.append(key)
+                if missing:
+                    return self._err(
+                        "layer(s) not found: {0}".format(
+                            ", ".join(missing)))
+            res = kasugai_export.export_layers_xyz(
+                targets, out_dir=out_dir,
+                zmin=zmin, zmax=zmax,
+                add_to_project=bool(add_to_project),
+                progress_cb=progress_cb)
+            res["ok"] = True
+            return json.dumps(res, ensure_ascii=False)
+        except kasugai_export.ExportCancelled as e:
+            return self._err("xyzExport cancelled: {0}".format(e))
+        except Exception as e:
+            return self._err("xyzExport failed: {0}".format(e))
 
     # ---------- .kasc 逆取り込み(WebGIS → QGIS) ----------
 
@@ -1453,7 +1677,7 @@ class GeoWebViewBridge:
              "description": "QGIS側選択地物(GeoJSON)"},
             {"path": "/live/render",
              "url": f"{base}/live/render?bbox=w,s,e,n&w=&h=",
-             "description": "4326範囲のマップ描画PNG(QGIS描画フォールバック)"},
+             "description": "4326範囲のマップ描画PNG(旧Canvas「QGIS描画」フォールバック用。残置)"},
         ]
         return self._ok({"running": server.is_server_running(),
                          "port": port, "base_url": base,

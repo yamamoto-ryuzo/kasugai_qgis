@@ -491,6 +491,9 @@ class LiveDriver:
         # GUIスレッド以外から iface/QgsProject に触れないため、
         # 実行は必ずこのドライバの_poll(GUIスレッド)内で行う
         self._queue = queue.Queue()
+        # 実行中コマンドの追跡(ISSUE-3: 長時間コマンドで後続が飢餓した際の
+        # 診断用。GUIスレッド上の実行はプリエンプトできないため可視化に留める)
+        self._running = None
         os.makedirs(live_dir, exist_ok=True)
         try:
             with open(os.path.join(live_dir, "token"), "w",
@@ -499,9 +502,38 @@ class LiveDriver:
         except Exception:  # nosec B110  # 設計上の許容
             pass
 
+        # QgisApp コンストラクタ内の processEvents(スプラッシュ進行)でも
+        # このタイマーは発火し得る。その段階で pyeval(addMapLayer 等)を
+        # 実行すると layerAdded 系シグナルが未生成のドック
+        # (temporal controller 等)を触って access violation になる
+        # (実測: QGIS 4.0.1 / QgisApp::QgisApp 直下でクラッシュ)。
+        # メインウィンドウが可視になるまではコマンド実行を遅延する。
+        # 起動完了後のホットリロードでは isVisible()=True なので即座に
+        # ready となり、既存動作を阻害しない。
+        self._ready = self._app_ready()
+        try:
+            iface.initializationCompleted.connect(
+                self._on_initialization_completed)
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+
         self.timer = QTimer()
         self.timer.timeout.connect(self._poll)
         self.timer.start(POLL_MS)
+
+    def _on_initialization_completed(self):
+        self._ready = True
+
+    def _app_ready(self):
+        """QgisApp の構築が完了しコマンド実行して安全な状態か。
+
+        メインウィンドウの可視化は QgisApp 構築完了後に行われるため
+        isVisible() が判定に使える。失敗時は従来通り実行する側に倒す。
+        """
+        try:
+            return bool(self.iface.mainWindow().isVisible())
+        except Exception:  # nosec B110  # 設計上の許容
+            return True
 
     def submit(self, cmd, timeout=180.0, origin=None):
         """別スレッドからコマンドを投入し、GUIスレッドでの実行結果を待って返す。
@@ -515,7 +547,12 @@ class LiveDriver:
         done = threading.Event()
         self._queue.put((cmd, box, done))
         if not done.wait(timeout):
-            return {"id": cmd.get("id"), "error": f"submit timeout ({timeout}s)"}
+            # 飢餓診断: 実行中コマンドと滞留数を返す(呼出側が
+            # リトライかセッション再起動かを判断できるように)
+            return {"id": cmd.get("id"),
+                    "error": f"submit timeout ({timeout}s)",
+                    "busy": self._running,
+                    "queued": self._queue.qsize()}
         return box.get("reply", {"id": cmd.get("id"), "error": "no reply"})
 
     def stop(self):
@@ -525,6 +562,13 @@ class LiveDriver:
         self.timer.deleteLater()
 
     def _poll(self):
+        # QgisApp 構築中(初期化未完了)は一切のコマンドを実行しない。
+        # キュー投入コマンドは ready 後のポーリングで順次実行される
+        # (submit 側はタイムアウトまで待機するだけで喪失しない)。
+        if not self._ready:
+            self._ready = self._app_ready()
+            if not self._ready:
+                return
         # メモリキュー(HTTP等)の命令を先に処理
         while True:
             try:
@@ -537,12 +581,17 @@ class LiveDriver:
             def _reply_once(obj, _box=box, _done=done):
                 _box["reply"] = obj
                 _done.set()
+            self._running = {"id": cmd.get("id"),
+                             "type": cmd.get("type"),
+                             "since": time.time()}
             try:
                 async_pending = self._handle(cmd, reply=_reply_once) == "async"
             except Exception:
                 async_pending = False
                 box["reply"] = {"id": cmd.get("id"),
                                 "error": traceback.format_exc()}
+            finally:
+                self._running = None
             if not async_pending and not done.is_set():
                 done.set()
 
@@ -579,10 +628,15 @@ class LiveDriver:
                                   "error": "unauthorized"}, 0.0)
                 self._reply({"id": cmd.get("id"), "error": "unauthorized"})
                 continue
+            self._running = {"id": cmd.get("id"),
+                             "type": cmd.get("type"),
+                             "since": time.time()}
             try:
                 self._handle(cmd)
             except Exception as e:
                 self._reply({"id": None, "error": repr(e)})
+            finally:
+                self._running = None
 
     def _handle(self, cmd, reply=None):
         """コマンドの入口。監査ログを記録してから _dispatch へ渡す。
@@ -788,6 +842,8 @@ class LiveDriver:
             "live_dir": self.dir,
             "http_port": self.http_port,
             "view": self.view is not None,
+            "busy": self._running,
+            "queued": self._queue.qsize(),
             "plugins": plugs,
         }
 

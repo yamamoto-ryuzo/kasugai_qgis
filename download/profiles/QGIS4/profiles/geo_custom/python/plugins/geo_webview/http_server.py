@@ -149,6 +149,9 @@ def send_http_response(conn, status_code, reason, body, content_type="text/plain
             f"HTTP/1.1 {status_code} {reason}",
             f"Content-Length: {len(body_bytes)}",
             f"Content-Type: {content_type}",
+            # ループバックの live サーバなので常に最新を取り直させる
+            # (ETag/Last-Modified を出さないため no-cache が再取得を強制)
+            "Cache-Control: no-cache",
         ] + _cors_headers() + [
             "Connection: close",
             "",
@@ -174,6 +177,7 @@ def send_binary_response(conn, status_code, reason, data, content_type, extra_he
             f"HTTP/1.1 {status_code} {reason}",
             f"Content-Length: {len(data)}",
             f"Content-Type: {content_type}",
+            "Cache-Control: no-cache",
         ] + _cors_headers()
         if extra_headers:
             header_lines.extend(extra_headers)
@@ -233,6 +237,7 @@ def send_head_response(conn, status_code, reason, content_length, content_type):
             f"HTTP/1.1 {status_code} {reason}",
             f"Content-Length: {int(content_length)}",
             f"Content-Type: {content_type}",
+            "Cache-Control: no-cache",
         ] + _cors_headers() + [
             "Connection: close",
             "",

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4. Filter タブ | geo_webview ドキュメント</title>
+<meta name="description" content="geo_webview パネル Filter タブの使い方 — サイト共通フィルタ（site 内全ベクターレイヤへの一括 subset string）">
+<link rel="icon" href="../favicon.ico">
+<link rel="stylesheet" href="../style.css">
+<script src="../nav.js" defer></script>
+</head>
+<body>
+<div class="container">
+<header>
+<h1>4. Filter タブ — サイト共通フィルタ <span class="version-badge" data-plugin-version hidden></span></h1>
+<p><a href="../index.html">geo_webview ドキュメント</a> / 使い方</p>
+</header>
+<main>
+<section>
+<h2 id="使い方">使い方</h2>
+<p>Filter タブは、site（レイヤツリーのグループ名・Layers タブの site= 解決規則と同一ロジック、
+グループ無しは「その他」）内の<strong>全ベクターレイヤへ共通の属性フィルタ（subset string）を
+一括適用</strong>します。地図表示とエクスポートデータ（subsetString は <code>where=</code> へ
+引き継がれる）の両方に反映されます。</p>
+<h3 id="条件選択">条件選択（Site・Field・値）</h3>
+<ul>
+<li><strong>Site:</strong> — site 名の一覧を選択（タブを開くたび最新化）</li>
+<li><strong>Field:</strong> — メンバー全レイヤに<strong>共通する属性フィールド</strong>のみ列挙
+（全レイヤで数値型のものは <code>(num)</code> 付記）。共通フィールドが無ければ
+<code>No common field</code> と表示</li>
+<li><strong>条件行</strong> — フィールド型で自動切替。数値型なら演算子
+<code>= != &lt; &lt;= &gt; &gt;=</code>＋数値入力、文字列型なら <code>= !=</code>＋値コンボ（既存値の列挙）</li>
+</ul>
+<h3 id="複数選択自動適用">複数選択・自動適用</h3>
+<ul>
+<li><strong>Multiple selection</strong> — <code>IN</code>/<code>NOT IN</code>＋値チェックリスト
+（全選択/全解除ボタン付き）の複数値モードへ切替</li>
+<li><strong>自動適用</strong> — site+field+値が揃った時点で即適用（適用ボタン不要。
+テキスト入力は 350ms デバウンス）</li>
+<li><strong>Clear</strong> — サイト内全レイヤの subset string を解除</li>
+</ul>
+</section>
+<section>
+<h2 id="filter-タブ">設定・ツール仕様</h2>
+<p>Filter タブ（<code>panel.py: _init_kasugai_filter_ui</code>）は、
+site（レイヤツリーのグループ名・Layers タブの site= 解決規則と同一ロジック、
+グループ無しは「その他」）内の<strong>全ベクターレイヤへ共通の属性フィルタ
+（subset string）を一括適用</strong>する。地図表示とエクスポートデータ
+（subsetString は <code>where=</code> へ引き継がれる、§1 .kasc 行の生成規則）の
+両方に反映される。</p>
+<ul>
+<li><strong>Site:</strong> コンボ — site 名の一覧（Layers タブと同じ
+<code>kasugai_site</code>/グループ自動付与の規則で集約）。タブを開くたび最新化</li>
+<li><strong>Field:</strong> コンボ — メンバー全レイヤに<strong>共通する属性
+フィールド</strong>のみ列挙（全レイヤで数値型のものは <code>(num)</code> 付記）。
+共通フィールドが無ければ <code>No common field</code> と表示</li>
+<li><strong>条件行（自動切替）</strong> — フィールドが数値型なら演算子
+<code>= != &lt; &lt;= &gt; &gt;=</code>＋数値入力、文字列型なら <code>= !=</code>＋
+値コンボ（既存値の列挙）。<strong>Multiple selection</strong> チェックで
+<code>IN</code>/<code>NOT IN</code>＋値チェックリスト（全選択/全解除ボタン付き）
+の複数値モードへ切替</li>
+<li><strong>自動適用</strong> — site+field+値（複数選択時はチェック1件以上）が
+揃った時点で即適用（適用ボタン不要。テキスト入力は 350ms デバウンス）。
+値が0件の <code>IN</code> は常偽式 <code>1=0</code>（全除外）、<code>NOT IN</code>
+の0件はフィルタ解除として扱う。未完成の選択では誤適用しない</li>
+<li><strong>Clear</strong> — サイト内全レイヤの subset string を解除</li>
+<li><strong>エクスポート連携</strong> — 選択状態は
+<code>kasugai_export.set_filter_panel_state()</code> へ随時同期され、
+<code>plugin: custom-layer</code> 行の <code>filter_*</code> オプションとして
+出力（Canvas 側「フィルタ」タブの初期選択。§3 参照）</li>
+</ul>
+</section>
+<section>
+<h2 id="関連仕様">関連仕様</h2>
+<ul>
+<li><a href="1-3-Layersタブ.html#layers-タブ">仕様書 §3 Layers タブ（site= 解決規則・plugin: 行）</a></li>
+<li><a href="1-3-Layersタブ.html">3. Layers タブ</a></li>
+</ul>
+</section>
+</main>
+</div>
+<script type="module" src="../assets/site.js"></script>
+</body>
+</html>

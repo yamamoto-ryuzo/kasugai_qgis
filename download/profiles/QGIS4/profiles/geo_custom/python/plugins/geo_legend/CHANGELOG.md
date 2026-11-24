@@ -5,7 +5,19 @@ All notable changes to the QGIS Legend View plugin will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.10.1] - 2026-11-24
+
+### Fixed
+
+- plugins.qgis.org 再アップロード用バージョンバンプ(同一バージョン番号はサイト側で重複不可のため)。内容は 2.10.0 のスキャン対応修正と同一
+
+## [2.10.0] - 2026-11-24
+
+### Fixed
+- plugins.qgis.org スキャン対応: resources_rc.py(生成コード)の
+  try/except/pass に `# nosec B110` をインライン付与。スキャナ設定
+  ファイル(.bandit/.flake8)はサイト側 -t 指定との衝突回避のため
+  ZIP非同梱へ方針転換
 
 ### Added
 - `prompts/create-legend.md`: **同梱おすすめプロンプト「凡例の

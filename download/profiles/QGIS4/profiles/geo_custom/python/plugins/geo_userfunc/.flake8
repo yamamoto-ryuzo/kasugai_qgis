@@ -4,8 +4,8 @@
 # - W503/W504: mutually exclusive line-break rules; both styles are used.
 extend-ignore = E501, W503, W504
 
-# functions/user_functions.py is the seeded upstream QGIS_user_function
-# library: 'from qgis.core import *' is the intended user-facing API surface
-# (@qgsfunction etc. resolve through it).
+# functions/*.py is the seeded user-function library: 'from qgis.core import *'
+# is the intended user-facing API surface (@qgsfunction etc. resolve through it).
 per-file-ignores =
+    functions/*.py: F403, F405
     functions/user_functions.py: F403, F405, F841, W605

@@ -293,11 +293,13 @@ class CkanConnector:
             # return None
             # try to get something out of the url
             # and get rid of '?' and '&'
-            file_name = url[url.rfind("/") + 1:]
+            import urllib.parse
+            file_name = urllib.parse.unquote(url[url.rfind("/") + 1:])
             if file_name.find('?') > -1:
                 file_name = file_name[:file_name.find('?')]
             if file_name.find('&') > -1:
                 file_name = file_name[:file_name.find('&')]
+            file_name = os.path.basename(file_name.replace('\\', '/'))
             return file_name
 
         if 'attachment' in cd and 'filename=' in cd:
@@ -325,7 +327,7 @@ class CkanConnector:
             #             if resource_format is not None:
             #                 if resource_format.lower() == 'georss':
             #                     dest_file += '.xml'
-            if delete is True:
+            if delete is True and os.path.exists(dest_file):
                 os.remove(dest_file)
 
             # urls might have line breaks
@@ -458,7 +460,12 @@ class CkanConnector:
                 self.util.msg_log_debug('response is chunked')
                 chunk_size = None
 
-            with open(dest_file, 'wb') as handle:
+            open_path = dest_file
+            if (sys.platform == 'win32' and len(open_path) > 240
+                    and not open_path.startswith('\\\\?\\')
+                    and os.path.isabs(open_path)):
+                open_path = '\\\\?\\' + open_path
+            with open(open_path, 'wb') as handle:
                 for chunk in response.iter_content(chunk_size):
                     if chunk:
                         handle.write(chunk)

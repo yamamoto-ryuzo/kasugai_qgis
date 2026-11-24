@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3. Layers タブ | geo_webview ドキュメント</title>
+<meta name="description" content="geo_webview パネル Layers タブの使い方 — カスタムレイヤタブ（site=）・レイヤ別オプション（order/list/opts）">
+<link rel="icon" href="../favicon.ico">
+<link rel="stylesheet" href="../style.css">
+<script src="../nav.js" defer></script>
+</head>
+<body>
+<div class="container">
+<header>
+<h1>3. Layers タブ — カスタムレイヤタブとレイヤ別オプション <span class="version-badge" data-plugin-version hidden></span></h1>
+<p><a href="../index.html">geo_webview ドキュメント</a> / 使い方</p>
+</header>
+<main>
+<section>
+<h2 id="使い方">使い方</h2>
+<p>Layers タブは、レイヤごとの .kasc オプションを設定します。値はレイヤ
+customProperty へ保存され、エクスポート時にレイヤ行の <code>| key=value</code>
+として出力されます（グレー表示=自動値、空欄に戻すと自動値へ復帰）。</p>
+<h3 id="custom-layers-tab">Custom layers tab（site= 自動付与）</h3>
+<ul>
+<li><strong>Custom layers tab</strong> チェック — ON でレイヤツリーのグループ名を
+<code>site=&lt;グループ階層&gt;</code>（例 <code>site=A工区</code>、入れ子は <code>工事/A工区</code>）として
+グループ内全レイヤへ自動付与し、Canvas 側に custom-layer タブ（表示名「レイヤ」）を出す</li>
+<li>Canvas 側ではグループ一括 on/off と、メンバー凡例（QML 分類）の表示・シンボル別 on/off が可能
+（point/line/polygon 等の種別違いをまとめて制御）</li>
+<li>グループ無しレイヤは site= なしで出力され、custom-layer タブの「その他」へ集約（標準レイヤタブには残る）</li>
+</ul>
+<h3 id="レイヤ別オプション">レイヤ別オプション（site/order/list/opts）</h3>
+<ul>
+<li>レイヤツリー一覧 — ツリー順のレイヤ行＋4列のオプション</li>
+<li><strong>EDIT</strong>/<strong>VIEW</strong> 切替 — EDIT=オプション編集テーブル /
+VIEW=出力結果表示と ▲▼ による order 調整</li>
+<li><strong>Refresh</strong> — レイヤツリーを再読み込み</li>
+</ul>
+<table>
+<thead><tr><th>列</th><th>効果</th></tr></thead>
+<tbody>
+<tr><td>site</td><td><code>site=&lt;箇所名&gt;</code>（<code>-</code>/空=強制未割当。空欄＋チェックONでグループ名を自動付与）</td></tr>
+<tr><td>order</td><td><code>order=&lt;数値&gt;</code>（同一 site 内の順序。小さいほど最前面。VIEW モードの ▲▼ で設定）</td></tr>
+<tr><td>list</td><td><code>list=off</code>（レイヤ一覧から非表示・標準/カスタムとも。地図は描画）</td></tr>
+<tr><td>opts</td><td>任意の <code>key=value</code> を空白/パイプ区切りで追加（例 <code>opacity=0.5 heat=on</code>）。<code>legend_order=asc|desc|reverse|ラベル列挙</code> でカスタムタブの凡例順を変更可</td></tr>
+</tbody>
+</table>
+</section>
+<section>
+<h2 id="layers-タブ">設定・ツール仕様</h2>
+<p>Layers タブは、レイヤごとの .kasc オプションを
+設定できる。値はレイヤ customProperty へ保存され、エクスポート時に
+レイヤ行の <code>| key=value</code> として出力される
+（グレー表示=自動値、空欄に戻すと自動値へ復帰）。</p>
+<p>UI: <strong>Custom layers tab</strong> チェック＋レイヤツリー一覧
+（<code>treeWidget_kasugai_layers</code>、ツリー順のレイヤ行＋4列のオプション）＋
+<strong>EDIT</strong>/<strong>VIEW</strong> 切替ボタン（EDIT=オプション編集テーブル /
+VIEW=出力結果表示と ▲▼ による order 調整）＋<strong>Refresh</strong>。</p>
+<table>
+<tr><th>列</th><th>customProperty</th><th>.kasc 出力</th></tr>
+<tr><td>site</td><td><code>kasugai_site</code></td><td><code>site=&lt;箇所名&gt;</code>（<code>-</code>/空=強制未割当。空欄＋チェックONでグループ名を自動付与）</td></tr>
+<tr><td>order</td><td><code>kasugai_order</code></td><td><code>order=&lt;数値&gt;</code>（同一 site 内の順序。小さいほど最前面。VIEW モードの ▲▼ ボタンで設定（EDIT の列は無し））</td></tr>
+<tr><td>list</td><td><code>kasugai_list</code></td><td><code>list=off</code>（レイヤ一覧から非表示・標準/カスタムとも。地図は描画）</td></tr>
+<tr><td>opts</td><td><code>kasugai_opts</code></td><td>任意の <code>key=value</code> を空白/パイプ区切りで追加（例 <code>opacity=0.5 heat=on</code>）。<code>legend_order=asc|desc|reverse|ラベル列挙</code> でカスタムタブの凡例順を変更可</td></tr>
+</table>
+<p><strong>Custom layers tab</strong> チェック（QSettings
+<code>kasugai_site_control</code>、既定 OFF）を ON にすると、
+レイヤツリーのグループ名を <code>site=&lt;グループ階層&gt;</code>
+（例 <code>site=A工区</code>、入れ子は <code>工事/A工区</code>）として
+グループ内全レイヤへ自動付与する。<code>site=</code> 付きレイヤが
+1件でも出力されれば <code>assets/custom-layer.js</code> を
+<code>canvas_data/</code> へ複製して
+<code>plugin: custom-layer | name=レイヤ | url=canvas_data/custom-layer.js | before=layers-panel</code>
+行を書く（チェックOFFでも customProperty 指定の site= だけは
+有効かつプラグイン行が出る）。</p>
+<ul>
+<li>Canvas 側では <code>site=</code> は custom-layer タブ
+  （表示名「レイヤ」）専用の集約キーで、標準レイヤタブには
+  全レイヤが従来通り表示される（標準一覧から隠すには
+  <code>list=off</code>。タブ名が重複するため組み込み側は
+  「システムレイヤ」に改称される）。custom-layer タブでは
+  グループごとの一括 on/off と、メンバーの凡例（QML 分類）
+  の表示・シンボル別 on/off ができる。point/line/polygon 等の
+  種別違いをまとめて制御できる</li>
+<li>グループ無しレイヤは <code>site=</code> なしで出力され、
+  custom-layer タブの「その他」に集約されて一括 on/off
+  （標準レイヤタブには残る）。ベースマップグループは対象外</li>
+<li><code>url=</code> はプロジェクト相対のため
+  CDN/静的ホスティング・全エンジンでそのまま動作する。
+  プラグインJSの正本は Canvas
+  <code>web/cesium/PLUGIN/custom-layer/plugin.js</code></li>
+<li><code>plugin:</code> 行には Filter タブの選択状態が
+  <code>filter_site=</code>/<code>filter_field=</code>/<code>filter_multi</code>/
+  <code>filter_op=</code>/<code>filter_value=</code>/<code>filter_values=</code>
+  として付記され、Canvas 側「フィルタ」タブの初期選択になる（§4）</li>
+</ul>
+<p>切替経路:</p>
+<ul>
+<li>パネル <strong>Layers</strong> タブの <strong>Custom layers tab</strong> チェック — 永続</li>
+<li>設定ダイアログの同名チェック — 永続</li>
+<li>bridge <code>kasugaiExport(site_control=True|False)</code> — 呼出しのみ上書き</li>
+<li><code>export_kasugai_project(site_control=…)</code> — 呼出しのみ上書き</li>
+</ul>
+</section>
+<section>
+<h2 id="関連仕様">関連仕様</h2>
+<ul>
+<li><a href="1-4-Filterタブ.html#filter-タブ">仕様書 §4 Filter タブ（filter_* 連携）</a></li>
+<li><a href="1-4-Filterタブ.html">4. Filter タブ</a></li>
+</ul>
+</section>
+</main>
+</div>
+<script type="module" src="../assets/site.js"></script>
+</body>
+</html>

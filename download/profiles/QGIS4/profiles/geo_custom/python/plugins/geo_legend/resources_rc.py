@@ -92,7 +92,7 @@ def _init_resources_pinned():
     if prev is not None:
         try:
             QtCore.qUnregisterResourceData(rcc_version, *prev)
-        except Exception:
+        except Exception:  # nosec B110  # 生成コード:旧リソース未登録時のみ
             pass
     bufs = (qt_resource_struct, qt_resource_name, qt_resource_data)
     QtCore.qRegisterResourceData(rcc_version, *bufs)

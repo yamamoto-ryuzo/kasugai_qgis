@@ -1,5 +1,20 @@
 # CHANGELOG — geo_userfunc
 
+## 1.0.11
+
+- plugins.qgis.org 再アップロード用バージョンバンプ(同一バージョン番号はサイト側で重複不可のため)。内容は 1.0.10 のスキャン対応修正と同一
+
+## 1.0.10
+
+- metadata: plugins.qgis.org 初回公開に向け英語 `description`/
+  `about[en]` を追加し、非推奨の `supportsQt6` フラグを除去
+- `_FunctionEditDialog` のモーダル `exec()` を廃止し `open()`
+  (window-modal・非ブロッキング) 化。管理ダイアログからの
+  編集/新規作成が AI 制御経路や通常利用で GUI ハングする実績が
+  あったため(ai-chat検証 ISSUE-2)。`_open_editor()` に集約し、
+  同一ファイルの二重オープン防止・`finished` で一覧 refresh・
+  `WA_DeleteOnClose`(Qt6 `Qt.WidgetAttribute` 列挙子)で後始末
+
 ## 1.0.9
 
 - 同梱関数に `line_width(base, minimum, ref_scale, scale)` を追加。

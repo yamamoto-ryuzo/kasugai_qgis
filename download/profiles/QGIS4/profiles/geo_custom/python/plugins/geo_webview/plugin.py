@@ -30,8 +30,14 @@ from qgis.core import QgsProject, QgsCoordinateReferenceSystem, QgsCoordinateTra
 
 # --- 標準ライブラリのインポート（欠落しているため追加）
 import os
+import subprocess
 import urllib.parse
 import json
+
+# NOTE: かつて埋め込み QWebEngineView(3D Canvas View ドック)用に
+# QTWEBENGINE_* 環境変数の正規化をここで行っていたが、QGIS 4.x の
+# ソフトウェア描画強制(QTBUG-139109)により埋め込み WebGL が使えず
+# ドックは廃止・外部ブラウザへ一本化したため撤去済み。
 
 # Optional components: if the panel module is not present, provide safe defaults
 # Try to import the optional UI module; fall back safely when absent.
@@ -349,6 +355,17 @@ class GeoWebView:
             except Exception:  # nosec B110  # 設計上の許容
                 pass
 
+        # Canvas live ビューを外部ブラウザで開く(QGIS+Canvas の
+        # 2画面運用の導線。/live/kasc のオンデマンド生成で
+        # エクスポート無しの live セッションへ直行する)。
+        # アイコンは本体(WebGIS窓口=地球+ピン)と区別するため
+        # リアルタイム3D窓口の専用アイコンを使う。
+        self.add_action(
+            os.path.join(self.plugin_dir, 'icon_live_view.png'),
+            text=self.tr(u'Open Canvas Live View'),
+            callback=self.open_external_live_view,
+            parent=self.iface.mainWindow())
+
         # HTTPサーバーを起動
         self.server_manager.start_http_server()
 
@@ -520,19 +537,36 @@ class GeoWebView:
                 except Exception:  # nosec B110  # 設計上の許容
                     pass
 
-                # Web配信: 選択エンジンでエクスポート→登録→ブラウザ起動するボタン。
-                # 3系統: Canvas登録(主プレイヤー)/ローカルHTTP即表示/サーバレスWEB
-                for _btn_name, _route in (
-                        ('pushButton_kasugai_launch', 'kasugai'),
-                        ('pushButton_kasugai_launch_hosted', 'hosted')):
-                    _btn = getattr(self.panel, _btn_name, None)
-                    if _btn is not None:
-                        _btn.clicked.connect(
-                            lambda checked=False, r=_route:
-                            QTimer.singleShot(
-                                0, lambda r=r:
-                                self.on_kasugai_launch_clicked(r)))
-                        print(f"KASUGAI launch button connected: {_btn_name}")
+                # Web配信: ▶ WebView は選択エンジン+CDNモードで
+                # エクスポート→ブラウザ起動(CDNモードがアプリ経路
+                # 'canvas' も内包)。Install ボタンは Canvas アプリの
+                # インストール専用(起動は CDN モード側に一本化)
+                _install_btn = getattr(
+                    self.panel, 'pushButton_kasugai_launch', None)
+                if _install_btn is not None:
+                    _install_btn.clicked.connect(
+                        lambda checked=False:
+                        QTimer.singleShot(
+                            0, self.on_kasugai_install_clicked))
+                    print("KASUGAI install button connected: "
+                          "pushButton_kasugai_launch")
+                _btn = getattr(
+                    self.panel, 'pushButton_kasugai_launch_hosted', None)
+                if _btn is not None:
+                    _btn.clicked.connect(
+                        lambda checked=False:
+                        QTimer.singleShot(
+                            0, lambda:
+                            self.on_kasugai_launch_clicked('hosted')))
+                    print("KASUGAI launch button connected: "
+                          "pushButton_kasugai_launch_hosted")
+                # CDN コンボ横の「…」= web/ フォルダ選択(FILE モード)
+                _browse_btn = getattr(
+                    self.panel, 'pushButton_hosted_browse', None)
+                if _browse_btn is not None:
+                    _browse_btn.clicked.connect(
+                        lambda checked=False:
+                        self.on_hosted_browse_clicked())
 
                 # エンジン選択コンボ: 前回値の復元と保存
                 _engine_combo = getattr(
@@ -567,6 +601,12 @@ class GeoWebView:
                             self.on_hosted_combo_changed)
                     except Exception:  # nosec B110  # 設計上の許容
                         pass
+                _value_edit = getattr(
+                    self.panel, 'lineEdit_hosted_value', None)
+                if _value_edit is not None:
+                    _value_edit.editingFinished.connect(
+                        self.on_hosted_value_changed)
+                self._sync_hosted_value_field()
 
                 # ベクター出力形式コンボ: 推奨形式スイッチ(vector_format)の
                 # パネル側入口。設定ダイアログの Vector Export Format と同じ
@@ -600,6 +640,88 @@ class GeoWebView:
                         _vo_check.blockSignals(False)
                         _vo_check.toggled.connect(
                             self.on_visible_only_toggled)
+                    except Exception:  # nosec B110  # 設計上の許容
+                        pass
+
+                # 「XYZ tiles」チェック+ズーム範囲: 大規模・複雑スタイルの
+                # ベクターを QGIS レンダラでタイル焼き付けする高速化
+                # スイッチ。QSettings kasugai_xyz_tiles /
+                # kasugai_xyz_zmin/zmax と双方向同期する
+                _xyz_check = getattr(
+                    self.panel, 'checkBox_xyz_tiles', None)
+                _xyz_zmin = getattr(
+                    self.panel, 'spinBox_xyz_zmin', None)
+                _xyz_zmax = getattr(
+                    self.panel, 'spinBox_xyz_zmax', None)
+                if _xyz_check is not None:
+                    try:
+                        from . import kasugai_export
+                        _xyz_check.blockSignals(True)
+                        _xyz_check.setChecked(
+                            kasugai_export.get_xyz_tiles_enabled())
+                        _xyz_check.blockSignals(False)
+                        _xyz_check.toggled.connect(
+                            self.on_xyz_tiles_toggled)
+                    except Exception:  # nosec B110  # 設計上の許容
+                        pass
+                if _xyz_zmin is not None and _xyz_zmax is not None:
+                    try:
+                        from . import kasugai_export
+                        _zmin, _zmax = kasugai_export.get_xyz_zooms()
+                        _xyz_zmin.blockSignals(True)
+                        _xyz_zmax.blockSignals(True)
+                        _xyz_zmin.setValue(_zmin)
+                        _xyz_zmax.setValue(_zmax)
+                        _xyz_zmin.blockSignals(False)
+                        _xyz_zmax.blockSignals(False)
+                        _xyz_zmin.valueChanged.connect(
+                            self.on_xyz_zooms_changed)
+                        _xyz_zmax.valueChanged.connect(
+                            self.on_xyz_zooms_changed)
+                    except Exception:  # nosec B110  # 設計上の許容
+                        pass
+
+                # XYZ タブ: ベースマップグループ名(追加名)エディット。
+                # 設定ダイアログの同名入力と同じ QSettings
+                # kasugai_basemap_groups を読み書きする
+                _bm_edit = getattr(
+                    self.panel, 'lineEdit_xyz_basemap_groups', None)
+                if _bm_edit is not None:
+                    try:
+                        _bm_edit.editingFinished.connect(
+                            self.on_basemap_groups_changed)
+                    except Exception:  # nosec B110  # 設計上の許容
+                        pass
+
+                # XYZ タブ: 指定レイヤのみの独立 XYZ 焼き付け/フォルダ表示。
+                # 焼き付けは重い同期処理のため次ティックへ遅延する
+                _xyz_export_btn = getattr(
+                    self.panel, 'pushButton_xyz_export', None)
+                if _xyz_export_btn is not None:
+                    _xyz_export_btn.clicked.connect(
+                        lambda checked=False: QTimer.singleShot(
+                            0, self.on_xyz_export_clicked))
+                _xyz_open_btn = getattr(
+                    self.panel, 'pushButton_xyz_open', None)
+                if _xyz_open_btn is not None:
+                    _xyz_open_btn.clicked.connect(
+                        lambda checked=False: self.on_xyz_open_clicked())
+
+                # 「カスタムレイヤタブ」チェック。QSettings
+                # kasugai_site_control と双方向同期する。ON で
+                # レイヤツリーのグループ名を site= として出力し、
+                # Canvas へグループごとの一括制御タブを追加する
+                _sc_check = getattr(
+                    self.panel, 'checkBox_site_control', None)
+                if _sc_check is not None:
+                    try:
+                        from . import kasugai_export
+                        _sc_check.blockSignals(True)
+                        _sc_check.setChecked(
+                            kasugai_export.get_site_control())
+                        _sc_check.blockSignals(False)
+                        _sc_check.toggled.connect(
+                            self.on_site_control_toggled)
                     except Exception:  # nosec B110  # 設計上の許容
                         pass
 
@@ -726,6 +848,27 @@ class GeoWebView:
                 except Exception:  # nosec B110  # 設計上の許容
                     pass
 
+                # Canvas Live タブのイベントを接続
+                try:
+                    if getattr(self.panel, 'set_live_view_handler', None):
+                        self.panel.set_live_view_handler(
+                            self.open_external_live_view)
+                    if getattr(self.panel, 'set_live_control_handler', None):
+                        self.panel.set_live_control_handler(
+                            self._on_live_control_changed)
+                    if getattr(self.panel, 'set_live_add_handler', None):
+                        self.panel.set_live_add_handler(
+                            self._on_live_add_to_canvas)
+                    if getattr(self.panel, 'set_live_catalog_provider', None):
+                        self.panel.set_live_catalog_provider(
+                            self._live_layer_catalog)
+                    # /live/controls・bridge 経由の変更もパネルへ同期
+                    self.server_manager.on_live_controls_changed = (
+                        self.panel.sync_live_controls)
+                except Exception as e:
+                    self._qgis_log(
+                        f'[DEBUG] live tab wiring failed: {e}', 'WARNING')
+
                 # If external control is already checked at panel creation, apply last origin
                 try:
                     if getattr(self.panel, 'checkBox_external_control', None) is not None and self.panel.checkBox_external_control.isChecked():
@@ -769,6 +912,156 @@ class GeoWebView:
                 self.tr("geo_webview"),
                 self.tr("Failed to create panel: {error}").format(error=str(e))
             )
+
+    def _live_url(self, engine='cesium'):
+        """Canvas live ビューが開く Canvas エンジン URL を返す。
+
+        .kasc は /live/kasc(オンデマンド生成・エクスポート不要)を
+        指し、中の live: 行で双方向連携が有効になる。エンジンの
+        配信元は Web タブの CDN コンボ(kasugai_hosted_channel)の
+        モードに従う:
+          stable/unstable/カスタムURL → ホスト版エンジン
+              (kasugai-canvas-web 等) — Canvas アプリ未導入でも完結
+          canvas → 稼働中の Canvas アプリ(既定8510)を直接使う
+              (アプリ一体運用。未検出時は警告+本サーバ配信へ退く)
+          ファイルパス(FILE モード) → その web/ ツリーを本サーバの
+              /<engine>/ で静的配信。開発時・閉鎖ネットワーク向け
+        """
+        srv = getattr(self, 'server_manager', None)
+        port = (srv.get_server_port()
+                if srv and srv.is_server_running() else None)
+        if not port:
+            return None
+        base = 'http://127.0.0.1:{0}'.format(port)
+        kasc = base + '/live/kasc'
+        kasc_q = urllib.parse.quote(kasc, safe='')
+        try:
+            from . import kasugai_export
+            ch = kasugai_export.get_hosted_channel()
+            if not kasugai_export.is_hosted_channel(ch):
+                if ch.strip().lower() == 'canvas':
+                    # canvas: 稼働中アプリ(8510)を使う — アプリの
+                    # web/ は自動更新に追随し、開発用サーバなら開発
+                    # ツリーを配信
+                    cport = int(kasugai_export.get_kasugai_port() or 8510)
+                    if kasugai_export.detect_kasugai(cport):
+                        return ('http://127.0.0.1:{0}/{1}/?kasc={2}'
+                                .format(cport, engine, kasc_q))
+                    self._push_message(
+                        self.tr('Canvas Live View'),
+                        self.tr("'canvas' mode needs a running Canvas "
+                                "app (:8510)."),
+                        level=1, duration=6)
+                # FILE モード未検出時: 本サーバが web/ を静的配信。
+                # 配信元は find_kasugai_web_dir(FILE指定>インストール済み)
+                elif not kasugai_export.find_kasugai_engine_dir(engine):
+                    self._push_message(
+                        self.tr('Canvas Live View'),
+                        self.tr("Local engine delivery needs a valid web/ "
+                                "folder path or an installed Canvas copy."),
+                        level=1, duration=6)
+                return '{0}/{1}/?kasc={2}'.format(base, engine, kasc_q)
+            # hosted: CORS は hosted オリジンを許可済み、PNA プリフライト
+            # も対応済みのため CDN→:8089 のプライベートアクセスが成立
+            hosted = kasugai_export.hosted_engine_base()
+            return '{0}{1}/?kasc={2}'.format(hosted, engine, kasc_q)
+        except Exception:  # nosec B110  # 失敗時はローカル配信へ退く
+            pass
+        return '{0}/{1}/?kasc={2}'.format(base, engine, kasc_q)
+
+    def _live_layer_catalog(self):
+        """Live タブのレイヤコンボ用カタログ(ベクターのみを使う)。"""
+        try:
+            cat = self.server_manager._live_layer_catalog() or {}
+            return cat.get('layers') or []
+        except Exception:  # nosec B110  # 設計上の許容
+            return []
+
+    def _on_live_control_changed(self, name, on):
+        """Live タブのチェックボックス → QSettings(=live.controls の正)。"""
+        try:
+            from . import live_sync
+            ctl = live_sync.set_live_controls(
+                **{str(name): bool(on)})
+            self._qgis_log(
+                f'live control {name}={bool(on)} -> {ctl}', 'INFO')
+        except Exception as e:
+            self._qgis_log(f'live control failed: {e}', 'WARNING')
+
+    def _on_live_add_to_canvas(self, title):
+        """Live タブの「Add to Canvas」→ live.add_layers キューへ。"""
+        try:
+            seq = self.server_manager.live_queue_add_layer(title)
+            if self.panel is not None:
+                self.panel.set_live_status(
+                    self.tr('Queued: {0}').format(title) if seq
+                    else self.tr('Add failed'))
+        except Exception as e:
+            self._qgis_log(f'live add failed: {e}', 'WARNING')
+            if self.panel is not None:
+                self.panel.set_live_status(str(e))
+
+    def open_external_live_view(self, engine='cesium'):
+        """Canvas live ビューを外部ブラウザで開く(QGIS+Canvas の2画面運用)。
+
+        ``<server>/<engine>/?kasc=<base>/live/kasc`` を既定ブラウザで
+        開く。エクスポート無しの live ネイティブ。QGIS 4.x は
+        QTBUG-139109 対策の Qt Quick Software 描画強制により埋め込み
+        WebView で WebGL が使えないため、3D 表示は外部ブラウザに
+        一本化している。外部ウィンドウには閉じた通知が無いため、
+        開いた時点で live 監視を view_active にして以後は有効の
+        ままにする(ブラウザを閉じても監視コストはリスナー分のみ)。
+        """
+        try:
+            self.server_manager.start_http_server()
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+        url = self._live_url(engine or 'cesium')
+        if not url:
+            self._push_message(
+                self.tr('Canvas Live View'),
+                self.tr('HTTP server is not running.'),
+                level=1, duration=5)
+            return None
+        ctl = getattr(self, '_live_sync', None)
+        if ctl is not None:
+            try:
+                ctl.set_view_active(True)
+            except Exception:  # nosec B110  # 設計上の許容
+                pass
+        if not self._open_app_window(url):
+            QDesktopServices.openUrl(QUrl(url))
+        return url
+
+    @staticmethod
+    def _open_app_window(url):
+        """live URL を Chrome/Edge の --app モードで開く(専用ウィンドウ)。
+
+        --app はアドレスバー・タブの無いアプリ風ウィンドウを生成する
+        Chromium 系の起動オプションで、通常タブより「QGIS 専用
+        ビューア」に近い見た目になる。対応ブラウザが見つからない
+        場合は False を返し、呼び出し側が既定ブラウザに退く。
+        """
+        candidates = []
+        for env, rel in (
+            ('ProgramFiles(x86)', 'Microsoft\\Edge\\Application\\msedge.exe'),
+            ('ProgramFiles', 'Microsoft\\Edge\\Application\\msedge.exe'),
+            ('ProgramFiles', 'Google\\Chrome\\Application\\chrome.exe'),
+            ('ProgramFiles(x86)', 'Google\\Chrome\\Application\\chrome.exe'),
+            ('LocalAppData', 'Google\\Chrome\\Application\\chrome.exe'),
+        ):
+            root = os.environ.get(env)
+            if root:
+                candidates.append(os.path.join(root, rel))
+        for exe in candidates:
+            if not os.path.isfile(exe):
+                continue
+            try:
+                subprocess.Popen([exe, '--app=' + url])  # nosec B603
+                return True
+            except Exception:  # nosec B112  # 設計上の許容
+                continue
+        return False
 
     def _collect_themes(self):
         """QGISプロジェクトのテーマ名一覧を取得"""
@@ -1697,9 +1990,10 @@ class GeoWebView:
     def on_kasugai_admin_clicked(self):
         """KASUGAI Canvas の UI 設定管理画面をブラウザで開く。
 
-        web/admin/ui-config-admin.html はローカルアプリ(既定 port 8510)
-        専用で CDN には配信されない。サーバ未稼働なら通知して開かない。
-        """
+        稼働中のローカルアプリ(既定 port 8510)の
+        web/admin/ui-config-admin.html を開く。未検出時は通知のみ
+        (ボタン自体は update_canvas_launch_state で未稼働時に
+        無効化される)。"""
         try:
             from . import kasugai_export
             port = int(kasugai_export.get_kasugai_port())
@@ -1717,8 +2011,26 @@ class GeoWebView:
                         "Start the Canvas app and try again.").format(port),
                 duration=5)
             return
-        QDesktopServices.openUrl(QUrl(
-            'http://127.0.0.1:{0}/admin/ui-config-admin.html'.format(port)))
+        admin_url = ('http://127.0.0.1:{0}/admin/ui-config-admin.html'
+                     .format(port))
+        # V8 管理画面より前にリリースされた Canvas(7.1.0 以前)は
+        # web/admin/ を持たず 404 を返す。404 ページを開く代わりに
+        # 更新を促す
+        try:
+            import urllib.request
+            req = urllib.request.Request(admin_url, method='HEAD')
+            with urllib.request.urlopen(  # nosec B310  # 直上で組立てたloopback固定URL
+                    req, timeout=2.0):
+                pass
+        except Exception:
+            self._push_message(
+                "geo_webview",
+                self.tr("The UI-config admin screen is not available in "
+                        "the installed Canvas app — update KASUGAI Canvas "
+                        "and try again."),
+                duration=8)
+            return
+        QDesktopServices.openUrl(QUrl(admin_url))
 
     def on_engine_combo_changed(self, index):
         """Web配信パネルのエンジン選択を QSettings に保存する。"""
@@ -1733,10 +2045,53 @@ class GeoWebView:
         except Exception:  # nosec B110  # 設計上の許容
             pass
 
-    def on_hosted_combo_changed(self, text):
-        """Web配信パネルのCDN(ホスト版チャンネル)選択を QSettings に保存する。
+    def on_hosted_browse_clicked(self):
+        """CDN コンボ横「…」: web/ フォルダを選択して FILE モードにする。
 
-        'stable'/'unstable' または末尾'/'のカスタムベースURLを取る。
+        選んだフォルダに index.html が無い場合は直下の web/ を
+        自動補完する(例: <install>/ を選んでも <install>/web/ へ)。
+        """
+        try:
+            from qgis.PyQt.QtWidgets import QFileDialog
+            combo = getattr(self.panel, 'comboBox_hosted', None)
+            start = ''
+            try:
+                from . import kasugai_export
+                start = (kasugai_export.detect_kasugai_install_dir()
+                         or '')
+            except Exception:  # nosec B110  # 既定パスなしで続行
+                pass
+            folder = QFileDialog.getExistingDirectory(
+                self.panel if self.panel is not None
+                else self.iface.mainWindow(),
+                self.tr('Select a local Canvas web/ folder'),
+                start)
+            if not folder:
+                return
+            import os as _os
+            if not _os.path.isfile(_os.path.join(folder, 'index.html')) \
+                    and _os.path.isfile(
+                        _os.path.join(folder, 'web', 'index.html')):
+                folder = _os.path.join(folder, 'web')
+            folder = folder.replace('/', '\\')
+            edit = getattr(self.panel, 'lineEdit_hosted_value', None)
+            if edit is not None:
+                edit.setText(folder)
+                self.on_hosted_value_changed()
+            elif combo is not None:
+                combo.setCurrentText(folder)
+            if combo is not None:
+                combo.setCurrentText('custom')
+        except Exception as e:
+            self._push_message(
+                "geo_webview", self.tr('Folder selection failed: {0}')
+                .format(e), level=2, duration=5)
+
+    def on_hosted_combo_changed(self, text):
+        """Web配信パネルのCDN(エンジン供給元モード)選択を QSettings に保存する。
+
+        'stable'/'unstable'/'canvas'/'url'/'file' を取る
+        ('url'/'file' の実値は kasugai_hosted_value に別保存)。
         hosted_engine_base() が起動時に読むため即時反映される。
         """
         try:
@@ -1746,6 +2101,76 @@ class GeoWebView:
                 str(text or '').strip() or 'stable')
         except Exception:  # nosec B110  # 設計上の許容
             pass
+        self._sync_hosted_value_field()
+
+    def _hosted_mode_and_value(self):
+        """現在の CDN コンボモードと実値を (mode, value) で返す。"""
+        try:
+            from . import kasugai_export
+            mode = (kasugai_export.get_hosted_channel() or 'stable')
+            return mode, kasugai_export.get_hosted_value()
+        except Exception:  # nosec B110  # 設計上の許容
+            return 'stable', ''
+
+    def _sync_hosted_value_field(self):
+        """URL/パス表示欄をモードに合わせて同期する。
+
+        'url'/'file' は実値を編集可で表示、'canvas' は :8510、
+        hosted 系は解決先URLを読取専用で表示する。
+        """
+        edit = getattr(self.panel, 'lineEdit_hosted_value', None)
+        if edit is None:
+            return
+        mode, value = self._hosted_mode_and_value()
+        m = mode.strip().lower()
+        try:
+            from . import kasugai_export
+            if m == 'canvas':
+                port = int(kasugai_export.get_kasugai_port() or 8510)
+                text = 'http://127.0.0.1:{0}/'.format(port)
+                editable = False
+            elif m in ('custom', 'url', 'file'):
+                text = value
+                editable = True
+            elif m.startswith(('http://', 'https://')) or (
+                    m not in ('stable', 'unstable') and '/' in mode):
+                text = mode  # 旧形式(直書きURL/パス)
+                editable = True
+            else:
+                text = kasugai_export.hosted_engine_base(mode)
+                editable = False
+        except Exception:  # nosec B110  # 表示のみの失敗は許容
+            text, editable = value, True
+        edit.setReadOnly(not editable)
+        if edit.text() != text:
+            edit.setText(text)
+
+    def on_hosted_value_changed(self):
+        """URL/パス表示欄の確定を kasugai_hosted_value に保存する。
+
+        固定モード(stable/unstable/canvas)選択中に編集した場合は
+        内容から url/file へ自動でモードを切り替える。
+        """
+        edit = getattr(self.panel, 'lineEdit_hosted_value', None)
+        if edit is None:
+            return
+        text = str(edit.text() or '').strip()
+        try:
+            from qgis.PyQt.QtCore import QSettings
+            QSettings('GeoWebView', 'geo_webview').setValue(
+                'kasugai_hosted_value', text)
+        except Exception:  # nosec B110  # 設計上の許容
+            return
+        combo = getattr(self.panel, 'comboBox_hosted', None)
+        if combo is None or not text:
+            return
+        mode = combo.currentText().strip().lower()
+        if mode in ('stable', 'unstable', 'canvas'):
+            # 固定モード中の編集 → custom へ切替(実値は上で保存済み)
+            combo.setCurrentText('custom')
+        elif mode not in ('custom', 'url', 'file'):
+            # 旧形式(直書き) → custom トークンへ正規化
+            combo.setCurrentText('custom')
 
     def on_vector_format_changed(self, index):
         """パネルのベクター出力形式コンボを kasugai_vector_format へ保存する。
@@ -1772,19 +2197,159 @@ class GeoWebView:
         except Exception:  # nosec B110  # 設計上の許容
             pass
 
+    def on_site_control_toggled(self, checked):
+        """パネルの「カスタムレイヤタブ」チェックを kasugai_site_control
+        へ保存する。エクスポート全経路(パネルボタン・/kasugai・bridge の
+        既定値)がこの設定に従う。"""
+        try:
+            from . import kasugai_export
+            kasugai_export.set_site_control(bool(checked))
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+
+    def on_xyz_tiles_toggled(self, checked):
+        """パネルの「XYZ tiles」チェックを kasugai_xyz_tiles へ保存する。
+
+        ON 時は「フィルタはタイル画像へ反映されない」旨をポップアップで
+        一度通知する(画像焼き付けの性質上、Canvas 側の where=/属性
+        絞り込みは併記された非表示ベクター行にのみ効く)。
+        """
+        try:
+            from . import kasugai_export
+            kasugai_export.set_xyz_tiles_enabled(bool(checked))
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+        if checked:
+            try:
+                from qgis.PyQt.QtWidgets import QMessageBox
+                QMessageBox.information(
+                    self.panel.widget if getattr(
+                        self.panel, 'widget', None) is not None else None,
+                    self.tr('XYZ tiles'),
+                    self.tr(
+                        'Large/complex vector layers are rendered by QGIS '
+                        'into XYZ image tiles.\n\n'
+                        'Note: filters in KASUGAI Canvas (where= / attribute '
+                        'filtering) apply only to the bundled vector data '
+                        'row — they do NOT affect the baked tile image.'))
+            except Exception:  # nosec B110  # 設計上の許容
+                pass
+
+    def on_xyz_zooms_changed(self, _value=None):
+        """パネルの XYZ 焼き付けズーム範囲スピンを QSettings へ保存する。"""
+        try:
+            from . import kasugai_export
+            zmin = getattr(self.panel, 'spinBox_xyz_zmin', None)
+            zmax = getattr(self.panel, 'spinBox_xyz_zmax', None)
+            if zmin is not None and zmax is not None:
+                kasugai_export.set_xyz_zooms(zmin.value(), zmax.value())
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+
+    def on_basemap_groups_changed(self):
+        """XYZ タブのベースマップグループ追加名を QSettings へ保存する。
+
+        設定ダイアログの Basemap Groups と同じ
+        kasugai_basemap_groups を読み書きする。"""
+        try:
+            from qgis.PyQt.QtCore import QSettings
+            edit = getattr(
+                self.panel, 'lineEdit_xyz_basemap_groups', None)
+            if edit is not None:
+                QSettings('GeoWebView', 'geo_webview').setValue(
+                    'kasugai_basemap_groups',
+                    str(edit.text() or '').strip())
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+
+    def on_xyz_export_clicked(self):
+        """XYZ タブ: レイヤパネルで選択中のレイヤだけを XYZ タイルへ
+        焼き付ける独立機能。.kasc 出力とは別経路で <出力先>/xyz_tiles/
+        へ {z}/{x}/{y}.png+index.html を生成する。"""
+        from . import kasugai_export
+        status = getattr(self.panel, 'label_xyz_status', None)
+
+        def _set_status(text):
+            if status is not None:
+                try:
+                    status.setText(text)
+                except Exception:  # nosec B110  # 設計上の許容
+                    pass
+
+        dlg = None
+        try:
+            layers = self.panel.xyz_target_layers() \
+                if self.panel is not None else []
+            if not layers:
+                msg = self.tr(
+                    'Select layer(s) in the Layers panel first.')
+                _set_status(msg)
+                self._push_message("geo_webview", msg, duration=5)
+                return
+            add = bool(getattr(
+                self.panel, 'checkBox_xyz_add_to_project', None)
+                and self.panel.checkBox_xyz_add_to_project.isChecked())
+            dlg, _cb = self._kasugai_export_progress()
+            dlg.setWindowTitle(self.tr('XYZ Tile Export'))
+            res = kasugai_export.export_layers_xyz(
+                layers, add_to_project=add, progress_cb=_cb)
+            n = len(res.get('layers') or [])
+            n_tiles = sum(
+                int(e.get('tiles') or 0) for e in res.get('layers') or [])
+            msg = self.tr('Baked {0} layer(s), {1} tiles → {2}').format(
+                n, n_tiles, res.get('root'))
+            n_skip = len(res.get('skipped') or [])
+            if n_skip:
+                msg += self.tr(' ({0} skipped)').format(n_skip)
+            _set_status(msg)
+            self._push_message("geo_webview", msg, duration=8)
+            for w in res.get('warnings') or []:
+                self._qgis_log(str(w), 'WARNING')
+        except kasugai_export.ExportCancelled:
+            msg = self.tr('XYZ export cancelled.')
+            _set_status(msg)
+            self._push_message("geo_webview", msg, duration=5)
+        except Exception as e:
+            msg = self.tr('XYZ export error: {0}').format(e)
+            _set_status(msg)
+            self._push_message("geo_webview", msg, duration=5)
+        finally:
+            if dlg is not None:
+                try:
+                    dlg.close()
+                except Exception:  # nosec B110  # 設計上の許容
+                    pass
+
+    def on_xyz_open_clicked(self):
+        """XYZ タブ: 独立出力のルート(xyz_tiles/)をエクスプローラで開く。"""
+        try:
+            from . import kasugai_export
+            root = kasugai_export.xyz_tiles_dir()
+            if not os.path.isdir(root):
+                os.makedirs(root)
+            QDesktopServices.openUrl(QUrl.fromLocalFile(root))
+        except Exception as e:
+            self._push_message(
+                "geo_webview",
+                self.tr('Failed to open the XYZ output folder: {0}')
+                .format(e), duration=5)
+
     def on_kasugai_launch_clicked(self, route='auto'):
         """パネル版：選択エンジンで エクスポート→登録→ブラウザ起動 まで
         一発で行う。bridge の kasugaiExport(open_app=True) を利用する。
         route は 'kasugai'(Canvas登録=主プレイヤー) / 'local'(本サーバの
         ローカルHTTP配信で即表示) / 'hosted'(サーバレスWEB=ホスト版
         エンジン) / 'auto'(3段フォールバック)。
-        'kasugai'(「▶ Canvas」ボタン)は再エクスポートせず既存の出力物
-        だけを使い、未出力ならエクスポートを促すメッセージを出す。"""
+        'kasugai'(「▶ Canvas」ボタン)も再エクスポートしてから登録・
+        表示するため、押すたびに最新のレイヤ状態が Canvas へ反映される。"""
         try:
             engine = 'cesium'
             combo = getattr(self.panel, 'comboBox_engine', None)
             if combo is not None and combo.currentData():
                 engine = combo.currentData()
+            # 'hosted' の CDN モード→route 変換は kasugaiExport 内で
+            # エクスポート完了後に行う(エクスポートを先に確実に
+            # 終わらせてから起動先を決定するため)。ここでは変換しない
             if route == 'kasugai':
                 # Canvas 未検出時はインストール導線(セットアップ/ZIP選択)へ。
                 # 検出処理の失敗のみ許容し、インストール導線自体の例外は
@@ -1802,18 +2367,14 @@ class GeoWebView:
             if self.bridge is None:
                 from .bridge import GeoWebViewBridge
                 self.bridge = GeoWebViewBridge(self)
-            # 再エクスポートを伴う経路のみ進捗ダイアログを出す
-            # (use_existing 経路はエクスポートを実行しない)
+            # 全経路で再エクスポートを行うため進捗ダイアログを出す
             dlg = None
             try:
-                if route != 'kasugai':
-                    dlg, _cb = self._kasugai_export_progress()
-                else:
-                    _cb = None
+                dlg, _cb = self._kasugai_export_progress()
                 res = json.loads(
                     self.bridge.kasugaiExport(
                         engine=engine, open_app=True, route=route,
-                        use_existing=(route == 'kasugai'),
+                        use_existing=False,
                         progress_cb=_cb)
                     or '{}')
             finally:
@@ -1861,7 +2422,22 @@ class GeoWebView:
                         "Serverless delivery unavailable — the HTTP server "
                         "must be running to serve canvas_data/."),
                 }
-                if route == 'kasugai':
+                # route は kasugaiExport 内でエクスポート後に解決
+                # されるため、理由表示は実際の解決結果を使う
+                resolved_route = res.get('route') or route
+                if resolved_route == 'kasugai':
+                    # CDN 'canvas' モードで Canvas 未インストール
+                    # → インストール導線へ(完了後は登録・起動へ合流)
+                    try:
+                        from . import kasugai_export as _ke
+                        _installed = bool(
+                            _ke.detect_kasugai()
+                            or _ke.detect_kasugai_install_dir())
+                    except Exception:  # nosec B110  # 検出失敗は従来挙動へ
+                        _installed = True
+                    if not _installed:
+                        self._install_kasugai_then_launch(engine)
+                        return
                     # エクスポート済みの出力物を使う経路なので
                     # 「出力しました」は付けない
                     msg = route_reasons['kasugai']
@@ -1869,7 +2445,7 @@ class GeoWebView:
                     msg = self.tr("Exported to {0}. {1}").format(
                         res.get('dir', ''),
                         route_reasons.get(
-                            route,
+                            resolved_route,
                             self.tr("No engine available — open the .kasc "
                                     "file in KASUGAI Canvas.")))
                 self._push_message(
@@ -1879,6 +2455,30 @@ class GeoWebView:
                 "geo_webview",
                 self.tr("KASUGAI launch error: {0}").format(e),
                 duration=5)
+        finally:
+            # ▶ Canvas 経由でアプリを自動起動した直後は Admin の
+            # 有効/無効を再判定する(未稼働→無効の表示が残らないよう)
+            try:
+                if self.panel is not None:
+                    self.panel.update_canvas_launch_state()
+            except Exception:  # nosec B110  # 設計上の許容
+                pass
+
+    def on_kasugai_install_clicked(self):
+        """Install ボタン: Canvas アプリのインストール導線を開く。
+
+        起動経路は CDN コンボの 'canvas' モード(▶ WebView)に一本化
+        したため、このボタンは常時インストール(再インストール/修復)
+        専用。完了後は従来通り登録・ブラウザ起動へ合流する。
+        """
+        engine = 'cesium'
+        try:
+            combo = getattr(self.panel, 'comboBox_engine', None)
+            if combo is not None and combo.currentData():
+                engine = combo.currentData()
+        except Exception:  # nosec B110  # 既定エンジンで続行
+            pass
+        self._install_kasugai_then_launch(engine)
 
     def _install_kasugai_then_launch(self, engine):
         """Canvas 未検出時: インストール方法を選択→バックグラウンド実行→

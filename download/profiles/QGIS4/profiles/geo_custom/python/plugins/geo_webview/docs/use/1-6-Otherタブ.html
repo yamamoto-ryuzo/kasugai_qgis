@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>6. Other タブ | geo_webview ドキュメント</title>
+<meta name="description" content="geo_webview パネル Other タブの使い方 — テーマ・パーマリンク・共有（/present・/screenshot・MAC 認証）">
+<link rel="icon" href="../favicon.ico">
+<link rel="stylesheet" href="../style.css">
+<script src="../nav.js" defer></script>
+</head>
+<body>
+<div class="container">
+<header>
+<h1>6. Other タブ — テーマ・パーマリンク・共有 <span class="version-badge" data-plugin-version hidden></span></h1>
+<p><a href="../index.html">geo_webview ドキュメント</a> / 使い方</p>
+</header>
+<main>
+<section>
+<h2 id="使い方">使い方</h2>
+<h3 id="テーマ">テーマ (Theme)</h3>
+<ul>
+<li>テーマ選択コンボ — ナビゲーション時に適用するマップテーマを選ぶ
+（「-- No Theme (Position Only) --」含む）</li>
+<li><code>Save Theme</code> — 現在のレイヤ可視性・スタイルを新規マップテーマとして保存</li>
+<li>プロジェクト自体の状態は変更しない。未存在のテーマ名は No Theme（位置のみ適用）へフォールバック</li>
+</ul>
+<h3 id="パーマリンク">パーマリンク（Permalink）</h3>
+<ul>
+<li><code>Generate Permalink</code> — 現在表示（中心座標、scale、rotation、theme）を
+<code>/qgis-map</code> パスの HTTP パーマリンクとして生成・表示。<code>URLCopy</code> でコピー</li>
+<li><code>Navigate</code> — 貼り付けたパーマリンクへ QGIS をナビゲートする</li>
+<li>例: <code>http://localhost:8089/qgis-map?x=139.01234&amp;y=35.12345&amp;scale=1000.0&amp;rotation=0.00</code></li>
+</ul>
+<h3 id="共有">共有（Share / Presentation）</h3>
+<ul>
+<li><code>Presentation Share</code> — QGIS キャンバスをミラーする <code>/present</code> ページを
+ブラウザで開き、URL をクリップボードへコピー（LAN IP 優先表示）</li>
+<li>受領パーマリンク履歴コンボ（最新10件）— 選択するとナビゲート欄へコピー</li>
+<li><code>MAC address authentication</code> チェック＋許可 MAC アドレス欄（カンマ区切り、
+空=全拒否）— 登録クライアントのみ HTTP サーバへアクセス可</li>
+</ul>
+</section>
+<section>
+<h2 id="other-タブ">設定・ツール仕様</h2>
+<h3 id="テーマ-theme">テーマ (Theme) グループ</h3>
+<ul>
+<li>テーマ選択コンボ（<code>comboBox_themes</code>、「-- No Theme (Position Only) --」
+含む）— ナビゲーション時に適用するマップテーマを選ぶ</li>
+<li><code>Save Theme</code> — 現在のレイヤ可視性・スタイルを新規マップテーマとして保存</li>
+<li><code>theme</code> パラメータに指定されたマップテーマをナビゲーション時に適用する。
+プロジェクト自体の状態を変更しない</li>
+<li><code>theme</code> 値はプロジェクト内の既存マップテーマ名のみサポート。未存在の
+場合は No Theme（位置のみ適用）へフォールバック</li>
+<li>スタイルのエクスポートでは QGIS バージョン差に備えて
+<code>exportNamedStyle</code> 等の呼び出しにフォールバックを用意</li>
+</ul>
+<h3 id="パーマリンク">パーマリンク（Permalink）グループ</h3>
+<ul>
+<li><code>Generate Permalink</code> — 現在表示（中心座標、scale、rotation、theme）
+を <code>/qgis-map</code> パスの HTTP パーマリンクとして生成・表示。
+<code>URLCopy</code> でコピー。クリップボードボタンでコピー/貼り付けも可</li>
+<li><code>Navigate</code> — 貼り付けたパーマリンクへ QGIS をナビゲートする</li>
+<li><code>/qgis-map</code> は HTML を返さず、受領記録・External Control
+ナビゲートの URL パスとして使う（v3.24.0 でプラグイン内蔵ビューアは廃止）</li>
+</ul>
+<p><strong>パーマリンク形式とパラメータ</strong>（基本・推奨）:</p>
+<ul>
+<li><code>x</code> : 経度（または投影座標系の X）</li>
+<li><code>y</code> : 緯度（または投影座標系の Y）</li>
+<li><code>scale</code> : QGIS の scale（例: 1000.0）</li>
+<li><code>crs</code> : 省略時は <code>EPSG:4326</code> として解釈。</li>
+<li><code>rotation</code> : 表示の回転（度）</li>
+<li><code>theme</code> : マップテーマ名（存在する場合に適用する）</li>
+</ul>
+<p>例:</p>
+<pre><code>http://localhost:8089/qgis-map?x=139.01234&amp;y=35.12345&amp;scale=1000.0&amp;rotation=0.00
+</code></pre>
+<p>短縮形式（プレゼン資料向け）:</p>
+<ul>
+<li>小数切り捨て等で <code>x=139&amp;y=35&amp;scale=1000.0</code> のように短くできる。</li>
+</ul>
+<p>変換ルール:</p>
+<ul>
+<li><code>scale</code> 指定があれば優先して適用。</li>
+<li><code>zoom</code> は内部推定（Web マップ用の推定）で用いるが、基本は <code>scale</code> を優先。</li>
+</ul>
+<h3 id="共有share--presentation">共有（Share / Presentation）グループ</h3>
+<p>panel.py が <code>groupBox_sharing</code> として動的追加する
+（.ui 上は <code>tab_share</code> コンテナに挿入）:</p>
+<ul>
+<li><code>Presentation Share</code> — QGIS キャンバスをミラーする
+<code>/present</code> ページをブラウザで開き、URL をクリップボードへコピー
+（LAN IP 優先表示、§1 サーバグループ）</li>
+<li>受領パーマリンク履歴コンボ（<code>comboBox_received</code>、最新10件）—
+選択するとナビゲート欄へコピー。履歴本体は <code>GET /received</code>（<a href="../spec.html#api-リファレンス">仕様書「HTTP API リファレンス」</a>）</li>
+<li><code>MAC address authentication</code> チェック＋許可 MAC アドレス欄
+（カンマ区切り、空=全拒否）— 登録クライアントのみ HTTP サーバへアクセス可</li>
+</ul>
+<h4 id="レンダリングscreenshotとパフォーマンス">レンダリング（/screenshot）とパフォーマンス</h4>
+<p>契約（contract）:</p>
+<ul>
+<li>入力: <code>w</code>/<code>h</code>（または <code>width</code>/<code>height</code>）。省略時はキャンバスサイズ、上限 4096px。</li>
+<li>出力: 現在のキャンバス表示と同等の PNG（回転・縮尺・表示中レイヤを反映）。</li>
+<li>応答ヘッダ <code>X-Map-Extent</code>: 実際に setExtent した範囲（キャンバスCRS、
+<code>xmin,ymin,xmax,ymax</code>）。<code>X-Map-Corners</code>: 画像の左上/右上/左下の実座標
+（x,yを6値連結。回転時も画像の写る位置を正確に示す）。</li>
+</ul>
+<p>視聴者ズーム（クライアント単位・ステートレス）:</p>
+<ul>
+<li><code>extent=xmin,ymin,xmax,ymax</code> — setExtent リテラル値（直前の
+X-Map-Extent で同一描画を再現する用途）。</li>
+<li><code>screen=xmin,ymin,xmax,ymax</code> — 画面上に見せたい領域。回転時は
+逆回転した外接矩形へ内部変換して描画（回転0では extent と同義）。</li>
+<li><code>bbox=cx,cy,fw,fh</code> — ベース画像（既定=現在のキャンバス描画）に対する
+割合座標で中心(cx,cy)・表示幅高(fw,fh、0..1)を指定して部分描画。
+<code>base=&lt;extent&gt;</code>+<code>bw</code>/<code>bh</code> でベース画像を差し替え、ズーム表示を
+さらに拡大・移動する継続操作ができる（中心計算は <code>mapToPixel</code> 経由で
+回転に対応）。</li>
+<li><code>rot=&lt;deg&gt;</code> — 描画回転の明示指定（<code>rot=0</code> で北向き描画）。</li>
+<li><code>/present</code> は同梱OpenLayers(<code>vendor/ol</code>)ページ。描画は <code>rot=0</code> の
+北向きレンダリングを ImageStatic で配置し、キャンバス回転は
+<code>/present/state</code> 経由でビュー回転として再現するため、全ジェスチャが
+回転座標系で整合する（再描画は <code>moveend</code> 時のみ要求）。</li>
+</ul>
+<p>実装:</p>
+<ul>
+<li>キャンバスの <code>QgsMapSettings</code> を複製し <code>QgsMapRendererParallelJob</code> で描画する
+（<code>server_manager._render_map_settings</code>）。GUI スレッドをブロックせず、
+HTTP ワーカースレッドから呼べる。</li>
+<li>複数の <code>QgsMapRendererParallelJob</code> 同時実行は QGIS クラッシュを招くため
+<code>_render_lock</code> で直列化する。30秒でタイムアウト（ジョブを cancel）。</li>
+</ul>
+<p>性能上の注意:</p>
+<ul>
+<li>大きな出力サイズはメモリと CPU を要するため 4096px でクランプする。</li>
+</ul>
+</section>
+<section>
+<h2 id="関連仕様">関連仕様</h2>
+<ul>
+<li><a href="../spec.html#api-リファレンス">仕様書「HTTP API リファレンス」</a></li>
+<li><a href="../integration.html">外部サービス・クライアント連携方針</a></li>
+</ul>
+</section>
+</main>
+</div>
+<script type="module" src="../assets/site.js"></script>
+</body>
+</html>

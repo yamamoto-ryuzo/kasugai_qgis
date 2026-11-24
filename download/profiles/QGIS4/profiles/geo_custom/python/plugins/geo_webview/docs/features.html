@@ -3,21 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="geo_webview の主な機能 — エクスポート・ZIP・▶ WebView・▶ Canvas と WebGIS 外部ホスト配信">
-<title>2. 主な機能 | geo_webview ドキュメント</title>
+<meta name="description" content="geo_webview の主な機能 — エクスポート・ZIP・▶ WebView・Install KASUGAI Canvas と WebGIS 外部ホスト配信">
+<title>主な機能 | geo_webview ドキュメント</title>
+<link rel="icon" href="favicon.ico">
 <link rel="stylesheet" href="style.css">
 <script src="nav.js" defer></script>
 </head>
 <body>
 <div class="container">
 <main>
-<h1>2. 主な機能</h1>
-<p>パネル「Web配信」グループの主要ボタンです。</p>
+<h1>主な機能</h1>
+<p>パネル Web タブ「Web配信（サーバレス）」グループの主要ボタンです。</p>
 <figure class="shot">
 <img src="images/panel.png" loading="lazy"
-alt="geo_webview パネル全体 — 上から Web配信（エクスポート・CDN・ZIP・エンジン選択・▶WebView・▶Canvas）、HTTPサーバー稼働状況、テーマ／パーマリンク／共有タブ">
-<figcaption>geo_webview パネル — 「Web配信」グループと HTTP
-サーバー状態、テーマ／パーマリンク／共有タブ</figcaption>
+alt="geo_webview パネル全体 — 上から Web配信（サーバレス）（エクスポート・CDN・ZIP・エンジン選択・▶WebView・Install KASUGAI Canvas）、HTTPサーバー稼働状況、タブ（Web/Live/Layers/Filter/XYZ/Other）">
+<figcaption>geo_webview パネル — 「Web配信（サーバレス）」グループと HTTP
+サーバー状態、タブ（Web/Live/Layers/Filter/XYZ/Other）</figcaption>
 </figure>
 <h2 id="エクスポート">【エクスポート】</h2>
 <p><code>.kasc + canvas_data/ + &lt;engine&gt;.html + index.html</code>
@@ -40,32 +41,42 @@ alt="geo_webview パネル全体 — 上から Web配信（エクスポート・
 サーバー稼働）。 静的ホストへの配置・Re:Earth <code>qgis:</code>
 取り込み用に使います。</p>
 <h2 id="-webview">【▶ WebView】</h2>
-<p>ホスト版 <code>kasugai-canvas-web</code>（<a
-href="engines.html#githubpages-cdnkasugai-canvas-web">GitHubPages CDN</a>）の
-エンジンで開き、データは <code>:8089/export-data/</code>
-から供給します。 エクスポート →
-ブラウザ起動まで一発実行。<strong>要インターネット・ HTTP
-サーバー稼働</strong>（Canvas 未インストールでも可）。 使用チャンネルは
-<code>CDN:</code> コンボで選択します。</p>
+<p>エクスポート → ブラウザ起動まで一発実行します（データは
+<code>:8089/export-data/</code> から供給。<strong>要 HTTP
+サーバー稼働</strong>）。 開くエンジンの供給元は <code>CDN:</code>
+コンボで選択します:</p>
+<ul>
+<li><code>stable</code>/<code>unstable</code> — ホスト版
+<code>kasugai-canvas-web</code>（<a
+href="engines.html#githubpages-cdnkasugai-canvas-web">GitHubPages CDN</a>）で開く。
+要インターネット、Canvas 未インストールでも可</li>
+<li><code>canvas</code> — 稼働中の KASUGAI Canvas
+ローカルサーバー（:8510）へ登録・プロジェクト切替して開く（ネイティブ一体運用）</li>
+<li><code>custom</code> — 「カスタム（URL/FILE）」欄の http(s) URL
+=自前ホスト / フォルダパス=ローカル <code>web/</code> を本サーバーが配信（FILE
+モード・開発や閉域網向け）</li>
+</ul>
 <p><strong><code>CDN:</code> コンボ</strong>: <code>▶ WebView</code>
-が使うホスト版チャンネルと ZIP ファイル名の
+が使うエンジン供給元モードと ZIP ファイル名の
 <code>&lt;チャンネル&gt;</code> 部を選択します
-（<code>stable</code>/<code>unstable</code>/カスタムURL。QSettings
-<code>kasugai_hosted_channel</code> に保存）。</p>
+（<code>stable</code>/<code>unstable</code>/<code>canvas</code>/カスタム。QSettings
+<code>kasugai_hosted_channel</code> に保存、実値は
+<code>kasugai_hosted_value</code>）。</p>
 <p><strong><code>Engine:</code> コンボ</strong>:
-<code>▶ WebView</code>/<code>▶ Canvas</code> が開くエンジンを選択します
-（Cesium/MapLibre/OpenLayers/Leaflet/GSI Maps。選択は QSettings
+<code>▶ WebView</code> が開くエンジンを選択します
+（Cesium/MapLibre/OpenLayers/Leaflet/GSI Maps/Navara。選択は QSettings
 <code>kasugai_engine</code> に保存）。</p>
-<h2 id="-canvas">【▶ Canvas】</h2>
-<p><strong>エクスポート済み</strong>のプロジェクトを稼働中の KASUGAI
-Canvas ローカルサーバー（:8510）へ登録・表示切替・ブラウザ起動します。
-<strong>エクスポートは行わない</strong>ため、未出力の場合は Export
-を先に実行するよう メッセージで案内します。Canvas 未検出時はボタンが
-<strong>Install KASUGAI Canvas</strong> 表示になり、セットアップ（.kasc
-関連付けあり）/ ポータブルZIP
-を選んでバックグラウンドインストール後に起動します。</p>
+<h2 id="install-kasugai-canvas">【Install KASUGAI Canvas】</h2>
+<p>KASUGAI Canvas アプリの<strong>インストール専用</strong>ボタンです。
+セットアップ（.kasc 関連付けあり）/ ポータブルZIP
+を選んでバックグラウンドインストールします。
+Canvas アプリでの起動は <code>CDN:</code> コンボの <code>canvas</code>
+モード + <code>▶ WebView</code> に一本化されており、エクスポート →
+稼働中アプリ（:8510）へのプロジェクト登録・表示切替 →
+ブラウザ起動まで一発実行されます（起動エンジンは
+<code>Engine:</code> コンボ）。</p>
 <h3 id="ルート解決フォールバック">ルート解決（フォールバック）</h3>
-<p><code>▶ Open</code>・<code>/kasugai</code>・<code>kasugaiExport</code>
+<p><code>▶ WebView</code>・<code>/kasugai</code>・<code>kasugaiExport</code>
 は応答の <code>via</code> で供給元を返します:</p>
 <table>
 <thead>

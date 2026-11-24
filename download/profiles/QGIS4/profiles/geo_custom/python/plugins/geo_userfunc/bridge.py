@@ -540,7 +540,7 @@ class GeoUserfuncBridge:
             try:
                 with open(path, encoding="utf-8") as f:
                     data = json.load(f)
-            except Exception:
+            except (OSError, ValueError):
                 continue
             for item in data if isinstance(data, list) else []:
                 item = dict(item)

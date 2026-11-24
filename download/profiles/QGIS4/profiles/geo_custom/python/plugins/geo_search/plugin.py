@@ -198,7 +198,10 @@ class plugin(object):
         self.group_combobox = QComboBox()
         self.group_combobox.setToolTip(self.tr("Select a group to filter displayed themes (All / per group)"))
         self.group_combobox.setMinimumWidth(140)
-        self._geo_toolbar().addWidget(self.group_combobox)
+        # addWidget が返す QAction を保持(unload で removeAction しないと
+        # ゴーストアクションがツールバーに残る)
+        self._group_combo_action = self._geo_toolbar().addWidget(
+            self.group_combobox)
 
         # グループ選択の前回値を保持する（update時に復元するため）
         self._last_group_selected = None
@@ -258,11 +261,13 @@ class plugin(object):
 
                 # ツールバーにはコンテナを追加
                 try:
-                    self._geo_toolbar().addWidget(self.theme_widget)
+                    self._theme_widget_action = self._geo_toolbar().addWidget(
+                        self.theme_widget)
                 except Exception:
                     # fallback to adding combobox directly
                     try:
-                        self._geo_toolbar().addWidget(self.theme_combobox)
+                        self._theme_combo_action = self._geo_toolbar().addWidget(
+                            self.theme_combobox)
                     except Exception:  # nosec B110  # 設計上の許容
                         pass
             else:
@@ -286,7 +291,8 @@ class plugin(object):
         except Exception:
             # 保守的に元の方法で追加
             try:
-                self._geo_toolbar().addWidget(self.theme_combobox)
+                self._theme_combo_action = self._geo_toolbar().addWidget(
+                    self.theme_combobox)
             except Exception:  # nosec B110  # 設計上の許容
                 pass
 
@@ -934,7 +940,10 @@ class plugin(object):
         _defer_remove_actions(
             self.iface, self.tr("Geo Search"),
             [a for a in (getattr(self, 'action', None),
-                         getattr(self, 'additive_theme_action', None))
+                         getattr(self, 'additive_theme_action', None),
+                         getattr(self, '_group_combo_action', None),
+                         getattr(self, '_theme_widget_action', None),
+                         getattr(self, '_theme_combo_action', None))
              if a is not None],
             self._geo_toolbar(ensure_visible=False))
 

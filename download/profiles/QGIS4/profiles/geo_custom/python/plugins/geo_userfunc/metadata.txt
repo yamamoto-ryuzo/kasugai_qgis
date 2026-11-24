@@ -2,9 +2,10 @@
 name=geo_userfunc
 qgisMinimumVersion=4.0
 qgisMaximumVersion=4.99
-description=ユーザー定義Pythonコード(式関数/フック/マクロ)のライブラリ管理プラグイン
+description=Manage a library of user-defined Python code for QGIS — @qgsfunction expression functions, project lifecycle hooks, and callable macros — with bridge-based remote control
 about=QGIS_user_function (https://github.com/yamamoto-ryuzo/QGIS_user_function) 等のユーザー関数ファイルを <profile>/python/geo_userfunc/ で管理します。@qgsfunction式関数は式エンジンへ登録、openProject/saveProject/closeProject はプロジェクト信号へ配線、main(context) はマクロとして実行できます。他プラグイン(geo_excel等)のマクロも共有レジストリ経由で一元管理し、bridge経由でAIからの作成・実行・検証が可能です。
-version=1.0.9
+about[en]=Manages user function files (from QGIS_user_function https://github.com/yamamoto-ryuzo/QGIS_user_function and others) in <profile>/python/geo_userfunc/. @qgsfunction functions are registered with the expression engine, openProject/saveProject/closeProject hooks are wired to project signals, and main(context) functions become runnable macros. Macros from other plugins (e.g. geo_excel) are centrally managed via a shared registry, and the bridge lets AI agents create, run, and verify functions remotely.
+version=1.0.11
 author=yamamoto-ryuzo
 icon=icon.png
 email=ryu@yamakun.net
@@ -13,6 +14,11 @@ tracker=https://github.com/yamamoto-ryuzo/qgis_live_harness/issues
 repository=https://github.com/yamamoto-ryuzo/qgis_live_harness/tree/master/qgis-plugin/geo_userfunc
 hasProcessingProvider=no
 changelog=
+    Version 1.0.10:
+    - 関数編集ダイアログを open()(非ブロッキング)化 —
+      exec() モーダルが AI 制御経路で GUI ハングを起こすため
+    - metadata: 英語 description/about[en] を追加、非推奨
+      supportsQt6 フラグを除去
     Version 1.0.8:
     - 実行履歴(history)/単体テスト(testFunction)/依存解析(dependencies)をbridgeに追加、管理ダイアログにTest/historyペインを追加
     Version 1.0.4:
@@ -38,4 +44,3 @@ tags=python,expression,function,macro,user
 experimental=False
 deprecated=False
 server=False
-supportsQt6=True

@@ -1,7 +1,7 @@
 # geo_webview — 完全ロジックシート
 
-- 種別: qgis_plugin / バージョン: 4.18.0
-- 生成: 2026-11-18T02:15:18+09:00 / 機能数: 185
+- 種別: qgis_plugin / バージョン: 4.29.0
+- 生成: 2026-11-22T09:37:59+09:00 / 機能数: 212
 
 ## トポロジ
 
@@ -21,11 +21,13 @@ flowchart LR
     dialog_SettingsDialog["SettingsDialog<br/><i>dialog</i>"]
     ui_GeoWebView__on_project_saved["_on_project_saved<br/><i>ui_control</i>"]
     ui_GeoWebView_handle_request_origin_changed["handle_request_origin_changed<br/><i>ui_control</i>"]
+    ui_GeoWebView_on_basemap_groups_changed["on_basemap_groups_changed<br/><i>ui_control</i>"]
     ui_GeoWebView_on_check_access_clicked["on_check_access_clicked<br/><i>ui_control</i>"]
     ui_GeoWebView_on_copy_clicked_panel["on_copy_clicked_panel<br/><i>ui_control</i>"]
     ui_GeoWebView_on_engine_combo_changed["on_engine_combo_changed<br/><i>ui_control</i>"]
     ui_GeoWebView_on_generate_clicked_panel["on_generate_clicked_panel<br/><i>ui_control</i>"]
     ui_GeoWebView_on_hosted_combo_changed["on_hosted_combo_changed<br/><i>ui_control</i>"]
+    ui_GeoWebView_on_kasugai_admin_clicked["on_kasugai_admin_clicked<br/><i>ui_control</i>"]
     ui_GeoWebView_on_kasugai_export_clicked["on_kasugai_export_clicked<br/><i>ui_control</i>"]
     ui_GeoWebView_on_kasugai_help_clicked["on_kasugai_help_clicked<br/><i>ui_control</i>"]
     ui_GeoWebView_on_kasugai_launch_clicked["on_kasugai_launch_clicked<br/><i>ui_control</i>"]
@@ -37,10 +39,21 @@ flowchart LR
     ui_GeoWebView_on_present_clicked_panel["on_present_clicked_panel<br/><i>ui_control</i>"]
     ui_GeoWebView_on_received_selected["on_received_selected<br/><i>ui_control</i>"]
     ui_GeoWebView_on_save_theme_clicked_panel["on_save_theme_clicked_panel<br/><i>ui_control</i>"]
+    ui_GeoWebView_on_site_control_toggled["on_site_control_toggled<br/><i>ui_control</i>"]
     ui_GeoWebView_on_standard_port_clicked["on_standard_port_clicked<br/><i>ui_control</i>"]
+    ui_GeoWebView_on_vector_format_changed["on_vector_format_changed<br/><i>ui_control</i>"]
+    ui_GeoWebView_on_visible_only_toggled["on_visible_only_toggled<br/><i>ui_control</i>"]
+    ui_GeoWebView_on_xyz_export_clicked["on_xyz_export_clicked<br/><i>ui_control</i>"]
+    ui_GeoWebView_on_xyz_open_clicked["on_xyz_open_clicked<br/><i>ui_control</i>"]
+    ui_GeoWebView_on_xyz_tiles_toggled["on_xyz_tiles_toggled<br/><i>ui_control</i>"]
+    ui_GeoWebView_on_xyz_zooms_changed["on_xyz_zooms_changed<br/><i>ui_control</i>"]
     ui_GeoWebViewPanel__on_copy_permalink_to_clipboard["_on_copy_permalink_to_clipboard<br/><i>ui_control</i>"]
+    ui_GeoWebViewPanel__on_kasugai_layer_item_changed["_on_kasugai_layer_item_changed<br/><i>ui_control</i>"]
+    ui_GeoWebViewPanel__on_kasugai_view_item_checked["_on_kasugai_view_item_checked<br/><i>ui_control</i>"]
     ui_GeoWebViewPanel__on_paste_from_clipboard["_on_paste_from_clipboard<br/><i>ui_control</i>"]
     ui_GeoWebViewPanel__on_visibility_changed["_on_visibility_changed<br/><i>ui_control</i>"]
+    ui_GeoWebViewPanel__on_xyz_layer_item_changed["_on_xyz_layer_item_changed<br/><i>ui_control</i>"]
+    ui_GeoWebViewPanel__on_xyz_tab_shown["_on_xyz_tab_shown<br/><i>ui_control</i>"]
     ui_GeoWebViewPanel_set_external_control_handler["set_external_control_handler<br/><i>ui_control</i>"]
     ui_GeoWebViewPanel_set_port_change_handler["set_port_change_handler<br/><i>ui_control</i>"]
     ui_GeoWebViewPanel_set_server_toggle_handler["set_server_toggle_handler<br/><i>ui_control</i>"]
@@ -51,6 +64,8 @@ flowchart LR
     ui_LiveSyncController__on_structure["_on_structure<br/><i>ui_control</i>"]
     ui_SettingsDialog__basemap_groups_changed["_basemap_groups_changed<br/><i>ui_control</i>"]
     ui_SettingsDialog__hosted_channel_changed["_hosted_channel_changed<br/><i>ui_control</i>"]
+    ui_SettingsDialog__vector_format_changed["_vector_format_changed<br/><i>ui_control</i>"]
+    ui_SettingsDialog__xyz_zooms_changed["_xyz_zooms_changed<br/><i>ui_control</i>"]
     bridge_addFirewallRule["addFirewallRule<br/><i>bridge_method</i>"]
     bridge_applyTheme["applyTheme<br/><i>bridge_method</i>"]
     bridge_checkAccess["checkAccess<br/><i>bridge_method</i>"]
@@ -82,6 +97,7 @@ flowchart LR
     bridge_navigateTo["navigateTo<br/><i>bridge_method</i>"]
     bridge_openExportFolder["openExportFolder<br/><i>bridge_method</i>"]
     bridge_openExternal["openExternal<br/><i>bridge_method</i>"]
+    bridge_openKasugaiAdmin["openKasugaiAdmin<br/><i>bridge_method</i>"]
     bridge_openPanel["openPanel<br/><i>bridge_method</i>"]
     bridge_openPresent["openPresent<br/><i>bridge_method</i>"]
     bridge_pluginInfo["pluginInfo<br/><i>bridge_method</i>"]
@@ -93,39 +109,37 @@ flowchart LR
     bridge_startServer["startServer<br/><i>bridge_method</i>"]
     bridge_status["status<br/><i>bridge_method</i>"]
     bridge_stopServer["stopServer<br/><i>bridge_method</i>"]
+    bridge_xyzExport["xyzExport<br/><i>bridge_method</i>"]
     registry_kasugai_export_py_register_kasugai_project["register_kasugai_project<br/><i>registry</i>"]
     registry_reearth_cms_py_register_layer["register_layer<br/><i>registry</i>"]
-    integration_bridge_py_1412["QDesktopServices.openUrl<br/><i>integration</i>"]
-    integration_bridge_py_1562["QDesktopServices.openUrl<br/><i>integration</i>"]
-    integration_bridge_py_387["QDesktopServices.openUrl<br/><i>integration</i>"]
-    integration_bridge_py_389["webbrowser.open<br/><i>integration</i>"]
-    integration_bridge_py_429["QDesktopServices.openUrl<br/><i>integration</i>"]
-    integration_bridge_py_431["webbrowser.open<br/><i>integration</i>"]
-    integration_kasugai_export_py_4066["subprocess.Popen<br/><i>integration</i>"]
-    integration_kasugai_export_py_4303["subprocess.Popen<br/><i>integration</i>"]
-    integration_kasugai_export_py_4422["subprocess.Popen<br/><i>integration</i>"]
-    integration_kasugai_export_py_4659["subprocess.Popen<br/><i>integration</i>"]
-    integration_plugin_py_1387["QDesktopServices.openUrl<br/><i>integration</i>"]
-    integration_plugin_py_1489["QDesktopServices.openUrl<br/><i>integration</i>"]
-    integration_plugin_py_1503["QDesktopServices.openUrl<br/><i>integration</i>"]
-    integration_plugin_py_1835["QDesktopServices.openUrl<br/><i>integration</i>"]
-    integration_server_manager_py_1098["subprocess.check_output<br/><i>integration</i>"]
-    integration_server_manager_py_1127["subprocess.check_output<br/><i>integration</i>"]
+    integration_bridge_py_1692["QDesktopServices.openUrl<br/><i>integration</i>"]
+    integration_bridge_py_451["QDesktopServices.openUrl<br/><i>integration</i>"]
+    integration_bridge_py_453["webbrowser.open<br/><i>integration</i>"]
+    integration_kasugai_export_py_5792["subprocess.Popen<br/><i>integration</i>"]
+    integration_kasugai_export_py_6029["subprocess.Popen<br/><i>integration</i>"]
+    integration_plugin_py_1598["QDesktopServices.openUrl<br/><i>integration</i>"]
+    integration_plugin_py_1762["QDesktopServices.openUrl<br/><i>integration</i>"]
+    integration_plugin_py_1777["QDesktopServices.openUrl<br/><i>integration</i>"]
+    integration_plugin_py_1822["QDesktopServices.openUrl<br/><i>integration</i>"]
+    integration_plugin_py_2006["QDesktopServices.openUrl<br/><i>integration</i>"]
+    integration_plugin_py_2341["QDesktopServices.openUrl<br/><i>integration</i>"]
     integration_server_manager_py_1131["subprocess.check_output<br/><i>integration</i>"]
-    integration_server_manager_py_1135["subprocess.check_output<br/><i>integration</i>"]
-    integration_server_manager_py_2882["_socket.socket<br/><i>integration</i>"]
-    integration_server_manager_py_2928["socket.socket<br/><i>integration</i>"]
-    integration_server_manager_py_3006["socket.gethostname<br/><i>integration</i>"]
-    integration_server_manager_py_3010["socket.getaddrinfo<br/><i>integration</i>"]
-    integration_server_manager_py_3039["subprocess.run<br/><i>integration</i>"]
-    integration_server_manager_py_3115["subprocess.run<br/><i>integration</i>"]
-    integration_server_manager_py_313["socket.socket<br/><i>integration</i>"]
-    integration_server_manager_py_316["server_socket.bind<br/><i>integration</i>"]
-    integration_server_manager_py_317["server_socket.listen<br/><i>integration</i>"]
-    integration_server_manager_py_318["server_socket.settimeout<br/><i>integration</i>"]
-    integration_server_manager_py_3231["subprocess.run<br/><i>integration</i>"]
-    integration_server_manager_py_3286["subprocess.run<br/><i>integration</i>"]
-    integration_server_manager_py_3299["subprocess.run<br/><i>integration</i>"]
+    integration_server_manager_py_1160["subprocess.check_output<br/><i>integration</i>"]
+    integration_server_manager_py_1164["subprocess.check_output<br/><i>integration</i>"]
+    integration_server_manager_py_1168["subprocess.check_output<br/><i>integration</i>"]
+    integration_server_manager_py_2970["_socket.socket<br/><i>integration</i>"]
+    integration_server_manager_py_3016["socket.socket<br/><i>integration</i>"]
+    integration_server_manager_py_3094["socket.gethostname<br/><i>integration</i>"]
+    integration_server_manager_py_3098["socket.getaddrinfo<br/><i>integration</i>"]
+    integration_server_manager_py_3127["subprocess.run<br/><i>integration</i>"]
+    integration_server_manager_py_3203["subprocess.run<br/><i>integration</i>"]
+    integration_server_manager_py_3319["subprocess.run<br/><i>integration</i>"]
+    integration_server_manager_py_3374["subprocess.run<br/><i>integration</i>"]
+    integration_server_manager_py_3387["subprocess.run<br/><i>integration</i>"]
+    integration_server_manager_py_342["socket.socket<br/><i>integration</i>"]
+    integration_server_manager_py_345["server_socket.bind<br/><i>integration</i>"]
+    integration_server_manager_py_346["server_socket.listen<br/><i>integration</i>"]
+    integration_server_manager_py_347["server_socket.settimeout<br/><i>integration</i>"]
     ai_bridge_route["bridge_call経由全到達<br/><i>ai_integration</i>"]
     ai_catalog["describe_plugins登録<br/><i>ai_integration</i>"]
     ai_pluginInfo["pluginInfo自己記述<br/><i>ai_integration</i>"]
@@ -151,6 +165,7 @@ flowchart LR
     logic_fn_kasugai_export_py_ensure_kasugai_running["ensure_kasugai_running<br/><i>logic_fn</i>"]
     logic_fn_kasugai_export_py_existing_export["existing_export<br/><i>logic_fn</i>"]
     logic_fn_kasugai_export_py_export_kasugai_project["export_kasugai_project<br/><i>logic_fn</i>"]
+    logic_fn_kasugai_export_py_export_layers_xyz["export_layers_xyz<br/><i>logic_fn</i>"]
     logic_fn_kasugai_export_py_export_zip_name["export_zip_name<br/><i>logic_fn</i>"]
     logic_fn_kasugai_export_py_find_kasugai_engine_dir["find_kasugai_engine_dir<br/><i>logic_fn</i>"]
     logic_fn_kasugai_export_py_find_kasugai_exe["find_kasugai_exe<br/><i>logic_fn</i>"]
@@ -159,6 +174,11 @@ flowchart LR
     logic_fn_kasugai_export_py_get_kasugai_install_dir["get_kasugai_install_dir<br/><i>logic_fn</i>"]
     logic_fn_kasugai_export_py_get_kasugai_port["get_kasugai_port<br/><i>logic_fn</i>"]
     logic_fn_kasugai_export_py_get_output_dir["get_output_dir<br/><i>logic_fn</i>"]
+    logic_fn_kasugai_export_py_get_site_control["get_site_control<br/><i>logic_fn</i>"]
+    logic_fn_kasugai_export_py_get_vector_export_mode["get_vector_export_mode<br/><i>logic_fn</i>"]
+    logic_fn_kasugai_export_py_get_visible_data_only["get_visible_data_only<br/><i>logic_fn</i>"]
+    logic_fn_kasugai_export_py_get_xyz_tiles_enabled["get_xyz_tiles_enabled<br/><i>logic_fn</i>"]
+    logic_fn_kasugai_export_py_get_xyz_zooms["get_xyz_zooms<br/><i>logic_fn</i>"]
     logic_fn_kasugai_export_py_hosted_engine_base["hosted_engine_base<br/><i>logic_fn</i>"]
     logic_fn_kasugai_export_py_install_kasugai["install_kasugai<br/><i>logic_fn</i>"]
     logic_fn_kasugai_export_py_install_kasugai_setup["install_kasugai_setup<br/><i>logic_fn</i>"]
@@ -173,8 +193,15 @@ flowchart LR
     logic_fn_kasugai_export_py_open_kasc_with_association["open_kasc_with_association<br/><i>logic_fn</i>"]
     logic_fn_kasugai_export_py_preferred_output_dir["preferred_output_dir<br/><i>logic_fn</i>"]
     logic_fn_kasugai_export_py_project_dir_slug["project_dir_slug<br/><i>logic_fn</i>"]
+    logic_fn_kasugai_export_py_set_filter_panel_state["set_filter_panel_state<br/><i>logic_fn</i>"]
     logic_fn_kasugai_export_py_set_output_dir["set_output_dir<br/><i>logic_fn</i>"]
+    logic_fn_kasugai_export_py_set_site_control["set_site_control<br/><i>logic_fn</i>"]
+    logic_fn_kasugai_export_py_set_vector_export_mode["set_vector_export_mode<br/><i>logic_fn</i>"]
+    logic_fn_kasugai_export_py_set_visible_data_only["set_visible_data_only<br/><i>logic_fn</i>"]
+    logic_fn_kasugai_export_py_set_xyz_tiles_enabled["set_xyz_tiles_enabled<br/><i>logic_fn</i>"]
+    logic_fn_kasugai_export_py_set_xyz_zooms["set_xyz_zooms<br/><i>logic_fn</i>"]
     logic_fn_kasugai_export_py_wait_for_kasugai["wait_for_kasugai<br/><i>logic_fn</i>"]
+    logic_fn_kasugai_export_py_xyz_tiles_dir["xyz_tiles_dir<br/><i>logic_fn</i>"]
     logic_fn_live_mcp_py_discover_payload["discover_payload<br/><i>logic_fn</i>"]
     logic_fn_live_mcp_py_driver_sessions["driver_sessions<br/><i>logic_fn</i>"]
     logic_fn_live_mcp_py_is_loopback_peer["is_loopback_peer<br/><i>logic_fn</i>"]
@@ -224,7 +251,7 @@ flowchart LR
 
 ### action.GeoWebView.initGui — initGui
 
-- kind: `action` / source: `plugin.py:248`
+- kind: `action` / source: `plugin.py:325`
 - signature: `initGui()`
 - 要約: プラグインのGUI要素を作成（プラグイン読み込み時に呼ばれる）
 - needs_runtime=True / standalone_ok=False
@@ -241,7 +268,7 @@ flowchart LR
 
 ### action.GeoWebView.open_dialog — open_dialog
 
-- kind: `action` / source: `plugin.py:339`
+- kind: `action` / source: `plugin.py:416`
 - signature: `open_dialog()`
 - 要約: live driver の open_plugin から呼ばれる互換フック。
 - needs_runtime=True / standalone_ok=False
@@ -258,7 +285,7 @@ flowchart LR
 
 ### action.GeoWebView.run — run
 
-- kind: `action` / source: `plugin.py:349`
+- kind: `action` / source: `plugin.py:426`
 - signature: `run()`
 - 要約: run() 互換エントリ: open_dialog と同じ(パネルを開く)。
 - needs_runtime=True / standalone_ok=False
@@ -275,7 +302,7 @@ flowchart LR
 
 ### action.GeoWebView.unload — unload
 
-- kind: `action` / source: `plugin.py:776`
+- kind: `action` / source: `plugin.py:987`
 - signature: `unload()`
 - 要約: プラグインのアンロード時の処理
 - needs_runtime=True / standalone_ok=False
@@ -326,7 +353,7 @@ flowchart LR
 
 ### ui.GeoWebView._on_project_saved — _on_project_saved
 
-- kind: `ui_control` / source: `plugin.py:314`
+- kind: `ui_control` / source: `plugin.py:391`
 - signature: `_on_project_saved()`
 - 要約: projectSaved フック。自動再エクスポートが有効なら再出力する。
 - needs_runtime=True / standalone_ok=False
@@ -343,7 +370,7 @@ flowchart LR
 
 ### ui.GeoWebView.handle_request_origin_changed — handle_request_origin_changed
 
-- kind: `ui_control` / source: `plugin.py:115`
+- kind: `ui_control` / source: `plugin.py:162`
 - signature: `handle_request_origin_changed(origin)`
 - 要約: サーバから受け取った完全URLをパネルのlineEdit_navigateにセットする
 - needs_runtime=True / standalone_ok=False
@@ -358,9 +385,26 @@ flowchart LR
 - 検証: 単独= / 連携=親dialog経由で操作・状態assert
 - 結果: **pass** 2026-11-18T02:15:18+09:00 — 属性/シンボル実在確認(pyeval)
 
+### ui.GeoWebView.on_basemap_groups_changed — on_basemap_groups_changed
+
+- kind: `ui_control` / source: `plugin.py:1925`
+- signature: `on_basemap_groups_changed()`
+- 要約: XYZ タブのベースマップグループ追加名を QSettings へ保存する。
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_ui_GeoWebView_on_basemap_groups_changed["UIシグナル"] --> H_ui_GeoWebView_on_basemap_groups_changed["on_basemap_groups_changed"]
+  H_ui_GeoWebView_on_basemap_groups_changed --> R_ui_GeoWebView_on_basemap_groups_changed["QGIS/ランタイムAPI"]
+  R_ui_GeoWebView_on_basemap_groups_changed --> OUT["結果"]
+```
+
+- 検証: 単独= / 連携=親dialog経由で操作・状態assert
+- 結果: **untested**  — auto-added
+
 ### ui.GeoWebView.on_check_access_clicked — on_check_access_clicked
 
-- kind: `ui_control` / source: `plugin.py:1898`
+- kind: `ui_control` / source: `plugin.py:2404`
 - signature: `on_check_access_clicked()`
 - 要約: 外部アクセス診断ボタンがクリックされた時の処理
 - needs_runtime=True / standalone_ok=False
@@ -377,7 +421,7 @@ flowchart LR
 
 ### ui.GeoWebView.on_copy_clicked_panel — on_copy_clicked_panel
 
-- kind: `ui_control` / source: `plugin.py:1324`
+- kind: `ui_control` / source: `plugin.py:1535`
 - signature: `on_copy_clicked_panel()`
 - 要約: パネル版：コピーボタンがクリックされた時の処理
 - needs_runtime=True / standalone_ok=False
@@ -394,7 +438,7 @@ flowchart LR
 
 ### ui.GeoWebView.on_engine_combo_changed — on_engine_combo_changed
 
-- kind: `ui_control` / source: `plugin.py:1505`
+- kind: `ui_control` / source: `plugin.py:1824`
 - signature: `on_engine_combo_changed(index)`
 - 要約: Web配信パネルのエンジン選択を QSettings に保存する。
 - needs_runtime=True / standalone_ok=False
@@ -411,7 +455,7 @@ flowchart LR
 
 ### ui.GeoWebView.on_generate_clicked_panel — on_generate_clicked_panel
 
-- kind: `ui_control` / source: `plugin.py:1234`
+- kind: `ui_control` / source: `plugin.py:1445`
 - signature: `on_generate_clicked_panel()`
 - 要約: パネル版：パーマリンク生成ボタンがクリックされた時の処理
 - needs_runtime=True / standalone_ok=False
@@ -428,7 +472,7 @@ flowchart LR
 
 ### ui.GeoWebView.on_hosted_combo_changed — on_hosted_combo_changed
 
-- kind: `ui_control` / source: `plugin.py:1518`
+- kind: `ui_control` / source: `plugin.py:1837`
 - signature: `on_hosted_combo_changed(text)`
 - 要約: Web配信パネルのCDN(ホスト版チャンネル)選択を QSettings に保存する。
 - needs_runtime=True / standalone_ok=False
@@ -443,9 +487,26 @@ flowchart LR
 - 検証: 単独= / 連携=親dialog経由で操作・状態assert
 - 結果: **pass** 2026-11-18T02:15:18+09:00 — 属性/シンボル実在確認(pyeval)
 
+### ui.GeoWebView.on_kasugai_admin_clicked — on_kasugai_admin_clicked
+
+- kind: `ui_control` / source: `plugin.py:1779`
+- signature: `on_kasugai_admin_clicked()`
+- 要約: KASUGAI Canvas の UI 設定管理画面をブラウザで開く。
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_ui_GeoWebView_on_kasugai_admin_clicked["UIシグナル"] --> H_ui_GeoWebView_on_kasugai_admin_clicked["on_kasugai_admin_clicked"]
+  H_ui_GeoWebView_on_kasugai_admin_clicked --> R_ui_GeoWebView_on_kasugai_admin_clicked["QGIS/ランタイムAPI"]
+  R_ui_GeoWebView_on_kasugai_admin_clicked --> OUT["結果"]
+```
+
+- 検証: 単独= / 連携=親dialog経由で操作・状態assert
+- 結果: **untested**  — auto-added
+
 ### ui.GeoWebView.on_kasugai_export_clicked — on_kasugai_export_clicked
 
-- kind: `ui_control` / source: `plugin.py:1443`
+- kind: `ui_control` / source: `plugin.py:1702`
 - signature: `on_kasugai_export_clicked()`
 - 要約: パネル版：KASUGAI エクスポートボタン — 表示中レイヤを
 - needs_runtime=True / standalone_ok=False
@@ -462,9 +523,9 @@ flowchart LR
 
 ### ui.GeoWebView.on_kasugai_help_clicked — on_kasugai_help_clicked
 
-- kind: `ui_control` / source: `plugin.py:1501`
+- kind: `ui_control` / source: `plugin.py:1775`
 - signature: `on_kasugai_help_clicked()`
-- 要約: ドキュメント(GitHub 上の docs/)をブラウザで開く。
+- 要約: ドキュメントサイト(GitHub Pages の docs/)をブラウザで開く。
 - needs_runtime=True / standalone_ok=False
 
 ```mermaid
@@ -479,7 +540,7 @@ flowchart LR
 
 ### ui.GeoWebView.on_kasugai_launch_clicked — on_kasugai_launch_clicked
 
-- kind: `ui_control` / source: `plugin.py:1532`
+- kind: `ui_control` / source: `plugin.py:2013`
 - signature: `on_kasugai_launch_clicked(route=…)`
 - 要約: パネル版：選択エンジンで エクスポート→登録→ブラウザ起動 まで
 - needs_runtime=True / standalone_ok=False
@@ -496,7 +557,7 @@ flowchart LR
 
 ### ui.GeoWebView.on_kasugai_open_folder — on_kasugai_open_folder
 
-- kind: `ui_control` / source: `plugin.py:1380`
+- kind: `ui_control` / source: `plugin.py:1591`
 - signature: `on_kasugai_open_folder()`
 - 要約: KASUGAI 出力フォルダ(.kasc/canvas_data/<engine>.html/index.html が
 - needs_runtime=True / standalone_ok=False
@@ -513,7 +574,7 @@ flowchart LR
 
 ### ui.GeoWebView.on_kasugai_outdir_browse — on_kasugai_outdir_browse
 
-- kind: `ui_control` / source: `plugin.py:1405`
+- kind: `ui_control` / source: `plugin.py:1616`
 - signature: `on_kasugai_outdir_browse()`
 - 要約: 保存先表示のクリック — フォルダ選択でエクスポート出力先を変更。
 - needs_runtime=True / standalone_ok=False
@@ -530,7 +591,7 @@ flowchart LR
 
 ### ui.GeoWebView.on_kasugai_outdir_reset — on_kasugai_outdir_reset
 
-- kind: `ui_control` / source: `plugin.py:1430`
+- kind: `ui_control` / source: `plugin.py:1641`
 - signature: `on_kasugai_outdir_reset()`
 - 要約: 保存先を既定(Canvasインストール先/<ドキュメント>)に戻す。
 - needs_runtime=True / standalone_ok=False
@@ -547,7 +608,7 @@ flowchart LR
 
 ### ui.GeoWebView.on_kasugai_zip_clicked — on_kasugai_zip_clicked
 
-- kind: `ui_control` / source: `plugin.py:1475`
+- kind: `ui_control` / source: `plugin.py:1748`
 - signature: `on_kasugai_zip_clicked()`
 - 要約: エクスポート物一式を kasugai_canvas.zip としてブラウザで
 - needs_runtime=True / standalone_ok=False
@@ -564,7 +625,7 @@ flowchart LR
 
 ### ui.GeoWebView.on_navigate_clicked_panel — on_navigate_clicked_panel
 
-- kind: `ui_control` / source: `plugin.py:1275`
+- kind: `ui_control` / source: `plugin.py:1486`
 - signature: `on_navigate_clicked_panel()`
 - 要約: パネル版：ナビゲートボタンがクリックされた時の処理
 - needs_runtime=True / standalone_ok=False
@@ -581,7 +642,7 @@ flowchart LR
 
 ### ui.GeoWebView.on_present_clicked_panel — on_present_clicked_panel
 
-- kind: `ui_control` / source: `plugin.py:1819`
+- kind: `ui_control` / source: `plugin.py:2325`
 - signature: `on_present_clicked_panel()`
 - 要約: プレゼンテーション共有ページ(/present)をブラウザで開く。
 - needs_runtime=True / standalone_ok=False
@@ -598,7 +659,7 @@ flowchart LR
 
 ### ui.GeoWebView.on_received_selected — on_received_selected
 
-- kind: `ui_control` / source: `plugin.py:1849`
+- kind: `ui_control` / source: `plugin.py:2355`
 - signature: `on_received_selected(index)`
 - 要約: 受領履歴コンボの選択をナビゲート欄へコピーする。
 - needs_runtime=True / standalone_ok=False
@@ -615,7 +676,7 @@ flowchart LR
 
 ### ui.GeoWebView.on_save_theme_clicked_panel — on_save_theme_clicked_panel
 
-- kind: `ui_control` / source: `plugin.py:2209`
+- kind: `ui_control` / source: `plugin.py:2715`
 - signature: `on_save_theme_clicked_panel()`
 - 要約: テーマ保存ボタン: 現在の表示状態をマップテーマとして保存
 - needs_runtime=True / standalone_ok=False
@@ -630,9 +691,26 @@ flowchart LR
 - 検証: 単独= / 連携=親dialog経由で操作・状態assert
 - 結果: **pass** 2026-11-18T02:15:18+09:00 — 属性/シンボル実在確認(pyeval)
 
+### ui.GeoWebView.on_site_control_toggled — on_site_control_toggled
+
+- kind: `ui_control` / source: `plugin.py:1876`
+- signature: `on_site_control_toggled(checked)`
+- 要約: パネルの「カスタムレイヤタブ」チェックを kasugai_site_control
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_ui_GeoWebView_on_site_control_toggled["UIシグナル"] --> H_ui_GeoWebView_on_site_control_toggled["on_site_control_toggled"]
+  H_ui_GeoWebView_on_site_control_toggled --> R_ui_GeoWebView_on_site_control_toggled["QGIS/ランタイムAPI"]
+  R_ui_GeoWebView_on_site_control_toggled --> OUT["結果"]
+```
+
+- 検証: 単独= / 連携=親dialog経由で操作・状態assert
+- 結果: **untested**  — auto-added
+
 ### ui.GeoWebView.on_standard_port_clicked — on_standard_port_clicked
 
-- kind: `ui_control` / source: `plugin.py:2040`
+- kind: `ui_control` / source: `plugin.py:2546`
 - signature: `on_standard_port_clicked(port)`
 - 要約: 標準ポートボタンがクリックされた時の処理
 - needs_runtime=True / standalone_ok=False
@@ -647,9 +725,111 @@ flowchart LR
 - 検証: 単独= / 連携=親dialog経由で操作・状態assert
 - 結果: **pass** 2026-11-18T02:15:18+09:00 — 属性/シンボル実在確認(pyeval)
 
+### ui.GeoWebView.on_vector_format_changed — on_vector_format_changed
+
+- kind: `ui_control` / source: `plugin.py:1851`
+- signature: `on_vector_format_changed(index)`
+- 要約: パネルのベクター出力形式コンボを kasugai_vector_format へ保存する。
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_ui_GeoWebView_on_vector_format_changed["UIシグナル"] --> H_ui_GeoWebView_on_vector_format_changed["on_vector_format_changed"]
+  H_ui_GeoWebView_on_vector_format_changed --> R_ui_GeoWebView_on_vector_format_changed["QGIS/ランタイムAPI"]
+  R_ui_GeoWebView_on_vector_format_changed --> OUT["結果"]
+```
+
+- 検証: 単独= / 連携=パネルのコンボ操作→QSettings 値assert、および get_vector_export_mode() 反映確認
+- 結果: **pass** 2026-11-18T00:00:00+09:00 — 4.21.0 パネル Format: コンボ追加に伴う新規 / L2実機検証済み(reload後にコンボ実在・itemData確認、setCurrentIndex→kasugai_vector_format 保存確認)
+
+### ui.GeoWebView.on_visible_only_toggled — on_visible_only_toggled
+
+- kind: `ui_control` / source: `plugin.py:1866`
+- signature: `on_visible_only_toggled(checked)`
+- 要約: パネルの「表示中のみ変換」チェックを kasugai_visible_data_only
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_ui_GeoWebView_on_visible_only_toggled["UIシグナル"] --> H_ui_GeoWebView_on_visible_only_toggled["on_visible_only_toggled"]
+  H_ui_GeoWebView_on_visible_only_toggled --> R_ui_GeoWebView_on_visible_only_toggled["QGIS/ランタイムAPI"]
+  R_ui_GeoWebView_on_visible_only_toggled --> OUT["結果"]
+```
+
+- 検証: 単独= / 連携=親dialog経由で操作・状態assert
+- 結果: **untested**  — auto-added
+
+### ui.GeoWebView.on_xyz_export_clicked — on_xyz_export_clicked
+
+- kind: `ui_control` / source: `plugin.py:1941`
+- signature: `on_xyz_export_clicked()`
+- 要約: XYZ タブ: レイヤパネルで選択中のレイヤだけを XYZ タイルへ
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_ui_GeoWebView_on_xyz_export_clicked["UIシグナル"] --> H_ui_GeoWebView_on_xyz_export_clicked["on_xyz_export_clicked"]
+  H_ui_GeoWebView_on_xyz_export_clicked --> R_ui_GeoWebView_on_xyz_export_clicked["QGIS/ランタイムAPI"]
+  R_ui_GeoWebView_on_xyz_export_clicked --> OUT["結果"]
+```
+
+- 検証: 単独= / 連携=親dialog経由で操作・状態assert
+- 結果: **untested**  — auto-added
+
+### ui.GeoWebView.on_xyz_open_clicked — on_xyz_open_clicked
+
+- kind: `ui_control` / source: `plugin.py:1999`
+- signature: `on_xyz_open_clicked()`
+- 要約: XYZ タブ: 独立出力のルート(xyz_tiles/)をエクスプローラで開く。
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_ui_GeoWebView_on_xyz_open_clicked["UIシグナル"] --> H_ui_GeoWebView_on_xyz_open_clicked["on_xyz_open_clicked"]
+  H_ui_GeoWebView_on_xyz_open_clicked --> R_ui_GeoWebView_on_xyz_open_clicked["QGIS/ランタイムAPI"]
+  R_ui_GeoWebView_on_xyz_open_clicked --> OUT["結果"]
+```
+
+- 検証: 単独= / 連携=親dialog経由で操作・状態assert
+- 結果: **untested**  — auto-added
+
+### ui.GeoWebView.on_xyz_tiles_toggled — on_xyz_tiles_toggled
+
+- kind: `ui_control` / source: `plugin.py:1886`
+- signature: `on_xyz_tiles_toggled(checked)`
+- 要約: パネルの「XYZ tiles」チェックを kasugai_xyz_tiles へ保存する。
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_ui_GeoWebView_on_xyz_tiles_toggled["UIシグナル"] --> H_ui_GeoWebView_on_xyz_tiles_toggled["on_xyz_tiles_toggled"]
+  H_ui_GeoWebView_on_xyz_tiles_toggled --> R_ui_GeoWebView_on_xyz_tiles_toggled["QGIS/ランタイムAPI"]
+  R_ui_GeoWebView_on_xyz_tiles_toggled --> OUT["結果"]
+```
+
+- 検証: 単独= / 連携=親dialog経由で操作・状態assert
+- 結果: **untested**  — auto-added
+
+### ui.GeoWebView.on_xyz_zooms_changed — on_xyz_zooms_changed
+
+- kind: `ui_control` / source: `plugin.py:1914`
+- signature: `on_xyz_zooms_changed(_value=…)`
+- 要約: パネルの XYZ 焼き付けズーム範囲スピンを QSettings へ保存する。
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_ui_GeoWebView_on_xyz_zooms_changed["UIシグナル"] --> H_ui_GeoWebView_on_xyz_zooms_changed["on_xyz_zooms_changed"]
+  H_ui_GeoWebView_on_xyz_zooms_changed --> R_ui_GeoWebView_on_xyz_zooms_changed["QGIS/ランタイムAPI"]
+  R_ui_GeoWebView_on_xyz_zooms_changed --> OUT["結果"]
+```
+
+- 検証: 単独= / 連携=親dialog経由で操作・状態assert
+- 結果: **untested**  — auto-added
+
 ### ui.GeoWebViewPanel._on_copy_permalink_to_clipboard — _on_copy_permalink_to_clipboard
 
-- kind: `ui_control` / source: `panel.py:590`
+- kind: `ui_control` / source: `panel.py:1954`
 - signature: `_on_copy_permalink_to_clipboard()`
 - 要約: lineEdit_permalink の内容をシステムクリップボードにコピーする
 - needs_runtime=True / standalone_ok=False
@@ -664,9 +844,43 @@ flowchart LR
 - 検証: 単独= / 連携=親dialog経由で操作・状態assert
 - 結果: **pass** 2026-11-18T02:15:18+09:00 — 属性/シンボル実在確認(pyeval)
 
+### ui.GeoWebViewPanel._on_kasugai_layer_item_changed — _on_kasugai_layer_item_changed
+
+- kind: `ui_control` / source: `panel.py:1671`
+- signature: `_on_kasugai_layer_item_changed(item, col)`
+- 要約: セル編集をレイヤ customProperty へ反映する。
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_ui_GeoWebViewPanel__on_kasugai_layer_item_changed["UIシグナル"] --> H_ui_GeoWebViewPanel__on_kasugai_layer_item_changed["_on_kasugai_layer_item_changed"]
+  H_ui_GeoWebViewPanel__on_kasugai_layer_item_changed --> R_ui_GeoWebViewPanel__on_kasugai_layer_item_changed["QGIS/ランタイムAPI"]
+  R_ui_GeoWebViewPanel__on_kasugai_layer_item_changed --> OUT["結果"]
+```
+
+- 検証: 単独= / 連携=親dialog経由で操作・状態assert
+- 結果: **untested**  — auto-added
+
+### ui.GeoWebViewPanel._on_kasugai_view_item_checked — _on_kasugai_view_item_checked
+
+- kind: `ui_control` / source: `panel.py:1618`
+- signature: `_on_kasugai_view_item_checked(item)`
+- 要約: VIEW のチェックボックス → レイヤツリーの表示/非表示に反映。
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_ui_GeoWebViewPanel__on_kasugai_view_item_checked["UIシグナル"] --> H_ui_GeoWebViewPanel__on_kasugai_view_item_checked["_on_kasugai_view_item_checked"]
+  H_ui_GeoWebViewPanel__on_kasugai_view_item_checked --> R_ui_GeoWebViewPanel__on_kasugai_view_item_checked["QGIS/ランタイムAPI"]
+  R_ui_GeoWebViewPanel__on_kasugai_view_item_checked --> OUT["結果"]
+```
+
+- 検証: 単独= / 連携=親dialog経由で操作・状態assert
+- 結果: **untested**  — auto-added
+
 ### ui.GeoWebViewPanel._on_paste_from_clipboard — _on_paste_from_clipboard
 
-- kind: `ui_control` / source: `panel.py:600`
+- kind: `ui_control` / source: `panel.py:1964`
 - signature: `_on_paste_from_clipboard()`
 - 要約: クリップボードからテキストを取得して lineEdit_navigate に貼り付ける
 - needs_runtime=True / standalone_ok=False
@@ -683,7 +897,7 @@ flowchart LR
 
 ### ui.GeoWebViewPanel._on_visibility_changed — _on_visibility_changed
 
-- kind: `ui_control` / source: `panel.py:354`
+- kind: `ui_control` / source: `panel.py:515`
 - signature: `_on_visibility_changed(visible)`
 - 要約: 
 - needs_runtime=True / standalone_ok=False
@@ -698,9 +912,43 @@ flowchart LR
 - 検証: 単独= / 連携=親dialog経由で操作・状態assert
 - 結果: **pass** 2026-11-18T02:15:18+09:00 — 属性/シンボル実在確認(pyeval)
 
+### ui.GeoWebViewPanel._on_xyz_layer_item_changed — _on_xyz_layer_item_changed
+
+- kind: `ui_control` / source: `panel.py:716`
+- signature: `_on_xyz_layer_item_changed(item, column)`
+- 要約: render 列の編集を kasugai_render customProperty へ保存する。
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_ui_GeoWebViewPanel__on_xyz_layer_item_changed["UIシグナル"] --> H_ui_GeoWebViewPanel__on_xyz_layer_item_changed["_on_xyz_layer_item_changed"]
+  H_ui_GeoWebViewPanel__on_xyz_layer_item_changed --> R_ui_GeoWebViewPanel__on_xyz_layer_item_changed["QGIS/ランタイムAPI"]
+  R_ui_GeoWebViewPanel__on_xyz_layer_item_changed --> OUT["結果"]
+```
+
+- 検証: 単独= / 連携=親dialog経由で操作・状態assert
+- 結果: **removed**  — auto-added
+
+### ui.GeoWebViewPanel._on_xyz_tab_shown — _on_xyz_tab_shown
+
+- kind: `ui_control` / source: `panel.py:610`
+- signature: `_on_xyz_tab_shown()`
+- 要約: XYZ タブ表示時に対象表示と設定値を最新へ(設定ダイアログ側での
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_ui_GeoWebViewPanel__on_xyz_tab_shown["UIシグナル"] --> H_ui_GeoWebViewPanel__on_xyz_tab_shown["_on_xyz_tab_shown"]
+  H_ui_GeoWebViewPanel__on_xyz_tab_shown --> R_ui_GeoWebViewPanel__on_xyz_tab_shown["QGIS/ランタイムAPI"]
+  R_ui_GeoWebViewPanel__on_xyz_tab_shown --> OUT["結果"]
+```
+
+- 検証: 単独= / 連携=親dialog経由で操作・状態assert
+- 結果: **untested**  — auto-added
+
 ### ui.GeoWebViewPanel.set_external_control_handler — set_external_control_handler
 
-- kind: `ui_control` / source: `panel.py:565`
+- kind: `ui_control` / source: `panel.py:1929`
 - signature: `set_external_control_handler(handler)`
 - 要約: 外部制御トグルのハンドラを設定する
 - needs_runtime=True / standalone_ok=False
@@ -717,7 +965,7 @@ flowchart LR
 
 ### ui.GeoWebViewPanel.set_port_change_handler — set_port_change_handler
 
-- kind: `ui_control` / source: `panel.py:577`
+- kind: `ui_control` / source: `panel.py:1941`
 - signature: `set_port_change_handler(handler)`
 - 要約: ポート番号変更のハンドラを設定する
 - needs_runtime=True / standalone_ok=False
@@ -734,7 +982,7 @@ flowchart LR
 
 ### ui.GeoWebViewPanel.set_server_toggle_handler — set_server_toggle_handler
 
-- kind: `ui_control` / source: `panel.py:552`
+- kind: `ui_control` / source: `panel.py:1916`
 - signature: `set_server_toggle_handler(handler)`
 - 要約: 外部からトグルのハンドラを設定する
 - needs_runtime=True / standalone_ok=False
@@ -751,7 +999,7 @@ flowchart LR
 
 ### ui.GeoWebViewServerManager._on_cursor_xy — _on_cursor_xy
 
-- kind: `ui_control` / source: `server_manager.py:237`
+- kind: `ui_control` / source: `server_manager.py:266`
 - signature: `_on_cursor_xy(point)`
 - 要約: キャンバス上のマウス移動(GUIスレッド)。最終位置を保持する。
 - needs_runtime=True / standalone_ok=False
@@ -768,7 +1016,7 @@ flowchart LR
 
 ### ui.LiveSyncController._on_layers_added — _on_layers_added
 
-- kind: `ui_control` / source: `live_sync.py:251`
+- kind: `ui_control` / source: `live_sync.py:258`
 - signature: `_on_layers_added(layers)`
 - 要約: 
 - needs_runtime=True / standalone_ok=False
@@ -785,7 +1033,7 @@ flowchart LR
 
 ### ui.LiveSyncController._on_project_read — _on_project_read
 
-- kind: `ui_control` / source: `live_sync.py:256`
+- kind: `ui_control` / source: `live_sync.py:263`
 - signature: `_on_project_read(*args)`
 - 要約: 
 - needs_runtime=True / standalone_ok=False
@@ -802,7 +1050,7 @@ flowchart LR
 
 ### ui.LiveSyncController._on_selection_changed — _on_selection_changed
 
-- kind: `ui_control` / source: `live_sync.py:343`
+- kind: `ui_control` / source: `live_sync.py:350`
 - signature: `_on_selection_changed(*args)`
 - 要約: ベクターレイヤの selectionChanged(GUIスレッド)。デバウンスして送信。
 - needs_runtime=True / standalone_ok=False
@@ -819,7 +1067,7 @@ flowchart LR
 
 ### ui.LiveSyncController._on_structure — _on_structure
 
-- kind: `ui_control` / source: `live_sync.py:242`
+- kind: `ui_control` / source: `live_sync.py:248`
 - signature: `_on_structure(*args)`
 - 要約: 
 - needs_runtime=True / standalone_ok=False
@@ -836,7 +1084,7 @@ flowchart LR
 
 ### ui.SettingsDialog._basemap_groups_changed — _basemap_groups_changed
 
-- kind: `ui_control` / source: `settings_dialog.py:184`
+- kind: `ui_control` / source: `settings_dialog.py:397`
 - signature: `_basemap_groups_changed()`
 - 要約: 追加のベースマップグループ名(カンマ区切り)を保存する。
 - needs_runtime=True / standalone_ok=False
@@ -853,7 +1101,7 @@ flowchart LR
 
 ### ui.SettingsDialog._hosted_channel_changed — _hosted_channel_changed
 
-- kind: `ui_control` / source: `settings_dialog.py:190`
+- kind: `ui_control` / source: `settings_dialog.py:403`
 - signature: `_hosted_channel_changed(text)`
 - 要約: ホスト版エンジンのチャンネル変更を保存する。
 - needs_runtime=True / standalone_ok=False
@@ -868,9 +1116,43 @@ flowchart LR
 - 検証: 単独= / 連携=親dialog経由で操作・状態assert
 - 結果: **pass** 2026-11-18T02:15:18+09:00 — 属性/シンボル実在確認(pyeval)
 
+### ui.SettingsDialog._vector_format_changed — _vector_format_changed
+
+- kind: `ui_control` / source: `settings_dialog.py:362`
+- signature: `_vector_format_changed(index)`
+- 要約: ベクター出力モード(native/recommended/geojson)を保存する。
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_ui_SettingsDialog__vector_format_changed["UIシグナル"] --> H_ui_SettingsDialog__vector_format_changed["_vector_format_changed"]
+  H_ui_SettingsDialog__vector_format_changed --> R_ui_SettingsDialog__vector_format_changed["QGIS/ランタイムAPI"]
+  R_ui_SettingsDialog__vector_format_changed --> OUT["結果"]
+```
+
+- 検証: 単独= / 連携=親dialog経由で操作・状態assert
+- 結果: **untested**  — auto-added
+
+### ui.SettingsDialog._xyz_zooms_changed — _xyz_zooms_changed
+
+- kind: `ui_control` / source: `settings_dialog.py:387`
+- signature: `_xyz_zooms_changed(_value=…)`
+- 要約: XYZ 焼き付けズーム範囲を保存する。
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_ui_SettingsDialog__xyz_zooms_changed["UIシグナル"] --> H_ui_SettingsDialog__xyz_zooms_changed["_xyz_zooms_changed"]
+  H_ui_SettingsDialog__xyz_zooms_changed --> R_ui_SettingsDialog__xyz_zooms_changed["QGIS/ランタイムAPI"]
+  R_ui_SettingsDialog__xyz_zooms_changed --> OUT["結果"]
+```
+
+- 検証: 単独= / 連携=親dialog経由で操作・状態assert
+- 結果: **untested**  — auto-added
+
 ### bridge.addFirewallRule — addFirewallRule
 
-- kind: `bridge_method` / source: `bridge.py:1591`
+- kind: `bridge_method` / source: `bridge.py:1737`
 - signature: `addFirewallRule(port=…)`
 - 要約: Windowsファイアウォールに受信ルールを追加する。
 - needs_runtime=True / standalone_ok=False
@@ -887,7 +1169,7 @@ flowchart LR
 
 ### bridge.applyTheme — applyTheme
 
-- kind: `bridge_method` / source: `bridge.py:886`
+- kind: `bridge_method` / source: `bridge.py:908`
 - signature: `applyTheme(name)`
 - 要約: マップテーマをレイヤツリーへ適用し、パネルコンボも同期する。
 - needs_runtime=True / standalone_ok=False
@@ -904,7 +1186,7 @@ flowchart LR
 
 ### bridge.checkAccess — checkAccess
 
-- kind: `bridge_method` / source: `bridge.py:1368`
+- kind: `bridge_method` / source: `bridge.py:1498`
 - signature: `checkAccess()`
 - 要約: 外部アクセス診断(ファイアウォール含む)を実行し結果を返す。
 - needs_runtime=True / standalone_ok=False
@@ -921,7 +1203,7 @@ flowchart LR
 
 ### bridge.closePanel — closePanel
 
-- kind: `bridge_method` / source: `bridge.py:561`
+- kind: `bridge_method` / source: `bridge.py:583`
 - signature: `closePanel()`
 - 要約: GeoWebViewドックパネルを隠す(インスタンスは保持)。
 - needs_runtime=True / standalone_ok=False
@@ -938,7 +1220,7 @@ flowchart LR
 
 ### bridge.cmsRegisterLayer — cmsRegisterLayer
 
-- kind: `bridge_method` / source: `bridge.py:1327`
+- kind: `bridge_method` / source: `bridge.py:1457`
 - signature: `cmsRegisterLayer(layer_name=…, mapping=…, geometry_key=…, selected_only=…, publish=…, max_features=…)`
 - 要約: ベクタレイヤを Re:Earth CMS アイテムとして登録する。
 - needs_runtime=True / standalone_ok=False
@@ -955,7 +1237,7 @@ flowchart LR
 
 ### bridge.cmsSchema — cmsSchema
 
-- kind: `bridge_method` / source: `bridge.py:1316`
+- kind: `bridge_method` / source: `bridge.py:1446`
 - signature: `cmsSchema(model=…)`
 - 要約: 接続先モデルのスキーマ(フィールド定義)を返す。
 - needs_runtime=True / standalone_ok=False
@@ -972,7 +1254,7 @@ flowchart LR
 
 ### bridge.cmsSettings — cmsSettings
 
-- kind: `bridge_method` / source: `bridge.py:1285`
+- kind: `bridge_method` / source: `bridge.py:1415`
 - signature: `cmsSettings(settings=…)`
 - 要約: Re:Earth CMS 接続設定を保存する。
 - needs_runtime=True / standalone_ok=False
@@ -989,7 +1271,7 @@ flowchart LR
 
 ### bridge.cmsStatus — cmsStatus
 
-- kind: `bridge_method` / source: `bridge.py:1273`
+- kind: `bridge_method` / source: `bridge.py:1403`
 - signature: `cmsStatus()`
 - 要約: Re:Earth CMS 接続設定の状態を返す。
 - needs_runtime=True / standalone_ok=False
@@ -1006,7 +1288,7 @@ flowchart LR
 
 ### bridge.cmsUploadKasc — cmsUploadKasc
 
-- kind: `bridge_method` / source: `bridge.py:1351`
+- kind: `bridge_method` / source: `bridge.py:1481`
 - signature: `cmsUploadKasc(export_dir=…, publish=…)`
 - 要約: .kasc+canvas_data/ 出力物を ZIP 化して CMS アセットとして公開する。
 - needs_runtime=True / standalone_ok=False
@@ -1023,7 +1305,7 @@ flowchart LR
 
 ### bridge.copyPermalink — copyPermalink
 
-- kind: `bridge_method` / source: `bridge.py:747`
+- kind: `bridge_method` / source: `bridge.py:769`
 - signature: `copyPermalink()`
 - 要約: 現在のパーマリンクをクリップボードへコピーする(未生成なら生成)。
 - needs_runtime=True / standalone_ok=False
@@ -1040,7 +1322,7 @@ flowchart LR
 
 ### bridge.deleteTheme — deleteTheme
 
-- kind: `bridge_method` / source: `bridge.py:937`
+- kind: `bridge_method` / source: `bridge.py:959`
 - signature: `deleteTheme(name)`
 - 要約: マップテーマを削除する。
 - needs_runtime=True / standalone_ok=False
@@ -1057,7 +1339,7 @@ flowchart LR
 
 ### bridge.endpoints — endpoints
 
-- kind: `bridge_method` / source: `bridge.py:1384`
+- kind: `bridge_method` / source: `bridge.py:1514`
 - signature: `endpoints()`
 - 要約: HTTPサーバが公開するエンドポイント一覧と基底URLを返す。
 - needs_runtime=True / standalone_ok=False
@@ -1074,7 +1356,7 @@ flowchart LR
 
 ### bridge.externalControl — externalControl
 
-- kind: `bridge_method` / source: `bridge.py:685`
+- kind: `bridge_method` / source: `bridge.py:707`
 - signature: `externalControl(enabled=…)`
 - 要約: 外部制御モード(HTTP要求で自動ナビゲート)を取得/設定する。
 - needs_runtime=True / standalone_ok=False
@@ -1091,7 +1373,7 @@ flowchart LR
 
 ### bridge.generatePermalink — generatePermalink
 
-- kind: `bridge_method` / source: `bridge.py:705`
+- kind: `bridge_method` / source: `bridge.py:727`
 - signature: `generatePermalink(theme=…)`
 - 要約: 現在の地図ビューからパーマリンクURLを生成する。
 - needs_runtime=True / standalone_ok=False
@@ -1108,7 +1390,7 @@ flowchart LR
 
 ### bridge.getSettings — getSettings
 
-- kind: `bridge_method` / source: `bridge.py:1438`
+- kind: `bridge_method` / source: `bridge.py:1568`
 - signature: `getSettings()`
 - 要約: 設定(出力先ディレクトリ・優先ポート)とバージョンを返す。
 - needs_runtime=True / standalone_ok=False
@@ -1125,7 +1407,7 @@ flowchart LR
 
 ### bridge.kascImport — kascImport
 
-- kind: `bridge_method` / source: `bridge.py:1241`
+- kind: `bridge_method` / source: `bridge.py:1371`
 - signature: `kascImport(source=…, add_to_project=…, only_visible=…, apply_camera=…, group_prefix=…, replace=…)`
 - 要約: .kasc+canvas_data/ を QGIS プロジェクトへ逆取り込みする。
 - needs_runtime=True / standalone_ok=False
@@ -1142,7 +1424,7 @@ flowchart LR
 
 ### bridge.kascInspect — kascInspect
 
-- kind: `bridge_method` / source: `bridge.py:1225`
+- kind: `bridge_method` / source: `bridge.py:1355`
 - signature: `kascInspect(source)`
 - 要約: .kasc を解析して一覧を返す(プロジェクト非変更の dry run)。
 - needs_runtime=True / standalone_ok=False
@@ -1159,8 +1441,8 @@ flowchart LR
 
 ### bridge.kasugaiExport — kasugaiExport
 
-- kind: `bridge_method` / source: `bridge.py:976`
-- signature: `kasugaiExport(output_dir=…, open_app=…, native_formats=…, hidden_as_off=…, emit_themes=…, emit_bookmarks=…, emit_launchers=…, emit_zip=…, engine=…, install=…, route=…, use_existing=…, emit_atlas=…, fields=…, where=…, limit=…, link_files=…)`
+- kind: `bridge_method` / source: `bridge.py:998`
+- signature: `kasugaiExport(output_dir=…, open_app=…, native_formats=…, hidden_as_off=…, emit_themes=…, emit_bookmarks=…, emit_launchers=…, emit_zip=…, engine=…, install=…, route=…, use_existing=…, emit_atlas=…, fields=…, where=…, limit=…, link_files=…, vector_format=…, visible_data_only=…, progress_cb=…, site_control=…)`
 - 要約: 表示中レイヤをKASUGAI Canvasプロジェクトとして出力・連携する。
 - needs_runtime=True / standalone_ok=False
 
@@ -1176,7 +1458,7 @@ flowchart LR
 
 ### bridge.listBookmarks — listBookmarks
 
-- kind: `bridge_method` / source: `bridge.py:949`
+- kind: `bridge_method` / source: `bridge.py:971`
 - signature: `listBookmarks()`
 - 要約: プロジェクト/ユーザブックマーク一覧(中心EPSG:3857)を返す。
 - needs_runtime=True / standalone_ok=False
@@ -1193,7 +1475,7 @@ flowchart LR
 
 ### bridge.listThemes — listThemes
 
-- kind: `bridge_method` / source: `bridge.py:869`
+- kind: `bridge_method` / source: `bridge.py:891`
 - signature: `listThemes()`
 - 要約: マップテーマ一覧・パネルコンボの現在選択を返す。
 - needs_runtime=True / standalone_ok=False
@@ -1210,7 +1492,7 @@ flowchart LR
 
 ### bridge.liveAddFeatures — liveAddFeatures
 
-- kind: `bridge_method` / source: `bridge.py:1721`
+- kind: `bridge_method` / source: `bridge.py:1867`
 - signature: `liveAddFeatures(name=…, geojson=…, replace=…)`
 - 要約: GeoJSON をスクラッチ(memory)レイヤとしてプロジェクトへ
 - needs_runtime=True / standalone_ok=False
@@ -1227,7 +1509,7 @@ flowchart LR
 
 ### bridge.liveSyncFlush — liveSyncFlush
 
-- kind: `bridge_method` / source: `bridge.py:1697`
+- kind: `bridge_method` / source: `bridge.py:1843`
 - signature: `liveSyncFlush()`
 - 要約: 保留中の変更を即時差分エクスポート+通知する。
 - needs_runtime=True / standalone_ok=False
@@ -1244,7 +1526,7 @@ flowchart LR
 
 ### bridge.liveSyncStart — liveSyncStart
 
-- kind: `bridge_method` / source: `bridge.py:1671`
+- kind: `bridge_method` / source: `bridge.py:1817`
 - signature: `liveSyncStart()`
 - 要約: ライブ双方向連携を有効化して監視を開始する。
 - needs_runtime=True / standalone_ok=False
@@ -1261,7 +1543,7 @@ flowchart LR
 
 ### bridge.liveSyncStatus — liveSyncStatus
 
-- kind: `bridge_method` / source: `bridge.py:1656`
+- kind: `bridge_method` / source: `bridge.py:1802`
 - signature: `liveSyncStatus()`
 - 要約: ライブ連携の状態を返す。
 - needs_runtime=True / standalone_ok=False
@@ -1278,7 +1560,7 @@ flowchart LR
 
 ### bridge.liveSyncStop — liveSyncStop
 
-- kind: `bridge_method` / source: `bridge.py:1686`
+- kind: `bridge_method` / source: `bridge.py:1832`
 - signature: `liveSyncStop()`
 - 要約: ライブ双方向連携を無効化して監視を停止する。
 - needs_runtime=True / standalone_ok=False
@@ -1295,7 +1577,7 @@ flowchart LR
 
 ### bridge.liveWriteback — liveWriteback
 
-- kind: `bridge_method` / source: `bridge.py:1704`
+- kind: `bridge_method` / source: `bridge.py:1850`
 - signature: `liveWriteback(payload=…)`
 - 要約: Canvas 側の表示/フィルタ/テーマ状態を QGIS プロジェクトへ
 - needs_runtime=True / standalone_ok=False
@@ -1312,7 +1594,7 @@ flowchart LR
 
 ### bridge.macAuth — macAuth
 
-- kind: `bridge_method` / source: `bridge.py:1617`
+- kind: `bridge_method` / source: `bridge.py:1763`
 - signature: `macAuth(enabled=…, allowed=…)`
 - 要約: MACアドレス認証を取得/設定する。
 - needs_runtime=True / standalone_ok=False
@@ -1329,7 +1611,7 @@ flowchart LR
 
 ### bridge.navigate — navigate
 
-- kind: `bridge_method` / source: `bridge.py:779`
+- kind: `bridge_method` / source: `bridge.py:801`
 - signature: `navigate(url)`
 - 要約: パーマリンクURLから地図ビューを移動する(モーダル無し)。
 - needs_runtime=True / standalone_ok=False
@@ -1346,7 +1628,7 @@ flowchart LR
 
 ### bridge.navigateTo — navigateTo
 
-- kind: `bridge_method` / source: `bridge.py:836`
+- kind: `bridge_method` / source: `bridge.py:858`
 - signature: `navigateTo(x=…, y=…, lat=…, lon=…, scale=…, zoom=…, crs=…, rotation=…, theme=…)`
 - 要約: 座標を直接指定して地図ビューを移動する。
 - needs_runtime=True / standalone_ok=False
@@ -1363,7 +1645,7 @@ flowchart LR
 
 ### bridge.openExportFolder — openExportFolder
 
-- kind: `bridge_method` / source: `bridge.py:1555`
+- kind: `bridge_method` / source: `bridge.py:1685`
 - signature: `openExportFolder()`
 - 要約: KASUGAI出力フォルダをOSのファイルマネージャで開く。
 - needs_runtime=True / standalone_ok=False
@@ -1380,7 +1662,7 @@ flowchart LR
 
 ### bridge.openExternal — openExternal
 
-- kind: `bridge_method` / source: `bridge.py:959`
+- kind: `bridge_method` / source: `bridge.py:981`
 - signature: `openExternal(service)`
 - 要約: KASUGAI Canvas を指定エンジンで起動する。
 - needs_runtime=True / standalone_ok=False
@@ -1395,9 +1677,26 @@ flowchart LR
 - 検証: 単独= / 連携=bridge_call openExternal → 応答assert
 - 結果: **skip** 2026-11-18T02:15:18+09:00 — 副作用/破壊的/外部通信操作のため手動検証対象
 
+### bridge.openKasugaiAdmin — openKasugaiAdmin
+
+- kind: `bridge_method` / source: `bridge.py:1713`
+- signature: `openKasugaiAdmin()`
+- 要約: KASUGAI Canvas の UI 設定管理画面をブラウザで開く。
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_bridge_openKasugaiAdmin["AI/bridge_call"] --> H_bridge_openKasugaiAdmin["openKasugaiAdmin"]
+  H_bridge_openKasugaiAdmin --> R_bridge_openKasugaiAdmin["QGIS/ランタイムAPI"]
+  R_bridge_openKasugaiAdmin --> OUT["結果"]
+```
+
+- 検証: 単独= / 連携=bridge_call openKasugaiAdmin → 応答assert
+- 結果: **untested**  — auto-added
+
 ### bridge.openPanel — openPanel
 
-- kind: `bridge_method` / source: `bridge.py:543`
+- kind: `bridge_method` / source: `bridge.py:565`
 - signature: `openPanel()`
 - 要約: GeoWebViewドックパネルを生成・表示する(冪等、トグルではない)。
 - needs_runtime=True / standalone_ok=False
@@ -1414,7 +1713,7 @@ flowchart LR
 
 ### bridge.openPresent — openPresent
 
-- kind: `bridge_method` / source: `bridge.py:1566`
+- kind: `bridge_method` / source: `bridge.py:1696`
 - signature: `openPresent()`
 - 要約: キャンバス画面共有ページ(/present)をブラウザで開く。
 - needs_runtime=True / standalone_ok=False
@@ -1431,7 +1730,7 @@ flowchart LR
 
 ### bridge.pluginInfo — pluginInfo
 
-- kind: `bridge_method` / source: `bridge.py:460`
+- kind: `bridge_method` / source: `bridge.py:482`
 - signature: `pluginInfo()`
 - 要約: プラグインの自己記述(id/summary/when_to_use/methods)を返す。
 - needs_runtime=True / standalone_ok=False
@@ -1448,7 +1747,7 @@ flowchart LR
 
 ### bridge.receivedHistory — receivedHistory
 
-- kind: `bridge_method` / source: `bridge.py:1583`
+- kind: `bridge_method` / source: `bridge.py:1729`
 - signature: `receivedHistory()`
 - 要約: 受領パーマリンク履歴(最新10件)を返す。
 - needs_runtime=True / standalone_ok=False
@@ -1465,7 +1764,7 @@ flowchart LR
 
 ### bridge.saveTheme — saveTheme
 
-- kind: `bridge_method` / source: `bridge.py:912`
+- kind: `bridge_method` / source: `bridge.py:934`
 - signature: `saveTheme(name=…, overwrite=…)`
 - 要約: 現在のレイヤツリー状態をマップテーマとして保存する。
 - needs_runtime=True / standalone_ok=False
@@ -1482,7 +1781,7 @@ flowchart LR
 
 ### bridge.serverStatus — serverStatus
 
-- kind: `bridge_method` / source: `bridge.py:574`
+- kind: `bridge_method` / source: `bridge.py:596`
 - signature: `serverStatus(deep=…)`
 - 要約: HTTPサーバの稼働状態・ポート・URLを返す。
 - needs_runtime=True / standalone_ok=False
@@ -1499,7 +1798,7 @@ flowchart LR
 
 ### bridge.setPort — setPort
 
-- kind: `bridge_method` / source: `bridge.py:641`
+- kind: `bridge_method` / source: `bridge.py:663`
 - signature: `setPort(port)`
 - 要約: 優先ポートを設定する。起動中ならそのポートで再起動する。
 - needs_runtime=True / standalone_ok=False
@@ -1516,7 +1815,7 @@ flowchart LR
 
 ### bridge.setSettings — setSettings
 
-- kind: `bridge_method` / source: `bridge.py:1466`
+- kind: `bridge_method` / source: `bridge.py:1596`
 - signature: `setSettings(settings=…)`
 - 要約: 設定を変更する。
 - needs_runtime=True / standalone_ok=False
@@ -1533,7 +1832,7 @@ flowchart LR
 
 ### bridge.startServer — startServer
 
-- kind: `bridge_method` / source: `bridge.py:599`
+- kind: `bridge_method` / source: `bridge.py:621`
 - signature: `startServer(port=…)`
 - 要約: HTTPサーバを起動する。port指定時はそのポートを優先する。
 - needs_runtime=True / standalone_ok=False
@@ -1550,7 +1849,7 @@ flowchart LR
 
 ### bridge.status — status
 
-- kind: `bridge_method` / source: `bridge.py:487`
+- kind: `bridge_method` / source: `bridge.py:509`
 - signature: `status()`
 - 要約: パネル・サーバ・キャンバス・入出力欄の実行時状態を返す。
 - needs_runtime=True / standalone_ok=False
@@ -1567,7 +1866,7 @@ flowchart LR
 
 ### bridge.stopServer — stopServer
 
-- kind: `bridge_method` / source: `bridge.py:632`
+- kind: `bridge_method` / source: `bridge.py:654`
 - signature: `stopServer()`
 - 要約: HTTPサーバを停止する。
 - needs_runtime=True / standalone_ok=False
@@ -1582,9 +1881,26 @@ flowchart LR
 - 検証: 単独= / 連携=bridge_call stopServer → 応答assert
 - 結果: **skip** 2026-11-18T02:15:18+09:00 — 副作用/破壊的/外部通信操作のため手動検証対象
 
+### bridge.xyzExport — xyzExport
+
+- kind: `bridge_method` / source: `bridge.py:1281`
+- signature: `xyzExport(layers=…, zmin=…, zmax=…, out_dir=…, add_to_project=…, progress_cb=…)`
+- 要約: 指定レイヤだけを XYZ タイルへ焼き付ける(独立機能)。
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_bridge_xyzExport["AI/bridge_call"] --> H_bridge_xyzExport["xyzExport"]
+  H_bridge_xyzExport --> R_bridge_xyzExport["QGIS/ランタイムAPI"]
+  R_bridge_xyzExport --> OUT["結果"]
+```
+
+- 検証: 単独= / 連携=bridge_call xyzExport → 応答assert
+- 結果: **untested**  — auto-added
+
 ### registry.kasugai_export.py:register_kasugai_project — register_kasugai_project
 
-- kind: `registry` / source: `kasugai_export.py:4293`
+- kind: `registry` / source: `kasugai_export.py:5663`
 - signature: `register_kasugai_project(kasc_path, port=…, engine=…)`
 - 要約: POST /api/projects/register で.kascを外部プロジェクト登録する。
 - needs_runtime=True / standalone_ok=False
@@ -1601,7 +1917,7 @@ flowchart LR
 
 ### registry.reearth_cms.py:register_layer — register_layer
 
-- kind: `registry` / source: `reearth_cms.py:308`
+- kind: `registry` / source: `reearth_cms.py:309`
 - signature: `register_layer(layer_name=…, mapping=…, geometry_key=…, selected_only=…, publish=…, max_features=…)`
 - 要約: 指定(またはアクティブ)ベクタレイヤを CMS アイテムとして登録する。
 - needs_runtime=True / standalone_ok=False
@@ -1616,277 +1932,192 @@ flowchart LR
 - 検証: 単独= / 連携=pyeval で属性実在+必要なら呼出
 - 結果: **pass** 2026-11-18T02:15:18+09:00 — 属性/シンボル実在確認(pyeval)
 
-### integration.bridge.py:1412 — QDesktopServices.openUrl
+### integration.bridge.py:1692 — QDesktopServices.openUrl
 
-- kind: `integration` / source: `bridge.py:1412`
+- kind: `integration` / source: `bridge.py:1692`
 - signature: `QDesktopServices.openUrl(…)`
 - 要約: 外部連携呼出
 - needs_runtime=True / standalone_ok=False
 
 ```mermaid
 flowchart LR
-  E_integration_bridge_py_1412["呼出元"] --> H_integration_bridge_py_1412["QDesktopServices.openUrl"]
-  H_integration_bridge_py_1412 --> R_integration_bridge_py_1412["QGIS/ランタイムAPI"]
-  R_integration_bridge_py_1412 --> OUT["結果"]
+  E_integration_bridge_py_1692["呼出元"] --> H_integration_bridge_py_1692["QDesktopServices.openUrl"]
+  H_integration_bridge_py_1692 --> R_integration_bridge_py_1692["QGIS/ランタイムAPI"]
+  R_integration_bridge_py_1692 --> OUT["結果"]
 ```
 
 - 検証: 単独= / 連携=連携先の実在/生成物を確認
-- 結果: **removed** 2026-11-15T22:33:28+09:00 — 連携呼出点の記録(実連携実行はbridge_method等で確認)
+- 結果: **untested**  — auto-added
 
-### integration.bridge.py:1562 — QDesktopServices.openUrl
+### integration.bridge.py:451 — QDesktopServices.openUrl
 
-- kind: `integration` / source: `bridge.py:1562`
+- kind: `integration` / source: `bridge.py:451`
 - signature: `QDesktopServices.openUrl(…)`
 - 要約: 外部連携呼出
 - needs_runtime=True / standalone_ok=False
 
 ```mermaid
 flowchart LR
-  E_integration_bridge_py_1562["呼出元"] --> H_integration_bridge_py_1562["QDesktopServices.openUrl"]
-  H_integration_bridge_py_1562 --> R_integration_bridge_py_1562["QGIS/ランタイムAPI"]
-  R_integration_bridge_py_1562 --> OUT["結果"]
+  E_integration_bridge_py_451["呼出元"] --> H_integration_bridge_py_451["QDesktopServices.openUrl"]
+  H_integration_bridge_py_451 --> R_integration_bridge_py_451["QGIS/ランタイムAPI"]
+  R_integration_bridge_py_451 --> OUT["結果"]
 ```
 
 - 検証: 単独= / 連携=連携先の実在/生成物を確認
-- 結果: **skip** 2026-11-18T02:15:18+09:00 — 連携呼出点の記録(実連携実行はbridge_method等で確認)
+- 結果: **untested**  — auto-added
 
-### integration.bridge.py:387 — QDesktopServices.openUrl
+### integration.bridge.py:453 — webbrowser.open
 
-- kind: `integration` / source: `bridge.py:387`
-- signature: `QDesktopServices.openUrl(…)`
-- 要約: 外部連携呼出
-- needs_runtime=True / standalone_ok=False
-
-```mermaid
-flowchart LR
-  E_integration_bridge_py_387["呼出元"] --> H_integration_bridge_py_387["QDesktopServices.openUrl"]
-  H_integration_bridge_py_387 --> R_integration_bridge_py_387["QGIS/ランタイムAPI"]
-  R_integration_bridge_py_387 --> OUT["結果"]
-```
-
-- 検証: 単独= / 連携=連携先の実在/生成物を確認
-- 結果: **removed** 2026-11-15T22:33:28+09:00 — 連携呼出点の記録(実連携実行はbridge_method等で確認)
-
-### integration.bridge.py:389 — webbrowser.open
-
-- kind: `integration` / source: `bridge.py:389`
+- kind: `integration` / source: `bridge.py:453`
 - signature: `webbrowser.open(…)`
 - 要約: 外部連携呼出
 - needs_runtime=True / standalone_ok=False
 
 ```mermaid
 flowchart LR
-  E_integration_bridge_py_389["呼出元"] --> H_integration_bridge_py_389["webbrowser.open"]
-  H_integration_bridge_py_389 --> R_integration_bridge_py_389["QGIS/ランタイムAPI"]
-  R_integration_bridge_py_389 --> OUT["結果"]
+  E_integration_bridge_py_453["呼出元"] --> H_integration_bridge_py_453["webbrowser.open"]
+  H_integration_bridge_py_453 --> R_integration_bridge_py_453["QGIS/ランタイムAPI"]
+  R_integration_bridge_py_453 --> OUT["結果"]
 ```
 
 - 検証: 単独= / 連携=連携先の実在/生成物を確認
-- 結果: **removed** 2026-11-15T22:33:28+09:00 — 連携呼出点の記録(実連携実行はbridge_method等で確認)
+- 結果: **untested**  — auto-added
 
-### integration.bridge.py:429 — QDesktopServices.openUrl
+### integration.kasugai_export.py:5792 — subprocess.Popen
 
-- kind: `integration` / source: `bridge.py:429`
-- signature: `QDesktopServices.openUrl(…)`
-- 要約: 外部連携呼出
-- needs_runtime=True / standalone_ok=False
-
-```mermaid
-flowchart LR
-  E_integration_bridge_py_429["呼出元"] --> H_integration_bridge_py_429["QDesktopServices.openUrl"]
-  H_integration_bridge_py_429 --> R_integration_bridge_py_429["QGIS/ランタイムAPI"]
-  R_integration_bridge_py_429 --> OUT["結果"]
-```
-
-- 検証: 単独= / 連携=連携先の実在/生成物を確認
-- 結果: **skip** 2026-11-18T02:15:18+09:00 — 連携呼出点の記録(実連携実行はbridge_method等で確認)
-
-### integration.bridge.py:431 — webbrowser.open
-
-- kind: `integration` / source: `bridge.py:431`
-- signature: `webbrowser.open(…)`
-- 要約: 外部連携呼出
-- needs_runtime=True / standalone_ok=False
-
-```mermaid
-flowchart LR
-  E_integration_bridge_py_431["呼出元"] --> H_integration_bridge_py_431["webbrowser.open"]
-  H_integration_bridge_py_431 --> R_integration_bridge_py_431["QGIS/ランタイムAPI"]
-  R_integration_bridge_py_431 --> OUT["結果"]
-```
-
-- 検証: 単独= / 連携=連携先の実在/生成物を確認
-- 結果: **skip** 2026-11-18T02:15:18+09:00 — 連携呼出点の記録(実連携実行はbridge_method等で確認)
-
-### integration.kasugai_export.py:4066 — subprocess.Popen
-
-- kind: `integration` / source: `kasugai_export.py:4066`
+- kind: `integration` / source: `kasugai_export.py:5792`
 - signature: `subprocess.Popen(…)`
 - 要約: 外部連携呼出
 - needs_runtime=True / standalone_ok=False
 
 ```mermaid
 flowchart LR
-  E_integration_kasugai_export_py_4066["呼出元"] --> H_integration_kasugai_export_py_4066["subprocess.Popen"]
-  H_integration_kasugai_export_py_4066 --> R_integration_kasugai_export_py_4066["QGIS/ランタイムAPI"]
-  R_integration_kasugai_export_py_4066 --> OUT["結果"]
+  E_integration_kasugai_export_py_5792["呼出元"] --> H_integration_kasugai_export_py_5792["subprocess.Popen"]
+  H_integration_kasugai_export_py_5792 --> R_integration_kasugai_export_py_5792["QGIS/ランタイムAPI"]
+  R_integration_kasugai_export_py_5792 --> OUT["結果"]
 ```
 
 - 検証: 単独= / 連携=連携先の実在/生成物を確認
-- 結果: **removed** 2026-11-15T22:33:28+09:00 — 連携呼出点の記録(実連携実行はbridge_method等で確認)
+- 結果: **untested**  — auto-added
 
-### integration.kasugai_export.py:4303 — subprocess.Popen
+### integration.kasugai_export.py:6029 — subprocess.Popen
 
-- kind: `integration` / source: `kasugai_export.py:4303`
+- kind: `integration` / source: `kasugai_export.py:6029`
 - signature: `subprocess.Popen(…)`
 - 要約: 外部連携呼出
 - needs_runtime=True / standalone_ok=False
 
 ```mermaid
 flowchart LR
-  E_integration_kasugai_export_py_4303["呼出元"] --> H_integration_kasugai_export_py_4303["subprocess.Popen"]
-  H_integration_kasugai_export_py_4303 --> R_integration_kasugai_export_py_4303["QGIS/ランタイムAPI"]
-  R_integration_kasugai_export_py_4303 --> OUT["結果"]
+  E_integration_kasugai_export_py_6029["呼出元"] --> H_integration_kasugai_export_py_6029["subprocess.Popen"]
+  H_integration_kasugai_export_py_6029 --> R_integration_kasugai_export_py_6029["QGIS/ランタイムAPI"]
+  R_integration_kasugai_export_py_6029 --> OUT["結果"]
 ```
 
 - 検証: 単独= / 連携=連携先の実在/生成物を確認
-- 結果: **removed** 2026-11-15T22:33:28+09:00 — 連携呼出点の記録(実連携実行はbridge_method等で確認)
+- 結果: **untested**  — auto-added
 
-### integration.kasugai_export.py:4422 — subprocess.Popen
+### integration.plugin.py:1598 — QDesktopServices.openUrl
 
-- kind: `integration` / source: `kasugai_export.py:4422`
-- signature: `subprocess.Popen(…)`
-- 要約: 外部連携呼出
-- needs_runtime=True / standalone_ok=False
-
-```mermaid
-flowchart LR
-  E_integration_kasugai_export_py_4422["呼出元"] --> H_integration_kasugai_export_py_4422["subprocess.Popen"]
-  H_integration_kasugai_export_py_4422 --> R_integration_kasugai_export_py_4422["QGIS/ランタイムAPI"]
-  R_integration_kasugai_export_py_4422 --> OUT["結果"]
-```
-
-- 検証: 単独= / 連携=連携先の実在/生成物を確認
-- 結果: **skip** 2026-11-18T02:15:18+09:00 — 連携呼出点の記録(実連携実行はbridge_method等で確認)
-
-### integration.kasugai_export.py:4659 — subprocess.Popen
-
-- kind: `integration` / source: `kasugai_export.py:4659`
-- signature: `subprocess.Popen(…)`
-- 要約: 外部連携呼出
-- needs_runtime=True / standalone_ok=False
-
-```mermaid
-flowchart LR
-  E_integration_kasugai_export_py_4659["呼出元"] --> H_integration_kasugai_export_py_4659["subprocess.Popen"]
-  H_integration_kasugai_export_py_4659 --> R_integration_kasugai_export_py_4659["QGIS/ランタイムAPI"]
-  R_integration_kasugai_export_py_4659 --> OUT["結果"]
-```
-
-- 検証: 単独= / 連携=連携先の実在/生成物を確認
-- 結果: **skip** 2026-11-18T02:15:18+09:00 — 連携呼出点の記録(実連携実行はbridge_method等で確認)
-
-### integration.plugin.py:1387 — QDesktopServices.openUrl
-
-- kind: `integration` / source: `plugin.py:1387`
+- kind: `integration` / source: `plugin.py:1598`
 - signature: `QDesktopServices.openUrl(…)`
 - 要約: 外部連携呼出
 - needs_runtime=True / standalone_ok=False
 
 ```mermaid
 flowchart LR
-  E_integration_plugin_py_1387["呼出元"] --> H_integration_plugin_py_1387["QDesktopServices.openUrl"]
-  H_integration_plugin_py_1387 --> R_integration_plugin_py_1387["QGIS/ランタイムAPI"]
-  R_integration_plugin_py_1387 --> OUT["結果"]
+  E_integration_plugin_py_1598["呼出元"] --> H_integration_plugin_py_1598["QDesktopServices.openUrl"]
+  H_integration_plugin_py_1598 --> R_integration_plugin_py_1598["QGIS/ランタイムAPI"]
+  R_integration_plugin_py_1598 --> OUT["結果"]
 ```
 
 - 検証: 単独= / 連携=連携先の実在/生成物を確認
-- 結果: **skip** 2026-11-18T02:15:18+09:00 — 連携呼出点の記録(実連携実行はbridge_method等で確認)
+- 結果: **untested**  — auto-added
 
-### integration.plugin.py:1489 — QDesktopServices.openUrl
+### integration.plugin.py:1762 — QDesktopServices.openUrl
 
-- kind: `integration` / source: `plugin.py:1489`
+- kind: `integration` / source: `plugin.py:1762`
 - signature: `QDesktopServices.openUrl(…)`
 - 要約: 外部連携呼出
 - needs_runtime=True / standalone_ok=False
 
 ```mermaid
 flowchart LR
-  E_integration_plugin_py_1489["呼出元"] --> H_integration_plugin_py_1489["QDesktopServices.openUrl"]
-  H_integration_plugin_py_1489 --> R_integration_plugin_py_1489["QGIS/ランタイムAPI"]
-  R_integration_plugin_py_1489 --> OUT["結果"]
+  E_integration_plugin_py_1762["呼出元"] --> H_integration_plugin_py_1762["QDesktopServices.openUrl"]
+  H_integration_plugin_py_1762 --> R_integration_plugin_py_1762["QGIS/ランタイムAPI"]
+  R_integration_plugin_py_1762 --> OUT["結果"]
 ```
 
 - 検証: 単独= / 連携=連携先の実在/生成物を確認
-- 結果: **skip** 2026-11-18T02:15:18+09:00 — 連携呼出点の記録(実連携実行はbridge_method等で確認)
+- 結果: **untested**  — auto-added
 
-### integration.plugin.py:1503 — QDesktopServices.openUrl
+### integration.plugin.py:1777 — QDesktopServices.openUrl
 
-- kind: `integration` / source: `plugin.py:1503`
+- kind: `integration` / source: `plugin.py:1777`
 - signature: `QDesktopServices.openUrl(…)`
 - 要約: 外部連携呼出
 - needs_runtime=True / standalone_ok=False
 
 ```mermaid
 flowchart LR
-  E_integration_plugin_py_1503["呼出元"] --> H_integration_plugin_py_1503["QDesktopServices.openUrl"]
-  H_integration_plugin_py_1503 --> R_integration_plugin_py_1503["QGIS/ランタイムAPI"]
-  R_integration_plugin_py_1503 --> OUT["結果"]
+  E_integration_plugin_py_1777["呼出元"] --> H_integration_plugin_py_1777["QDesktopServices.openUrl"]
+  H_integration_plugin_py_1777 --> R_integration_plugin_py_1777["QGIS/ランタイムAPI"]
+  R_integration_plugin_py_1777 --> OUT["結果"]
 ```
 
 - 検証: 単独= / 連携=連携先の実在/生成物を確認
-- 結果: **skip** 2026-11-18T02:15:18+09:00 — 連携呼出点の記録(実連携実行はbridge_method等で確認)
+- 結果: **untested**  — auto-added
 
-### integration.plugin.py:1835 — QDesktopServices.openUrl
+### integration.plugin.py:1822 — QDesktopServices.openUrl
 
-- kind: `integration` / source: `plugin.py:1835`
+- kind: `integration` / source: `plugin.py:1822`
 - signature: `QDesktopServices.openUrl(…)`
 - 要約: 外部連携呼出
 - needs_runtime=True / standalone_ok=False
 
 ```mermaid
 flowchart LR
-  E_integration_plugin_py_1835["呼出元"] --> H_integration_plugin_py_1835["QDesktopServices.openUrl"]
-  H_integration_plugin_py_1835 --> R_integration_plugin_py_1835["QGIS/ランタイムAPI"]
-  R_integration_plugin_py_1835 --> OUT["結果"]
+  E_integration_plugin_py_1822["呼出元"] --> H_integration_plugin_py_1822["QDesktopServices.openUrl"]
+  H_integration_plugin_py_1822 --> R_integration_plugin_py_1822["QGIS/ランタイムAPI"]
+  R_integration_plugin_py_1822 --> OUT["結果"]
 ```
 
 - 検証: 単独= / 連携=連携先の実在/生成物を確認
-- 結果: **skip** 2026-11-18T02:15:18+09:00 — 連携呼出点の記録(実連携実行はbridge_method等で確認)
+- 結果: **untested**  — auto-added
 
-### integration.server_manager.py:1098 — subprocess.check_output
+### integration.plugin.py:2006 — QDesktopServices.openUrl
 
-- kind: `integration` / source: `server_manager.py:1098`
-- signature: `subprocess.check_output(…)`
+- kind: `integration` / source: `plugin.py:2006`
+- signature: `QDesktopServices.openUrl(…)`
 - 要約: 外部連携呼出
 - needs_runtime=True / standalone_ok=False
 
 ```mermaid
 flowchart LR
-  E_integration_server_manager_py_1098["呼出元"] --> H_integration_server_manager_py_1098["subprocess.check_output"]
-  H_integration_server_manager_py_1098 --> R_integration_server_manager_py_1098["QGIS/ランタイムAPI"]
-  R_integration_server_manager_py_1098 --> OUT["結果"]
+  E_integration_plugin_py_2006["呼出元"] --> H_integration_plugin_py_2006["QDesktopServices.openUrl"]
+  H_integration_plugin_py_2006 --> R_integration_plugin_py_2006["QGIS/ランタイムAPI"]
+  R_integration_plugin_py_2006 --> OUT["結果"]
 ```
 
 - 検証: 単独= / 連携=連携先の実在/生成物を確認
-- 結果: **skip** 2026-11-18T02:15:18+09:00 — 連携呼出点の記録(実連携実行はbridge_method等で確認)
+- 結果: **untested**  — auto-added
 
-### integration.server_manager.py:1127 — subprocess.check_output
+### integration.plugin.py:2341 — QDesktopServices.openUrl
 
-- kind: `integration` / source: `server_manager.py:1127`
-- signature: `subprocess.check_output(…)`
+- kind: `integration` / source: `plugin.py:2341`
+- signature: `QDesktopServices.openUrl(…)`
 - 要約: 外部連携呼出
 - needs_runtime=True / standalone_ok=False
 
 ```mermaid
 flowchart LR
-  E_integration_server_manager_py_1127["呼出元"] --> H_integration_server_manager_py_1127["subprocess.check_output"]
-  H_integration_server_manager_py_1127 --> R_integration_server_manager_py_1127["QGIS/ランタイムAPI"]
-  R_integration_server_manager_py_1127 --> OUT["結果"]
+  E_integration_plugin_py_2341["呼出元"] --> H_integration_plugin_py_2341["QDesktopServices.openUrl"]
+  H_integration_plugin_py_2341 --> R_integration_plugin_py_2341["QGIS/ランタイムAPI"]
+  R_integration_plugin_py_2341 --> OUT["結果"]
 ```
 
 - 検証: 単独= / 連携=連携先の実在/生成物を確認
-- 結果: **skip** 2026-11-18T02:15:18+09:00 — 連携呼出点の記録(実連携実行はbridge_method等で確認)
+- 結果: **untested**  — auto-added
 
 ### integration.server_manager.py:1131 — subprocess.check_output
 
@@ -1905,243 +2136,277 @@ flowchart LR
 - 検証: 単独= / 連携=連携先の実在/生成物を確認
 - 結果: **skip** 2026-11-18T02:15:18+09:00 — 連携呼出点の記録(実連携実行はbridge_method等で確認)
 
-### integration.server_manager.py:1135 — subprocess.check_output
+### integration.server_manager.py:1160 — subprocess.check_output
 
-- kind: `integration` / source: `server_manager.py:1135`
+- kind: `integration` / source: `server_manager.py:1160`
 - signature: `subprocess.check_output(…)`
 - 要約: 外部連携呼出
 - needs_runtime=True / standalone_ok=False
 
 ```mermaid
 flowchart LR
-  E_integration_server_manager_py_1135["呼出元"] --> H_integration_server_manager_py_1135["subprocess.check_output"]
-  H_integration_server_manager_py_1135 --> R_integration_server_manager_py_1135["QGIS/ランタイムAPI"]
-  R_integration_server_manager_py_1135 --> OUT["結果"]
+  E_integration_server_manager_py_1160["呼出元"] --> H_integration_server_manager_py_1160["subprocess.check_output"]
+  H_integration_server_manager_py_1160 --> R_integration_server_manager_py_1160["QGIS/ランタイムAPI"]
+  R_integration_server_manager_py_1160 --> OUT["結果"]
 ```
 
 - 検証: 単独= / 連携=連携先の実在/生成物を確認
-- 結果: **skip** 2026-11-18T02:15:18+09:00 — 連携呼出点の記録(実連携実行はbridge_method等で確認)
+- 結果: **untested**  — auto-added
 
-### integration.server_manager.py:2882 — _socket.socket
+### integration.server_manager.py:1164 — subprocess.check_output
 
-- kind: `integration` / source: `server_manager.py:2882`
+- kind: `integration` / source: `server_manager.py:1164`
+- signature: `subprocess.check_output(…)`
+- 要約: 外部連携呼出
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_integration_server_manager_py_1164["呼出元"] --> H_integration_server_manager_py_1164["subprocess.check_output"]
+  H_integration_server_manager_py_1164 --> R_integration_server_manager_py_1164["QGIS/ランタイムAPI"]
+  R_integration_server_manager_py_1164 --> OUT["結果"]
+```
+
+- 検証: 単独= / 連携=連携先の実在/生成物を確認
+- 結果: **untested**  — auto-added
+
+### integration.server_manager.py:1168 — subprocess.check_output
+
+- kind: `integration` / source: `server_manager.py:1168`
+- signature: `subprocess.check_output(…)`
+- 要約: 外部連携呼出
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_integration_server_manager_py_1168["呼出元"] --> H_integration_server_manager_py_1168["subprocess.check_output"]
+  H_integration_server_manager_py_1168 --> R_integration_server_manager_py_1168["QGIS/ランタイムAPI"]
+  R_integration_server_manager_py_1168 --> OUT["結果"]
+```
+
+- 検証: 単独= / 連携=連携先の実在/生成物を確認
+- 結果: **untested**  — auto-added
+
+### integration.server_manager.py:2970 — _socket.socket
+
+- kind: `integration` / source: `server_manager.py:2970`
 - signature: `_socket.socket(…)`
 - 要約: 外部連携呼出
 - needs_runtime=True / standalone_ok=False
 
 ```mermaid
 flowchart LR
-  E_integration_server_manager_py_2882["呼出元"] --> H_integration_server_manager_py_2882["_socket.socket"]
-  H_integration_server_manager_py_2882 --> R_integration_server_manager_py_2882["QGIS/ランタイムAPI"]
-  R_integration_server_manager_py_2882 --> OUT["結果"]
+  E_integration_server_manager_py_2970["呼出元"] --> H_integration_server_manager_py_2970["_socket.socket"]
+  H_integration_server_manager_py_2970 --> R_integration_server_manager_py_2970["QGIS/ランタイムAPI"]
+  R_integration_server_manager_py_2970 --> OUT["結果"]
 ```
 
 - 検証: 単独= / 連携=連携先の実在/生成物を確認
-- 結果: **skip** 2026-11-18T02:15:18+09:00 — 連携呼出点の記録(実連携実行はbridge_method等で確認)
+- 結果: **untested**  — auto-added
 
-### integration.server_manager.py:2928 — socket.socket
+### integration.server_manager.py:3016 — socket.socket
 
-- kind: `integration` / source: `server_manager.py:2928`
+- kind: `integration` / source: `server_manager.py:3016`
 - signature: `socket.socket(…)`
 - 要約: 外部連携呼出
 - needs_runtime=True / standalone_ok=False
 
 ```mermaid
 flowchart LR
-  E_integration_server_manager_py_2928["呼出元"] --> H_integration_server_manager_py_2928["socket.socket"]
-  H_integration_server_manager_py_2928 --> R_integration_server_manager_py_2928["QGIS/ランタイムAPI"]
-  R_integration_server_manager_py_2928 --> OUT["結果"]
+  E_integration_server_manager_py_3016["呼出元"] --> H_integration_server_manager_py_3016["socket.socket"]
+  H_integration_server_manager_py_3016 --> R_integration_server_manager_py_3016["QGIS/ランタイムAPI"]
+  R_integration_server_manager_py_3016 --> OUT["結果"]
 ```
 
 - 検証: 単独= / 連携=連携先の実在/生成物を確認
-- 結果: **skip** 2026-11-18T02:15:18+09:00 — 連携呼出点の記録(実連携実行はbridge_method等で確認)
+- 結果: **untested**  — auto-added
 
-### integration.server_manager.py:3006 — socket.gethostname
+### integration.server_manager.py:3094 — socket.gethostname
 
-- kind: `integration` / source: `server_manager.py:3006`
+- kind: `integration` / source: `server_manager.py:3094`
 - signature: `socket.gethostname(…)`
 - 要約: 外部連携呼出
 - needs_runtime=True / standalone_ok=False
 
 ```mermaid
 flowchart LR
-  E_integration_server_manager_py_3006["呼出元"] --> H_integration_server_manager_py_3006["socket.gethostname"]
-  H_integration_server_manager_py_3006 --> R_integration_server_manager_py_3006["QGIS/ランタイムAPI"]
-  R_integration_server_manager_py_3006 --> OUT["結果"]
+  E_integration_server_manager_py_3094["呼出元"] --> H_integration_server_manager_py_3094["socket.gethostname"]
+  H_integration_server_manager_py_3094 --> R_integration_server_manager_py_3094["QGIS/ランタイムAPI"]
+  R_integration_server_manager_py_3094 --> OUT["結果"]
 ```
 
 - 検証: 単独= / 連携=連携先の実在/生成物を確認
-- 結果: **skip** 2026-11-18T02:15:18+09:00 — 連携呼出点の記録(実連携実行はbridge_method等で確認)
+- 結果: **untested**  — auto-added
 
-### integration.server_manager.py:3010 — socket.getaddrinfo
+### integration.server_manager.py:3098 — socket.getaddrinfo
 
-- kind: `integration` / source: `server_manager.py:3010`
+- kind: `integration` / source: `server_manager.py:3098`
 - signature: `socket.getaddrinfo(…)`
 - 要約: 外部連携呼出
 - needs_runtime=True / standalone_ok=False
 
 ```mermaid
 flowchart LR
-  E_integration_server_manager_py_3010["呼出元"] --> H_integration_server_manager_py_3010["socket.getaddrinfo"]
-  H_integration_server_manager_py_3010 --> R_integration_server_manager_py_3010["QGIS/ランタイムAPI"]
-  R_integration_server_manager_py_3010 --> OUT["結果"]
+  E_integration_server_manager_py_3098["呼出元"] --> H_integration_server_manager_py_3098["socket.getaddrinfo"]
+  H_integration_server_manager_py_3098 --> R_integration_server_manager_py_3098["QGIS/ランタイムAPI"]
+  R_integration_server_manager_py_3098 --> OUT["結果"]
 ```
 
 - 検証: 単独= / 連携=連携先の実在/生成物を確認
-- 結果: **skip** 2026-11-18T02:15:18+09:00 — 連携呼出点の記録(実連携実行はbridge_method等で確認)
+- 結果: **untested**  — auto-added
 
-### integration.server_manager.py:3039 — subprocess.run
+### integration.server_manager.py:3127 — subprocess.run
 
-- kind: `integration` / source: `server_manager.py:3039`
+- kind: `integration` / source: `server_manager.py:3127`
 - signature: `subprocess.run(…)`
 - 要約: 外部連携呼出
 - needs_runtime=True / standalone_ok=False
 
 ```mermaid
 flowchart LR
-  E_integration_server_manager_py_3039["呼出元"] --> H_integration_server_manager_py_3039["subprocess.run"]
-  H_integration_server_manager_py_3039 --> R_integration_server_manager_py_3039["QGIS/ランタイムAPI"]
-  R_integration_server_manager_py_3039 --> OUT["結果"]
+  E_integration_server_manager_py_3127["呼出元"] --> H_integration_server_manager_py_3127["subprocess.run"]
+  H_integration_server_manager_py_3127 --> R_integration_server_manager_py_3127["QGIS/ランタイムAPI"]
+  R_integration_server_manager_py_3127 --> OUT["結果"]
 ```
 
 - 検証: 単独= / 連携=連携先の実在/生成物を確認
-- 結果: **skip** 2026-11-18T02:15:18+09:00 — 連携呼出点の記録(実連携実行はbridge_method等で確認)
+- 結果: **untested**  — auto-added
 
-### integration.server_manager.py:3115 — subprocess.run
+### integration.server_manager.py:3203 — subprocess.run
 
-- kind: `integration` / source: `server_manager.py:3115`
+- kind: `integration` / source: `server_manager.py:3203`
 - signature: `subprocess.run(…)`
 - 要約: 外部連携呼出
 - needs_runtime=True / standalone_ok=False
 
 ```mermaid
 flowchart LR
-  E_integration_server_manager_py_3115["呼出元"] --> H_integration_server_manager_py_3115["subprocess.run"]
-  H_integration_server_manager_py_3115 --> R_integration_server_manager_py_3115["QGIS/ランタイムAPI"]
-  R_integration_server_manager_py_3115 --> OUT["結果"]
+  E_integration_server_manager_py_3203["呼出元"] --> H_integration_server_manager_py_3203["subprocess.run"]
+  H_integration_server_manager_py_3203 --> R_integration_server_manager_py_3203["QGIS/ランタイムAPI"]
+  R_integration_server_manager_py_3203 --> OUT["結果"]
 ```
 
 - 検証: 単独= / 連携=連携先の実在/生成物を確認
-- 結果: **skip** 2026-11-18T02:15:18+09:00 — 連携呼出点の記録(実連携実行はbridge_method等で確認)
+- 結果: **untested**  — auto-added
 
-### integration.server_manager.py:313 — socket.socket
+### integration.server_manager.py:3319 — subprocess.run
 
-- kind: `integration` / source: `server_manager.py:313`
+- kind: `integration` / source: `server_manager.py:3319`
+- signature: `subprocess.run(…)`
+- 要約: 外部連携呼出
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_integration_server_manager_py_3319["呼出元"] --> H_integration_server_manager_py_3319["subprocess.run"]
+  H_integration_server_manager_py_3319 --> R_integration_server_manager_py_3319["QGIS/ランタイムAPI"]
+  R_integration_server_manager_py_3319 --> OUT["結果"]
+```
+
+- 検証: 単独= / 連携=連携先の実在/生成物を確認
+- 結果: **untested**  — auto-added
+
+### integration.server_manager.py:3374 — subprocess.run
+
+- kind: `integration` / source: `server_manager.py:3374`
+- signature: `subprocess.run(…)`
+- 要約: 外部連携呼出
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_integration_server_manager_py_3374["呼出元"] --> H_integration_server_manager_py_3374["subprocess.run"]
+  H_integration_server_manager_py_3374 --> R_integration_server_manager_py_3374["QGIS/ランタイムAPI"]
+  R_integration_server_manager_py_3374 --> OUT["結果"]
+```
+
+- 検証: 単独= / 連携=連携先の実在/生成物を確認
+- 結果: **untested**  — auto-added
+
+### integration.server_manager.py:3387 — subprocess.run
+
+- kind: `integration` / source: `server_manager.py:3387`
+- signature: `subprocess.run(…)`
+- 要約: 外部連携呼出
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_integration_server_manager_py_3387["呼出元"] --> H_integration_server_manager_py_3387["subprocess.run"]
+  H_integration_server_manager_py_3387 --> R_integration_server_manager_py_3387["QGIS/ランタイムAPI"]
+  R_integration_server_manager_py_3387 --> OUT["結果"]
+```
+
+- 検証: 単独= / 連携=連携先の実在/生成物を確認
+- 結果: **untested**  — auto-added
+
+### integration.server_manager.py:342 — socket.socket
+
+- kind: `integration` / source: `server_manager.py:342`
 - signature: `socket.socket(…)`
 - 要約: 外部連携呼出
 - needs_runtime=True / standalone_ok=False
 
 ```mermaid
 flowchart LR
-  E_integration_server_manager_py_313["呼出元"] --> H_integration_server_manager_py_313["socket.socket"]
-  H_integration_server_manager_py_313 --> R_integration_server_manager_py_313["QGIS/ランタイムAPI"]
-  R_integration_server_manager_py_313 --> OUT["結果"]
+  E_integration_server_manager_py_342["呼出元"] --> H_integration_server_manager_py_342["socket.socket"]
+  H_integration_server_manager_py_342 --> R_integration_server_manager_py_342["QGIS/ランタイムAPI"]
+  R_integration_server_manager_py_342 --> OUT["結果"]
 ```
 
 - 検証: 単独= / 連携=連携先の実在/生成物を確認
-- 結果: **skip** 2026-11-18T02:15:18+09:00 — 連携呼出点の記録(実連携実行はbridge_method等で確認)
+- 結果: **untested**  — auto-added
 
-### integration.server_manager.py:316 — server_socket.bind
+### integration.server_manager.py:345 — server_socket.bind
 
-- kind: `integration` / source: `server_manager.py:316`
+- kind: `integration` / source: `server_manager.py:345`
 - signature: `server_socket.bind(…)`
 - 要約: 外部連携呼出
 - needs_runtime=True / standalone_ok=False
 
 ```mermaid
 flowchart LR
-  E_integration_server_manager_py_316["呼出元"] --> H_integration_server_manager_py_316["server_socket.bind"]
-  H_integration_server_manager_py_316 --> R_integration_server_manager_py_316["QGIS/ランタイムAPI"]
-  R_integration_server_manager_py_316 --> OUT["結果"]
+  E_integration_server_manager_py_345["呼出元"] --> H_integration_server_manager_py_345["server_socket.bind"]
+  H_integration_server_manager_py_345 --> R_integration_server_manager_py_345["QGIS/ランタイムAPI"]
+  R_integration_server_manager_py_345 --> OUT["結果"]
 ```
 
 - 検証: 単独= / 連携=連携先の実在/生成物を確認
-- 結果: **skip** 2026-11-18T02:15:18+09:00 — 連携呼出点の記録(実連携実行はbridge_method等で確認)
+- 結果: **untested**  — auto-added
 
-### integration.server_manager.py:317 — server_socket.listen
+### integration.server_manager.py:346 — server_socket.listen
 
-- kind: `integration` / source: `server_manager.py:317`
+- kind: `integration` / source: `server_manager.py:346`
 - signature: `server_socket.listen(…)`
 - 要約: 外部連携呼出
 - needs_runtime=True / standalone_ok=False
 
 ```mermaid
 flowchart LR
-  E_integration_server_manager_py_317["呼出元"] --> H_integration_server_manager_py_317["server_socket.listen"]
-  H_integration_server_manager_py_317 --> R_integration_server_manager_py_317["QGIS/ランタイムAPI"]
-  R_integration_server_manager_py_317 --> OUT["結果"]
+  E_integration_server_manager_py_346["呼出元"] --> H_integration_server_manager_py_346["server_socket.listen"]
+  H_integration_server_manager_py_346 --> R_integration_server_manager_py_346["QGIS/ランタイムAPI"]
+  R_integration_server_manager_py_346 --> OUT["結果"]
 ```
 
 - 検証: 単独= / 連携=連携先の実在/生成物を確認
-- 結果: **skip** 2026-11-18T02:15:18+09:00 — 連携呼出点の記録(実連携実行はbridge_method等で確認)
+- 結果: **untested**  — auto-added
 
-### integration.server_manager.py:318 — server_socket.settimeout
+### integration.server_manager.py:347 — server_socket.settimeout
 
-- kind: `integration` / source: `server_manager.py:318`
+- kind: `integration` / source: `server_manager.py:347`
 - signature: `server_socket.settimeout(…)`
 - 要約: 外部連携呼出
 - needs_runtime=True / standalone_ok=False
 
 ```mermaid
 flowchart LR
-  E_integration_server_manager_py_318["呼出元"] --> H_integration_server_manager_py_318["server_socket.settimeout"]
-  H_integration_server_manager_py_318 --> R_integration_server_manager_py_318["QGIS/ランタイムAPI"]
-  R_integration_server_manager_py_318 --> OUT["結果"]
+  E_integration_server_manager_py_347["呼出元"] --> H_integration_server_manager_py_347["server_socket.settimeout"]
+  H_integration_server_manager_py_347 --> R_integration_server_manager_py_347["QGIS/ランタイムAPI"]
+  R_integration_server_manager_py_347 --> OUT["結果"]
 ```
 
 - 検証: 単独= / 連携=連携先の実在/生成物を確認
-- 結果: **skip** 2026-11-18T02:15:18+09:00 — 連携呼出点の記録(実連携実行はbridge_method等で確認)
-
-### integration.server_manager.py:3231 — subprocess.run
-
-- kind: `integration` / source: `server_manager.py:3231`
-- signature: `subprocess.run(…)`
-- 要約: 外部連携呼出
-- needs_runtime=True / standalone_ok=False
-
-```mermaid
-flowchart LR
-  E_integration_server_manager_py_3231["呼出元"] --> H_integration_server_manager_py_3231["subprocess.run"]
-  H_integration_server_manager_py_3231 --> R_integration_server_manager_py_3231["QGIS/ランタイムAPI"]
-  R_integration_server_manager_py_3231 --> OUT["結果"]
-```
-
-- 検証: 単独= / 連携=連携先の実在/生成物を確認
-- 結果: **skip** 2026-11-18T02:15:18+09:00 — 連携呼出点の記録(実連携実行はbridge_method等で確認)
-
-### integration.server_manager.py:3286 — subprocess.run
-
-- kind: `integration` / source: `server_manager.py:3286`
-- signature: `subprocess.run(…)`
-- 要約: 外部連携呼出
-- needs_runtime=True / standalone_ok=False
-
-```mermaid
-flowchart LR
-  E_integration_server_manager_py_3286["呼出元"] --> H_integration_server_manager_py_3286["subprocess.run"]
-  H_integration_server_manager_py_3286 --> R_integration_server_manager_py_3286["QGIS/ランタイムAPI"]
-  R_integration_server_manager_py_3286 --> OUT["結果"]
-```
-
-- 検証: 単独= / 連携=連携先の実在/生成物を確認
-- 結果: **skip** 2026-11-18T02:15:18+09:00 — 連携呼出点の記録(実連携実行はbridge_method等で確認)
-
-### integration.server_manager.py:3299 — subprocess.run
-
-- kind: `integration` / source: `server_manager.py:3299`
-- signature: `subprocess.run(…)`
-- 要約: 外部連携呼出
-- needs_runtime=True / standalone_ok=False
-
-```mermaid
-flowchart LR
-  E_integration_server_manager_py_3299["呼出元"] --> H_integration_server_manager_py_3299["subprocess.run"]
-  H_integration_server_manager_py_3299 --> R_integration_server_manager_py_3299["QGIS/ランタイムAPI"]
-  R_integration_server_manager_py_3299 --> OUT["結果"]
-```
-
-- 検証: 単独= / 連携=連携先の実在/生成物を確認
-- 結果: **skip** 2026-11-18T02:15:18+09:00 — 連携呼出点の記録(実連携実行はbridge_method等で確認)
+- 結果: **untested**  — auto-added
 
 ### ai.bridge_route — bridge_call経由全到達
 
@@ -2308,7 +2573,7 @@ flowchart LR
 
 ### logic_fn.kasc_import.py:import_kasc — import_kasc
 
-- kind: `logic_fn` / source: `kasc_import.py:939`
+- kind: `logic_fn` / source: `kasc_import.py:953`
 - signature: `import_kasc(source, iface=…, add_to_project=…, only_visible=…, apply_camera=…, group_prefix=…, replace=…, timeout=…)`
 - 要約: .kasc を QGIS プロジェクトへ再構成する(GUIスレッド前提)。
 - needs_runtime=True / standalone_ok=False
@@ -2325,7 +2590,7 @@ flowchart LR
 
 ### logic_fn.kasc_import.py:inspect_kasc — inspect_kasc
 
-- kind: `logic_fn` / source: `kasc_import.py:305`
+- kind: `logic_fn` / source: `kasc_import.py:306`
 - signature: `inspect_kasc(source, timeout=…)`
 - 要約: .kasc を解析し参照を解決した一覧を返す(QGIS副作用なし)。
 - needs_runtime=True / standalone_ok=False
@@ -2342,7 +2607,7 @@ flowchart LR
 
 ### logic_fn.kasc_import.py:parse_kasc — parse_kasc
 
-- kind: `logic_fn` / source: `kasc_import.py:125`
+- kind: `logic_fn` / source: `kasc_import.py:126`
 - signature: `parse_kasc(text)`
 - 要約: .kasc テキストを構造化 dict へ変換する(stdlib のみ)。
 - needs_runtime=True / standalone_ok=False
@@ -2359,7 +2624,7 @@ flowchart LR
 
 ### logic_fn.kasc_import.py:resolve_ref — resolve_ref
 
-- kind: `logic_fn` / source: `kasc_import.py:280`
+- kind: `logic_fn` / source: `kasc_import.py:281`
 - signature: `resolve_ref(ref, base)`
 - 要約: canvas_data/x.gpkg 等の相対参照を base(.kasc の所在)から絶対化する。
 - needs_runtime=True / standalone_ok=False
@@ -2376,7 +2641,7 @@ flowchart LR
 
 ### logic_fn.kasugai_export.py:build_export_zip — build_export_zip
 
-- kind: `logic_fn` / source: `kasugai_export.py:4227`
+- kind: `logic_fn` / source: `kasugai_export.py:5597`
 - signature: `build_export_zip(out_dir=…)`
 - 要約: エクスポート物一式を kasugai_canvas_<tag>.zip 相当の bytes で返す。
 - needs_runtime=True / standalone_ok=False
@@ -2393,7 +2658,7 @@ flowchart LR
 
 ### logic_fn.kasugai_export.py:build_hosted_view_url — build_hosted_view_url
 
-- kind: `logic_fn` / source: `kasugai_export.py:749`
+- kind: `logic_fn` / source: `kasugai_export.py:1052`
 - signature: `build_hosted_view_url(kasc_path, engine=…, port=…, channel=…)`
 - 要約: ホスト版エンジン + geo_webviewサーバのデータ配信で .kasc を開くURL。
 - needs_runtime=True / standalone_ok=False
@@ -2410,7 +2675,7 @@ flowchart LR
 
 ### logic_fn.kasugai_export.py:build_kasugai_url — build_kasugai_url
 
-- kind: `logic_fn` / source: `kasugai_export.py:4275`
+- kind: `logic_fn` / source: `kasugai_export.py:5645`
 - signature: `build_kasugai_url(project_id, engine=…, port=…)`
 - 要約: KASUGAI Canvas のプロジェクトURLを構築する。
 - needs_runtime=True / standalone_ok=False
@@ -2427,7 +2692,7 @@ flowchart LR
 
 ### logic_fn.kasugai_export.py:build_local_view_url — build_local_view_url
 
-- kind: `logic_fn` / source: `kasugai_export.py:4381`
+- kind: `logic_fn` / source: `kasugai_export.py:5751`
 - signature: `build_local_view_url(kasc_path, engine=…, port=…)`
 - 要約: geo_webview の HTTP サーバ経由で .kasc を開くURLを組み立てる。
 - needs_runtime=True / standalone_ok=False
@@ -2444,7 +2709,7 @@ flowchart LR
 
 ### logic_fn.kasugai_export.py:default_install_dir — default_install_dir
 
-- kind: `logic_fn` / source: `kasugai_export.py:4522`
+- kind: `logic_fn` / source: `kasugai_export.py:5892`
 - signature: `default_install_dir()`
 - 要約: 既定インストール先。インストーラ既定の C:\kasugai\kasugai_canvas
 - needs_runtime=True / standalone_ok=False
@@ -2461,7 +2726,7 @@ flowchart LR
 
 ### logic_fn.kasugai_export.py:default_output_dir — default_output_dir
 
-- kind: `logic_fn` / source: `kasugai_export.py:483`
+- kind: `logic_fn` / source: `kasugai_export.py:524`
 - signature: `default_output_dir()`
 - 要約: 既定出力先: <ドキュメント>/kasugai_canvas_qgis。
 - needs_runtime=True / standalone_ok=False
@@ -2478,7 +2743,7 @@ flowchart LR
 
 ### logic_fn.kasugai_export.py:detect_kasugai — detect_kasugai
 
-- kind: `logic_fn` / source: `kasugai_export.py:4260`
+- kind: `logic_fn` / source: `kasugai_export.py:5630`
 - signature: `detect_kasugai(port=…)`
 - 要約: KASUGAIローカルサーバが稼働していればcapabilitiesを返す。
 - needs_runtime=True / standalone_ok=False
@@ -2495,7 +2760,7 @@ flowchart LR
 
 ### logic_fn.kasugai_export.py:detect_kasugai_install_dir — detect_kasugai_install_dir
 
-- kind: `logic_fn` / source: `kasugai_export.py:556`
+- kind: `logic_fn` / source: `kasugai_export.py:597`
 - signature: `detect_kasugai_install_dir()`
 - 要約: KASUGAI Canvas のインストール先を特定して返す（見つからなければ None）。
 - needs_runtime=True / standalone_ok=False
@@ -2512,7 +2777,7 @@ flowchart LR
 
 ### logic_fn.kasugai_export.py:ensure_kasugai_running — ensure_kasugai_running
 
-- kind: `logic_fn` / source: `kasugai_export.py:4469`
+- kind: `logic_fn` / source: `kasugai_export.py:5839`
 - signature: `ensure_kasugai_running(kasc_path=…, timeout=…, pump_events=…)`
 - 要約: KASUGAI Canvas ローカルサーバを使える状態にして capabilities を返す。
 - needs_runtime=True / standalone_ok=False
@@ -2529,7 +2794,7 @@ flowchart LR
 
 ### logic_fn.kasugai_export.py:existing_export — existing_export
 
-- kind: `logic_fn` / source: `kasugai_export.py:645`
+- kind: `logic_fn` / source: `kasugai_export.py:686`
 - signature: `existing_export(output_dir=…)`
 - 要約: 既にエクスポート済みの ``kasugai_canvas.kasc`` を探す。
 - needs_runtime=True / standalone_ok=False
@@ -2546,8 +2811,8 @@ flowchart LR
 
 ### logic_fn.kasugai_export.py:export_kasugai_project — export_kasugai_project
 
-- kind: `logic_fn` / source: `kasugai_export.py:3428`
-- signature: `export_kasugai_project(iface, out_dir=…, visible_only=…, native_formats=…, hidden_as_off=…, emit_themes=…, emit_bookmarks=…, emit_launchers=…, emit_zip=…, emit_atlas=…, changed=…, live_url=…, fields=…, where=…, limit=…, link_files=…)`
+- kind: `logic_fn` / source: `kasugai_export.py:4534`
+- signature: `export_kasugai_project(iface, out_dir=…, visible_only=…, native_formats=…, hidden_as_off=…, emit_themes=…, emit_bookmarks=…, emit_launchers=…, emit_zip=…, emit_atlas=…, changed=…, live_url=…, fields=…, where=…, limit=…, link_files=…, vector_format=…, visible_data_only=…, progress_cb=…, site_control=…)`
 - 要約: レイヤツリーを KASUGAI Canvas プロジェクトとして出力する。
 - needs_runtime=True / standalone_ok=False
 
@@ -2561,9 +2826,26 @@ flowchart LR
 - 検証: 単独= / 連携=pyeval で属性実在+必要なら呼出
 - 結果: **pass** 2026-11-18T02:15:18+09:00 — 属性/シンボル実在確認(pyeval)
 
+### logic_fn.kasugai_export.py:export_layers_xyz — export_layers_xyz
+
+- kind: `logic_fn` / source: `kasugai_export.py:3581`
+- signature: `export_layers_xyz(layers, out_dir=…, zmin=…, zmax=…, add_to_project=…, progress_cb=…)`
+- 要約: 指定レイヤだけを QGIS レンダラで XYZ PNG タイルへ焼き付ける。
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_logic_fn_kasugai_export_py_export_layers_xyz["呼出元"] --> H_logic_fn_kasugai_export_py_export_layers_xyz["export_layers_xyz"]
+  H_logic_fn_kasugai_export_py_export_layers_xyz --> R_logic_fn_kasugai_export_py_export_layers_xyz["QGIS/ランタイムAPI"]
+  R_logic_fn_kasugai_export_py_export_layers_xyz --> OUT["結果"]
+```
+
+- 検証: 単独= / 連携=pyeval で属性実在+必要なら呼出
+- 結果: **untested**  — auto-added
+
 ### logic_fn.kasugai_export.py:export_zip_name — export_zip_name
 
-- kind: `logic_fn` / source: `kasugai_export.py:709`
+- kind: `logic_fn` / source: `kasugai_export.py:1012`
 - signature: `export_zip_name(channel=…)`
 - 要約: エクスポートZIPのファイル名を返す。
 - needs_runtime=True / standalone_ok=False
@@ -2580,7 +2862,7 @@ flowchart LR
 
 ### logic_fn.kasugai_export.py:find_kasugai_engine_dir — find_kasugai_engine_dir
 
-- kind: `logic_fn` / source: `kasugai_export.py:4364`
+- kind: `logic_fn` / source: `kasugai_export.py:5734`
 - signature: `find_kasugai_engine_dir(engine=…)`
 - 要約: インストール済みCanvas web/ 内の ``<engine>/`` ディレクトリを返す。
 - needs_runtime=True / standalone_ok=False
@@ -2597,7 +2879,7 @@ flowchart LR
 
 ### logic_fn.kasugai_export.py:find_kasugai_exe — find_kasugai_exe
 
-- kind: `logic_fn` / source: `kasugai_export.py:4325`
+- kind: `logic_fn` / source: `kasugai_export.py:5695`
 - signature: `find_kasugai_exe()`
 - 要約: 起動可能な kasugai_canvas.exe のパスを返す（見つからなければ None）。
 - needs_runtime=True / standalone_ok=False
@@ -2614,7 +2896,7 @@ flowchart LR
 
 ### logic_fn.kasugai_export.py:find_kasugai_web_dir — find_kasugai_web_dir
 
-- kind: `logic_fn` / source: `kasugai_export.py:4341`
+- kind: `logic_fn` / source: `kasugai_export.py:5711`
 - signature: `find_kasugai_web_dir()`
 - 要約: インストール済み KASUGAI Canvas の配信用 ``web/`` ディレクトリを返す。
 - needs_runtime=True / standalone_ok=False
@@ -2631,7 +2913,7 @@ flowchart LR
 
 ### logic_fn.kasugai_export.py:get_hosted_channel — get_hosted_channel
 
-- kind: `logic_fn` / source: `kasugai_export.py:700`
+- kind: `logic_fn` / source: `kasugai_export.py:1003`
 - signature: `get_hosted_channel()`
 - 要約: QSettings の kasugai_hosted_channel(未設定は 'stable')を返す。
 - needs_runtime=True / standalone_ok=False
@@ -2648,7 +2930,7 @@ flowchart LR
 
 ### logic_fn.kasugai_export.py:get_kasugai_install_dir — get_kasugai_install_dir
 
-- kind: `logic_fn` / source: `kasugai_export.py:519`
+- kind: `logic_fn` / source: `kasugai_export.py:560`
 - signature: `get_kasugai_install_dir()`
 - 要約: QSettings の kasugai_install_path（KASUGAI Canvas インストール先）を返す。
 - needs_runtime=True / standalone_ok=False
@@ -2665,7 +2947,7 @@ flowchart LR
 
 ### logic_fn.kasugai_export.py:get_kasugai_port — get_kasugai_port
 
-- kind: `logic_fn` / source: `kasugai_export.py:681`
+- kind: `logic_fn` / source: `kasugai_export.py:722`
 - signature: `get_kasugai_port()`
 - 要約: QSettings の kasugai_port(未設定は8510)を返す。
 - needs_runtime=True / standalone_ok=False
@@ -2682,7 +2964,7 @@ flowchart LR
 
 ### logic_fn.kasugai_export.py:get_output_dir — get_output_dir
 
-- kind: `logic_fn` / source: `kasugai_export.py:499`
+- kind: `logic_fn` / source: `kasugai_export.py:540`
 - signature: `get_output_dir()`
 - 要約: QSettings の kasugai_output_path(空/'__default__'は既定)を返す。
 - needs_runtime=True / standalone_ok=False
@@ -2697,9 +2979,94 @@ flowchart LR
 - 検証: 単独= / 連携=pyeval で属性実在+必要なら呼出
 - 結果: **pass** 2026-11-18T02:15:18+09:00 — 属性/シンボル実在確認(pyeval)
 
+### logic_fn.kasugai_export.py:get_site_control — get_site_control
+
+- kind: `logic_fn` / source: `kasugai_export.py:846`
+- signature: `get_site_control()`
+- 要約: QSettings の kasugai_site_control(未設定は False)を返す。
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_logic_fn_kasugai_export_py_get_site_control["呼出元"] --> H_logic_fn_kasugai_export_py_get_site_control["get_site_control"]
+  H_logic_fn_kasugai_export_py_get_site_control --> R_logic_fn_kasugai_export_py_get_site_control["QGIS/ランタイムAPI"]
+  R_logic_fn_kasugai_export_py_get_site_control --> OUT["結果"]
+```
+
+- 検証: 単独= / 連携=pyeval で属性実在+必要なら呼出
+- 結果: **untested**  — auto-added
+
+### logic_fn.kasugai_export.py:get_vector_export_mode — get_vector_export_mode
+
+- kind: `logic_fn` / source: `kasugai_export.py:735`
+- signature: `get_vector_export_mode()`
+- 要約: QSettings の kasugai_vector_format を返す。
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_logic_fn_kasugai_export_py_get_vector_export_mode["呼出元"] --> H_logic_fn_kasugai_export_py_get_vector_export_mode["get_vector_export_mode"]
+  H_logic_fn_kasugai_export_py_get_vector_export_mode --> R_logic_fn_kasugai_export_py_get_vector_export_mode["QGIS/ランタイムAPI"]
+  R_logic_fn_kasugai_export_py_get_vector_export_mode --> OUT["結果"]
+```
+
+- 検証: 単独=import→呼出→戻り値assert / 連携=pyeval で属性実在+必要なら呼出
+- 結果: **pass** 2026-11-18T21:31:14+09:00 — vector_format スイッチ追加に伴う新規 / L2実機検証済み(recommended/native 両モードでエクスポート確認)
+
+### logic_fn.kasugai_export.py:get_visible_data_only — get_visible_data_only
+
+- kind: `logic_fn` / source: `kasugai_export.py:765`
+- signature: `get_visible_data_only()`
+- 要約: QSettings の kasugai_visible_data_only(未設定は True)を返す。
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_logic_fn_kasugai_export_py_get_visible_data_only["呼出元"] --> H_logic_fn_kasugai_export_py_get_visible_data_only["get_visible_data_only"]
+  H_logic_fn_kasugai_export_py_get_visible_data_only --> R_logic_fn_kasugai_export_py_get_visible_data_only["QGIS/ランタイムAPI"]
+  R_logic_fn_kasugai_export_py_get_visible_data_only --> OUT["結果"]
+```
+
+- 検証: 単独= / 連携=pyeval で属性実在+必要なら呼出
+- 結果: **untested**  — auto-added
+
+### logic_fn.kasugai_export.py:get_xyz_tiles_enabled — get_xyz_tiles_enabled
+
+- kind: `logic_fn` / source: `kasugai_export.py:790`
+- signature: `get_xyz_tiles_enabled()`
+- 要約: QSettings の kasugai_xyz_tiles(未設定は True)を返す。
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_logic_fn_kasugai_export_py_get_xyz_tiles_enabled["呼出元"] --> H_logic_fn_kasugai_export_py_get_xyz_tiles_enabled["get_xyz_tiles_enabled"]
+  H_logic_fn_kasugai_export_py_get_xyz_tiles_enabled --> R_logic_fn_kasugai_export_py_get_xyz_tiles_enabled["QGIS/ランタイムAPI"]
+  R_logic_fn_kasugai_export_py_get_xyz_tiles_enabled --> OUT["結果"]
+```
+
+- 検証: 単独= / 連携=pyeval で属性実在+必要なら呼出
+- 結果: **untested**  — auto-added
+
+### logic_fn.kasugai_export.py:get_xyz_zooms — get_xyz_zooms
+
+- kind: `logic_fn` / source: `kasugai_export.py:814`
+- signature: `get_xyz_zooms()`
+- 要約: QSettings の XYZ 焼き付けズーム範囲 (zmin, zmax)。
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_logic_fn_kasugai_export_py_get_xyz_zooms["呼出元"] --> H_logic_fn_kasugai_export_py_get_xyz_zooms["get_xyz_zooms"]
+  H_logic_fn_kasugai_export_py_get_xyz_zooms --> R_logic_fn_kasugai_export_py_get_xyz_zooms["QGIS/ランタイムAPI"]
+  R_logic_fn_kasugai_export_py_get_xyz_zooms --> OUT["結果"]
+```
+
+- 検証: 単独= / 連携=pyeval で属性実在+必要なら呼出
+- 結果: **untested**  — auto-added
+
 ### logic_fn.kasugai_export.py:hosted_engine_base — hosted_engine_base
 
-- kind: `logic_fn` / source: `kasugai_export.py:734`
+- kind: `logic_fn` / source: `kasugai_export.py:1037`
 - signature: `hosted_engine_base(channel=…)`
 - 要約: ホスト版エンジンのベースURL(末尾/付き)を返す。
 - needs_runtime=True / standalone_ok=False
@@ -2716,7 +3083,7 @@ flowchart LR
 
 ### logic_fn.kasugai_export.py:install_kasugai — install_kasugai
 
-- kind: `logic_fn` / source: `kasugai_export.py:4577`
+- kind: `logic_fn` / source: `kasugai_export.py:5947`
 - signature: `install_kasugai(dest_dir=…, progress_cb=…, cancel=…)`
 - 要約: KASUGAI Canvas の配布ZIPをダウンロード・展開してインストール先を返す。
 - needs_runtime=True / standalone_ok=False
@@ -2733,7 +3100,7 @@ flowchart LR
 
 ### logic_fn.kasugai_export.py:install_kasugai_setup — install_kasugai_setup
 
-- kind: `logic_fn` / source: `kasugai_export.py:4635`
+- kind: `logic_fn` / source: `kasugai_export.py:6005`
 - signature: `install_kasugai_setup(wait=…, progress_cb=…, cancel=…)`
 - 要約: NSIS セットアップをダウンロード・実行する通常インストール経路。
 - needs_runtime=True / standalone_ok=False
@@ -2750,7 +3117,7 @@ flowchart LR
 
 ### logic_fn.kasugai_export.py:kasugai_command — kasugai_command
 
-- kind: `logic_fn` / source: `kasugai_export.py:4313`
+- kind: `logic_fn` / source: `kasugai_export.py:5683`
 - signature: `kasugai_command(name, args=…, port=…)`
 - 要約: POST /api/command でチャットツールをキューイング(ベストエフォート)。
 - needs_runtime=True / standalone_ok=False
@@ -2767,7 +3134,7 @@ flowchart LR
 
 ### logic_fn.kasugai_export.py:kasugai_download_url — kasugai_download_url
 
-- kind: `logic_fn` / source: `kasugai_export.py:4509`
+- kind: `logic_fn` / source: `kasugai_export.py:5879`
 - signature: `kasugai_download_url()`
 - 要約: latest.json から配布ZIPのURLを返す（取得失敗時は既定URL）。
 - needs_runtime=True / standalone_ok=False
@@ -2784,7 +3151,7 @@ flowchart LR
 
 ### logic_fn.kasugai_export.py:kasugai_projects_dir — kasugai_projects_dir
 
-- kind: `logic_fn` / source: `kasugai_export.py:566`
+- kind: `logic_fn` / source: `kasugai_export.py:607`
 - signature: `kasugai_projects_dir()`
 - 要約: KASUGAI インストール先の projects/ ディレクトリを返す（未設定なら None）。
 - needs_runtime=True / standalone_ok=False
@@ -2801,7 +3168,7 @@ flowchart LR
 
 ### logic_fn.kasugai_export.py:kasugai_qgis_projects_dir — kasugai_qgis_projects_dir
 
-- kind: `logic_fn` / source: `kasugai_export.py:584`
+- kind: `logic_fn` / source: `kasugai_export.py:625`
 - signature: `kasugai_qgis_projects_dir()`
 - 要約: QGIS 連携プロジェクト専用の ``<install>/QGIS_projects/`` を返す。
 - needs_runtime=True / standalone_ok=False
@@ -2818,7 +3185,7 @@ flowchart LR
 
 ### logic_fn.kasugai_export.py:kasugai_setup_url — kasugai_setup_url
 
-- kind: `logic_fn` / source: `kasugai_export.py:4623`
+- kind: `logic_fn` / source: `kasugai_export.py:5993`
 - signature: `kasugai_setup_url()`
 - 要約: 配布セットアップ(NSIS EXE)のURLを返す。
 - needs_runtime=True / standalone_ok=False
@@ -2835,7 +3202,7 @@ flowchart LR
 
 ### logic_fn.kasugai_export.py:last_export_dir — last_export_dir
 
-- kind: `logic_fn` / source: `kasugai_export.py:636`
+- kind: `logic_fn` / source: `kasugai_export.py:677`
 - signature: `last_export_dir()`
 - 要約: 直近のエクスポート出力先（/export-data/ の配信ルート）。
 - needs_runtime=True / standalone_ok=False
@@ -2852,7 +3219,7 @@ flowchart LR
 
 ### logic_fn.kasugai_export.py:launch_kasugai — launch_kasugai
 
-- kind: `logic_fn` / source: `kasugai_export.py:4406`
+- kind: `logic_fn` / source: `kasugai_export.py:5776`
 - signature: `launch_kasugai(kasc_path=…, open_browser=…)`
 - 要約: kasugai_canvas.exe を起動する。起動要求に成功すれば True。
 - needs_runtime=True / standalone_ok=False
@@ -2869,7 +3236,7 @@ flowchart LR
 
 ### logic_fn.kasugai_export.py:normalize_engine — normalize_engine
 
-- kind: `logic_fn` / source: `kasugai_export.py:472`
+- kind: `logic_fn` / source: `kasugai_export.py:513`
 - signature: `normalize_engine(engine)`
 - 要約: engine 名を正規化。無効値は None を返す。
 - needs_runtime=True / standalone_ok=False
@@ -2886,7 +3253,7 @@ flowchart LR
 
 ### logic_fn.kasugai_export.py:open_kasc_with_association — open_kasc_with_association
 
-- kind: `logic_fn` / source: `kasugai_export.py:4453`
+- kind: `logic_fn` / source: `kasugai_export.py:5823`
 - signature: `open_kasc_with_association(kasc_path)`
 - 要約: .kasc ファイル関連付け経由で Canvas 起動を要求する（Windows）。
 - needs_runtime=True / standalone_ok=False
@@ -2903,7 +3270,7 @@ flowchart LR
 
 ### logic_fn.kasugai_export.py:preferred_output_dir — preferred_output_dir
 
-- kind: `logic_fn` / source: `kasugai_export.py:601`
+- kind: `logic_fn` / source: `kasugai_export.py:642`
 - signature: `preferred_output_dir(project_name=…)`
 - 要約: QGIS 連携プロジェクトの出力先ディレクトリを決める。
 - needs_runtime=True / standalone_ok=False
@@ -2920,7 +3287,7 @@ flowchart LR
 
 ### logic_fn.kasugai_export.py:project_dir_slug — project_dir_slug
 
-- kind: `logic_fn` / source: `kasugai_export.py:674`
+- kind: `logic_fn` / source: `kasugai_export.py:715`
 - signature: `project_dir_slug(name)`
 - 要約: プロジェクト名から projects/<id>/ 用の安全なスラッグを作る。
 - needs_runtime=True / standalone_ok=False
@@ -2935,9 +3302,26 @@ flowchart LR
 - 検証: 単独= / 連携=pyeval で属性実在+必要なら呼出
 - 結果: **pass** 2026-11-18T02:15:18+09:00 — 属性/シンボル実在確認(pyeval)
 
+### logic_fn.kasugai_export.py:set_filter_panel_state — set_filter_panel_state
+
+- kind: `logic_fn` / source: `kasugai_export.py:100`
+- signature: `set_filter_panel_state(state)`
+- 要約: Filter タブの選択状態を記録する(エクスポート時に plugin: 行へ反映)。
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_logic_fn_kasugai_export_py_set_filter_panel_state["呼出元"] --> H_logic_fn_kasugai_export_py_set_filter_panel_state["set_filter_panel_state"]
+  H_logic_fn_kasugai_export_py_set_filter_panel_state --> R_logic_fn_kasugai_export_py_set_filter_panel_state["QGIS/ランタイムAPI"]
+  R_logic_fn_kasugai_export_py_set_filter_panel_state --> OUT["結果"]
+```
+
+- 検証: 単独= / 連携=pyeval で属性実在+必要なら呼出
+- 結果: **untested**  — auto-added
+
 ### logic_fn.kasugai_export.py:set_output_dir — set_output_dir
 
-- kind: `logic_fn` / source: `kasugai_export.py:511`
+- kind: `logic_fn` / source: `kasugai_export.py:552`
 - signature: `set_output_dir(path)`
 - 要約: パネル等で選択した出力先を QSettings に保存する。
 - needs_runtime=True / standalone_ok=False
@@ -2952,9 +3336,94 @@ flowchart LR
 - 検証: 単独= / 連携=pyeval で属性実在+必要なら呼出
 - 結果: **pass** 2026-11-18T02:15:18+09:00 — 属性/シンボル実在確認(pyeval)
 
+### logic_fn.kasugai_export.py:set_site_control — set_site_control
+
+- kind: `logic_fn` / source: `kasugai_export.py:866`
+- signature: `set_site_control(on)`
+- 要約: カスタムレイヤタブの有効化を QSettings へ保存する。
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_logic_fn_kasugai_export_py_set_site_control["呼出元"] --> H_logic_fn_kasugai_export_py_set_site_control["set_site_control"]
+  H_logic_fn_kasugai_export_py_set_site_control --> R_logic_fn_kasugai_export_py_set_site_control["QGIS/ランタイムAPI"]
+  R_logic_fn_kasugai_export_py_set_site_control --> OUT["結果"]
+```
+
+- 検証: 単独= / 連携=pyeval で属性実在+必要なら呼出
+- 結果: **untested**  — auto-added
+
+### logic_fn.kasugai_export.py:set_vector_export_mode — set_vector_export_mode
+
+- kind: `logic_fn` / source: `kasugai_export.py:755`
+- signature: `set_vector_export_mode(mode)`
+- 要約: ベクター出力モードを QSettings へ保存する(VECTOR_EXPORT_MODES)。
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_logic_fn_kasugai_export_py_set_vector_export_mode["呼出元"] --> H_logic_fn_kasugai_export_py_set_vector_export_mode["set_vector_export_mode"]
+  H_logic_fn_kasugai_export_py_set_vector_export_mode --> R_logic_fn_kasugai_export_py_set_vector_export_mode["QGIS/ランタイムAPI"]
+  R_logic_fn_kasugai_export_py_set_vector_export_mode --> OUT["結果"]
+```
+
+- 検証: 単独=import→呼出→戻り値assert / 連携=pyeval で属性実在+必要なら呼出
+- 結果: **pass** 2026-11-18T21:31:14+09:00 — vector_format スイッチ追加に伴う新規 / L2実機検証済み(recommended/native 両モードでエクスポート確認)
+
+### logic_fn.kasugai_export.py:set_visible_data_only — set_visible_data_only
+
+- kind: `logic_fn` / source: `kasugai_export.py:782`
+- signature: `set_visible_data_only(on)`
+- 要約: 非表示レイヤのデータ変換スキップを QSettings へ保存する。
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_logic_fn_kasugai_export_py_set_visible_data_only["呼出元"] --> H_logic_fn_kasugai_export_py_set_visible_data_only["set_visible_data_only"]
+  H_logic_fn_kasugai_export_py_set_visible_data_only --> R_logic_fn_kasugai_export_py_set_visible_data_only["QGIS/ランタイムAPI"]
+  R_logic_fn_kasugai_export_py_set_visible_data_only --> OUT["結果"]
+```
+
+- 検証: 単独= / 連携=pyeval で属性実在+必要なら呼出
+- 結果: **untested**  — auto-added
+
+### logic_fn.kasugai_export.py:set_xyz_tiles_enabled — set_xyz_tiles_enabled
+
+- kind: `logic_fn` / source: `kasugai_export.py:808`
+- signature: `set_xyz_tiles_enabled(on)`
+- 要約: XYZ タイル焼き付けの有効/無効を QSettings へ保存する。
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_logic_fn_kasugai_export_py_set_xyz_tiles_enabled["呼出元"] --> H_logic_fn_kasugai_export_py_set_xyz_tiles_enabled["set_xyz_tiles_enabled"]
+  H_logic_fn_kasugai_export_py_set_xyz_tiles_enabled --> R_logic_fn_kasugai_export_py_set_xyz_tiles_enabled["QGIS/ランタイムAPI"]
+  R_logic_fn_kasugai_export_py_set_xyz_tiles_enabled --> OUT["結果"]
+```
+
+- 検証: 単独= / 連携=pyeval で属性実在+必要なら呼出
+- 結果: **untested**  — auto-added
+
+### logic_fn.kasugai_export.py:set_xyz_zooms — set_xyz_zooms
+
+- kind: `logic_fn` / source: `kasugai_export.py:838`
+- signature: `set_xyz_zooms(zmin, zmax)`
+- 要約: XYZ 焼き付けズーム範囲を QSettings へ保存する。
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_logic_fn_kasugai_export_py_set_xyz_zooms["呼出元"] --> H_logic_fn_kasugai_export_py_set_xyz_zooms["set_xyz_zooms"]
+  H_logic_fn_kasugai_export_py_set_xyz_zooms --> R_logic_fn_kasugai_export_py_set_xyz_zooms["QGIS/ランタイムAPI"]
+  R_logic_fn_kasugai_export_py_set_xyz_zooms --> OUT["結果"]
+```
+
+- 検証: 単独= / 連携=pyeval で属性実在+必要なら呼出
+- 結果: **untested**  — auto-added
+
 ### logic_fn.kasugai_export.py:wait_for_kasugai — wait_for_kasugai
 
-- kind: `logic_fn` / source: `kasugai_export.py:4430`
+- kind: `logic_fn` / source: `kasugai_export.py:5800`
 - signature: `wait_for_kasugai(timeout=…, interval=…, pump_events=…)`
 - 要約: 起動直後のローカルサーバ応答を待つ。応答があれば capabilities。
 - needs_runtime=True / standalone_ok=False
@@ -2968,6 +3437,23 @@ flowchart LR
 
 - 検証: 単独= / 連携=pyeval で属性実在+必要なら呼出
 - 結果: **pass** 2026-11-18T02:15:18+09:00 — 属性/シンボル実在確認(pyeval)
+
+### logic_fn.kasugai_export.py:xyz_tiles_dir — xyz_tiles_dir
+
+- kind: `logic_fn` / source: `kasugai_export.py:3576`
+- signature: `xyz_tiles_dir()`
+- 要約: 独立 XYZ 出力の既定ルート ``<preferred_output_dir()>/xyz_tiles/``。
+- needs_runtime=True / standalone_ok=False
+
+```mermaid
+flowchart LR
+  E_logic_fn_kasugai_export_py_xyz_tiles_dir["呼出元"] --> H_logic_fn_kasugai_export_py_xyz_tiles_dir["xyz_tiles_dir"]
+  H_logic_fn_kasugai_export_py_xyz_tiles_dir --> R_logic_fn_kasugai_export_py_xyz_tiles_dir["QGIS/ランタイムAPI"]
+  R_logic_fn_kasugai_export_py_xyz_tiles_dir --> OUT["結果"]
+```
+
+- 検証: 単独= / 連携=pyeval で属性実在+必要なら呼出
+- 結果: **untested**  — auto-added
 
 ### logic_fn.live_mcp.py:discover_payload — discover_payload
 
@@ -3084,7 +3570,7 @@ flowchart LR
 
 ### logic_fn.reearth_cms.py:create_item — create_item
 
-- kind: `logic_fn` / source: `reearth_cms.py:287`
+- kind: `logic_fn` / source: `reearth_cms.py:288`
 - signature: `create_item(item, project=…, model=…)`
 - 要約: POST /projects/{p}/models/{m}/items でアイテムを1件作成する。
 - needs_runtime=True / standalone_ok=False
@@ -3101,7 +3587,7 @@ flowchart LR
 
 ### logic_fn.reearth_cms.py:get_asset — get_asset
 
-- kind: `logic_fn` / source: `reearth_cms.py:408`
+- kind: `logic_fn` / source: `reearth_cms.py:409`
 - signature: `get_asset(asset_id)`
 - 要約: 
 - needs_runtime=True / standalone_ok=False
@@ -3118,7 +3604,7 @@ flowchart LR
 
 ### logic_fn.reearth_cms.py:get_schema — get_schema
 
-- kind: `logic_fn` / source: `reearth_cms.py:196`
+- kind: `logic_fn` / source: `reearth_cms.py:198`
 - signature: `get_schema(workspace=…, project=…, model=…)`
 - 要約: モデルのスキーマ(フィールド定義)を返す。
 - needs_runtime=True / standalone_ok=False
@@ -3169,7 +3655,7 @@ flowchart LR
 
 ### logic_fn.reearth_cms.py:layer_to_items — layer_to_items
 
-- kind: `logic_fn` / source: `reearth_cms.py:243`
+- kind: `logic_fn` / source: `reearth_cms.py:244`
 - signature: `layer_to_items(layer, mapping=…, geometry_key=…, selected_only=…)`
 - 要約: ベクタレイヤを CMS アイテム作成用フィールド配列へ変換する。
 - needs_runtime=True / standalone_ok=False
@@ -3186,7 +3672,7 @@ flowchart LR
 
 ### logic_fn.reearth_cms.py:publish_asset — publish_asset
 
-- kind: `logic_fn` / source: `reearth_cms.py:402`
+- kind: `logic_fn` / source: `reearth_cms.py:403`
 - signature: `publish_asset(asset_id)`
 - 要約: アセットを公開し assets.cms.reearth.io で配信可能にする。
 - needs_runtime=True / standalone_ok=False
@@ -3203,7 +3689,7 @@ flowchart LR
 
 ### logic_fn.reearth_cms.py:publish_item — publish_item
 
-- kind: `logic_fn` / source: `reearth_cms.py:298`
+- kind: `logic_fn` / source: `reearth_cms.py:299`
 - signature: `publish_item(item_id, project=…)`
 - 要約: アイテムを公開状態にする(Public API で読めるようにする)。
 - needs_runtime=True / standalone_ok=False
@@ -3237,7 +3723,7 @@ flowchart LR
 
 ### logic_fn.reearth_cms.py:upload_asset — upload_asset
 
-- kind: `logic_fn` / source: `reearth_cms.py:391`
+- kind: `logic_fn` / source: `reearth_cms.py:392`
 - signature: `upload_asset(file_path, project=…)`
 - 要約: multipart でアセットを作成する。戻り値はアセットJSON。
 - needs_runtime=True / standalone_ok=False
@@ -3254,7 +3740,7 @@ flowchart LR
 
 ### logic_fn.reearth_cms.py:upload_kasc_export — upload_kasc_export
 
-- kind: `logic_fn` / source: `reearth_cms.py:413`
+- kind: `logic_fn` / source: `reearth_cms.py:414`
 - signature: `upload_kasc_export(export_dir=…, publish=…)`
 - 要約: .kasc+canvas_data/ 出力物を ZIP 化して CMS アセットとして公開する。
 - needs_runtime=True / standalone_ok=False
@@ -3271,7 +3757,7 @@ flowchart LR
 
 ### logic_fn.reearth_cms.py:zip_export_dir — zip_export_dir
 
-- kind: `logic_fn` / source: `reearth_cms.py:368`
+- kind: `logic_fn` / source: `reearth_cms.py:369`
 - signature: `zip_export_dir(src_dir, zip_path=…)`
 - 要約: .kasc+canvas_data/ の出力フォルダ一式を ZIP 化する。
 - needs_runtime=True / standalone_ok=False
@@ -3347,11 +3833,13 @@ flowchart LR
 | dialog.SettingsDialog | dialog | - | ○ | pass |
 | ui.GeoWebView._on_project_saved | ui_control | - | ○ | pass |
 | ui.GeoWebView.handle_request_origin_changed | ui_control | - | ○ | pass |
+| ui.GeoWebView.on_basemap_groups_changed | ui_control | - | ○ | untested |
 | ui.GeoWebView.on_check_access_clicked | ui_control | - | ○ | pass |
 | ui.GeoWebView.on_copy_clicked_panel | ui_control | - | ○ | pass |
 | ui.GeoWebView.on_engine_combo_changed | ui_control | - | ○ | pass |
 | ui.GeoWebView.on_generate_clicked_panel | ui_control | - | ○ | pass |
 | ui.GeoWebView.on_hosted_combo_changed | ui_control | - | ○ | pass |
+| ui.GeoWebView.on_kasugai_admin_clicked | ui_control | - | ○ | untested |
 | ui.GeoWebView.on_kasugai_export_clicked | ui_control | - | ○ | pass |
 | ui.GeoWebView.on_kasugai_help_clicked | ui_control | - | ○ | pass |
 | ui.GeoWebView.on_kasugai_launch_clicked | ui_control | - | ○ | pass |
@@ -3363,10 +3851,21 @@ flowchart LR
 | ui.GeoWebView.on_present_clicked_panel | ui_control | - | ○ | pass |
 | ui.GeoWebView.on_received_selected | ui_control | - | ○ | pass |
 | ui.GeoWebView.on_save_theme_clicked_panel | ui_control | - | ○ | pass |
+| ui.GeoWebView.on_site_control_toggled | ui_control | - | ○ | untested |
 | ui.GeoWebView.on_standard_port_clicked | ui_control | - | ○ | pass |
+| ui.GeoWebView.on_vector_format_changed | ui_control | - | ○ | pass |
+| ui.GeoWebView.on_visible_only_toggled | ui_control | - | ○ | untested |
+| ui.GeoWebView.on_xyz_export_clicked | ui_control | - | ○ | untested |
+| ui.GeoWebView.on_xyz_open_clicked | ui_control | - | ○ | untested |
+| ui.GeoWebView.on_xyz_tiles_toggled | ui_control | - | ○ | untested |
+| ui.GeoWebView.on_xyz_zooms_changed | ui_control | - | ○ | untested |
 | ui.GeoWebViewPanel._on_copy_permalink_to_clipboard | ui_control | - | ○ | pass |
+| ui.GeoWebViewPanel._on_kasugai_layer_item_changed | ui_control | - | ○ | untested |
+| ui.GeoWebViewPanel._on_kasugai_view_item_checked | ui_control | - | ○ | untested |
 | ui.GeoWebViewPanel._on_paste_from_clipboard | ui_control | - | ○ | pass |
 | ui.GeoWebViewPanel._on_visibility_changed | ui_control | - | ○ | pass |
+| ui.GeoWebViewPanel._on_xyz_layer_item_changed | ui_control | - | ○ | removed |
+| ui.GeoWebViewPanel._on_xyz_tab_shown | ui_control | - | ○ | untested |
 | ui.GeoWebViewPanel.set_external_control_handler | ui_control | - | ○ | pass |
 | ui.GeoWebViewPanel.set_port_change_handler | ui_control | - | ○ | pass |
 | ui.GeoWebViewPanel.set_server_toggle_handler | ui_control | - | ○ | pass |
@@ -3377,6 +3876,8 @@ flowchart LR
 | ui.LiveSyncController._on_structure | ui_control | - | ○ | pass |
 | ui.SettingsDialog._basemap_groups_changed | ui_control | - | ○ | pass |
 | ui.SettingsDialog._hosted_channel_changed | ui_control | - | ○ | pass |
+| ui.SettingsDialog._vector_format_changed | ui_control | - | ○ | untested |
+| ui.SettingsDialog._xyz_zooms_changed | ui_control | - | ○ | untested |
 | bridge.addFirewallRule | bridge_method | - | ○ | skip |
 | bridge.applyTheme | bridge_method | - | ○ | skip |
 | bridge.checkAccess | bridge_method | - | ○ | pass |
@@ -3408,6 +3909,7 @@ flowchart LR
 | bridge.navigateTo | bridge_method | - | ○ | skip |
 | bridge.openExportFolder | bridge_method | - | ○ | skip |
 | bridge.openExternal | bridge_method | - | ○ | skip |
+| bridge.openKasugaiAdmin | bridge_method | - | ○ | untested |
 | bridge.openPanel | bridge_method | - | ○ | skip |
 | bridge.openPresent | bridge_method | - | ○ | skip |
 | bridge.pluginInfo | bridge_method | - | ○ | pass |
@@ -3419,39 +3921,37 @@ flowchart LR
 | bridge.startServer | bridge_method | - | ○ | pass |
 | bridge.status | bridge_method | - | ○ | pass |
 | bridge.stopServer | bridge_method | - | ○ | skip |
+| bridge.xyzExport | bridge_method | - | ○ | untested |
 | registry.kasugai_export.py:register_kasugai_project | registry | - | ○ | pass |
 | registry.reearth_cms.py:register_layer | registry | - | ○ | pass |
-| integration.bridge.py:1412 | integration | - | ○ | removed |
-| integration.bridge.py:1562 | integration | - | ○ | skip |
-| integration.bridge.py:387 | integration | - | ○ | removed |
-| integration.bridge.py:389 | integration | - | ○ | removed |
-| integration.bridge.py:429 | integration | - | ○ | skip |
-| integration.bridge.py:431 | integration | - | ○ | skip |
-| integration.kasugai_export.py:4066 | integration | - | ○ | removed |
-| integration.kasugai_export.py:4303 | integration | - | ○ | removed |
-| integration.kasugai_export.py:4422 | integration | - | ○ | skip |
-| integration.kasugai_export.py:4659 | integration | - | ○ | skip |
-| integration.plugin.py:1387 | integration | - | ○ | skip |
-| integration.plugin.py:1489 | integration | - | ○ | skip |
-| integration.plugin.py:1503 | integration | - | ○ | skip |
-| integration.plugin.py:1835 | integration | - | ○ | skip |
-| integration.server_manager.py:1098 | integration | - | ○ | skip |
-| integration.server_manager.py:1127 | integration | - | ○ | skip |
+| integration.bridge.py:1692 | integration | - | ○ | untested |
+| integration.bridge.py:451 | integration | - | ○ | untested |
+| integration.bridge.py:453 | integration | - | ○ | untested |
+| integration.kasugai_export.py:5792 | integration | - | ○ | untested |
+| integration.kasugai_export.py:6029 | integration | - | ○ | untested |
+| integration.plugin.py:1598 | integration | - | ○ | untested |
+| integration.plugin.py:1762 | integration | - | ○ | untested |
+| integration.plugin.py:1777 | integration | - | ○ | untested |
+| integration.plugin.py:1822 | integration | - | ○ | untested |
+| integration.plugin.py:2006 | integration | - | ○ | untested |
+| integration.plugin.py:2341 | integration | - | ○ | untested |
 | integration.server_manager.py:1131 | integration | - | ○ | skip |
-| integration.server_manager.py:1135 | integration | - | ○ | skip |
-| integration.server_manager.py:2882 | integration | - | ○ | skip |
-| integration.server_manager.py:2928 | integration | - | ○ | skip |
-| integration.server_manager.py:3006 | integration | - | ○ | skip |
-| integration.server_manager.py:3010 | integration | - | ○ | skip |
-| integration.server_manager.py:3039 | integration | - | ○ | skip |
-| integration.server_manager.py:3115 | integration | - | ○ | skip |
-| integration.server_manager.py:313 | integration | - | ○ | skip |
-| integration.server_manager.py:316 | integration | - | ○ | skip |
-| integration.server_manager.py:317 | integration | - | ○ | skip |
-| integration.server_manager.py:318 | integration | - | ○ | skip |
-| integration.server_manager.py:3231 | integration | - | ○ | skip |
-| integration.server_manager.py:3286 | integration | - | ○ | skip |
-| integration.server_manager.py:3299 | integration | - | ○ | skip |
+| integration.server_manager.py:1160 | integration | - | ○ | untested |
+| integration.server_manager.py:1164 | integration | - | ○ | untested |
+| integration.server_manager.py:1168 | integration | - | ○ | untested |
+| integration.server_manager.py:2970 | integration | - | ○ | untested |
+| integration.server_manager.py:3016 | integration | - | ○ | untested |
+| integration.server_manager.py:3094 | integration | - | ○ | untested |
+| integration.server_manager.py:3098 | integration | - | ○ | untested |
+| integration.server_manager.py:3127 | integration | - | ○ | untested |
+| integration.server_manager.py:3203 | integration | - | ○ | untested |
+| integration.server_manager.py:3319 | integration | - | ○ | untested |
+| integration.server_manager.py:3374 | integration | - | ○ | untested |
+| integration.server_manager.py:3387 | integration | - | ○ | untested |
+| integration.server_manager.py:342 | integration | - | ○ | untested |
+| integration.server_manager.py:345 | integration | - | ○ | untested |
+| integration.server_manager.py:346 | integration | - | ○ | untested |
+| integration.server_manager.py:347 | integration | - | ○ | untested |
 | ai.bridge_route | ai_integration | - | ○ | pass |
 | ai.catalog | ai_integration | - | ○ | pass |
 | ai.pluginInfo | ai_integration | - | ○ | pass |
@@ -3477,6 +3977,7 @@ flowchart LR
 | logic_fn.kasugai_export.py:ensure_kasugai_running | logic_fn | - | ○ | pass |
 | logic_fn.kasugai_export.py:existing_export | logic_fn | - | ○ | pass |
 | logic_fn.kasugai_export.py:export_kasugai_project | logic_fn | - | ○ | pass |
+| logic_fn.kasugai_export.py:export_layers_xyz | logic_fn | - | ○ | untested |
 | logic_fn.kasugai_export.py:export_zip_name | logic_fn | - | ○ | pass |
 | logic_fn.kasugai_export.py:find_kasugai_engine_dir | logic_fn | - | ○ | pass |
 | logic_fn.kasugai_export.py:find_kasugai_exe | logic_fn | - | ○ | pass |
@@ -3485,6 +3986,11 @@ flowchart LR
 | logic_fn.kasugai_export.py:get_kasugai_install_dir | logic_fn | - | ○ | pass |
 | logic_fn.kasugai_export.py:get_kasugai_port | logic_fn | - | ○ | pass |
 | logic_fn.kasugai_export.py:get_output_dir | logic_fn | - | ○ | pass |
+| logic_fn.kasugai_export.py:get_site_control | logic_fn | - | ○ | untested |
+| logic_fn.kasugai_export.py:get_vector_export_mode | logic_fn | - | ○ | pass |
+| logic_fn.kasugai_export.py:get_visible_data_only | logic_fn | - | ○ | untested |
+| logic_fn.kasugai_export.py:get_xyz_tiles_enabled | logic_fn | - | ○ | untested |
+| logic_fn.kasugai_export.py:get_xyz_zooms | logic_fn | - | ○ | untested |
 | logic_fn.kasugai_export.py:hosted_engine_base | logic_fn | - | ○ | pass |
 | logic_fn.kasugai_export.py:install_kasugai | logic_fn | - | ○ | pass |
 | logic_fn.kasugai_export.py:install_kasugai_setup | logic_fn | - | ○ | pass |
@@ -3499,8 +4005,15 @@ flowchart LR
 | logic_fn.kasugai_export.py:open_kasc_with_association | logic_fn | - | ○ | pass |
 | logic_fn.kasugai_export.py:preferred_output_dir | logic_fn | - | ○ | pass |
 | logic_fn.kasugai_export.py:project_dir_slug | logic_fn | - | ○ | pass |
+| logic_fn.kasugai_export.py:set_filter_panel_state | logic_fn | - | ○ | untested |
 | logic_fn.kasugai_export.py:set_output_dir | logic_fn | - | ○ | pass |
+| logic_fn.kasugai_export.py:set_site_control | logic_fn | - | ○ | untested |
+| logic_fn.kasugai_export.py:set_vector_export_mode | logic_fn | - | ○ | pass |
+| logic_fn.kasugai_export.py:set_visible_data_only | logic_fn | - | ○ | untested |
+| logic_fn.kasugai_export.py:set_xyz_tiles_enabled | logic_fn | - | ○ | untested |
+| logic_fn.kasugai_export.py:set_xyz_zooms | logic_fn | - | ○ | untested |
 | logic_fn.kasugai_export.py:wait_for_kasugai | logic_fn | - | ○ | pass |
+| logic_fn.kasugai_export.py:xyz_tiles_dir | logic_fn | - | ○ | untested |
 | logic_fn.live_mcp.py:discover_payload | logic_fn | ○ | - | pass |
 | logic_fn.live_mcp.py:driver_sessions | logic_fn | ○ | - | pass |
 | logic_fn.live_mcp.py:is_loopback_peer | logic_fn | ○ | - | pass |

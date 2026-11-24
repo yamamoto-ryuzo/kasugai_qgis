@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import tempfile
 import time
 import traceback
@@ -62,6 +63,48 @@ def _registry_dir():
         "QGIS_LIVE_REGISTRY",
         os.path.join(os.path.expanduser("~"), ".qgis-live"),
     )
+
+
+def _pid_alive(pid):
+    """プロセスの生存確認(best-effort)。不明な場合は True(保守的)。"""
+    try:
+        if os.name == "nt":
+            import ctypes
+            # PROCESS_QUERY_LIMITED_INFORMATION
+            h = ctypes.windll.kernel32.OpenProcess(0x1000, False, int(pid))
+            if not h:
+                return False
+            ctypes.windll.kernel32.CloseHandle(h)
+            return True
+        os.kill(int(pid), 0)
+        return True
+    except Exception:  # nosec B110  # 設計上の許容(EPERM等は生存扱い)
+        return True
+
+
+def _sweep_stale_registry(reg_dir):
+    """死んだpidの registry JSON(<pid>-<plugin>.json)を掃除する。
+
+    QGISが強制終了されると _stop() が走らず registry ファイルが残る。
+    それを検出側が順にprobeするとタイムアウトが積み上がるため、
+    起動時に自分以外の死んだpid分を消す(pid流用時は保守的に残す)。
+    """
+    try:
+        me = os.getpid()
+        for name in os.listdir(reg_dir):
+            m = re.match(r"^(\d+)-[\w-]+\.json$", name)
+            if not m:
+                continue
+            pid = int(m.group(1))
+            if pid == me or _pid_alive(pid):
+                continue
+            try:
+                os.remove(os.path.join(reg_dir, name))
+                _log(f"geo_driver: removed stale registry {name}")
+            except Exception:  # nosec B110  # 設計上の許容
+                pass
+    except Exception:  # nosec B110  # 設計上の許容
+        pass
 
 
 def _restrict_file(path):
@@ -766,6 +809,7 @@ class GeoDriverPlugin:
             # トークンを含むためユーザ限定にする
             _restrict_file(self._reg_path)
             _restrict_file(os.path.join(live_dir, "token"))
+            _sweep_stale_registry(reg_dir)
         except Exception:
             _log("geo_driver registry write failed:\n"
                  + traceback.format_exc())

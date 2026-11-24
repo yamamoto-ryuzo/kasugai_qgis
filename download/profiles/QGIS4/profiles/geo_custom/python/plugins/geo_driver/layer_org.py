@@ -444,8 +444,8 @@ class LayerOrganizer:
         if parent is group:
             return
         new_node = node.clone()
-        parent.removeChildNode(node)
         group.insertChildNode(0 if top else -1, new_node)
+        parent.removeChildNode(node)
 
     @staticmethod
     def _rename_node(layer, new_name):

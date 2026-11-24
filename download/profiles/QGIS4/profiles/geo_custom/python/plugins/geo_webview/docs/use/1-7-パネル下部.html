@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>7. パネル下部 | geo_webview ドキュメント</title>
+<meta name="description" content="geo_webview パネル下部（タブ外）の使い方 — External Control・設定ダイアログ">
+<link rel="icon" href="../favicon.ico">
+<link rel="stylesheet" href="../style.css">
+<script src="../nav.js" defer></script>
+</head>
+<body>
+<div class="container">
+<header>
+<h1>7. パネル下部（タブ外） — External Control・設定 <span class="version-badge" data-plugin-version hidden></span></h1>
+<p><a href="../index.html">geo_webview ドキュメント</a> / 使い方</p>
+</header>
+<main>
+<section>
+<h2 id="使い方">使い方</h2>
+<h3 id="external-control">External Control（外部制御）</h3>
+<ul>
+<li>パネル下部の <code>External Control</code> チェックを ON にすると、外部から受信した URL を
+自動適用して QGIS をナビゲートする</li>
+<li>パースされるパラメータ（<code>x</code>/<code>y</code>/<code>scale</code>/<code>crs</code>/
+<code>rotation</code>/<code>theme</code>）は 6. Other タブのパーマリンク形式に準じる</li>
+<li>パネル起動時に既に受信済みの URL がある場合は自動ナビゲートを実行（設定に依存）</li>
+<li>自動ナビゲートは UX を上書きするため、明確な ON/OFF トグルを持つ</li>
+</ul>
+<h3 id="設定ダイアログ">設定ダイアログ（歯車ボタン）</h3>
+<ul>
+<li>パネル右下の歯車ボタンで開く設定画面。KASUGAI Canvas インストール先・ホスト版チャンネル・
+Basemap Groups・Vector Export Format（＋Visible data only）を管理</li>
+<li>いずれもパネル側の同名コントロールと同じ QSettings を読み書きする</li>
+</ul>
+</section>
+<section>
+<h2 id="パネル下部">設定・ツール仕様</h2>
+<h3 id="external-control外部制御">External Control（外部制御）</h3>
+<ul>
+<li>機能: パネル下部の <code>External Control</code> チェック
+（<code>checkBox_external_control</code>）が有効なら、外部から受信した URL を
+自動適用して QGIS をナビゲートする。</li>
+<li>パースされるパラメータ（<code>x</code>/<code>y</code>/<code>scale</code>/<code>crs</code>/
+<code>rotation</code>/<code>theme</code>）は §6 のパーマリンク形式に準じる。</li>
+<li>動作:<ul>
+<li>受信 URL をパースして <code>navigate_from_http</code> ルートを使い QGIS の表示を更新する。</li>
+<li>パネル起動時に既に受信済みの URL がある場合は自動ナビゲートを実行（設定に依存）。</li>
+</ul>
+</li>
+<li>セキュリティ: 自動ナビゲートは UX を上書きするため、明確な ON/OFF トグルを持ち、ログに受信元・実行時刻を記録することを推奨。</li>
+</ul>
+<h3 id="設定ダイアログ">設定ダイアログ（歯車ボタン）</h3>
+<ul>
+<li><code>settings_dialog.py</code> — パネル右下の歯車ボタンで開く設定画面。
+KASUGAI Canvas インストール先・ホスト版チャンネル
+（<code>kasugai_hosted_channel</code>/<code>kasugai_hosted_value</code>）・
+Basemap Groups（<code>kasugai_basemap_groups</code>）・Vector Export Format
+（<code>kasugai_vector_format</code>＋Visible data only）を管理し、
+いずれもパネル側の同名コントロールと同じ QSettings を読み書きする。</li>
+</ul>
+</section>
+<section>
+<h2 id="関連仕様">関連仕様</h2>
+<ul>
+<li><a href="../spec.html#セキュリティ運用上の注意">仕様書「セキュリティ・運用上の注意」</a></li>
+<li><a href="1-6-Otherタブ.html">6. Other タブ（パーマリンク形式）</a></li>
+</ul>
+</section>
+</main>
+</div>
+<script type="module" src="../assets/site.js"></script>
+</body>
+</html>

@@ -132,6 +132,24 @@ Canvas のエンジンは `cesium`/`maplibre`/`openlayers`/`leaflet`/`gsimaps`/`
 - **タイル画像の形式**: 写真系は JPEG、線画・透過ありは PNG(`format=`/`transparent=`)
 - **Range リクエスト対応ホスト**を選ぶ: FlatGeobuf/PMTiles/COG/duckdb: の効果は Range 対応(GitHub Pages/S3/CloudFront 等)が前提。Range 非対応だと全量ダウンロードになる
 
+## カスタムレイヤタブ(custom-layer)とレイヤ別 .kasc オプション
+
+パネル「Layers」タブでレイヤごとの .kasc オプションを設定できる(値はレイヤ customProperty へ保存され、エクスポート時に `| key=value` として出力):
+
+| 列 | customProperty | .kasc 出力 |
+|---|---|---|
+| site | `kasugai_site` | `site=<箇所名>`(`-`/空=強制未割当・「その他」) |
+| order | `kasugai_order` | `order=<数値>`(同一 site 内順序・小さいほど最前面。VIEW の ▲▼ で設定・EDIT に列は無し) |
+| list | `kasugai_list` | `list=off`(レイヤ一覧から非表示・標準/カスタムとも。地図は描画) |
+| opts | `kasugai_opts` | 任意 `key=value` 列(空白/パイプ区切り、例 `opacity=0.5 heat=on`) | — `legend_order=asc|desc|reverse|ラベル列挙` でカスタムタブの凡例順を変更可
+
+「Custom layers tab」チェック(QSettings `kasugai_site_control`)または `kasugaiExport(site_control=True)` で、レイヤツリーのグループ名を `site=<グループ>` として一括自動付与(チェックOFFでも customProperty 個別指定は有効)。
+
+- `site=` は custom-layer タブ(表示名「レイヤ」)専用の集約キーで、標準レイヤタブには全レイヤが従来通り表示される(一覧から隠すには `list=off`(標準・カスタム両タブから除外)。タブ名重複のため組み込み側は「システムレイヤ」に改称)。custom-layer タブではグループごとの一括 on/off と、メンバー凡例(QML 分類)の表示・シンボル別 on/off ができる。point/line/polygon の種別違いをまとめて制御できる
+- `site=` 付きレイヤが1件でも出力されれば `plugin: custom-layer | name=レイヤ | url=canvas_data/custom-layer.js | before=layers-panel` を自動追加し、`geo_webview/assets/custom-layer.js`(正本=Canvas `web/cesium/PLUGIN/custom-layer/plugin.js`)を canvas_data/ へ複製。url= プロジェクト相対なので CDN/静的ホスト・全エンジンで動作
+- グループ無しレイヤは `site=` なし → custom-layer タブの「その他」に集約され一括 on/off(標準タブには残る)。ベースマップグループは対象外
+- `site=`/`order=` は custom-layer プラグインが `listLayers().options` 経由で読む独自キーであり、エンジン本体の描画順(.kasc 行順)とは別物
+
 ## 送出・検証ループ
 
 1. 変換→追加→(必要なら placeLayer で整理)

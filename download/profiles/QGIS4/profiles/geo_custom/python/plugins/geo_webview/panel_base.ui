@@ -21,522 +21,564 @@
     <number>6</number>
    </property>
    <item>
-    <widget class="QGroupBox" name="groupBox_webdist">
-     <property name="title">
-      <string>Web Distribution (Serverless)</string>
-     </property>
-     <layout class="QVBoxLayout" name="verticalLayout_webdist">
-      <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_webdist_info">
-        <item>
-         <widget class="QLabel" name="label_webdist_info">
-          <property name="text">
-           <string>Export the project as a .kasc+canvas_data/ package. Engine launcher HTMLs and kasugai_canvas.zip (Re:Earth geo_suite 'qgis:' import) are also written. It plays on Cesium / MapLibre / OpenLayers / Leaflet / GSI Maps / Navara — upload with the engine to a static host for serverless delivery.</string>
-          </property>
-          <property name="wordWrap">
-           <bool>true</bool>
-          </property>
-          <property name="styleSheet">
-           <string notr="true">color: #666;</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer_webdist_info">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>0</width>
-            <height>0</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pushButton_kasugai_help">
-          <property name="text">
-           <string notr="true">?</string>
-          </property>
-          <property name="toolTip">
-           <string>Open the geo_webview documentation site in the browser</string>
-          </property>
-          <property name="styleSheet">
-           <string notr="true">border:1px solid #bbb; border-radius:9px; font-weight:bold; color:#2c5ea8; background:#f7f9fb;</string>
-          </property>
-          <property name="minimumSize">
-           <size>
-            <width>20</width>
-            <height>20</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>20</width>
-            <height>20</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_kasugai_save">
-        <item>
-         <widget class="QPushButton" name="pushButton_kasugai_export">
-          <property name="text">
-           <string>Export</string>
-          </property>
-          <property name="toolTip">
-           <string>Export visible layers as a KASUGAI Canvas project (.kasc + canvas_data/ + engine launcher HTMLs) — files only</string>
-          </property>
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>25</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pushButton_kasugai_outdir">
-          <property name="text">
-           <string notr="true">…</string>
-          </property>
-          <property name="toolTip">
-           <string>Export destination folder — click to choose a different folder</string>
-          </property>
-          <property name="flat">
-           <bool>true</bool>
-          </property>
-          <property name="styleSheet">
-           <string notr="true">text-align:left; padding:1px 4px; border:1px solid #ccc; border-radius:3px;</string>
-          </property>
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>25</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pushButton_kasugai_outdir_reset">
-          <property name="text">
-           <string notr="true">↺</string>
-          </property>
-          <property name="toolTip">
-           <string>Reset to the default destination (KASUGAI Canvas install or Documents)</string>
-          </property>
-          <property name="minimumSize">
-           <size>
-            <width>24</width>
-            <height>25</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>28</width>
-            <height>25</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pushButton_kasugai_folder">
-          <property name="text">
-           <string>📁</string>
-          </property>
-          <property name="toolTip">
-           <string>Open the export folder (.kasc / canvas_data/ / engine launchers)</string>
-          </property>
-          <property name="minimumSize">
-           <size>
-            <width>28</width>
-            <height>25</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>32</width>
-            <height>25</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_kasugai_vformat">
-        <item>
-         <widget class="QLabel" name="label_vformat">
-          <property name="text">
-           <string>Format:</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QComboBox" name="comboBox_vector_format">
-          <property name="toolTip">
-           <string>Vector export format — 'native' references readable sources as-is; 'recommended' converts all vectors to FlatGeobuf and places them in canvas_data/ (flatgeobuf: lines, bbox=auto range reads in Canvas); 'geojson' converts ALL vectors to GeoJSON for other WebGIS interop</string>
-          </property>
-          <item>
-           <property name="text">
-            <string notr="true">native</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string notr="true">recommended</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string notr="true">geojson</string>
-           </property>
-          </item>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_kasugai_vonly">
-        <item>
-         <widget class="QCheckBox" name="checkBox_visible_only">
-          <property name="text">
-           <string>Visible data only (faster)</string>
-          </property>
-          <property name="toolTip">
-           <string>Only output visible layers — hidden layers are not written to the .kasc at all (basemap-group XYZ candidates keep their base: rows for the background selector, as before). Skipped layers cannot be turned on in Canvas. Uncheck to emit hidden layers as | off rows with all data converted (whole-project migration)</string>
-          </property>
-          <property name="checked">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_kasugai_hosted">
-        <item>
-         <widget class="QLabel" name="label_hosted">
-          <property name="text">
-           <string>CDN:</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QComboBox" name="comboBox_hosted">
-          <property name="editable">
-           <bool>true</bool>
-          </property>
-          <property name="toolTip">
-           <string>Hosted engine channel used by ▶ WebView — 'stable'/'unstable' (kasugai-canvas-web stages) or a custom base URL ending with '/'</string>
-          </property>
-          <item>
-           <property name="text">
-            <string notr="true">stable</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string notr="true">unstable</string>
-           </property>
-          </item>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pushButton_kasugai_zip">
-          <property name="text">
-           <string>ZIP</string>
-          </property>
-          <property name="toolTip">
-           <string>Download the export package as kasugai_canvas_&lt;channel&gt;.zip in the browser — generated on demand at download time (requires the HTTP server running). The filename follows the CDN combo channel. For static-host deployment and Re:Earth geo_suite 'qgis:' import</string>
-          </property>
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>25</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_kasugai_launch">
-        <item>
-         <widget class="QLabel" name="label_engine">
-          <property name="text">
-           <string>Engine:</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QComboBox" name="comboBox_engine">
-          <property name="toolTip">
-           <string>Engine used by the Open button (the exported package plays on all engines)</string>
-          </property>
-          <item>
-           <property name="text">
-            <string notr="true">Cesium (3D)</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string notr="true">MapLibre</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string notr="true">OpenLayers</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string notr="true">Leaflet</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string notr="true">GSI Maps</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string notr="true">Navara</string>
-           </property>
-          </item>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pushButton_kasugai_launch_hosted">
-          <property name="text">
-           <string>&#9654; WebView</string>
-          </property>
-          <property name="toolTip">
-           <string>Open via serverless WEB delivery — hosted engine (GitHub Pages, channel = CDN combo) + this server's data delivery (no Canvas install needed; requires internet + HTTP server running)</string>
-          </property>
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>25</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pushButton_kasugai_launch">
-          <property name="text">
-           <string>&#9654; Canvas</string>
-          </property>
-          <property name="toolTip">
-           <string>Open the exported project in KASUGAI Canvas (main integrated player) — registers the existing .kasc with a running Canvas (port 8510) and switches to it. Requires a prior export (Export button)</string>
-          </property>
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>25</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pushButton_kasugai_admin">
-          <property name="text">
-           <string>Admin</string>
-          </property>
-          <property name="toolTip">
-           <string>Open the KASUGAI Canvas UI-config admin screen in the browser — per-engine UI show/hide, control defaults and startup tab. Requires the local Canvas app running (port 8510)</string>
-          </property>
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>25</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="QGroupBox" name="groupBox_server">
-     <property name="title">
-      <string>HTTP Server</string>
-     </property>
-     <layout class="QVBoxLayout" name="verticalLayout_server">
-      <item>
-       <widget class="QLabel" name="label_server_status">
-        <property name="text">
-         <string>HTTP Server: Running on http://localhost:8089</string>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">color: green; font-weight: bold;</string>
-        </property>
-        <property name="wordWrap">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_port">
-        <item>
-         <widget class="QCheckBox" name="checkBox_server_toggle">
-          <property name="text">
-           <string>Enable</string>
-          </property>
-          <property name="checked">
-           <bool>false</bool>
-          </property>
-          <property name="toolTip">
-           <string>Start/stop the embedded HTTP server (/kasugai, /export-data/, /present, /screenshot)</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="label_port">
-          <property name="text">
-           <string>Port:</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QSpinBox" name="spinBox_port">
-          <property name="minimum">
-           <number>80</number>
-          </property>
-          <property name="maximum">
-           <number>65535</number>
-          </property>
-          <property name="value">
-           <number>8089</number>
-          </property>
-          <property name="toolTip">
-           <string>HTTP Server port number (requires server restart)</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pushButton_port_80">
-          <property name="text">
-           <string>80</string>
-          </property>
-          <property name="toolTip">
-           <string>Set HTTP standard port (80)</string>
-          </property>
-          <property name="minimumSize">
-           <size>
-            <width>35</width>
-            <height>25</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>35</width>
-            <height>25</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pushButton_port_443">
-          <property name="text">
-           <string>443</string>
-          </property>
-          <property name="toolTip">
-           <string>Set HTTPS standard port (443)</string>
-          </property>
-          <property name="minimumSize">
-           <size>
-            <width>35</width>
-            <height>25</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>35</width>
-            <height>25</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pushButton_check_access">
-          <property name="text">
-           <string>Check</string>
-          </property>
-          <property name="toolTip">
-           <string>Check external access availability</string>
-          </property>
-          <property name="minimumSize">
-           <size>
-            <width>50</width>
-            <height>25</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
     <widget class="QTabWidget" name="tabWidget_main">
+     <property name="tabPosition">
+      <enum>QTabWidget::South</enum>
+     </property>
      <property name="currentIndex">
       <number>0</number>
      </property>
-     <widget class="QWidget" name="tab_theme">
+     <widget class="QWidget" name="tab_web">
       <attribute name="title">
-       <string>Theme</string>
+       <string>Web</string>
       </attribute>
-      <layout class="QVBoxLayout" name="verticalLayout_tab_theme">
+      <layout class="QVBoxLayout" name="verticalLayout_tab_web">
+       <property name="margin">
+        <number>6</number>
+       </property>
+       <property name="spacing">
+        <number>6</number>
+       </property>
        <item>
-        <widget class="QLabel" name="label_theme_selection">
-         <property name="text">
-          <string>Theme/Layer State:</string>
+        <widget class="QGroupBox" name="groupBox_webdist">
+         <property name="title">
+          <string>Web Distribution (Serverless)</string>
          </property>
+         <layout class="QVBoxLayout" name="verticalLayout_webdist">
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_webdist_info">
+            <item>
+             <widget class="QLabel" name="label_webdist_info">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="text">
+               <string>Export the project as a .kasc+canvas_data/ package playable on Cesium / MapLibre / OpenLayers / Leaflet / GSI Maps / Navara — deliver from any static host.</string>
+              </property>
+              <property name="wordWrap">
+               <bool>true</bool>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">color: #666;</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_kasugai_help">
+              <property name="text">
+               <string notr="true">?</string>
+              </property>
+              <property name="toolTip">
+               <string>Open the geo_webview documentation site in the browser</string>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">border:1px solid #bbb; border-radius:9px; font-weight:bold; color:#2c5ea8; background:#f7f9fb;</string>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>20</width>
+                <height>20</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>20</width>
+                <height>20</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_kasugai_save">
+            <item>
+             <widget class="QPushButton" name="pushButton_kasugai_export">
+              <property name="text">
+               <string>Export</string>
+              </property>
+              <property name="toolTip">
+               <string>Export visible layers as a KASUGAI Canvas project (.kasc + canvas_data/ + engine launcher HTMLs) — files only</string>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>25</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_kasugai_zip">
+              <property name="text">
+               <string>ZIP</string>
+              </property>
+              <property name="toolTip">
+               <string>Download the export package as kasugai_canvas_&lt;channel&gt;.zip in the browser — generated on demand at download time (requires the HTTP server running). The filename follows the CDN combo channel. For static-host deployment and Re:Earth geo_suite 'qgis:' import</string>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>25</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_kasugai_outdir">
+            <item>
+             <widget class="QPushButton" name="pushButton_kasugai_outdir">
+              <property name="text">
+               <string notr="true">…</string>
+              </property>
+              <property name="toolTip">
+               <string>Export destination folder — click to choose a different folder</string>
+              </property>
+              <property name="flat">
+               <bool>true</bool>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">text-align:left; padding:1px 4px; border:1px solid #ccc; border-radius:3px;</string>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>25</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_kasugai_outdir_reset">
+              <property name="text">
+               <string notr="true">↺</string>
+              </property>
+              <property name="toolTip">
+               <string>Reset to the default destination (KASUGAI Canvas install or Documents)</string>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>24</width>
+                <height>25</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>28</width>
+                <height>25</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_kasugai_folder">
+              <property name="text">
+               <string>📁</string>
+              </property>
+              <property name="toolTip">
+               <string>Open the export folder (.kasc / canvas_data/ / engine launchers)</string>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>28</width>
+                <height>25</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>32</width>
+                <height>25</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_kasugai_vformat">
+            <item>
+             <widget class="QLabel" name="label_vformat">
+              <property name="text">
+               <string>Format:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="comboBox_vector_format">
+              <property name="toolTip">
+               <string>Vector export format — 'native' references readable sources as-is; 'recommended' converts all vectors to FlatGeobuf and places them in canvas_data/ (flatgeobuf: lines, bbox=auto range reads in Canvas); 'geojson' converts ALL vectors to GeoJSON for other WebGIS interop</string>
+              </property>
+              <item>
+               <property name="text">
+                <string notr="true">native</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string notr="true">recommended</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string notr="true">geojson</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_kasugai_vonly">
+            <item>
+             <widget class="QCheckBox" name="checkBox_visible_only">
+              <property name="text">
+               <string>Visible data only (faster)</string>
+              </property>
+              <property name="toolTip">
+               <string>Only output visible layers — hidden layers are not written to the .kasc at all (basemap-group XYZ candidates keep their base: rows for the background selector, as before). Skipped layers cannot be turned on in Canvas. Uncheck to emit hidden layers as | off rows with all data converted (whole-project migration)</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_kasugai_hosted">
+            <item>
+             <widget class="QLabel" name="label_hosted">
+              <property name="text">
+               <string>CDN:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="comboBox_hosted">
+              <property name="editable">
+               <bool>true</bool>
+              </property>
+              <property name="toolTip">
+               <string>Engine source used by ▶ WebView / Live View — 'stable'/'unstable' (kasugai-canvas-web, no Canvas install needed), 'canvas' (running Canvas app :8510), a custom http(s) base URL ending with '/', or a local web/ folder path (served at /&lt;engine&gt;/ by this server; for development or closed networks)</string>
+              </property>
+              <item>
+               <property name="text">
+                <string notr="true">stable</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string notr="true">unstable</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string notr="true">canvas</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string notr="true">custom</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="lineEdit_hosted_value">
+            <property name="toolTip">
+             <string>Engine source value — for 'custom' an http(s) base URL ending with '/' or a local web/ folder path (FILE mode — served at /&lt;engine&gt;/ by this server). Shows the resolved source for other modes (read-only)</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <layout class="QGridLayout" name="gridLayout_kasugai_launch" columnstretch="1,1">
+            <item row="0" column="0">
+             <layout class="QHBoxLayout" name="horizontalLayout_kasugai_engine">
+              <item>
+               <widget class="QLabel" name="label_engine">
+                <property name="text">
+                 <string>Engine:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QComboBox" name="comboBox_engine">
+                <property name="toolTip">
+                 <string>Engine used by the Open button (the exported package plays on all engines)</string>
+                </property>
+                <item>
+                 <property name="text">
+                  <string notr="true">Cesium (3D)</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string notr="true">MapLibre</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string notr="true">OpenLayers</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string notr="true">Leaflet</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string notr="true">GSI Maps</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string notr="true">Navara</string>
+                 </property>
+                </item>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item row="0" column="1">
+             <widget class="QPushButton" name="pushButton_kasugai_launch_hosted">
+              <property name="text">
+               <string>&#9654; WebView</string>
+              </property>
+              <property name="toolTip">
+               <string>Open via serverless WEB delivery — hosted engine (GitHub Pages, channel = CDN combo) + this server's data delivery (no Canvas install needed; requires internet + HTTP server running)</string>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>38</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>13</pointsize>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0" colspan="2">
+             <widget class="Line" name="line_kasugai_sep">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="0">
+             <widget class="QPushButton" name="pushButton_kasugai_launch">
+              <property name="text">
+               <string>Install KASUGAI Canvas</string>
+              </property>
+              <property name="toolTip">
+               <string>Install or reinstall KASUGAI Canvas (setup with .kasc file association or portable ZIP). Launching is handled by the CDN combo mode ('canvas') + ▶ WebView</string>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>25</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="0" colspan="2">
+             <layout class="QHBoxLayout" name="horizontalLayout_hosted_label">
+              <item>
+               <widget class="QLabel" name="label_hosted_value">
+                <property name="text">
+                 <string>Custom (URL/FILE):</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="horizontalSpacer_hosted">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButton_hosted_browse">
+                <property name="text">
+                 <string>&#8230;</string>
+                </property>
+                <property name="toolTip">
+                 <string>Browse for a local web/ folder (FILE mode — served at /&lt;engine&gt;/ by this server)</string>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>28</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+
+            <item row="3" column="1">
+             <widget class="QPushButton" name="pushButton_kasugai_admin">
+              <property name="text">
+               <string>Canvas Customize</string>
+              </property>
+              <property name="toolTip">
+               <string>Open the KASUGAI Canvas customization screen in the browser — per-engine UI show/hide, control defaults and startup tab. Requires the local Canvas app running (port 8510)</string>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>25</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
         </widget>
        </item>
        <item>
-        <widget class="QComboBox" name="comboBox_themes">
-         <property name="toolTip">
-          <string>Select theme option: no theme (position only) or specific theme</string>
+        <widget class="QGroupBox" name="groupBox_server">
+         <property name="title">
+          <string>HTTP Server</string>
          </property>
-         <item>
-          <property name="text">
-           <string>-- No Theme (Position Only) --</string>
-          </property>
-         </item>
+         <layout class="QVBoxLayout" name="verticalLayout_server">
+          <item>
+           <widget class="QLabel" name="label_server_status">
+            <property name="text">
+             <string>HTTP Server: Running on http://localhost:8089</string>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color: green; font-weight: bold;</string>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_port">
+            <item>
+             <widget class="QCheckBox" name="checkBox_server_toggle">
+              <property name="text">
+               <string>Enable</string>
+              </property>
+              <property name="checked">
+               <bool>false</bool>
+              </property>
+              <property name="toolTip">
+               <string>Start/stop the embedded HTTP server (/kasugai, /export-data/, /present, /screenshot)</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="label_port">
+              <property name="text">
+               <string>Port:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QSpinBox" name="spinBox_port">
+              <property name="minimum">
+               <number>80</number>
+              </property>
+              <property name="maximum">
+               <number>65535</number>
+              </property>
+              <property name="value">
+               <number>8089</number>
+              </property>
+              <property name="toolTip">
+               <string>HTTP Server port number (requires server restart)</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_port_80">
+              <property name="text">
+               <string>80</string>
+              </property>
+              <property name="toolTip">
+               <string>Set HTTP standard port (80)</string>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>35</width>
+                <height>25</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>35</width>
+                <height>25</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_port_443">
+              <property name="text">
+               <string>443</string>
+              </property>
+              <property name="toolTip">
+               <string>Set HTTPS standard port (443)</string>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>35</width>
+                <height>25</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>35</width>
+                <height>25</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_check_access">
+              <property name="text">
+               <string>Check</string>
+              </property>
+              <property name="toolTip">
+               <string>Check external access availability</string>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>50</width>
+                <height>25</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
         </widget>
        </item>
        <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_theme_save">
-         <item>
-          <widget class="QLineEdit" name="lineEdit_theme_name">
-           <property name="placeholderText">
-            <string>New theme name</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QPushButton" name="pushButton_save_theme">
-           <property name="toolTip">
-            <string>Save the current layer visibility and styles as a map theme</string>
-           </property>
-           <property name="text">
-            <string>Save Theme</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <spacer name="verticalSpacer_generate">
+        <spacer name="verticalSpacer_tab_web">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
          </property>
@@ -550,97 +592,325 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="tab_permalink">
+     <widget class="QWidget" name="tab_kasugai_layers">
       <attribute name="title">
-       <string>Permalink</string>
+       <string>Layers</string>
       </attribute>
-      <layout class="QVBoxLayout" name="verticalLayout_tab_permalink">
+      <layout class="QVBoxLayout" name="verticalLayout_tab_layers">
        <item>
-        <widget class="QPushButton" name="pushButton_generate">
+        <widget class="QCheckBox" name="checkBox_site_control">
          <property name="text">
-          <string>Generate Permalink</string>
+          <string>Custom layers tab</string>
          </property>
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>24</height>
-          </size>
+         <property name="toolTip">
+          <string>Group layers by their layer-tree group name into a custom "Layers" tab in KASUGAI Canvas (site=&lt;group&gt; on each layer row + custom-layer plugin tab for per-group on/off and ordering). All layers stay on the standard tab (shown as "System layers" while the custom tab exists); use list=off to hide a row there. Ungrouped layers go to "Misc". Per-layer override: layer custom properties kasugai_site / kasugai_order</string>
+         </property>
+         <property name="checked">
+          <bool>false</bool>
          </property>
         </widget>
        </item>
        <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_permalink">
+        <widget class="QLabel" name="label_kasugai_layers_hint">
+         <property name="text">
+          <string>Per-layer .kasc options (saved to the layer; gray = auto value): site=control group (blank=auto/"-"=Misc), order=rank within site (set via VIEW mode ▲▼), list=hide from layer list, opts=extra key=value (legend_order=asc|desc|reverse|A,B,C reorders legend entries)</string>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QTreeWidget" name="treeWidget_kasugai_layers">
+         <property name="alternatingRowColors">
+          <bool>true</bool>
+         </property>
+         <property name="rootIsDecorated">
+          <bool>true</bool>
+         </property>
+         <column>
+          <property name="text">
+           <string>Layer</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>site</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>list</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>opts</string>
+          </property>
+         </column>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_kasugai_layers_btns">
          <item>
-          <widget class="QLineEdit" name="lineEdit_permalink">
-           <property name="placeholderText">
-            <string>Generated permalink will appear here</string>
+          <widget class="QPushButton" name="pushButton_kasugai_layers_edit">
+           <property name="text">
+            <string>EDIT</string>
            </property>
-           <property name="readOnly">
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+           <property name="checked">
             <bool>true</bool>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="pushButton_copy">
+          <widget class="QPushButton" name="pushButton_kasugai_layers_view">
            <property name="text">
-             <string>URLCopy</string>
+            <string>VIEW</string>
            </property>
-           <property name="minimumSize">
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButton_kasugai_legend_up">
+           <property name="text">
+            <string>▲</string>
+           </property>
+           <property name="toolTip">
+            <string>Move the selected legend entry up (saved to the layer's opts as legend_order=...)</string>
+           </property>
+           <property name="maximumSize">
             <size>
-             <width>0</width>
-             <height>22</height>
+             <width>30</width>
+             <height>16777215</height>
             </size>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButton_kasugai_legend_down">
+           <property name="text">
+            <string>▼</string>
+           </property>
+           <property name="toolTip">
+            <string>Move the selected legend entry down (saved to the layer's opts as legend_order=...)</string>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>30</width>
+             <height>16777215</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButton_kasugai_layers_refresh">
+           <property name="text">
+            <string>Refresh</string>
            </property>
           </widget>
          </item>
         </layout>
        </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_filter">
+      <attribute name="title">
+       <string>Filter</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_tab_filter">
        <item>
-        <widget class="QLabel" name="label_navigate_info">
+        <widget class="QLabel" name="label_filter_hint">
          <property name="text">
-          <string>Enter a permalink to navigate</string>
+          <string>Filter all layers in a site by a common attribute. The filter is applied to every member layer (subset string) and reflected on the map and in exported data.</string>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
          </property>
         </widget>
        </item>
        <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_navigate">
+        <layout class="QHBoxLayout" name="horizontalLayout_filter_layer">
          <item>
-          <widget class="QLineEdit" name="lineEdit_navigate">
-           <property name="placeholderText">
-            <string>Paste permalink here</string>
+          <widget class="QLabel" name="label_filter_site">
+           <property name="text">
+            <string>Site:</string>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="pushButton_paste">
+          <widget class="QComboBox" name="comboBox_filter_site"/>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_filter_field">
+         <item>
+          <widget class="QLabel" name="label_filter_field">
            <property name="text">
-            <string>Paste</string>
+            <string>Field:</string>
            </property>
-           <property name="minimumSize">
+          </widget>
+         </item>
+         <item>
+          <widget class="QComboBox" name="comboBox_filter_field"/>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_filter_mode">
+         <item>
+          <widget class="QCheckBox" name="checkBox_filter_multi">
+           <property name="text">
+            <string>Multi-select</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_filter_mode">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
             <size>
              <width>40</width>
-             <height>22</height>
+             <height>20</height>
             </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QWidget" name="widget_filter_row_num" native="true">
+         <layout class="QHBoxLayout" name="horizontalLayout_filter_cond">
+          <item>
+           <widget class="QComboBox" name="comboBox_filter_op">
+            <property name="maximumSize">
+             <size>
+              <width>80</width>
+              <height>16777215</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="lineEdit_filter_value">
+            <property name="placeholderText">
+             <string>Value (number)</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QWidget" name="widget_filter_row_str" native="true">
+         <layout class="QHBoxLayout" name="horizontalLayout_filter_cond2">
+          <item>
+           <widget class="QComboBox" name="comboBox_filter_op2">
+            <property name="maximumSize">
+             <size>
+              <width>80</width>
+              <height>16777215</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QComboBox" name="comboBox_filter_value">
+            <property name="editable">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QWidget" name="widget_filter_row_multi" native="true">
+         <layout class="QVBoxLayout" name="verticalLayout_filter_multi">
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_filter_cond3">
+            <item>
+             <widget class="QComboBox" name="comboBox_filter_op3">
+              <property name="maximumSize">
+               <size>
+                <width>110</width>
+                <height>16777215</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_filter_all">
+              <property name="text">
+               <string>Select all</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_filter_none">
+              <property name="text">
+               <string>Select none</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer_filter_multi">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QListWidget" name="listWidget_filter_values">
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>140</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_filter_btns">
+         <item>
+          <widget class="QPushButton" name="pushButton_filter_clear">
+           <property name="text">
+            <string>Clear</string>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="pushButton_navigate">
+          <widget class="QLabel" name="label_filter_status">
            <property name="text">
-            <string>Navigate</string>
+            <string/>
            </property>
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>22</height>
-            </size>
+           <property name="wordWrap">
+            <bool>true</bool>
            </property>
           </widget>
          </item>
         </layout>
        </item>
        <item>
-        <spacer name="verticalSpacer_permalink">
+        <spacer name="verticalSpacer_tab_filter">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
          </property>
@@ -654,12 +924,442 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="tab_share">
+     <widget class="QWidget" name="tab_xyz">
       <attribute name="title">
-       <string>Share</string>
+       <string>XYZ</string>
       </attribute>
-      <layout class="QVBoxLayout" name="verticalLayout_tab_share">
-       <!-- panel.py がここへ groupBox_sharing を動的追加する -->
+      <layout class="QVBoxLayout" name="verticalLayout_tab_xyz">
+       <property name="margin">
+        <number>6</number>
+       </property>
+       <property name="spacing">
+        <number>6</number>
+       </property>
+       <item>
+        <widget class="QGroupBox" name="groupBox_xyz_bake">
+         <property name="title">
+          <string>Vector → XYZ tile bake</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_xyz_bake">
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_kasugai_xyz">
+            <item>
+             <widget class="QCheckBox" name="checkBox_xyz_tiles">
+              <property name="text">
+               <string>XYZ tiles (faster display)</string>
+              </property>
+              <property name="toolTip">
+               <string>Large/complex vector layers (many features, pattern/raster/GeometryGenerator styles, cluster/heatmap renderers, etc.) are rendered by QGIS into XYZ image tiles (xyz: rows) instead of relying on browser-side QML rendering — pixel-faithful and fast to display. The vector data row is still emitted (off) for attribute queries and vector display. Note: Canvas-side filters (where=/attribute filters) do NOT affect the baked tile image</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="label_xyz_zoom">
+              <property name="text">
+               <string>Zoom:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QSpinBox" name="spinBox_xyz_zmin">
+              <property name="toolTip">
+               <string>Minimum zoom level for baked XYZ tiles (coarsest tile level)</string>
+              </property>
+              <property name="minimum">
+               <number>0</number>
+              </property>
+              <property name="maximum">
+               <number>22</number>
+              </property>
+              <property name="value">
+               <number>1</number>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="label_xyz_zoom_dash">
+              <property name="text">
+               <string>–</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QSpinBox" name="spinBox_xyz_zmax">
+              <property name="toolTip">
+               <string>Maximum zoom level for baked XYZ tiles (finest tile level; reduced automatically when the estimated tile count is too large)</string>
+              </property>
+              <property name="minimum">
+               <number>0</number>
+              </property>
+              <property name="maximum">
+               <number>22</number>
+              </property>
+              <property name="value">
+               <number>15</number>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_xyz_bake_note">
+            <property name="text">
+             <string>Canvas-side filters (where= / attribute filtering) do NOT affect the baked tile image. Per-layer override: the kasugai_render layer property — xyz = always bake, vector = never bake, auto/blank = automatic (also used by .kasc export)</string>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color: #666;</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBox_xyz_basemap">
+         <property name="title">
+          <string>Basemap Groups</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_xyz_basemap">
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_xyz_basemap">
+            <item>
+             <widget class="QLabel" name="label_xyz_basemap">
+              <property name="text">
+               <string>Additional names:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLineEdit" name="lineEdit_xyz_basemap_groups">
+              <property name="placeholderText">
+               <string>e.g. 背景, Basemaps, Base Map</string>
+              </property>
+              <property name="toolTip">
+               <string>Comma-separated layer-tree group names treated as basemaps (in addition to the built-in 背景図 / ベースマップ / basemap).</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_xyz_basemap_info">
+            <property name="text">
+             <string>XYZ tile layers inside a layer-tree group with one of these names are exported as basemap entries (base:) instead of regular layers. Sub-groups are kept for grouped display.</string>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color: #666;</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBox_xyz_export">
+         <property name="title">
+          <string>Standalone XYZ export</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_xyz_export">
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_xyz_run">
+            <item>
+             <widget class="QPushButton" name="pushButton_xyz_export">
+              <property name="text">
+               <string>Export XYZ</string>
+              </property>
+              <property name="toolTip">
+               <string>Bake the layers selected in the Layers panel to XYZ image tiles under &lt;export folder&gt;/xyz_tiles/ (zoom range follows the settings above; empty tiles are skipped)</string>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>25</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_xyz_open">
+              <property name="text">
+               <string>📁</string>
+              </property>
+              <property name="toolTip">
+               <string>Open the XYZ output folder (xyz_tiles/ — each layer has its own index.html viewer)</string>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>28</width>
+                <height>25</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>32</width>
+                <height>25</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_xyz_target">
+            <property name="text">
+             <string notr="true">Selected: —</string>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+            <property name="textInteractionFlags">
+             <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_xyz_opts">
+            <item>
+             <widget class="QCheckBox" name="checkBox_xyz_add_to_project">
+              <property name="text">
+               <string>Add baked tiles to the project as XYZ layers</string>
+              </property>
+              <property name="toolTip">
+               <string>After baking, register each tile tree in the QGIS project as an XYZ raster layer (file:// template) so the result can be checked on the map canvas</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_xyz_export_info">
+            <property name="text">
+             <string>Bakes the layer(s) selected in the Layers panel to XYZ tiles with the QGIS renderer. Output: &lt;export folder&gt;/xyz_tiles/&lt;layer&gt;/ + index.html.</string>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color: #666;</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_xyz_status">
+            <property name="text">
+             <string/>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color: #666;</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_tab_xyz">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>10</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_other">
+      <attribute name="title">
+       <string>Other</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_tab_other">
+       <item>
+        <widget class="QGroupBox" name="groupBox_other_theme">
+         <property name="title">
+          <string>Theme</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_group_theme">
+          <item>
+           <widget class="QLabel" name="label_theme_selection">
+            <property name="text">
+             <string>Theme/Layer State:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QComboBox" name="comboBox_themes">
+            <property name="toolTip">
+             <string>Select theme option: no theme (position only) or specific theme</string>
+            </property>
+            <item>
+             <property name="text">
+              <string>-- No Theme (Position Only) --</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_theme_save">
+            <item>
+             <widget class="QLineEdit" name="lineEdit_theme_name">
+              <property name="placeholderText">
+               <string>New theme name</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_save_theme">
+              <property name="toolTip">
+               <string>Save the current layer visibility and styles as a map theme</string>
+              </property>
+              <property name="text">
+               <string>Save Theme</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBox_other_permalink">
+         <property name="title">
+          <string>Permalink</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_group_permalink">
+          <item>
+           <widget class="QPushButton" name="pushButton_generate">
+            <property name="text">
+             <string>Generate Permalink</string>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>24</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_permalink">
+            <item>
+             <widget class="QLineEdit" name="lineEdit_permalink">
+              <property name="placeholderText">
+               <string>Generated permalink will appear here</string>
+              </property>
+              <property name="readOnly">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_copy">
+              <property name="text">
+                <string>URLCopy</string>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>22</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_navigate_info">
+            <property name="text">
+             <string>Enter a permalink to navigate</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_navigate">
+            <item>
+             <widget class="QLineEdit" name="lineEdit_navigate">
+              <property name="placeholderText">
+               <string>Paste permalink here</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_paste">
+              <property name="text">
+               <string>Paste</string>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>40</width>
+                <height>22</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_navigate">
+              <property name="text">
+               <string>Navigate</string>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>22</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBox_other_share">
+         <property name="title">
+          <string>Share</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_group_share">
+          <item>
+           <widget class="QWidget" name="tab_share" native="true">
+            <!-- panel.py がここへ groupBox_sharing を動的追加する -->
+            <layout class="QVBoxLayout" name="verticalLayout_tab_share"/>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_other">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>10</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
       </layout>
      </widget>
     </widget>

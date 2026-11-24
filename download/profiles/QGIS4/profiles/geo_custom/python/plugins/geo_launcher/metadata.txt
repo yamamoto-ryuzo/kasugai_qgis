@@ -2,9 +2,10 @@
 name=geo_launcher
 qgisMinimumVersion=4.0
 qgisMaximumVersion=4.99
-description=kasugai_qgis ランチャー(Rust/Axum)を QGIS 内からインストール/アンインストール・起動する連携プラグイン
+description=Manage the kasugai_qgis QGIS launcher from inside QGIS — detect, install, uninstall, and open its GUI; shows whether this QGIS was started via the launcher
 about=kasugai_qgis (https://github.com/yamamoto-ryuzo/kasugai_qgis) の検出・インストール(セットアップのダウンロードと実行)・アンインストール・GUI 窓の起動を行います。ランチャー本体は QGIS を起動すると自動終了する設計のため、API サーバの起動・維持機能は持ちません。この QGIS がランチャー経由で起動したか(PORTAL_USERROLE)も表示します。
-version=1.1.2
+about[en]=Detects, installs (downloads and runs the setup), uninstalls, and opens the GUI window of kasugai_qgis (https://github.com/yamamoto-ryuzo/kasugai_qgis), a Rust/Axum QGIS launcher. The launcher itself exits automatically once QGIS starts, so this plugin does not run or maintain its API server. It also shows whether the current QGIS instance was started via the launcher (PORTAL_USERROLE).
+version=1.1.3
 author=yamamoto-ryuzo
 email=ryu@yamakun.net
 homepage=https://github.com/yamamoto-ryuzo/qgis_live_harness/tree/master/qgis-plugin/geo_launcher
@@ -12,6 +13,11 @@ tracker=https://github.com/yamamoto-ryuzo/qgis_live_harness/issues
 repository=https://github.com/yamamoto-ryuzo/qgis_live_harness/tree/master/qgis-plugin/geo_launcher
 hasProcessingProvider=no
 changelog=
+    Version 1.1.3:
+    - 修正: リロード/ホットリロードのたびに管理ダイアログが勝手に
+      前面へ出る問題(open_dialog_on_reload=False で opt-out)
+    - metadata: 英語 description/about[en] を追加、非推奨
+      supportsQt6 フラグを除去
     Version 1.1.1:
     - 修正: 非サイレント時のセットアップ起動を ShellExecute 経由に
       (startDetached では NSIS ウィザードが QGIS の後ろに隠れて
@@ -35,4 +41,3 @@ tags=python,launcher,kasugai,qgis
 experimental=False
 deprecated=False
 server=False
-supportsQt6=True

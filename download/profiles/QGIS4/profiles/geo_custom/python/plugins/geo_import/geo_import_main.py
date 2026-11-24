@@ -1,4 +1,4 @@
-from qgis.PyQt.QtCore import QSettings, QCoreApplication
+from qgis.PyQt.QtCore import QSettings, QCoreApplication, Qt, QTimer
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QToolBar
 from qgis.core import QgsMessageLog, Qgis
@@ -236,31 +236,63 @@ class GeoImport:
         dir_check = self.util.check_dir(self.settings.cache_dir)
         api_url_check = self.util.check_api_url(self.settings.ckan_url)
         if dir_check is False or api_url_check is False:
-            dlg = GeoImportDialogSettings(self.settings, self.iface, self.iface.mainWindow())
-            dlg.show()
-            result = dlg.exec()
-            if result != 1:
+            # exec() はGUIスレッドを占有しbridge/AI経路からの呼出を
+            # 応答不能にするため使わない。open() で非ブロッキングに開き、
+            # 確定(accepted)後にメインダイアログへ続く
+            if getattr(self, "_settings_dlg", None) is not None:
                 return
+            dlg = GeoImportDialogSettings(
+                self.settings, self.iface, self.iface.mainWindow())
+            self._settings_dlg = dlg
+            dlg.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+            dlg.destroyed.connect(
+                lambda *_: setattr(self, "_settings_dlg", None))
+            dlg.accepted.connect(
+                lambda: QTimer.singleShot(0, self._open_main_dialog))
+            dlg.open()
+            return
 
 #         self.util.msg_log('cache_dir: {0}'.format(self.settings.cache_dir))
 
-        try:
-            QSettings().setValue("geo_import/isopen", True)
-            self.dlg = GeoImportDialog(self.settings, self.iface, self.iface.mainWindow())
+        self._open_main_dialog()
 
-            # show the dialog
-            self.dlg.show()
-            # self.dlg.open()
-            # Run the dialog event loop
-            result = self.dlg.exec()
-            # See if OK was pressed
-            if result:
-                pass
-        finally:
+    def _open_main_dialog(self):
+        """カタログブラウザを非modalで開く(isopenフラグ管理込み)。
+
+        exec() を使わず show()+finished シグナルで閉塞を管理する。
+        bridge の openDialog と同じ構造(二重起動は isopen で防止)。
+        """
+        is_open = QSettings().value("geo_import/isopen", False)
+        if isinstance(is_open, str):
+            is_open = self.util.str2bool(is_open)
+        if is_open:
+            return
+        QSettings().setValue("geo_import/isopen", True)
+        try:
+            self.dlg = GeoImportDialog(
+                self.settings, self.iface, self.iface.mainWindow())
+        except Exception:
             QSettings().setValue("geo_import/isopen", False)
+            raise
+
+        def _closed(*_a):
+            QSettings().setValue("geo_import/isopen", False)
+            self.dlg = None
+
+        self.dlg.finished.connect(_closed)
+        self.dlg.show()
 
     def open_settings(self):
-        # 設定ダイアログを開く
-        dlg = GeoImportDialogSettings(self.settings, self.iface, self.iface.mainWindow())
-        dlg.show()
-        dlg.exec()
+        # 設定ダイアログを開く。exec() は呼出元(bridge/AI経路含む)を
+        # ブロックするため、window-modal かつ非ブロッキングの open() を使う
+        if getattr(self, "_settings_dlg", None) is not None:
+            self._settings_dlg.raise_()
+            self._settings_dlg.activateWindow()
+            return
+        dlg = GeoImportDialogSettings(
+            self.settings, self.iface, self.iface.mainWindow())
+        self._settings_dlg = dlg
+        dlg.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        dlg.destroyed.connect(
+            lambda *_: setattr(self, "_settings_dlg", None))
+        dlg.open()

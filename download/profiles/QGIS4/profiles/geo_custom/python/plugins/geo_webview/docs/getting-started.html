@@ -4,14 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="geo_webview 導入ガイド — インストールとサーバレス配信の流れ">
-<title>4. 導入ガイド | geo_webview ドキュメント</title>
+<title>導入ガイド | geo_webview ドキュメント</title>
+<link rel="icon" href="favicon.ico">
 <link rel="stylesheet" href="style.css">
 <script src="nav.js" defer></script>
 </head>
 <body>
 <div class="container">
 <main>
-<h1>4. 導入ガイド</h1>
+<h1>導入ガイド</h1>
 <h2 id="クイックスタート">クイックスタート</h2>
 <h3 id="1-インストール">1. インストール</h3>
 <pre><code class="language-bash"># QGIS プラグインディレクトリに配置
@@ -55,7 +56,7 @@ alt="「Web配信」グループ — 保存行（エクスポート＋保存先�
 ├─ project.json              # {&quot;title&quot;: ...}
 ├─ bookmarks.xml             # QGIS ブックマーク（emit_bookmarks 時）
 └─ canvas_data/                     # GeoJSON(4326) / ネイティブ形式複製 / .qml / タイル等</code></pre>
-<p><code>.kasc</code> 行の生成規則の詳細は <a href="spec.html"><code>spec.html</code></a> §15
+<p><code>.kasc</code> 行の生成規則の詳細は <a href="use/1-1-Webタブ.html#kasc-行の生成規則">「1. Web タブ」の設定・ツール仕様</a>
 を参照（GPKG/GeoJSON/ GeoParquet/FlatGeobuf はネイティブ参照、CSV/TSV は
 <code>duckdb:</code>、 フィルタ付きは <code>where=</code>、3D Tiles は
 <code>3dtiles:</code>、XYZ 最下段は <code>base:</code>、 WMS ラスタは

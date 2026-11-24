@@ -3,15 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="KASUGAI Canvas マルチエンジン（Cesium/MapLibre/OpenLayers/Leaflet/GSI Maps）の機能比較と GitHub Pages CDN（kasugai-canvas-web）">
-<title>3. マルチエンジン | geo_webview ドキュメント</title>
+<meta name="description" content="KASUGAI Canvas マルチエンジン（Cesium/MapLibre/OpenLayers/Leaflet/GSI Maps/Navara）の機能比較と GitHub Pages CDN（kasugai-canvas-web）">
+<title>マルチエンジン | geo_webview ドキュメント</title>
+<link rel="icon" href="favicon.ico">
 <link rel="stylesheet" href="style.css">
 <script src="nav.js" defer></script>
 </head>
 <body>
 <div class="container">
 <main>
-<h1>3. マルチエンジン</h1>
+<h1>マルチエンジン</h1>
 <p>同じ <code>.kasc</code>+<code>canvas_data/</code>
 を5つのエンジンで再生できます（<code>?engine=</code> または 出力される
 <code>&lt;engine&gt;.html</code> 起動ページで切替）:</p>
@@ -47,6 +48,11 @@
 <td>地理院地図ベースの 2D。GSI レイヤカタログ表示・取り込み・
 地理院地図 作図・ベースマップ切替</td>
 </tr>
+<tr>
+<td><strong>Navara</strong></td>
+<td>Navara（<code>@navaramap/three</code>）3D 地図エンジンのフロント。vendored
+ライブラリ経由で .kasc を再生</td>
+</tr>
 </tbody>
 </table>
 <p>再生システム本体は <strong>KASUGAI Canvas</strong>
@@ -58,12 +64,13 @@ HTML ビューア（旧
 v3.24.0 で廃止され、 閲覧は全て KASUGAI Canvas に一本化されました。</p>
 <p>KASUGAI Canvas 側のレイアウト（<code>web/</code>）:</p>
 <pre><code>web/
-  index.html      エンジン選択リダイレクト（?engine=cesium|maplibre|openlayers|leaflet|gsimaps、既定 cesium）
+  index.html      エンジン選択リダイレクト（?engine=cesium|maplibre|openlayers|leaflet|gsimaps|navara、既定 cesium）
   cesium/         Cesium フロント（現行アプリ）
   maplibre/       MapLibre フロント（.kasc プレイヤー実装済み: 全ベクター行・wms:/wmts:・QML・duckdb/sql・属性UI・6タブパネル）
   openlayers/     OpenLayers フロント（同上）
   leaflet/        Leaflet フロント（同上・軽量版）
   gsimaps/        GSI Maps フロント（地理院地図 iframe 連携で .kasc を再生）
+  navara/         Navara フロント（@navaramap/three vendored エンジンで .kasc を再生）
   shared/         エンジン非依存コア（.kasc ローダー・デコーダー・i18n・QML コンパイラ）
   projects/       プロジェクトデータ（エンジン非依存）
     projects.json          プロジェクト一覧マニフェスト
@@ -82,10 +89,11 @@ id="起動ページenginehtml">起動ページ（<code>&lt;engine&gt;.html</code
 の順に自動探索します（特殊配置は HTML 内の <code>CANVAS_BASE</code>
 で指定）。</p>
 <h2 id="kasugai-canvas-エンジン比較">KASUGAI Canvas エンジン比較</h2>
-<p>KASUGAI Canvas は5エンジン（Cesium / OpenLayers / MapLibre /
-Leaflet / GSI Maps）構成ですが、ここでは共有コアを持つ4エンジンの
-機能比較を示します（<strong>GSI Maps</strong>
-は地理院地図を iframe で内包する別系統のエンジンのため本表の対象外。
+<p>KASUGAI Canvas は共有コアを持つ4エンジン（Cesium / OpenLayers /
+MapLibre / Leaflet）＋vendored 2系統（GSI Maps / Navara）構成ですが、
+ここでは共有コアを持つ4エンジンの機能比較を示します（<strong>GSI Maps</strong>
+は地理院地図を iframe で内包、<strong>Navara</strong> は
+vendored <code>@navaramap/three</code> を使う、いずれも別系統のエンジンのため本表の対象外。
 <code>.kasc</code>+<code>canvas_data/</code> の再生自体は可能）。
 <code>—</code> = 非対応、<code>△</code> =
 部分的対応。すべてのエンジンが同じ <code>.kasc</code>+<code>canvas_data/</code>
@@ -621,7 +629,7 @@ SELECT）は QGIS に相当ソースが無いため出力しない。3D Tiles
 タイルへ分解して描画する</li>
 <li><strong>追従モード</strong>:
 <code>?follow</code>/<code>?present</code> 付きで開いた Canvas
-ページ（Cesium 含む4エンジン。GSI Maps は未対応）は <code>/present/state</code>
+ページ（Cesium 含む共有コア4エンジン。GSI Maps・Navara は未対応）は <code>/present/state</code>
 をポーリングし、QGIS
 キャンバスの移動にリアルタイム追従（プレゼン・画面共有用）</li>
 <li><strong>双方向ナビゲーション</strong>:
@@ -636,7 +644,7 @@ CDN（kasugai-canvas-web）</h2>
 href="https://github.com/yamamoto-ryuzo/kasugai-canvas-web">KASUGAI
 Canvas エンジンの公開 CDN</a>。 kasugai_canvas 側の
 <code>web/</code>（Cesium / MapLibre / OpenLayers / Leaflet / GSI Maps
-＋ shared コア）を GitHub Pages で <code>stable/</code>（安定版・既定）と
+/ Navara ＋ shared コア）を GitHub Pages で <code>stable/</code>（安定版・既定）と
 <code>unstable/</code>（開発版）の2チャンネル公開し、
 <code>channels.json</code> が各チャンネルのバージョンを返します。
 エンジンは実質上位互換を維持して更新されます。GSI Maps

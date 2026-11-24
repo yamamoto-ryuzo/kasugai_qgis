@@ -52,7 +52,7 @@ nav.sidebar a.ext::after { content: " ↗"; font-size: 11px; }
 
 /* ---------- 本文 ---------- */
 main {
-  display: block; max-width: 960px; margin: 0 auto;
+  display: block; max-width: none; margin: 0 24px;
   padding: 40px 40px 72px; line-height: 1.7;
   background: #fff; border-radius: 12px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, .3);

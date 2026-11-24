@@ -17,7 +17,7 @@ bridge.py(AI向けAPI)の3箇所から共有される。
 import os
 import re
 import zipfile
-from xml.sax.saxutils import escape
+from html import escape
 
 from qgis.PyQt.QtCore import QCoreApplication, QSettings, QStandardPaths
 from qgis.core import QgsExpressionContextUtils

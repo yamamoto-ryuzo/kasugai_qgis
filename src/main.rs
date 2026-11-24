@@ -1676,13 +1676,51 @@ fn launch_qgis(profile_name: &str, project_paths: &[String], project_root: &str,
     let spawn_with_project = |maybe_project: Option<PathBuf>| -> bool {
         let qgis_lower = qgis_path.to_lowercase();
         let is_batch = qgis_lower.ends_with(".bat") || qgis_lower.ends_with(".cmd");
+        // QGIS へ渡す引数を先に組み立てる（batch 経路では手動クォートに使う）
+        let mut extra: Vec<String> = vec!["--profile".to_string(), profile_name.to_string()];
+        if let Some(ref ini) = customization_ini {
+            extra.push("--customizationfile".to_string());
+            extra.push(ini.to_string_lossy().into_owned());
+        }
+        if let Some(ref gs) = global_settings_ini {
+            extra.push("--globalsettingsfile".to_string());
+            extra.push(gs.to_string_lossy().into_owned());
+        }
+        if let Some(ref script) = startup_script {
+            extra.push("--code".to_string());
+            extra.push(script.to_string_lossy().into_owned());
+        }
+        if let Some(p) = maybe_project {
+            if let Some(s) = p.to_str() {
+                // QGIS4 ではプロジェクトパスを位置引数で渡す
+                extra.push(s.to_string());
+            }
+        }
         let mut cmd = if is_batch {
-            // .bat/.cmd は CreateProcessW から直接起動できないため cmd.exe 経由で実行
+            // .bat/.cmd は CreateProcessW から直接起動できないため cmd.exe 経由で実行。
+            // cmd /C の引数解釈は特殊: 引用符がちょうど2個なら保持されるが、3個以上あると
+            // 「先頭の引用符と行末の引用符を除去する」規則が働く。Rust の arg() 自動クォートに
+            // 任せると、空白を含むパス（exe フォルダの ini、プロジェクトパス等）が増えた時点で
+            // 引用符が3個以上となり先頭が剥がれて "C:\Program" として解釈され静かに失敗する。
+            // 対策としてコマンドライン全体を "..." で囲み、cmd には外側1組だけ剥がさせる。
             let mut c = Command::new("cmd.exe");
-            c.arg("/C").arg(&qgis_path);
+            c.arg("/C");
+            let line = format!(
+                "\"{}\"",
+                std::iter::once(&qgis_path)
+                    .chain(extra.iter())
+                    .map(|a| format!("\"{}\"", a))
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            );
+            c.raw_arg(line);
             c
         } else {
-            Command::new(&qgis_path)
+            let mut c = Command::new(&qgis_path);
+            for a in &extra {
+                c.arg(a);
+            }
+            c
         };
         // QGIS プロセスの作業ディレクトリを実行ファイルのフォルダに設定
         if let Ok(exe_path) = env::current_exe() {
@@ -1692,22 +1730,6 @@ fn launch_qgis(profile_name: &str, project_paths: &[String], project_root: &str,
         }
         cmd.creation_flags(CREATE_NO_WINDOW);
         cmd.env("PORTAL_USERROLE", role);
-        cmd.arg("--profile").arg(profile_name);
-        if let Some(ref ini) = customization_ini {
-            cmd.arg("--customizationfile").arg(ini);
-        }
-        if let Some(ref gs) = global_settings_ini {
-            cmd.arg("--globalsettingsfile").arg(gs);
-        }
-        if let Some(ref script) = startup_script {
-            cmd.arg("--code").arg(script);
-        }
-        if let Some(p) = maybe_project {
-            if let Some(s) = p.to_str() {
-                // QGIS4 ではプロジェクトパスを位置引数で渡す
-                cmd.arg(s);
-            }
-        }
         match cmd.spawn() {
             Ok(_) => { println!("QGISの起動リクエストに成功しました。"); true }
             Err(e) => { eprintln!("QGISの起動に失敗しました: {}", e); false }

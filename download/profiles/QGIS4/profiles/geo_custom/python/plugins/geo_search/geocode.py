@@ -469,7 +469,7 @@ def ensure_address_layer(name=ADDRESS_LAYER_NAME, add_to_project=True):
         try:
             if layer is not None and layer.isValid():
                 return layer
-        except Exception:  # nosec B110  # 削除済みC++ラッパー対策
+        except Exception:  # nosec B112  # 削除済みC++ラッパー対策
             continue
     uri = "Point?crs=EPSG:4326" + "".join(
         "&field={}:{}".format(

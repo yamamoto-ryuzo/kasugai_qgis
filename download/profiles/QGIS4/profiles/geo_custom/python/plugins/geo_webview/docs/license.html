@@ -4,15 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="geo_webview のライセンス（GPLv3）・バージョン履歴・免責事項">
-<title>6. ライセンス・履歴・免責 | geo_webview ドキュメント</title>
+<title>ライセンス・履歴・免責 | geo_webview ドキュメント</title>
+<link rel="icon" href="favicon.ico">
 <link rel="stylesheet" href="style.css">
 <script src="nav.js" defer></script>
 </head>
 <body>
 <div class="container">
 <main>
-<h1>6. ライセンス・履歴・免責</h1>
-<h2 id="バージョン履歴">バージョン履歴 <span class="ver-badge" data-plugin-version hidden></span></h2>
+<h1>ライセンス・履歴・免責</h1>
+<h2 id="バージョン履歴">バージョン履歴 <span class="version-badge" data-plugin-version hidden></span></h2>
 <ul>
 <li><strong>v4.x</strong>:
 マルチエンジン（Cesium/MapLibre/OpenLayers/Leaflet/GSI Maps）を主軸に確立、GitHubPages
@@ -24,6 +25,29 @@ geo_suite統合、OGC準拠サーバー化、10言語対応、KASUGAI Canvas
 <li><strong>v1.x</strong>: 基本機能（WMS/OpenLayers）</li>
 </ul>
 <p>詳細: <a href="https://github.com/yamamoto-ryuzo/qgis_live_harness/blob/master/qgis-plugin/geo_webview/CHANGELOG.md"><code>CHANGELOG.md</code></a></p>
+<h3 id="v2v3-ハイライト">V2/V3 ハイライト</h3>
+<ul>
+<li><p>V2.0.0: WMS サポートと外部アクセス（0.0.0.0 バインド）を追加。</p>
+</li>
+<li><p>V2.6.0: 投影定義と軸順情報を生成 HTML に埋め込み、座標表示の精度向上。</p>
+</li>
+<li><p>V2.8.0: External Control の自動ナビゲート追加。</p>
+</li>
+<li><p>V2.10.0: Google Earth <code>y</code> トークン対応とスケール推定の改善。</p>
+</li>
+<li><p>V2.12.0: テーマ対応 WMS 出力（仮想マップビュー）。</p>
+</li>
+<li><p>V3.0.0: MapLibre WFS + QGIS スタイル注入の安定化、ベーススタイルの相対URL化、ブラシ無しポリゴンの正しい境界線表示、単位正規化（mm/pt→px）を確立。</p>
+</li>
+<li><p>V3.1.0: WMTS キャッシュ導入</p>
+<ul>
+<li>サーバ側で WMTS タイルのキャッシュを有効化しました。キャッシュは各 &quot;identity&quot; ごとに分離され、identity は表示中のレイヤ識別子（layer ID）と各レイヤに適用されるスタイル識別子（style ID）を決定的に組み合わせた JSON を sha1 ハッシュ化し、その先頭 12 文字（short hash）を採用して生成されます。</li>
+<li>GetCapabilities の ResourceURL / ServiceMetadataURL に <code>?v=&lt;identity_short&gt;</code> を付与することで、クライアントが現在サーバ側で有効な identity を検出できるようにしました。</li>
+<li>クライアント（MapLibre）は画面移動（moveend）時に GetCapabilities を再取得し、identity が変化していれば WMTS タイルソースのみを差し替えて新しいタイルを取得する挙動を推奨します（WFS やスタイル全体の再読み込みは不要）。</li>
+<li>この仕組みにより、サーバ側で表示用レイヤやスタイルが変更された際に WMTS のみを効率的に更新・無効化でき、WFS の重複登録や全スタイル再適用に起因する副作用を避けられます。</li>
+</ul>
+</li>
+</ul>
 <h2 id="ライセンス">ライセンス</h2>
 <p>GNU General Public License version 3 (GPLv3)<br />
 詳細: <a href="https://github.com/yamamoto-ryuzo/qgis_live_harness/blob/master/qgis-plugin/geo_webview/LICENSE">LICENSE</a></p>

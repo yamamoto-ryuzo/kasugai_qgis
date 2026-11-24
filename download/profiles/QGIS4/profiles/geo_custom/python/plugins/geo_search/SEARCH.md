@@ -170,8 +170,8 @@ A tab whose `Title` is `住所検索` (aliases: `Address Search`, `address_searc
   "Title": "住所検索",
   "Provider": "gsi",
   "Providers": ["gsi", "google", "yahoo", "osm"],
-  "ApiKey": "Google Maps API key (optional)",
-  "YahooAppId": "Yahoo app id (optional)",
+  "ApiKey": "",
+  "YahooAppId": "",
   "CreateScratch": true
 }
 ```

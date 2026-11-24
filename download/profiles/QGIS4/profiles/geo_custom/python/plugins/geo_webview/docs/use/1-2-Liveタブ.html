@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2. Live タブ | geo_webview ドキュメント</title>
+<meta name="description" content="geo_webview パネル Live タブの使い方 — Canvas Live View・双方向連携（follow/selection/qgis_follow）・Add to Canvas">
+<link rel="icon" href="../favicon.ico">
+<link rel="stylesheet" href="../style.css">
+<script src="../nav.js" defer></script>
+</head>
+<body>
+<div class="container">
+<header>
+<h1>2. Live タブ — Canvas Live View <span class="version-badge" data-plugin-version hidden></span></h1>
+<p><a href="../index.html">geo_webview ドキュメント</a> / 使い方</p>
+</header>
+<main>
+<section>
+<h2 id="使い方">使い方</h2>
+<p>Live タブ（Web タブの直後に動的挿入）は、エクスポート不要の<strong>常駐 live
+ビュー</strong>の起動と、ライブ連携中の Canvas 操縦を QGIS 側へ集約します。</p>
+<h3 id="open-live-view">Open Live View（起動）</h3>
+<ul>
+<li>エンジン選択コンボ＋<code>Open Live View</code> — 常駐 live ビューを既定ブラウザで開く。
+<code>?kasc=&lt;base&gt;/live/kasc</code> が現在プロジェクトから .kasc を毎回オンデマンド生成するため
+<strong>エクスポートは不要</strong>（編集内容は常に最新）。エンジン供給元は Web タブの
+<code>CDN:</code> コンボに従う</li>
+<li>起動経路は Live タブのボタン / ツールバー「Open Canvas Live View」/ bridge
+<code>liveView</code> の3系統</li>
+</ul>
+<h3 id="双方向連携">双方向連携（追従・選択）</h3>
+<ul>
+<li><code>Follow QGIS canvas</code> — Canvas カメラを QGIS キャンバスへ追従</li>
+<li><code>Show QGIS selection</code> — QGIS 選択地物を Canvas でハイライト</li>
+<li><code>Follow Canvas view</code> — QGIS キャンバスを Canvas 視点へ追従（既定 ON）</li>
+</ul>
+<h3 id="add-to-canvas">Add to Canvas</h3>
+<ul>
+<li>レイヤ選択コンボ＋<code>Add to Canvas</code> — プロジェクトのベクターレイヤを
+live Canvas へオンデマンド追加</li>
+</ul>
+</section>
+<section>
+<h2 id="live-タブ">設定・ツール仕様</h2>
+<p>Live タブ（<code>panel.py: _build_live_tab</code> で動的生成、Web タブの直後に挿入）は
+<strong>Canvas Live</strong> グループを持ち、ライブ連携中の Canvas 操縦を QGIS 側へ集約します:</p>
+<ul>
+<li>エンジン選択コンボ（Cesium/MapLibre/OpenLayers/Leaflet/GSI Maps/Navara）＋
+<code>Open Live View</code> ボタン — 常駐 live ビューを既定ブラウザで開く</li>
+<li><code>Follow QGIS canvas</code> — Canvas カメラを QGIS キャンバスへ追従（<code>live.controls.follow</code>）</li>
+<li><code>Show QGIS selection</code> — QGIS 選択地物を Canvas でハイライト（<code>live.controls.selection</code>）</li>
+<li><code>Follow Canvas view</code> — QGIS キャンバスを Canvas 視点へ追従（<code>live.controls.qgis_follow</code>、既定 ON）</li>
+<li>レイヤ選択コンボ＋<code>Add to Canvas</code> — プロジェクトのベクターレイヤを live Canvas へオンデマンド追加</li>
+</ul>
+<p>起動経路は Live タブの <code>Open Live View</code>（エンジン選択コンボ付き）/
+ツールバー「Open Canvas Live View」/ bridge <code>liveView</code> の3系統。
+<strong>エクスポートは行わず</strong>、<code>?kasc=</code> が指す
+<code>GET /live/kasc</code> がリクエストごとに現在プロジェクトから .kasc をオンデマンド生成する（図6）。
+エンジン供給元は Web タブの CDN コンボ（<code>kasugai_hosted_channel</code>、§1 図4）に従う
+（stable/unstable/custom URL=ホスト版、canvas=稼働中アプリ :8510、FILE=本サーバが指定 web/ を配信）。
+生成 .kasc 内の <code>live:</code> 行で Canvas が双方向連携モードへ入り、
+編集・視点・選択が相互反映される（図7・図8）。CDN ホスト版を含む Canvas の
+AI チャットは <code>/live/mcp</code> リレー経由で Live Driver のツールを使える（図9）。
+POST は <code>/live/</code> 配下のみ受け付け、従来の CORS 許可リストが適用される。</p>
+<p>色分け（この節）: <span style="background:#fff3e0;border:1px solid #e65100;padding:0 6px">橙 = live API（/live/*）</span></p>
+<p><strong>図6. Live View の起動とデータ供給</strong> — 起動はブラウザで <code>&lt;engine&gt;/?kasc=&lt;base&gt;/live/kasc</code> を開くだけ。生成される .kasc の各行はエクスポート済みファイルではなく live API の URL を指し、データ・スタイル・描画はすべて :8089 がオンデマンドで供給する。</p>
+<pre><code class="language-mermaid">flowchart TB
+    BTN["Open Live View&lt;br/&gt;（Live タブ・ツールバー&lt;br/&gt;bridge liveView）"]
+    ENG["＜engine＞/?kasc=…/live/kasc&lt;br/&gt;（エンジン供給元は図4と同じ&lt;br/&gt;CDN コンボで解決）"]
+    KASC["GET /live/kasc&lt;br/&gt;現在プロジェクトから毎回&lt;br/&gt;オンデマンド生成&lt;br/&gt;（エクスポート不要）"]
+    BTN --&gt; ENG --&gt; KASC
+    KASC --&gt;|"geojson: 行"| F["GET /live/features&lt;br/&gt;GeoJSON&lt;br/&gt;layer=/bbox= 範囲読み"]
+    KASC --&gt;|"gpkg:/shp: 等&lt;br/&gt;ネイティブ参照行"| LF["GET /live/file/＜path＞&lt;br/&gt;原本ファイル配信"]
+    KASC --&gt;|"style= 参照"| ST["GET /live/style&lt;br/&gt;.qml オンデマンド出力"]
+    KASC --&gt;|"image: 行&lt;br/&gt;（変換不可レイヤ）"| RN["GET /live/render&lt;br/&gt;QGIS 描画 PNG"]
+    classDef live fill:#fff3e0,stroke:#e65100,color:#bf360c;
+    class BTN,ENG,KASC,F,LF,ST,RN live;</code></pre>
+<p><code>/live/style</code> が返す .qml 内のシンボル画像参照（svgmarker・rastermarker・svgfill 等）は、サーバ側で実ファイルへ解決したうえ <code>/live/file/&lt;encoded-abs-path&gt;</code> へ書き換えて出力される（エクスポート経路の canvas_data/ 複製に相当）。配信許可はレイヤソース原本に加え「QGIS SVG 検索パス・プロジェクト dir 配下」の実ファイルのみで、対象外パスは 403。</p>
+<p><strong>図7. QGIS → Canvas（編集・状態の配信）</strong> — 編集検出は LiveSyncController が 1.2s デバウンスで <code>live.json</code> の rev を更新し、Canvas はポーリングで変化を検出して <code>/live/kasc</code> を再取得。キャンバス状態・QGIS 選択は <code>/live/state</code> で公開される。<code>live.controls</code>（follow / selection / qgis_follow）の正は QSettings で、パネル Live タブ・<code>POST /live/controls</code>・bridge <code>liveControls</code>/<code>liveSetControls</code> が同じ状態を共有する。<code>kasugai_live_sync</code> 設定 ON のときは rev 更新ではなく差分再エクスポート＋<code>liveSync</code> 通知（従来モード）。</p>
+<pre><code class="language-mermaid">flowchart TB
+    subgraph QGIS["QGIS 側"]
+        EDIT["レイヤ編集・スタイル・&lt;br/&gt;ツリー変更"]
+        SYNC["LiveSyncController&lt;br/&gt;（1.2s デバウンス）"]
+        QST["キャンバス状態・QGIS 選択"]
+    end
+    subgraph API[":8089 /live/*"]
+        LJ["GET /live/live.json&lt;br/&gt;rev + changed"]
+        ST["GET /live/state&lt;br/&gt;controls・add_layers・&lt;br/&gt;qgis_selection・canvas"]
+        KA["GET /live/kasc&lt;br/&gt;再生成"]
+    end
+    subgraph CV["Canvas（ブラウザ）"]
+        ENG2["エンジン&lt;br/&gt;（live: 行で接続）"]
+    end
+    EDIT --&gt; SYNC --&gt;|"rev 更新"| LJ
+    QST --&gt;|"公開"| ST
+    ENG2 --&gt;|"ポーリング"| LJ
+    ENG2 --&gt;|"400ms ポーリング"| ST
+    ENG2 --&gt;|"rev 変化で再取得"| KA
+    CT["live.controls&lt;br/&gt;（正=QSettings）&lt;br/&gt;Live タブ / POST /live/controls /&lt;br/&gt;bridge liveControls・liveSetControls・liveAddToCanvas"]
+    CT --&gt; ST
+    classDef live fill:#fff3e0,stroke:#e65100,color:#bf360c;
+    class LJ,ST,KA,CT live;</code></pre>
+<p><strong>図8. Canvas → QGIS（視点・選択・作図の書き戻し）</strong> — Canvas での視点移動・選択・表示変更・作図は POST で QGIS へ書き戻す。<code>POST /live/camera</code> は <code>controls.qgis_follow</code>（「Follow Canvas view」、既定 ON）が有効なときのみ QGIS キャンバスへ適用される。</p>
+<pre><code class="language-mermaid">flowchart TB
+    subgraph CV["Canvas（ブラウザ）"]
+        ENG2["エンジン&lt;br/&gt;（live: 行で接続）"]
+    end
+    subgraph API[":8089 /live/*"]
+        CAM["POST /live/camera&lt;br/&gt;視点"]
+        SEL["POST /live/selection&lt;br/&gt;選択"]
+        WB["POST /live/writeback&lt;br/&gt;POST /live/features&lt;br/&gt;表示状態・作図"]
+    end
+    subgraph QGIS["QGIS 側"]
+        PROJ["プロジェクトへ反映&lt;br/&gt;表示・フィルタ・テーマ・&lt;br/&gt;スクラッチレイヤ"]
+    end
+    ENG2 --&gt; CAM --&gt; PROJ
+    ENG2 --&gt; SEL --&gt; PROJ
+    ENG2 --&gt; WB --&gt; PROJ
+    classDef live fill:#fff3e0,stroke:#e65100,color:#bf360c;
+    class CAM,SEL,WB live;</code></pre>
+<p><code>POST /live/camera</code> は <code>controls.qgis_follow</code>（「Follow Canvas view」、既定 ON）が有効なときのみ QGIS キャンバスへ適用される。「Add to Canvas」（Live タブのレイヤコンボ＋ボタン / <code>POST /live/controls</code> の <code>add</code> / bridge <code>liveAddToCanvas</code>）は <code>live.add_layers</code> キュー（{seq,title}・上限50）へ積み、Canvas が <code>/live/state</code> ポーリングで新しい seq を検出して <code>/live/features</code> で現在表示範囲の地物を取得する。</p>
+<p><strong>図9. Live Driver MCP リレー（v4.12.0〜）</strong> — CDN ホスト版を含む Canvas の AI チャットが Live Driver のツール（<code>qgis_pyeval</code>・<code>bridge_call</code>・<code>screenshot</code> 等）を使う経路。ドライバの <code>/mcp</code> は Bearer 保護・CORS 無しでブラウザから直接 fetch できないため本リレーがある。任意コード実行が乗るため <strong>TCP ピアが loopback の接続のみ許可</strong>（他 /live/* より露出を絞る）。</p>
+<pre><code class="language-mermaid">flowchart LR
+    AI["Canvas AI チャット&lt;br/&gt;（CDN ホスト版・アプリ）"]
+    DISC["GET /live/mcp-discover&lt;br/&gt;Live Driver セッション検出&lt;br/&gt;→ リレーURL を返す&lt;br/&gt;（トークンは返さない）"]
+    RELAY["POST /live/mcp&lt;br/&gt;loopback 接続のみ&lt;br/&gt;トークンはサーバ側で付与&lt;br/&gt;Mcp-Session-Id を双方向伝播"]
+    DRV["geo_driver /mcp&lt;br/&gt;qgis_pyeval・bridge_call・&lt;br/&gt;screenshot 等"]
+    AI --&gt;|"接続先の検出"| DISC
+    AI --&gt;|"JSON-RPC"| RELAY --&gt; DRV
+    classDef live fill:#fff3e0,stroke:#e65100,color:#bf360c;
+    class DISC,RELAY live;</code></pre>
+</section>
+<section>
+<h2 id="関連仕様">関連仕様</h2>
+<ul>
+<li><a href="../spec.html#api-リファレンス">仕様書「HTTP API リファレンス」</a></li>
+<li><a href="../spec.html#セキュリティ運用上の注意">仕様書「セキュリティ・運用上の注意」</a></li>
+</ul>
+</section>
+</main>
+</div>
+<script type="module" src="../assets/site.js"></script>
+</body>
+</html>

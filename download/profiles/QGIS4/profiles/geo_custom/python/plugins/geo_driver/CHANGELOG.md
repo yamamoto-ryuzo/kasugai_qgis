@@ -3,6 +3,50 @@
 このプラグインの変更履歴。Keep a Changelog 準拠。
 バージョンは `metadata.txt` の `version` と同期させる。
 
+## [1.0.5] - 2026-11-24
+
+### Fixed
+
+- plugins.qgis.org 再アップロード用バージョンバンプ(同一バージョン番号はサイト側で重複不可のため)。内容は 1.0.4 のスキャン対応修正と同一
+
+## [1.0.4] - 2026-11-23
+
+### Fixed
+- **QgisApp 構築中に live コマンドが実行されて QGIS がクラッシュする
+  問題を修正** — `LiveDriver` の QTimer ポーリングは QgisApp
+  コンストラクタ内の `processEvents`(スプラッシュ進行)でも発火
+  し得るため、起動完了前に HTTP 経由(submit)の pyeval が
+  `addMapLayer` 等を実行すると、layerAdded 系シグナルのスロットが
+  未生成のドック(temporal controller 等)を触って access violation
+  になっていた(QGIS 4.0.1 で実測)。`_poll` 冒頭に初期化完了ゲート
+  (メインウィンドウ `isVisible()` + `iface.initializationCompleted`)
+  を追加し、ready 前のコマンドはキューに滞留させて初期化完了後に
+  実行する。起動後のホットリロードでは即 ready のため既存動作不変
+
+## [1.0.3] - 2026-11-21
+
+### Added
+- `__init__._sweep_stale_registry()`: 起動時に `~/.qgis-live/` の
+  死んだ pid の registry JSON(`<pid>-<plugin>.json`)を掃除。
+  強制終了で `_stop()` が走らず残った検出ファイルを、検出側が
+  順に probe してタイムアウトが積み上がる問題の恒久対策
+  (ai-chat検証 ISSUE-4)。pid 流用時は保守的に残す
+- `live_driver.submit()` タイムアウト応答に `busy`(実行中コマンドの
+  id/type/開始時刻)と `queued`(滞留数)を追加、`status` 応答にも同項目を
+  追加。長時間コマンドで後続が飢餓した際の診断を可能にする
+  (ai-chat検証 ISSUE-3。GUIスレッド実行のプリエンプトは安全に
+  行えないため可視化までとし、回復は外部再起動の既存方針を維持)
+
+## [1.0.2] - 2026-11-21
+
+### Fixed
+- layer_org._move_to_group: レイヤ移動の clone→remove→insert 順を
+  insert→remove に修正。元ノード除去が先だと
+  QgsLayerTreeRegistryBridge が「最後のツリーノード消失」と判定し
+  イベント処理後にマップレイヤ本体まで削除していた
+  (geo_import 等からの追加レイヤが placed 報告後に消失する実害あり。
+  docstring が記述する本来の順序にコードを合わせた)。
+
 ## [1.0.1] - 2026-11-20
 
 ### Fixed

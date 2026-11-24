@@ -2,9 +2,10 @@
 name=geo_excel
 qgisMinimumVersion=4.0
 qgisMaximumVersion=4.99
-description=ベクターレイヤの属性情報をExcel帳票として出力するスクリプト群(QGIS-exportExcel)の簡易プラグインラッパー
+description=Output vector layer attributes as Excel reports — a plugin wrapper for the QGIS-exportExcel script set (Windows; requires Microsoft Excel and pywin32)
 about=QGIS-exportExcel (https://github.com/yamamoto-ryuzo/QGIS-exportExcel) のレイヤアクション用スクリプト(exportList/exportSingle/exportSingleBulk)を、プラグインメニューからアクティブレイヤ・選択地物に対して実行します。実行にはレイヤ変数(xlsout_*)とwin32com(pywin32)及びExcelが必要です。
-version=1.10.0
+about[en]=Runs the layer-action scripts from QGIS-exportExcel (https://github.com/yamamoto-ryuzo/QGIS-exportExcel) — exportList / exportSingle / exportSingleBulk — from the plugin menu against the active layer or selected features, producing Excel reports from templates. Requires layer variables (xlsout_*), pywin32 (win32com), and Microsoft Excel; Windows only.
+version=1.10.1
 author=yamamoto-ryuzo
 email=ryu@yamakun.net
 homepage=https://github.com/yamamoto-ryuzo/qgis_live_harness/tree/master/qgis-plugin/geo_excel
@@ -16,6 +17,8 @@ changelog=
     - 帳票出力前のドライラン検証 validateRun とテンプレートの
       プレースホルダ/フィールド対応表 fieldMapping をbridgeに追加
       (実行せずに変数不足・選択地物・テンプレート実在を確認可能)
+    - metadata: 英語 description/about[en] を追加、非推奨
+      supportsQt6 フラグを除去
     Version 1.9.7:
     - exportSingleBulk で同名ブックがExcelで開かれたままだと
       SaveAs がCOM例外で失敗する不具合を修正
@@ -69,4 +72,3 @@ tags=python,excel,report,action
 experimental=False
 deprecated=False
 server=False
-supportsQt6=True

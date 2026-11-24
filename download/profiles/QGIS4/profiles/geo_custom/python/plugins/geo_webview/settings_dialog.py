@@ -191,6 +191,76 @@ class SettingsDialog(QtWidgets.QDialog):
         self.kasugai_visible_only_check.toggled.connect(
             self._visible_only_toggled)
         vf_layout.addWidget(self.kasugai_visible_only_check)
+        # ベクター→XYZ タイル焼き付け(パネルの同名チェックと同じ
+        # kasugai_xyz_tiles / kasugai_xyz_zmin/zmax を読み書き)
+        xyz_row = QtWidgets.QHBoxLayout()
+        self.kasugai_xyz_tiles_check = QtWidgets.QCheckBox(
+            QtCore.QCoreApplication.translate(
+                'geo_webview', "XYZ tiles (faster display)"))
+        self.kasugai_xyz_tiles_check.setToolTip(
+            QtCore.QCoreApplication.translate(
+                'geo_webview',
+                "Large/complex vector layers (many features, "
+                "pattern/raster/GeometryGenerator styles, cluster/heatmap "
+                "renderers, etc.) are rendered by QGIS into XYZ image "
+                "tiles (xyz: rows) instead of relying on browser-side "
+                "QML rendering — pixel-faithful and fast to display. "
+                "The vector data row is still emitted (off) for "
+                "attribute queries and vector display."))
+        self.kasugai_xyz_tiles_check.toggled.connect(
+            self._xyz_tiles_toggled)
+        xyz_row.addWidget(self.kasugai_xyz_tiles_check)
+        xyz_row.addWidget(QtWidgets.QLabel(
+            QtCore.QCoreApplication.translate('geo_webview', "Zoom:")))
+        self.kasugai_xyz_zmin = QtWidgets.QSpinBox()
+        self.kasugai_xyz_zmin.setRange(0, 22)
+        self.kasugai_xyz_zmin.setToolTip(
+            QtCore.QCoreApplication.translate(
+                'geo_webview', "Minimum zoom level for baked XYZ tiles"))
+        self.kasugai_xyz_zmax = QtWidgets.QSpinBox()
+        self.kasugai_xyz_zmax.setRange(0, 22)
+        self.kasugai_xyz_zmax.setToolTip(
+            QtCore.QCoreApplication.translate(
+                'geo_webview', "Maximum zoom level for baked XYZ tiles "
+                "(reduced automatically when the estimated tile count "
+                "is too large)"))
+        self.kasugai_xyz_zmin.valueChanged.connect(
+            self._xyz_zooms_changed)
+        self.kasugai_xyz_zmax.valueChanged.connect(
+            self._xyz_zooms_changed)
+        xyz_row.addWidget(self.kasugai_xyz_zmin)
+        xyz_row.addWidget(QtWidgets.QLabel("–"))
+        xyz_row.addWidget(self.kasugai_xyz_zmax)
+        xyz_row.addStretch()
+        vf_layout.addLayout(xyz_row)
+        xyz_note = QtWidgets.QLabel(
+            QtCore.QCoreApplication.translate(
+                'geo_webview',
+                "Note: Canvas-side filters (where= / attribute "
+                "filtering) apply only to the bundled vector data row — "
+                "they do NOT affect the baked tile image."))
+        xyz_note.setWordWrap(True)
+        xyz_note.setStyleSheet("color: #666;")
+        vf_layout.addWidget(xyz_note)
+        # カスタムレイヤタブ(パネルの同名チェックと同じ
+        # kasugai_site_control を読み書き)
+        self.kasugai_site_control_check = QtWidgets.QCheckBox(
+            QtCore.QCoreApplication.translate(
+                'geo_webview', "Custom layers tab"))
+        self.kasugai_site_control_check.setToolTip(
+            QtCore.QCoreApplication.translate(
+                'geo_webview',
+                'Group layers by their layer-tree group name into a '
+                'custom "Layers" tab in KASUGAI Canvas (site=<group> '
+                'on each layer row + custom-layer plugin tab for '
+                'per-group on/off and ordering). All layers stay on '
+                'the standard tab (shown as "System layers" while the '
+                'custom tab exists); use list=off to hide a row there. '
+                'Ungrouped layers go to "Misc". Per-layer override: '
+                'layer custom properties kasugai_site / kasugai_order'))
+        self.kasugai_site_control_check.toggled.connect(
+            self._site_control_toggled)
+        vf_layout.addWidget(self.kasugai_site_control_check)
         vf_group.setLayout(vf_layout)
         layout.addWidget(vf_group)
 
@@ -264,6 +334,31 @@ class SettingsDialog(QtWidgets.QDialog):
         self.kasugai_visible_only_check.setChecked(checked)
         self.kasugai_visible_only_check.blockSignals(False)
 
+        # Custom layers tab (site= grouping + custom-layer plugin tab)
+        sc = str(self.settings.value('kasugai_site_control', '')
+                 or '').strip().lower()
+        sc_checked = sc in ('1', 'true', 'on', 'yes')
+        self.kasugai_site_control_check.blockSignals(True)
+        self.kasugai_site_control_check.setChecked(sc_checked)
+        self.kasugai_site_control_check.blockSignals(False)
+
+        # XYZ tiles (vector bake) + zoom range
+        try:
+            from . import kasugai_export
+            xt = kasugai_export.get_xyz_tiles_enabled()
+            self.kasugai_xyz_tiles_check.blockSignals(True)
+            self.kasugai_xyz_tiles_check.setChecked(xt)
+            self.kasugai_xyz_tiles_check.blockSignals(False)
+            _zmin, _zmax = kasugai_export.get_xyz_zooms()
+            self.kasugai_xyz_zmin.blockSignals(True)
+            self.kasugai_xyz_zmax.blockSignals(True)
+            self.kasugai_xyz_zmin.setValue(_zmin)
+            self.kasugai_xyz_zmax.setValue(_zmax)
+            self.kasugai_xyz_zmin.blockSignals(False)
+            self.kasugai_xyz_zmax.blockSignals(False)
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+
     def _vector_format_changed(self, index):
         """ベクター出力モード(native/recommended/geojson)を保存する。"""
         self.settings.setValue(
@@ -274,6 +369,30 @@ class SettingsDialog(QtWidgets.QDialog):
         """非表示レイヤのデータ変換スキップ(高速化)を保存する。"""
         self.settings.setValue(
             'kasugai_visible_data_only', '1' if checked else '0')
+
+    def _site_control_toggled(self, checked):
+        """カスタムレイヤタブ(site= 付与+custom-layer タブ)を保存する。"""
+        self.settings.setValue(
+            'kasugai_site_control', '1' if checked else '0')
+
+    def _xyz_tiles_toggled(self, checked):
+        """XYZ タイル焼き付け(高速表示)を保存する。"""
+        try:
+            from . import kasugai_export
+            kasugai_export.set_xyz_tiles_enabled(bool(checked))
+        except Exception:  # nosec B110  # 設計上の許容
+            self.settings.setValue(
+                'kasugai_xyz_tiles', '1' if checked else '0')
+
+    def _xyz_zooms_changed(self, _value=None):
+        """XYZ 焼き付けズーム範囲を保存する。"""
+        try:
+            from . import kasugai_export
+            kasugai_export.set_xyz_zooms(
+                self.kasugai_xyz_zmin.value(),
+                self.kasugai_xyz_zmax.value())
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
 
     def _basemap_groups_changed(self):
         """追加のベースマップグループ名(カンマ区切り)を保存する。"""

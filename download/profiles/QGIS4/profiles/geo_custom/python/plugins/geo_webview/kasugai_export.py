@@ -75,6 +75,37 @@ SETTINGS_KEY_BASEMAP_GROUPS = 'kasugai_basemap_groups'
 SETTINGS_KEY_VECTOR_FORMAT = 'kasugai_vector_format'
 VECTOR_EXPORT_MODES = ('native', 'recommended', 'geojson')
 SETTINGS_KEY_VISIBLE_DATA_ONLY = 'kasugai_visible_data_only'
+# カスタムレイヤタブ(custom-layer)の有効化設定。
+# ON のとき、レイヤツリーのグループをグループ名として ``site=<グループ>``
+# をレイヤ行へ付け、custom-layer プラグインJSを canvas_data/ へ複製して
+# ``plugin:`` 行を出力する(レイヤ customProperty ``kasugai_site`` /
+# ``kasugai_order`` で個別上書き可)
+SETTINGS_KEY_SITE_CONTROL = 'kasugai_site_control'
+
+# ベクター→XYZ タイル焼き付け(高速表示モード)。大規模・複雑スタイルの
+# ベクターを QGIS レンダラでタイル画像化して ``xyz:`` 行で出す
+# (パネル/設定ダイアログの「XYZ tiles」チェックとズーム範囲と共有)
+SETTINGS_KEY_XYZ_TILES = 'kasugai_xyz_tiles'
+SETTINGS_KEY_XYZ_ZMIN = 'kasugai_xyz_zmin'
+SETTINGS_KEY_XYZ_ZMAX = 'kasugai_xyz_zmax'
+# ズーム範囲の既定(パネルのスピンと共有)
+XYZ_TILES_ZOOM_DEFAULT = (1, 15)
+
+# Filter タブ(QGIS WEBVIEW)の選択状態。panel.py が UI 変更のたび
+# set_filter_panel_state() で同期し、plugin: 行の filter_* オプション
+# として出力する(Canvas 側「フィルタ」タブの初期選択となる)
+_filter_panel_state = None
+
+
+def set_filter_panel_state(state):
+    """Filter タブの選択状態を記録する(エクスポート時に plugin: 行へ反映)。
+
+    ``{'site': str, 'field': str, 'multi': bool, 'op': str,
+    'value': str, 'values': [str, ...]}`` または None を受ける。
+    """
+    global _filter_panel_state
+    _filter_panel_state = dict(state) if state else None
+
 
 # .kasc と同じ場所に出力するエンジン起動HTML(サーバレス配布用)。
 # 各HTMLは ?kasc=<.kascの絶対URL> 付きでエンジンへ転送するだけの
@@ -754,6 +785,180 @@ def set_visible_data_only(on):
         SETTINGS_KEY_VISIBLE_DATA_ONLY, '1' if on else '0')
 
 
+# ---- ベクター→XYZ タイル焼き付け(高速表示モード) ----
+
+def get_xyz_tiles_enabled():
+    """QSettings の kasugai_xyz_tiles(未設定は True)を返す。
+
+    パネルの「XYZ tiles (faster display)」チェックと共有される既定値。
+    True なら大規模レイヤ・複雑スタイルのベクターを QGIS レンダラで
+    XYZ タイルへ焼き付けて ``xyz:`` 行として出す
+    (データ照会用のベクター行は ``| off`` で併記)。
+    """
+    try:
+        v = _qsettings().value(SETTINGS_KEY_XYZ_TILES, None)
+        if v is not None and str(v).strip() != '':
+            return str(v).strip().lower() not in (
+                '0', 'false', 'off', 'no')
+    except Exception:  # nosec B110  # 設計上の許容
+        pass
+    return True
+
+
+def set_xyz_tiles_enabled(on):
+    """XYZ タイル焼き付けの有効/無効を QSettings へ保存する。"""
+    _qsettings().setValue(
+        SETTINGS_KEY_XYZ_TILES, '1' if on else '0')
+
+
+def get_xyz_zooms():
+    """QSettings の XYZ 焼き付けズーム範囲 (zmin, zmax)。
+
+    未設定時は XYZ_TILES_ZOOM_DEFAULT (1, 15)。パネルの
+    ズーム範囲スピンと共有される。
+    """
+    dmin, dmax = XYZ_TILES_ZOOM_DEFAULT
+
+    def _ival(key, default):
+        try:
+            v = _qsettings().value(key, None)
+            if v is None or str(v).strip() == '':
+                return default
+            return max(0, min(22, int(float(str(v).strip()))))
+        except Exception:  # nosec B110  # 設計上の許容
+            return default
+
+    zmin = _ival(SETTINGS_KEY_XYZ_ZMIN, dmin)
+    zmax = _ival(SETTINGS_KEY_XYZ_ZMAX, dmax)
+    if zmax < zmin:
+        zmax = zmin
+    return zmin, zmax
+
+
+def set_xyz_zooms(zmin, zmax):
+    """XYZ 焼き付けズーム範囲を QSettings へ保存する。"""
+    zmin = max(0, min(22, int(zmin)))
+    zmax = max(zmin, min(22, int(zmax)))
+    _qsettings().setValue(SETTINGS_KEY_XYZ_ZMIN, str(zmin))
+    _qsettings().setValue(SETTINGS_KEY_XYZ_ZMAX, str(zmax))
+
+
+def get_site_control():
+    """QSettings の kasugai_site_control(未設定は False)を返す。
+
+    パネルの「カスタムレイヤタブ」チェックと共有される既定値。
+    True ならレイヤツリーのグループ名を ``site=<グループ>`` として
+    レイヤ行へ付け、custom-layer プラグインを canvas_data/ へ複製して
+    ``plugin:`` 行を出力する(標準レイヤタブは全レイヤを表示したまま
+    「システムレイヤ」に改称され、custom-layer タブが site ごとの
+    一括 on/off を担う)。
+    """
+    try:
+        v = _qsettings().value(SETTINGS_KEY_SITE_CONTROL, None)
+        if v is not None and str(v).strip() != '':
+            return str(v).strip().lower() not in (
+                '0', 'false', 'off', 'no')
+    except Exception:  # nosec B110  # 設計上の許容
+        pass
+    return False
+
+
+def set_site_control(on):
+    """カスタムレイヤタブの有効化を QSettings へ保存する。"""
+    _qsettings().setValue(
+        SETTINGS_KEY_SITE_CONTROL, '1' if on else '0')
+
+
+def _canvas_layer_opts_suffix(layer, groups, bm_idx, site_control):
+    """レイヤ行へ付ける `` | site=`` / `` | order=`` / `` | list=off`` /
+    追加オプションのオプション文字列を返す。
+
+    レイヤ customProperty(パネルの Layers タブからも設定):
+    - ``kasugai_site`` — カスタムタブのグループ名。未設定で site_control
+      ON ならグループ階層(``A/B`` 連結)を自動付与。``-``/空文字で
+      強制未割当(「その他」行・標準タブに残る)
+    - ``kasugai_order`` — 同一 site 内の並び順(小さいほど最前面)
+    - ``kasugai_list`` — ``off`` で標準レイヤ一覧から非表示(地図は描画)
+    - ``kasugai_opts`` — 空白/``|`` 区切りの任意 ``key=value`` 列を
+      そのまま追加(``opacity=0.5 heat=on`` 等)
+      (``legend_order=asc|desc|reverse|ラベル列挙`` で
+      カスタムタブの凡例順を変更可)
+    ベースマップグループ内のレイヤは site= を付けない。
+    """
+    o = _canvas_layer_opts(layer, groups, bm_idx, site_control)
+    out = ''
+    if o['site']:
+        out += ' | site={0}'.format(_kasc_escape(o['site']))
+    if o['order']:
+        out += ' | order={0}'.format(_kasc_escape(o['order']))
+    if o['list'] == 'off':
+        out += ' | list=off'
+    for tok in o['opts']:
+        out += ' | {0}'.format(_kasc_escape(tok))
+    return out
+
+
+def _canvas_layer_opts(layer, groups, bm_idx, site_control):
+    """レイヤの .kasc 追加オプションを dict で返す(VIEW 表示・内部用)。
+
+    戻り値 ``{'site': <箇所名>|None, 'order': <文字列>|None,
+    'list': 'off'|None, 'opts': [<key=value>,...]}``。
+    ``site`` は ``_canvas_layer_opts_suffix`` と同一の解決規則。
+    """
+    res = {'site': None, 'order': None, 'list': None, 'opts': []}
+    try:
+        site = layer.customProperty('kasugai_site', None)
+    except Exception:  # nosec B110  # 設計上の許容
+        site = None
+    if site is None:
+        site = ('/'.join([g for g in groups if g])
+                if site_control and bm_idx is None else '')
+    else:
+        site = str(site).strip()
+    if site and site != '-' and bm_idx is None:
+        res['site'] = site
+    try:
+        order = layer.customProperty('kasugai_order', None)
+    except Exception:  # nosec B110  # 設計上の許容
+        order = None
+    if order is not None and str(order).strip() != '':
+        res['order'] = str(order).strip()
+    try:
+        lst = layer.customProperty('kasugai_list', None)
+    except Exception:  # nosec B110  # 設計上の許容
+        lst = None
+    if str(lst or '').strip() == 'off':
+        res['list'] = 'off'
+    try:
+        extra = layer.customProperty('kasugai_opts', None)
+    except Exception:  # nosec B110  # 設計上の許容
+        extra = None
+    for tok in re.split(r'[|\s]+', str(extra or '')):
+        if tok and ('=' in tok or tok in ('on', 'off')):
+            res['opts'].append(tok)
+    return res
+
+
+def _copy_site_control_plugin(data_dir, warnings):
+    """custom-layer プラグインJSを canvas_data/ へ複製する。
+
+    バンドル元は geo_webview/assets/custom-layer.js で、正本は
+    kasugai_canvas/web/cesium/PLUGIN/custom-layer/plugin.js
+    (Canvas 側更新時は内容を同期する)。
+    """
+    src = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                       'assets', 'custom-layer.js')
+    dst = os.path.join(data_dir, 'custom-layer.js')
+    try:
+        if not os.path.isfile(dst) or not _same_data_copy(src, dst):
+            import shutil
+            shutil.copy2(src, dst)
+        return True
+    except Exception as e:
+        warnings.append('custom-layer.js 複製失敗: {0}'.format(e))
+        return False
+
+
 def _recommended_source_kind(layer):
     """ソースが推奨形式(fgb/parquet)なら行タイプ、でなければ None。
 
@@ -793,15 +998,69 @@ KASUGAI_WEB_HOST = (
     'https://yamamoto-ryuzo.github.io/kasugai-canvas-web/')
 HOSTED_CHANNELS = ('stable', 'unstable')
 SETTINGS_KEY_HOSTED_CHANNEL = 'kasugai_hosted_channel'
+SETTINGS_KEY_HOSTED_VALUE = 'kasugai_hosted_value'
 
 
 def get_hosted_channel():
     """QSettings の kasugai_hosted_channel(未設定は 'stable')を返す。
 
-    'stable'/'unstable' または完全URL(自前ホスト用)を取る。
+    'stable'/'unstable'、'canvas'(稼働中の Canvas アプリ :8510)、
+    'custom'(カスタム供給元。実値は kasugai_hosted_value —
+    http(s) URL なら自前ホスト、フォルダパスなら FILE モードで
+    geo_webview サーバがそのツリーを /<engine>/ で静的配信)、
+    'url'/'file'(旧トークン=custom 同値)、または直接書かれた
+    URL/パス(旧形式互換)を取る。
     """
     v = (_qsettings().value(SETTINGS_KEY_HOSTED_CHANNEL, '') or '')
     return str(v).strip() or 'stable'
+
+
+def get_hosted_value():
+    """QSettings の kasugai_hosted_value(url/file モードの実値)を返す。
+
+    url モードでは http(s) ベースURL、file モードでは web/ フォルダ
+    パスを保持する。
+    """
+    v = (_qsettings().value(SETTINGS_KEY_HOSTED_VALUE, '') or '')
+    return str(v).strip()
+
+
+def _custom_channel_value(channel=None):
+    """custom/url/file 系モードの実値を返す。それ以外はモード値そのまま。"""
+    ch = str(channel if channel is not None
+             else get_hosted_channel() or 'stable').strip()
+    if ch.lower() in ('custom', 'url', 'file'):
+        return get_hosted_value()
+    return ch
+
+
+def is_hosted_channel(channel=None):
+    """モード値がホスト側供給(stable/unstable/カスタムURL)なら True。
+
+    'canvas' や FILE(パス系)は False(=ローカル系)。custom/url/file
+    トークンは実値が http(s) 始まりなら True。
+    """
+    ch = _custom_channel_value(channel)
+    return ch.lower() in HOSTED_CHANNELS or ch.lower().startswith(
+        ('http://', 'https://'))
+
+
+def local_channel_web_dir(channel=None):
+    """モード値が FILE 系ならその web/ ディレクトリを返す。
+
+    custom/file トークンは kasugai_hosted_value のパス、それ以外は
+    直接書かれたパス(旧形式)を使う。hosted 系や 'canvas'/'local'
+    (legacy)なら None。存在する web/ ツリー(index.html 必須)のみ
+    絶対パスで返す。
+    """
+    ch = _custom_channel_value(channel).strip().strip('"')
+    if (not ch or ch.lower() in HOSTED_CHANNELS
+            or ch.lower() in ('canvas', 'local')
+            or ch.lower().startswith(('http://', 'https://'))):
+        return None
+    if os.path.isfile(os.path.join(ch, 'index.html')):
+        return os.path.abspath(ch)
+    return None
 
 
 def export_zip_name(channel=None):
@@ -813,8 +1072,12 @@ def export_zip_name(channel=None):
     """
     ch = str(channel if channel is not None
              else get_hosted_channel()).strip()
+    if ch.lower() in ('custom', 'url', 'file'):
+        ch = get_hosted_value() or 'stable'
     if ch.lower() in HOSTED_CHANNELS:
         tag = ch.lower()
+    elif not is_hosted_channel(ch):
+        tag = 'local'
     elif ch.lower().startswith(('http://', 'https://')):
         seg = urllib.parse.urlparse(ch).path.rstrip('/').rsplit('/', 1)[-1]
         tag = re.sub(r'[^A-Za-z0-9_.-]+', '_', seg) or 'custom'
@@ -837,6 +1100,8 @@ def hosted_engine_base(channel=None):
     """
     ch = str(channel if channel is not None
              else get_hosted_channel()).strip()
+    if ch.lower() in ('custom', 'url', 'file'):
+        ch = get_hosted_value() or 'stable'
     if ch.lower().startswith(('http://', 'https://')):
         return ch if ch.endswith('/') else ch + '/'
     if ch.lower() not in HOSTED_CHANNELS:
@@ -2058,7 +2323,8 @@ def _fallback_driver():
     return 'GeoJSON', '.geojson', 'geojson'
 
 
-def _native_ref(layer, slug, data_dir, copied, warnings, write=True):
+def _native_ref(layer, slug, data_dir, copied, warnings, write=True,
+                file_ref=None):
     """Canvas が直接参照できるソースなら参照辞書を返す。
 
     戻り値: ``{'type': <kasc行タイプ>, 'ref': <参照>, 'opts': {k: v}}``、
@@ -2067,6 +2333,10 @@ def _native_ref(layer, slug, data_dir, copied, warnings, write=True):
     write=False(非表示 base: 候補の参照のみ出力)時はローカルファイルの
     新規コピーを行わず、リンク参照・既存コピーの再利用・URL参照のみ
     解決する(コピーが必要なら None → 呼び出し側はスキップ判定へ)。
+    file_ref(path)->ref を渡すとローカルファイルをコピーせずその
+    呼び出し結果を参照に使う(/live/file 配信等・live kasc 用)。
+    Shapefile sidecar も同一経路で解決される前提のため呼び出し側が
+    sidecar へのアクセスも保証すること。
 
     - http(s) ソース: 拡張子に応じて URL をそのまま参照
     - ローカルファイル: canvas_data/<slug><ext> へコピーして相対参照
@@ -2091,8 +2361,8 @@ def _native_ref(layer, slug, data_dir, copied, warnings, write=True):
             return {'skip_reason': 'ジオメトリ列なし(属性テーブル)'}
         if not _geo_equiv_crs(layer):
             return None  # 再投影が必要 → ベクター変換
-        ref = _duckdb_target_ref(path, slug, data_dir, copied,
-                                 write=write)
+        ref = file_ref(path) if file_ref else _duckdb_target_ref(
+            path, slug, data_dir, copied, write=write)
         if not ref:
             return None
         opts = {'format': 'tsv' if path.lower().endswith('.tsv') else 'csv'}
@@ -2156,8 +2426,9 @@ def _native_ref(layer, slug, data_dir, copied, warnings, write=True):
         if subset:
             opts['where'] = subset
         return {'type': 'duckdb',
-                'ref': _link_ref(src_path) or _copy_to_data(
-                    src_path, data_dir, slug, copied, write=write),
+                'ref': file_ref(src_path) if file_ref else
+                (_link_ref(src_path) or _copy_to_data(
+                    src_path, data_dir, slug, copied, write=write)),
                 'opts': opts}
 
     kind = _NATIVE_KINDS.get(ext)
@@ -2198,12 +2469,14 @@ def _native_ref(layer, slug, data_dir, copied, warnings, write=True):
             return None
     if ext == '.shp':
         # Shapefile は sidecar(.dbf/.shx/.prj 等)を一式コピー
-        # (link_files 時は _copy_shp_set 内で原本相対参照へ切替)
-        ref = _copy_shp_set(src_path, data_dir, slug, copied,
-                            write=write)
-    else:
-        ref = _link_ref(src_path) or _copy_to_data(
+        # (link_files 時は _copy_shp_set 内で原本相対参照へ切替。
+        # file_ref 指定時は原本パス参照のみ=sidecar も同一経路で解決)
+        ref = file_ref(src_path) if file_ref else _copy_shp_set(
             src_path, data_dir, slug, copied, write=write)
+    else:
+        ref = file_ref(src_path) if file_ref else (
+            _link_ref(src_path) or _copy_to_data(
+                src_path, data_dir, slug, copied, write=write))
     if not ref:
         return None
     opts = {}
@@ -2260,7 +2533,8 @@ def _export_vector(layer, path, fields=None, where=None, limit=None,
     """
     from qgis.core import (QgsCoordinateReferenceSystem,
                            QgsCoordinateTransform, QgsExpression,
-                           QgsFeatureRequest, QgsProject,
+                           QgsFeature, QgsFeatureRequest, QgsFields,
+                           QgsField, QgsMemoryProviderUtils, QgsProject,
                            QgsVectorFileWriter)
     src = layer
     if where or limit is not None:
@@ -2279,6 +2553,24 @@ def _export_vector(layer, path, fields=None, where=None, limit=None,
                     'limit は 1 以上の整数: {0}'.format(limit))
             req.setLimit(lim)
         src = layer.materialize(req)
+    if driver == 'GeoJSON':
+        # GeoJSON にはフィールド幅の概念がないが、Writer はソースの
+        # フィールド定義(幅/精度)をそのまま使うため、GPKG 由来の
+        # VARCHAR(255) 定義で 255 文字超の値が書き込みエラーになる。
+        # 幅を除いた memory レイヤへ実体化してから書き出す。
+        flds = QgsFields()
+        for f in src.fields():
+            nf = QgsField(f)
+            nf.setLength(0)
+            nf.setPrecision(0)
+            flds.append(nf)
+        mem = QgsMemoryProviderUtils.createMemoryLayer(
+            'export', flds, src.wkbType(), src.crs())
+        mem.startEditing()
+        mem.addFeatures(
+            [QgsFeature(f) for f in src.getFeatures()])
+        mem.commitChanges()
+        src = mem
     options = QgsVectorFileWriter.SaveVectorOptions()
     options.driverName = driver
     options.fileEncoding = 'UTF-8'
@@ -2965,6 +3257,519 @@ def _raster_bbox_str(layer):
             ext.xMinimum(), ext.yMinimum(), ext.xMaximum(), ext.yMaximum())
     except Exception:  # nosec B110  # 設計上の許容
         return None
+
+
+# ---- ベクター → XYZ タイル焼き付け ------------------------------------
+# 大規模レイヤ・複雑スタイル(パターン系/ラスタ系/GeometryGenerator 等)は
+# ブラウザ側の QML 再現で一致しきれないため、QGIS のレンダラで
+# Web メルカトル XYZ タイルへ焼き付けて ``xyz:`` 行として出す。
+# 照会・ベクタ表示用のデータ行(geojson: 等)は ``| off`` で併記する。
+# レイヤ customProperty 'kasugai_render' で強制指定:
+#   'xyz'    = 必ずタイル化 / 'vector' = タイル化しない
+# 縮尺連動(hasScaleBasedVisibility)はズーム範囲へ変換し、
+# 範囲内タイル数が _VECTOR_XYZ_TILE_CAP を超える間は maxZoom を下げる。
+
+# featureCount がこの値以上ならタイル化対象(大規模レイヤ)
+_VECTOR_XYZ_MIN_FEATURES = 2000
+# 1レイヤの焼き付けズーム上限決定に使う「範囲内タイル数」の目安
+_VECTOR_XYZ_TILE_CAP = 320
+# 絶対上限(安全網)
+_VECTOR_XYZ_TILE_HARD_CAP = 1500
+# ブラウザ QML 再現が近似的なシンボルレイヤ → タイル化対象
+_VECTOR_XYZ_SYM_COMPLEX = {
+    'GeometryGenerator', 'VectorField', 'LinearReferencing', 'MaskMarker',
+    'AnimatedMarker', 'RasterMarker',
+    'LinePatternFill', 'PointPatternFill', 'RandomMarkerFill',
+    'CentroidFill', 'GradientFill', 'ShapeburstFill',
+    'SVGFill', 'RasterFill',
+    'RasterLine', 'InterpolatedLine', 'Lineburst',
+}
+# ブラウザ再現が近似的なレンダラ(小文字比較) → タイル化対象
+_VECTOR_XYZ_REN_COMPLEX = {
+    'heatmaprenderer', 'pointcluster', 'pointdisplacement',
+    'mergedfeaturerenderer', 'embeddedsymbol', '25drenderer',
+    'invertedpolygonrenderer',
+}
+
+
+def _vector_needs_xyz(layer, feat_count):
+    """ベクターレイヤを XYZ タイル焼き付けで出すべきか。
+
+    パネルの「XYZ tiles」チェック(QSettings kasugai_xyz_tiles)が OFF
+    なら常に False。レイヤ customProperty ``kasugai_render`` で
+    ``xyz``/``vector`` の個別強制指定ができる。
+    """
+    try:
+        mode = str(layer.customProperty(
+            'kasugai_render', '') or '').strip().lower()
+        if mode == 'vector':
+            return False
+        if mode == 'xyz':
+            return True
+    except Exception:  # nosec B110  # 設計上の許容
+        pass
+    if not get_xyz_tiles_enabled():
+        return False
+    try:
+        if feat_count is not None and \
+                int(feat_count) >= _VECTOR_XYZ_MIN_FEATURES:
+            return True
+    except Exception:  # nosec B110  # 設計上の許容
+        pass
+    try:
+        r = layer.renderer()
+    except Exception:  # nosec B110  # 設計上の許容
+        r = None
+    if not r:
+        return False
+    try:
+        if (r.type() or '').strip().lower() in _VECTOR_XYZ_REN_COMPLEX:
+            return True
+    except Exception:  # nosec B110  # 設計上の許容
+        pass
+    found = set()
+
+    def _walk_sym(sym):
+        if not sym:
+            return
+        try:
+            for sl in sym.symbolLayers():
+                try:
+                    found.add(sl.layerType())
+                    _walk_sym(sl.subSymbol())
+                except Exception:  # nosec B110  # 設計上の許容
+                    pass
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+
+    def _walk_rule(rule):
+        if not rule:
+            return
+        try:
+            _walk_sym(rule.symbol())
+            for c in rule.children() or []:
+                _walk_rule(c)
+        except Exception:  # nosec B110  # 設計上の許容
+            pass
+
+    try:
+        from qgis.core import QgsRenderContext
+        for s in r.symbols(QgsRenderContext()) or []:
+            _walk_sym(s)
+    except Exception:  # nosec B110  # 設計上の許容
+        pass
+    try:
+        _walk_rule(r.rootRule())
+    except Exception:  # nosec B110  # 設計上の許容
+        pass
+    return bool(found & _VECTOR_XYZ_SYM_COMPLEX)
+
+
+def _scale_to_zoom(scale_denom):
+    """縮尺分母 → Web メルカトルのズームレベル(0.28mm 物理ピクセル換算)。"""
+    import math
+    try:
+        d = float(scale_denom or 0)
+        if d <= 0:
+            return None
+        res = d * 0.00028
+        return max(0.0, min(24.0, math.log2(156543.03392 / res)))
+    except Exception:  # nosec B110  # 設計上の許容
+        return None
+
+
+def _vector_xyz_zooms(layer, ext3857, warnings=None):
+    """焼き付けズーム範囲 (zmin, zmax)。
+
+    基本はパネル設定の手動範囲(kasugai_xyz_zmin/zmax、既定 1-15)。
+    レイヤの縮尺連動があればその範囲でさらに絞る(手動範囲との交差)。
+    範囲内タイル数が _VECTOR_XYZ_TILE_CAP を超える間は zmax を下げる
+    (削減した場合は warnings へ通知)。
+    """
+    import math
+    zmin, zmax = get_xyz_zooms()
+    try:
+        if layer.hasScaleBasedVisibility():
+            zs = _scale_to_zoom(layer.minimumScale())
+            if zs is not None:
+                zmin = max(zmin, int(math.floor(zs)))
+            zi = _scale_to_zoom(layer.maximumScale())
+            if zi is not None:
+                zmax = min(zmax, int(math.ceil(zi)))
+            if zmax < zmin:
+                zmax = zmin
+    except Exception:  # nosec B110  # 設計上の許容
+        pass
+    zmin = max(0, min(22, zmin))
+    zmax = max(zmin, min(22, zmax))
+    world = 2 * 20037508.3427892
+    w = ext3857.xMaximum() - ext3857.xMinimum()
+    h = ext3857.yMaximum() - ext3857.yMinimum()
+
+    def _count(z):
+        ts = world / (2 ** z)
+        return (max(1, int(math.ceil(w / ts))) *
+                max(1, int(math.ceil(h / ts))))
+
+    zmax0 = zmax
+    while zmax > zmin and _count(zmax) > _VECTOR_XYZ_TILE_CAP:
+        zmax -= 1
+    if zmax < zmax0 and warnings is not None:
+        warnings.append(
+            '{0}: タイル数上限のため焼き付けズームを z{1} まで縮小 '
+            '(高ズーム側は未生成)'.format(layer.name(), zmax))
+    return zmin, zmax
+
+
+def _img_blank(img):
+    """QImage が完全透明かを判定する(空タイルの保存スキップ用)。"""
+    try:
+        bits = img.constBits()
+        if bits is not None:
+            arr = bits.asarray(img.sizeInBytes())
+            if not any(arr[3::4]):  # ARGB32: 4バイト目がアルファ
+                return True
+            return False
+    except Exception:  # nosec B110  # 設計上の許容
+        pass
+    try:
+        w, h = img.width(), img.height()
+        for y in range(0, h, max(1, h // 16)):
+            for x in range(0, w, max(1, w // 16)):
+                if img.pixelColor(x, y).alpha():
+                    return False
+        return True
+    except Exception:  # nosec B110  # 設計上の許容
+        return False
+
+
+def _render_vector_xyz(layer, slug, data_dir, warnings, zooms=None):
+    """ベクターレイヤを QGIS レンダラで XYZ PNG タイルへ焼き付ける。
+
+    戻り値は (urlテンプレート, zmin, zmax, bbox4326文字列, タイル数)、
+    失敗時 None。完全透明タイルは保存しない。ラベル・データ定義・
+    ペイント効果を含めた見た目がそのまま焼き付く。
+    ベクター以外の QgsMapLayer(ラスタ/WMS 等)でも同じ経路で描画できる。
+
+    zooms=(zmin, zmax) を渡すとズーム範囲を固定する。None(既定)は
+    _vector_xyz_zooms(パネル設定+縮尺連動+タイル数上限)で決める。
+
+    タイルを1枚ずつ描画すると遅いため、ズーム段ごとに
+    最大 16x16 タイル(4096px)のチャンクで1回レンダリングして
+    スライスする。縮尺依存の評価はズーム段ごとの画像に正しく効く。
+    """
+    import math
+    try:
+        from qgis.core import (QgsCoordinateReferenceSystem,
+                               QgsCoordinateTransform,
+                               QgsLabelingEngineSettings,
+                               QgsMapRendererSequentialJob,
+                               QgsMapSettings,
+                               QgsProject, QgsRectangle)
+        from qgis.PyQt.QtCore import QSize
+        from qgis.PyQt.QtGui import QColor
+    except Exception as e:
+        warnings.append(
+            '{0}: XYZ焼き付けの準備失敗: {1}'.format(layer.name(), e))
+        return None
+    ext = layer.extent()
+    if not ext or not ext.isFinite() or ext.isEmpty():
+        return None
+    crs3857 = QgsCoordinateReferenceSystem('EPSG:3857')
+    try:
+        tr = QgsCoordinateTransform(
+            layer.crs(), crs3857, QgsProject.instance())
+        ext = tr.transformBoundingBox(ext)
+    except Exception as e:
+        warnings.append(
+            '{0}: 範囲の EPSG:3857 変換失敗: {1}'.format(layer.name(), e))
+        return None
+    if zooms is not None:
+        zmin, zmax = int(zooms[0]), int(zooms[1])
+        zmin = max(0, min(22, zmin))
+        zmax = max(zmin, min(22, zmax))
+    else:
+        zmin, zmax = _vector_xyz_zooms(layer, ext, warnings)
+    out_root = os.path.join(data_dir, slug)
+    world = 2 * 20037508.3427892
+    rendered = 0
+    stop = False
+    for z in range(zmin, zmax + 1):
+        if stop:
+            break
+        ts = world / (2 ** z)
+        x0 = max(0, int(math.floor((ext.xMinimum() + world / 2) / ts)))
+        x1 = min(2 ** z - 1,
+                 int(math.floor((ext.xMaximum() + world / 2) / ts)))
+        y0 = max(0, int(math.floor((world / 2 - ext.yMaximum()) / ts)))
+        y1 = min(2 ** z - 1,
+                 int(math.floor((world / 2 - ext.yMinimum()) / ts)))
+        # 16x16 タイル(4096px)チャンク単位で一括描画→スライス
+        for bx0 in range(x0, x1 + 1, 16):
+            if stop:
+                break
+            bx1 = min(x1, bx0 + 15)
+            for by0 in range(y0, y1 + 1, 16):
+                if stop:
+                    break
+                by1 = min(y1, by0 + 15)
+                wpx = (bx1 - bx0 + 1) * 256
+                hpx = (by1 - by0 + 1) * 256
+                xmin = bx0 * ts - world / 2
+                ymin = world / 2 - (by1 + 1) * ts
+                settings = QgsMapSettings()
+                settings.setLayers([layer])
+                settings.setDestinationCrs(crs3857)
+                settings.setExtent(
+                    QgsRectangle(xmin, ymin, xmin + (bx1 - bx0 + 1) * ts,
+                                 ymin + (by1 - by0 + 1) * ts))
+                settings.setOutputSize(QSize(wpx, hpx))
+                settings.setBackgroundColor(QColor(0, 0, 0, 0))
+                try:
+                    settings.setLabelingEngineSettings(
+                        QgsLabelingEngineSettings())
+                except Exception:  # nosec B110  # 設計上の許容
+                    pass
+                # 大量地物レイヤ(メッシュ等)の低ズーム描画を速くする:
+                # QGIS の描画簡略化(地物簡約+マージ)をチャンク描画へ有効化。
+                # 見た目は QGIS キャンバスの既定簡略化と同等。
+                try:
+                    from qgis.core import Qgis
+                    settings.setFlag(
+                        Qgis.MapSettingsFlag.UseRenderingOptimization,
+                        True)
+                except Exception:  # nosec B110  # 設計上の許容
+                    pass
+                job = QgsMapRendererSequentialJob(settings)
+                job.start()
+                job.waitForFinished()
+                img = job.renderedImage()
+                if img.isNull() or _img_blank(img):
+                    continue
+                for tx in range(bx0, bx1 + 1):
+                    if rendered >= _VECTOR_XYZ_TILE_HARD_CAP:
+                        stop = True
+                        break
+                    for ty in range(by0, by1 + 1):
+                        tile = img.copy((tx - bx0) * 256,
+                                        (ty - by0) * 256, 256, 256)
+                        if tile.isNull() or _img_blank(tile):
+                            continue
+                        d = os.path.join(out_root, str(z), str(tx))
+                        if not os.path.isdir(d):
+                            os.makedirs(d)
+                        if tile.save(os.path.join(
+                                d, str(ty) + '.png'), 'PNG'):
+                            rendered += 1
+                            if rendered >= _VECTOR_XYZ_TILE_HARD_CAP:
+                                stop = True
+                                break
+    if not rendered:
+        return None
+    url = _dref(data_dir, '{0}/{{z}}/{{x}}/{{y}}.png'.format(slug))
+    return url, zmin, zmax, _layer_extent_bbox(layer), rendered
+
+
+def _write_xyz_index(data_dir, slug, zmin, zmax, bbox=None,
+                     title=None):
+    """焼き付けタイルを単体確認できる最小 Leaflet index.html を
+    <slug>/index.html へ出力する(未生成の場合のみ。file:// 直開き・
+    /export-data/ 配信のどちらでも動く相対参照)。
+    戻り値: 書き込んだ場合 True。"""
+    path = os.path.join(data_dir, slug, 'index.html')
+    if os.path.isfile(path):
+        return False
+    t = title or slug
+    if bbox and len(bbox) == 4:
+        w, s, e, n = bbox
+        fit = ('map.fitBounds([[{s},{w}],[{n},{e}]]);'
+               .format(s=s, w=w, n=n, e=e))
+    else:
+        fit = ('map.setView([35.681, 139.767], {zmax});'
+               .format(zmax=zmax))
+    html = """<!doctype html>
+<html><head><meta charset="utf-8">
+<title>{t} — XYZ tile check</title>
+<link rel="stylesheet"
+ href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>html,body,#map{{height:100%;margin:0}}</style></head>
+<body><div id="map"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+var map = L.map('map');
+L.tileLayer('./{{z}}/{{x}}/{{y}}.png', {{
+  minZoom: {zmin}, maxZoom: {zmax},
+  tms: false, attribution: 'QGIS-rendered XYZ bake: {t}'
+}}).addTo(map);
+{fit}
+</script></body></html>
+""".format(t=t, zmin=zmin, zmax=zmax, fit=fit)
+    try:
+        d = os.path.dirname(path)
+        if not os.path.isdir(d):
+            os.makedirs(d)
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write(html)
+        return True
+    except Exception:  # nosec B110  # 設計上の許容
+        return False
+
+
+def _dir_has_pngs(path):
+    """ディレクトリ配下に .png が1枚以上あるか(焼き付け済み判定)。"""
+    try:
+        for _r, _d, files in os.walk(path):
+            if any(f.lower().endswith('.png') for f in files):
+                return True
+    except Exception:  # nosec B110  # 設計上の許容
+        pass
+    return False
+
+
+def _reuse_vector_xyz(layer, slug, data_dir):
+    """既存タイルツリーから (url,zmin,zmax,bbox,タイル数) を再構成する。
+
+    差分エクスポート/再実行で未変更レイヤの焼き付けを省略する際に使う
+    (描画は行わない)。
+    """
+    import re as _re
+    out_root = os.path.join(data_dir, slug)
+    zs, n = set(), 0
+    try:
+        for zname in os.listdir(out_root):
+            if not _re.match(r'^\d+$', zname):
+                continue
+            zdir = os.path.join(out_root, zname)
+            if not os.path.isdir(zdir):
+                continue
+            zs.add(int(zname))
+            for _r, _d, files in os.walk(zdir):
+                n += sum(1 for f in files if f.lower().endswith('.png'))
+    except Exception:  # nosec B110  # 設計上の許容
+        return None
+    if not zs or not n:
+        return None
+    url = _dref(data_dir, '{0}/{{z}}/{{x}}/{{y}}.png'.format(slug))
+    return url, min(zs), max(zs), _layer_extent_bbox(layer), n
+
+
+# ---- 指定レイヤのみの XYZ 焼き付け(独立機能) ----------------------------
+# パネルの XYZ タブ「Standalone XYZ export」が使う。.kasc 出力とは独立に
+# チェックしたレイヤだけを <出力先>/xyz_tiles/<slug>/ へ焼き付け、
+# 確認用 index.html を付ける。出力先は /export-data/ の配信ルート
+# (last_export_dir=preferred_output_dir)配下なので、HTTP サーバ稼働時は
+# /export-data/xyz_tiles/<slug>/index.html でブラウザ確認もできる。
+
+def xyz_tiles_dir():
+    """独立 XYZ 出力の既定ルート ``<preferred_output_dir()>/xyz_tiles/``。"""
+    return os.path.join(preferred_output_dir(), 'xyz_tiles')
+
+
+def export_layers_xyz(layers, out_dir=None, zmin=None, zmax=None,
+                      add_to_project=False, progress_cb=None):
+    """指定レイヤだけを QGIS レンダラで XYZ PNG タイルへ焼き付ける。
+
+    ``.kasc`` エクスポートの自動焼き付け(_vector_needs_xyz 判定)とは
+    独立した手動経路で、チェックしたレイヤを強制的にタイル化する
+    (ベクター以外のラスタ/WMS レイヤも同じ経路で再焼き付けできる)。
+
+    引数:
+        layers: 焼き付け対象の QgsMapLayer リスト(空なら何もしない)。
+        out_dir: 出力ルート。None(既定)は xyz_tiles_dir()
+            (``<preferred_output_dir()>/xyz_tiles/``)。各レイヤは
+            ``<root>/<slug>/{z}/{x}/{y}.png`` + ``index.html`` へ出力。
+        zmin/zmax: 両方指定するとズーム範囲を固定。None なら
+            _vector_xyz_zooms(パネルの Zoom 設定+縮尺連動+タイル数上限)。
+        add_to_project: True なら焼き付けたタイルツリーを
+            ``type=xyz`` の file:// ラスタレイヤとしてプロジェクトへ追加
+            (結果を地図キャンバスで即確認できる)。
+        progress_cb: ``progress_cb(done, total, name)``。各レイヤの
+            処理開始時に呼ぶ(エクスポートと同じ契約)。
+            ExportCancelled で中断できる。
+
+    戻り値: {"root", "layers": [{name, slug, dir, url, zmin, zmax, bbox,
+             tiles, index}], "skipped": [{name, reason}],
+             "warnings": [...]}
+    """
+    warnings = []
+    layers = [lyr for lyr in (layers or []) if lyr is not None]
+    root = os.path.abspath(out_dir or xyz_tiles_dir())
+    if not layers:
+        return {'root': root, 'layers': [], 'skipped': [],
+                'warnings': warnings}
+    if not os.path.isdir(root):
+        os.makedirs(root)
+    zooms = None
+    try:
+        if zmin is not None and zmax is not None:
+            zooms = (int(zmin), int(zmax))
+    except Exception:  # nosec B110  # 不正値は自動範囲へフォールバック
+        zooms = None
+    used = set()
+    total = len(layers)
+    out_layers = []
+    skipped = []
+    for i, layer in enumerate(layers):
+        if progress_cb is not None:
+            progress_cb(i, total, layer.name())
+        slug = _slugify(layer.name(), used)
+        info = _render_vector_xyz(layer, slug, root, warnings,
+                                  zooms=zooms)
+        if not info:
+            skipped.append({
+                'name': layer.name(),
+                'reason': 'render produced no tiles (empty extent or '
+                          'all tiles transparent)'})
+            continue
+        url, rzmin, rzmax, bb, n_tiles = info
+        # 完全透明タイルは保存しない仕様のため url テンプレートと
+        # 実ディレクトリは一致する(slug 直下に {z}/{x}/{y}.png)
+        entry = {
+            'name': layer.name(), 'slug': slug,
+            'dir': os.path.join(root, slug),
+            'url': url, 'zmin': rzmin, 'zmax': rzmax,
+            'bbox': bb, 'tiles': n_tiles,
+        }
+        # 単体確認用の最小 Leaflet ページ(既存は温存)
+        try:
+            _bb = [float(v) for v in str(bb or '').split(',')]
+            if _write_xyz_index(root, slug, rzmin, rzmax,
+                                _bb if len(_bb) == 4 else None,
+                                title=layer.name()):
+                entry['index'] = os.path.join(root, slug, 'index.html')
+        except Exception:  # nosec B110  # 表示用HTMLの失敗は無視
+            pass
+        out_layers.append(entry)
+        if add_to_project:
+            try:
+                _add_xyz_to_project(layer, entry)
+            except Exception as e:  # nosec B110  # 追加失敗は警告のみ
+                warnings.append(
+                    '{0}: XYZ レイヤのプロジェクト追加失敗: {1}'.format(
+                        layer.name(), e))
+    if progress_cb is not None:
+        progress_cb(total, total, '')
+    return {'root': root, 'layers': out_layers, 'skipped': skipped,
+            'warnings': warnings}
+
+
+def _add_xyz_to_project(src_layer, entry):
+    """焼き付けたタイルツリーを type=xyz ラスタレイヤとして追加する。
+
+    file:// テンプレートのため移動・配布はできないが、QGIS 上で
+    焼き付け結果をそのまま重ねて確認できる。元レイヤ名の末尾に
+    ' (XYZ)' を付けて追加する。
+    """
+    from qgis.core import QgsProject, QgsRasterLayer
+    path = entry['dir'].replace('\\', '/')
+    uri = ('type=xyz&url=file:///{0}/{{z}}/{{x}}/{{y}}.png'
+           '&zmin={1}&zmax={2}').format(
+               path, entry['zmin'], entry['zmax'])
+    rl = QgsRasterLayer(
+        uri, '{0} (XYZ)'.format(src_layer.name()), 'wms')
+    if not rl.isValid():
+        raise RuntimeError('invalid xyz layer uri')
+    QgsProject.instance().addMapLayer(rl)
 
 
 def _camera_line(iface, height_hint_scale=None):
@@ -3762,6 +4567,10 @@ def _export_atlas_fly(project, data_dir, used_names, warnings):
 def _attribution(layer):
     """レイヤの出典(attribution)文字列。失敗時は空文字。"""
     try:
+        # QGIS 3.38+/4.x: attribution() は serverProperties() へ移行
+        sp = layer.serverProperties() if hasattr(layer, 'serverProperties') else None
+        if sp is not None:
+            return (sp.attribution() or '').strip()
         return (layer.attribution() or '').strip()
     except Exception:  # nosec B110  # 設計上の許容
         return ''
@@ -3821,7 +4630,8 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
                            changed=None, live_url=None,
                            fields=None, where=None, limit=None,
                            link_files=True, vector_format=None,
-                           visible_data_only=None, progress_cb=None):
+                           visible_data_only=None, progress_cb=None,
+                           site_control=None):
     """レイヤツリーを KASUGAI Canvas プロジェクトとして出力する。
 
     引数:
@@ -3866,6 +4676,13 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
             UI へ出す用途(パネルの進捗ダイアログ等)。
             コールバック内で ``ExportCancelled`` を送出するとエクスポートを
             中断できる(キャンセルボタン実装用)。
+        site_control: True ならレイヤツリーのグループ名を
+            ``site=<グループ>`` としてレイヤ行へ付け、custom-layer
+            プラグインJSを canvas_data/ へ複製して ``plugin:`` 行を
+            出力する(site ごとの一括 on/off タブが Canvas 側へ
+            追加される。レイヤ customProperty ``kasugai_site`` /
+            ``kasugai_order`` で個別上書き可)。None(既定)は
+            QSettings ``kasugai_site_control``(パネルのチェック)に従う。
         emit_themes: True ならプロジェクトのマップテーマを ``theme:`` 行
             (Canvas の可視性プリセット)として出力する(既定)。
             テーマが存在する場合、非表示レイヤも ``| off`` で出力しないと
@@ -3999,6 +4816,11 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
     # kasugai_visible_data_only(パネルのチェック、初期値 ON)を解決
     if visible_data_only is None:
         visible_data_only = get_visible_data_only()
+    # カスタムレイヤタブ(パネルのチェック、既定 OFF)を解決。
+    # ON ならレイヤツリーのグループ名を site= としてレイヤ行へ付け、
+    # custom-layer プラグインを canvas_data/ へ複製して plugin: 行を出す
+    if site_control is None:
+        site_control = get_site_control()
     # ライブ差分エクスポート: {layer.id(): {'data':bool,'style':bool}}。
     # changed 指定時は未変更レイヤのデータ/スタイル書き出しを
     # 既存ファイルがある場合に限りスキップし、live.json に変更一覧を書く
@@ -4055,11 +4877,29 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
                 raise
             except Exception:  # nosec B110  # UI通知の失敗で中断しない
                 pass
+        # LIST 列(kasugai_export='off'): Canvas へ引き継がない
+        # (.kasc へ出力しない。表示列の | off とは別扱い)
+        if str(layer.customProperty(
+                'kasugai_export', '') or '').strip() == 'off':
+            skipped.append(
+                '{0} (Canvasへ引き継がない設定のため出力対象外)'.format(
+                    layer.name()))
+            continue
         # 「背景図」「basemap」名のグループはベースマップ候補の入れ物。
         # 中の XYZ レイヤはレイヤ行ではなく base: 行として登録する
         # (グループ名はタイトルから外し、配下のサブグループは残す)
         bm_idx = _basemap_group_index(groups, basemap_names)
         title = _kasc_layer_title(groups, layer.name(), exclusive_groups)
+        # レイヤ別オプション(site=/order=/list=off/追加opts)。
+        # カスタムレイヤタブ ON のときグループ名を site= として自動付与、
+        # customProperty(kasugai_site 等)は設定有無に関わらず常時有効
+        site_opt = _canvas_layer_opts_suffix(
+            layer, groups, bm_idx, site_control)
+        # 表示列(kasugai_vis='off'): Canvas へ引き継ぐが初期状態は
+        # 非表示(| off)。QGIS 上で非表示でも「引き継ぐ」意図が
+        # 明示されているため visible_only スキップより優先する
+        vis_off_opt = str(layer.customProperty(
+            'kasugai_vis', '') or '').strip() == 'off'
         if not visible:
             if (bm_idx is not None
                     and not isinstance(layer, QgsVectorLayer)
@@ -4068,20 +4908,22 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
                 # (visible_only/hidden_as_off の対象外。非表示は | off で
                 # 「初期選択しない候補」として出す)
                 vis_flag = 'off'
-            elif export_hidden_off:
+            elif export_hidden_off or vis_off_opt:
                 vis_flag = 'off'
             elif not visible_only:
                 vis_flag = 'on'
             else:
                 continue
         else:
-            vis_flag = 'on'
+            vis_flag = 'off' if vis_off_opt else 'on'
 
         # visible_data_only: 非表示レイヤはレイヤ行を一切出力しない
         # (背景図グループの base: 候補のみ従来通り出力。Canvas のレイヤ
         # 一覧に読み込めない「未読込」エントリが残るのを防ぐ。
-        # theme: 行は出力済みレイヤのみを対象にするため整合する)
-        ref_only = bool(visible_data_only) and vis_flag == 'off'
+        # theme: 行は出力済みレイヤのみを対象にするため整合する。
+        # kasugai_vis で off にした「表示中」レイヤは引き続き対象)
+        ref_only = (bool(visible_data_only)
+                    and not visible and vis_flag == 'off')
         write_ok = not ref_only
         if ref_only and not (
                 bm_idx is not None
@@ -4141,6 +4983,64 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
             # 時間対応・ヒートマップ/クラスタ・透過度等の共通オプション
             vopt = _vector_opts_suffix(layer, warnings)
 
+            # 大規模・複雑スタイルのベクターは QGIS レンダラで
+            # XYZ タイルへ焼き付け、表示は xyz: 行(縮尺選択は
+            # タイルズームに委譲)に任せる。照会・ベクタ表示用の
+            # データ行(geojson: 等)は | off で併記する
+            if _vector_needs_xyz(layer, feat_count):
+                xyz_dir = os.path.join(data_dir, slug + '_xyz')
+                # 差分管理下で変更のあるレイヤ・タイル未生成のレイヤのみ
+                # 焼き付け直す。changed=None(差分情報なしのフル出力)は
+                # 既存タイルを再利用(全件再描画はエクスポート時間を
+                # 大幅に延ばすため。スタイル変更時は live 差分経由か
+                # *_xyz ディレクトリ削除で再焼き付け)
+                just_baked = False
+                if (kinds is not None
+                        or not _dir_has_pngs(xyz_dir)):
+                    xyz_info = _render_vector_xyz(
+                        layer, slug + '_xyz', data_dir, warnings)
+                    just_baked = bool(xyz_info)
+                else:
+                    xyz_info = _reuse_vector_xyz(
+                        layer, slug + '_xyz', data_dir)
+                if xyz_info:
+                    url, zmin, zmax, bb, n_tiles = xyz_info
+                    line = 'xyz: {0} | {1} | {2}'.format(
+                        title, _kasc_escape(url), vis_flag)
+                    line += ' | maxZoom={0} | minZoom={1}'.format(
+                        zmax, zmin)
+                    op = _maplayer_opacity(layer)
+                    if op is not None:
+                        line += ' | opacity={0}'.format(op)
+                    line += _scale_vis_opt(layer)
+                    if bb:
+                        line += ' | bbox={0}'.format(bb)
+                    attr = _attribution(layer)
+                    if attr:
+                        line += ' | attr={0}'.format(
+                            _kasc_escape(attr))
+                    line += site_opt
+                    kasc_lines.append(line)
+                    # 単体確認用の最小 Leaflet ページをタイルツリー直下へ
+                    try:
+                        _bb = [float(v) for v in str(bb or '').split(',')]
+                        _write_xyz_index(
+                            data_dir, slug + '_xyz', zmin, zmax,
+                            _bb if len(_bb) == 4 else None,
+                            title=layer.name())
+                    except Exception:  # nosec B110  # 設計上の許容
+                        pass
+                    tiles_out.append({
+                        'name': layer.name(), 'url': url,
+                        'type': 'xyz', 'baked': just_baked,
+                        'tiles': n_tiles})
+                    # データ行は照会用に off で引き続き出力
+                    vis_flag = 'off'
+                else:
+                    warnings.append(
+                        '{0}: XYZ焼き付け失敗のためベクター出力へ'.format(
+                            layer.name()))
+
             # fields/where/limit 指定は .kasc 行オプションでは表現できず
             # 出力データへ焼き込む必要があるためベクター変換へ回す
             # (ネイティブ参照のままでは選択・絞り込みが反映されない)
@@ -4186,6 +5086,7 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
                 attr = _attribution(layer)
                 if attr:
                     line += ' | attr={0}'.format(_kasc_escape(attr))
+                line += site_opt
                 if where_val:
                     line += ' | where={0}'.format(where_val)
                 layers_out.append({
@@ -4207,34 +5108,56 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
                 drv, out_ext, out_kind = _fallback_driver()
             out_path = os.path.join(data_dir, slug + out_ext)
             written = feat_count
+            # 変換形式でも subsetString は where-eval 対応式なら where=
+            # として引き継ぐ(全地物を出力し Canvas 側で絞り込み・
+            # フィルタタブで値を再列挙できる。非対応式は従来通り
+            # データへ焼き込む)
+            subset_raw = _subset_raw(layer)
+            subset_where = None
+            if subset_raw and _subset_eval_ok(subset_raw):
+                subset_where = _subset_filter(layer)
             if (changed is None
                     or (kinds or {}).get('data')
                     or not os.path.isfile(out_path)):
+                if subset_where:
+                    try:
+                        layer.setSubsetString('')
+                    except Exception:  # nosec B110  # 設計上の許容
+                        subset_where = None
                 try:
-                    written = _export_vector(
-                        layer, out_path, fields=f_sel, where=w_sel,
-                        limit=l_sel, driver=drv)
-                except Exception as e:
-                    # FlatGeobuf/Parquet で失敗した場合は GeoJSON で再試行
-                    if drv != 'GeoJSON':
-                        warnings.append(
-                            '{0}: {1} 変換失敗({2})のため GeoJSON へ'
-                            .format(layer.name(), drv, e))
-                        drv, out_ext, out_kind = \
-                            'GeoJSON', '.geojson', 'geojson'
-                        out_path = os.path.join(data_dir, slug + out_ext)
-                        try:
-                            written = _export_vector(
-                                layer, out_path, fields=f_sel, where=w_sel,
-                                limit=l_sel, driver=drv)
-                        except Exception as e2:
+                    try:
+                        written = _export_vector(
+                            layer, out_path, fields=f_sel, where=w_sel,
+                            limit=l_sel, driver=drv)
+                    except Exception as e:
+                        # FlatGeobuf/Parquet で失敗した場合は GeoJSON で再試行
+                        if drv != 'GeoJSON':
+                            warnings.append(
+                                '{0}: {1} 変換失敗({2})のため GeoJSON へ'
+                                .format(layer.name(), drv, e))
+                            drv, out_ext, out_kind = \
+                                'GeoJSON', '.geojson', 'geojson'
+                            out_path = os.path.join(data_dir, slug + out_ext)
+                            try:
+                                written = _export_vector(
+                                    layer, out_path, fields=f_sel,
+                                    where=w_sel,
+                                    limit=l_sel, driver=drv)
+                            except Exception as e2:
+                                errors.append(
+                                    '{0}: geojson {1}'.format(
+                                        layer.name(), e2))
+                                continue
+                        else:
                             errors.append(
-                                '{0}: geojson {1}'.format(layer.name(), e2))
+                                '{0}: geojson {1}'.format(layer.name(), e))
                             continue
-                    else:
-                        errors.append(
-                            '{0}: geojson {1}'.format(layer.name(), e))
-                        continue
+                finally:
+                    if subset_where:
+                        try:
+                            layer.setSubsetString(subset_raw)
+                        except Exception:  # nosec B110  # 設計上の許容
+                            pass
             if not _geo_equiv_crs(layer):
                 warnings.append(
                     '{0}: CRS {1} を EPSG:4326 へ再投影'.format(
@@ -4252,11 +5175,15 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
             attr = _attribution(layer)
             attr_opt = ' | attr={0}'.format(
                 _kasc_escape(attr)) if attr else ''
-            kasc_lines.append(
+            line = (
                 '{7}: {0} | {9}{1}{8} | {2}{3}{4}{5}{6}'.format(
                     title, slug, vis_flag, style_opt, vopt,
                     _scale_vis_opt(layer), attr_opt, out_kind, out_ext,
-                    os.path.basename(data_dir) + '/'))
+                    os.path.basename(data_dir) + '/') + site_opt)
+            # where= は行の最終オプション(値は行末まで)
+            if subset_where:
+                line += ' | where={0}'.format(subset_where)
+            kasc_lines.append(line)
             emitted_ids.add(id(layer))
             ln_meta = _legend_node_line(tnode, title)
             if ln_meta:
@@ -4275,6 +5202,7 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
                 attr = _attribution(layer)
                 if attr:
                     line += ' | attr={0}'.format(_kasc_escape(attr))
+                line += site_opt
                 kasc_lines.append(line)
                 tiles_out.append({'name': layer.name(), 'url': vt_src['url'],
                                   'type': vt_src['kind']})
@@ -4291,6 +5219,7 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
                     attr = _attribution(layer)
                     if attr:
                         line += ' | attr={0}'.format(_kasc_escape(attr))
+                    line += site_opt
                     kasc_lines.append(line)
                     tiles_out.append({'name': layer.name(), 'url': ref,
                                       'type': '3dtiles'})
@@ -4368,6 +5297,7 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
                     attr = _attribution(layer)
                     if attr:
                         line += ' | attr={0}'.format(_kasc_escape(attr))
+                    line += site_opt
                     kasc_lines.append(line)
                     emitted_ids.add(id(layer))
                 tiles_out.append({'name': layer.name(), 'url': url,
@@ -4402,6 +5332,7 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
                     attr = _attribution(layer)
                     if attr:
                         line += ' | attr={0}'.format(_kasc_escape(attr))
+                    line += site_opt
                     kasc_lines.append(line)
                     tiles_out.append({'name': layer.name(), 'url': url,
                                       'type': 'wmts'})
@@ -4434,6 +5365,7 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
                     attr = _attribution(layer)
                     if attr:
                         line += ' | attr={0}'.format(_kasc_escape(attr))
+                    line += site_opt
                     kasc_lines.append(line)
                     tiles_out.append({'name': layer.name(), 'url': url,
                                       'type': 'wms'})
@@ -4469,6 +5401,7 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
                         if attr:
                             line += ' | attr={0}'.format(
                                 _kasc_escape(attr))
+                        line += site_opt
                         kasc_lines.append(line)
                         tiles_out.append({
                             'name': layer.name(),
@@ -4489,6 +5422,7 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
                         if attr:
                             line += ' | attr={0}'.format(
                                 _kasc_escape(attr))
+                        line += site_opt
                         kasc_lines.append(line)
                         tiles_out.append({'name': layer.name(), 'url': ref,
                                           'type': 'geotiff'})
@@ -4503,6 +5437,42 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
             progress_cb(_progress_total, _progress_total, '')
         except Exception:  # nosec B110  # UI通知の失敗で中断しない
             pass
+
+    # カスタムレイヤ: site= 付きレイヤが1件でも出力されていれば
+    # custom-layer プラグインJSを canvas_data/ へ複製し plugin: 行を出す
+    # (url= プロジェクト相対なので CDN/静的ホスティング・全エンジンで
+    # そのまま動く。site= レイヤが無ければタブ不要なので行も出さない)
+    if any(' | site=' in kl for kl in kasc_lines):
+        if _copy_site_control_plugin(data_dir, warnings):
+            # Filter タブの選択状態を filter_* オプションとして付ける
+            # (Canvas「フィルタ」タブの初期選択。適用済みフィルタ自体は
+            # 各レイヤ行の where= で引き継がれる)
+            fs = _filter_panel_state or {}
+            plugin_opts = ''
+            if fs.get('site'):
+                plugin_opts += ' | filter_site={0}'.format(
+                    _kasc_escape(fs['site']))
+            if fs.get('field'):
+                plugin_opts += ' | filter_field={0}'.format(
+                    _kasc_escape(fs['field']))
+            if fs.get('multi'):
+                plugin_opts += ' | filter_multi=on'
+            if fs.get('op'):
+                plugin_opts += ' | filter_op={0}'.format(
+                    _kasc_escape(fs['op']))
+            if fs.get('multi'):
+                vals = [_kasc_escape(v) for v in fs.get('values') or []
+                        if str(v) != '']
+                if vals:
+                    plugin_opts += ' | filter_values={0}'.format(
+                        ','.join(vals))
+            elif str(fs.get('value') or '') != '':
+                plugin_opts += ' | filter_value={0}'.format(
+                    _kasc_escape(fs['value']))
+            kasc_lines.append(
+                'plugin: custom-layer | name=レイヤ | '
+                'url=canvas_data/custom-layer.js | before=layers-panel'
+                + plugin_opts)
 
     cam = _camera_line(iface)
     bookmark_count = 0
@@ -4526,8 +5496,13 @@ def export_kasugai_project(iface, out_dir=None, visible_only=True,
     # 非表示は | off 付きで後ろへ(先頭が Canvas の既定ベースマップ)
     ordered_group_bases = [line for vis, line in group_bases if vis] + \
         [line for vis, line in group_bases if not vis]
-    # QGIS 側で表示中の XYZ があれば既定ベースマップとして先頭に置く
-    bases = ([detected_base] if detected_base else []) + \
+    # QGIS 側で表示中の XYZ があれば既定ベースマップとして先頭に置く。
+    # 表示中が無い(全候補 | off)場合は「ベースマップなし」モード行を
+    # 出し、既定候補が勝手に選択されるのを防ぐ
+    no_base = [] if (detected_base or
+                     any(v for v, _l in group_bases)) \
+        else ['base: ベースマップなし | none']
+    bases = no_base + ([detected_base] if detected_base else []) + \
         ordered_group_bases + default_bases
     header = [
         '# Exported from QGIS geo_webview -> KASUGAI Canvas',
@@ -4838,6 +5813,12 @@ def find_kasugai_web_dir():
     ``<install>/server/web`` も見る。``web/index.html`` が存在する
     場合のみ絶対パスを返す（見つからなければ None）。
     """
+    try:
+        explicit = local_channel_web_dir()
+    except Exception:  # nosec B110  # 判定失敗は自動検出へ
+        explicit = None
+    if explicit:
+        return explicit
     cands = []
     exe = find_kasugai_exe()
     if exe:

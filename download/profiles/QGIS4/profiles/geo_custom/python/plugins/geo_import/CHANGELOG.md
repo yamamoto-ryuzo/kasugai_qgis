@@ -1,3 +1,34 @@
+2.10.18 再アップロード用バージョンバンプ
+- plugins.qgis.org では同一バージョン番号の再登録が不可のためパッチバンプ。内容は 2.10.17 のスキャン対応修正と同一
+
+2.10.17 メイン/設定ダイアログの非ブロッキング化(AI制御経路のデッドロック解消)
+- plugins.qgis.org スキャン対応: resources_rc.py(生成コード)の
+  try/except/pass に `# nosec B110` をインライン付与。スキャナ設定
+  ファイル(.bandit/.flake8)はサイト側 -t 指定との衝突回避のため
+  ZIP非同梱へ方針転換
+- geo_import_main.py: run() の GeoImportDialog と設定不備時の
+  GeoImportDialogSettings、および open_settings() の
+  GeoImportDialogSettings が dlg.exec() でGUIスレッドを占有し、
+  bridge/AI経路(bridge_call/action trigger)からの呼出が
+  ダイアログを閉じるまで応答しない問題を解消(ai-chat検証 ISSUE-1)
+- run(): メインダイアログ生成を _open_main_dialog() へ分離し
+  show()+finished シグナルで isopen フラグを管理(bridge openDialog
+  と同構造)。設定不備時は設定ダイアログを open() で非ブロッキング
+  表示し、accepted 後に QTimer.singleShot でメインへ続く
+- open_settings(): exec()→open() 化し _settings_dlg で二重起動防止。
+  既に開いていれば raise_/activateWindow で前面化のみ
+- Qt6対応: WA_DeleteOnClose は Qt.WidgetAttribute 列挙子で指定
+2.10.16 URLエンコード名リソースのダウンロード失敗を修正
+- ckanconnector.py: __file_name_from_service でURL由来のファイル名を
+  unquote して実名化し、%2F/%5C 由来のパストラバーサル防止のため
+  basename 化。S3等のパーセントエンコード名(日本語名)が長大化して
+  MAX_PATH 超過し FileNotFoundError(HTTP500相当のDL失敗)になる問題を解消
+- ckanconnector.py: download_resource のファイル書込みに win32 長パス時
+  UNC(\\?\)プレフィックス付与を追加(create_dir と同等の対策)
+- ckanconnector.py: delete=True かつファイル不存在時の os.remove が
+  FileNotFoundError になっていたのを exists ガードで修正
+- geo_import_dialog.py: dest_file 生成時にURLエンコード名を unquote+
+  basename 化
 2.10.15 qrcリソースモジュール解放によるQGISクラッシュ(access violation)の予防修正
 - resources_rc.py: qRegisterResourceData は登録バッファをコピーせず
   ポインタ保持するため、プラグインのリロード/unloadでモジュールが
