@@ -3,6 +3,16 @@
 このプラグインの変更履歴。Keep a Changelog 準拠。
 バージョンは `metadata.txt` の `version` と同期させる。
 
+## [1.0.6] - 2026-11-24
+
+### Fixed
+
+- QGIS 終了時の `unload()` で access violation になるクラッシュ報告
+  (旧ID `qgis_live_driver` 0.15.3 の `self._hot_menu.menuAction()`)を
+  受けた再発行。新版では 1.0.1 の `_qt_dead` 判定 + 遅延除去で
+  防御済みのためコード変更はなく、旧IDプラグインの残置が
+  原因であることを確認・除去した環境での検証済みリリース
+
 ## [1.0.5] - 2026-11-24
 
 ### Fixed

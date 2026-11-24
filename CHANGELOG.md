@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.8.2] - 2026-11-24
+
+### Changed
+- 同梱 geo_custom プロファイルの Harness プラグインを最新へ同期（geo_driver 1.0.5→1.0.6。コード変更なしの再発行版で、旧ID `qgis_live_driver` 残置による QGIS 終了時クラッシュの検証済みリリース）。プロファイル同梱物の変更のため本リリースは full update（update.json `full=true`）
+
 ## [2.8.1] - 2026-11-24
 
 ### Fixed
